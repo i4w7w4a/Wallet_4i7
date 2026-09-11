@@ -1,0 +1,26 @@
+# Local agent and visual brainstorming state
+.superpowers/
+
+# Dependencies and build output
+node_modules/
+.next/
+dist/
+build/
+target/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs and test artifacts
+*.log
+coverage/
+playwright-report/
+test-results/
