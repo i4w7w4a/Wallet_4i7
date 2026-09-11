@@ -1,5 +1,6 @@
 # Local agent and visual brainstorming state
 .superpowers/
+.worktrees/
 
 # Dependencies and build output
 node_modules/
