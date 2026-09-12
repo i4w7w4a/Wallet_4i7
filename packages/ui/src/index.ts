@@ -12,4 +12,10 @@ export { HeroVideo } from "./media/hero-video";
 export { Dashboard } from "./dashboard/dashboard";
 export { type DashboardAction } from "./dashboard/quick-actions";
 export { type DashboardSection } from "./dashboard/bottom-navigation";
+export {
+  VISUAL_EFFECTS_STORAGE_KEY,
+  VisualEffectsProvider,
+  useVisualEffects,
+  type VisualEffectsController,
+} from "./appearance/visual-effects-provider";
 export type { PreferenceStorage, ThemeConfig } from "@wallet/core";
