@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PreferenceStorage, WalletSnapshot } from "@wallet/core";
 import type { PlatformBridge } from "@wallet/platform";
 
+import { VisualEffectsProvider } from "../appearance/visual-effects-provider";
+import type { VisualRuntimeCapabilities } from "../appearance/wallet-visual-layer";
 import { ThemeProvider } from "../theme/theme-provider";
 import { Dashboard } from "./dashboard";
 
@@ -52,7 +54,14 @@ const SNAPSHOT: WalletSnapshot = {
   ],
 };
 
-const VIDEO = { active: true, reducedMotion: false, saveData: false };
+const RUNTIME: VisualRuntimeCapabilities = {
+  hostActive: true,
+  documentVisible: true,
+  reducedMotion: false,
+  reducedTransparency: false,
+  saveData: false,
+  coarsePointer: true,
+};
 
 afterEach(() => {
   cleanup();
@@ -60,8 +69,6 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
-  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
   window.matchMedia = () => createMediaQueryList(false);
   Object.defineProperty(window.CSS, "supports", {
     configurable: true,
@@ -74,8 +81,15 @@ describe("Dashboard", () => {
     const platform = createPlatformHarness();
     renderDashboard(platform.bridge);
 
+    expect(document.querySelector("[data-wallet-visual-layer]")).toBeInTheDocument();
+    expect(document.querySelectorAll("canvas[data-web-threads]")).toHaveLength(0);
+    expect(document.querySelector("[data-visual-fallback]")).toBeInTheDocument();
+    expect(document.querySelector("video")).not.toBeInTheDocument();
+    expect(document.querySelector(".wallet-dashboard__foreground")).toBeInTheDocument();
     expect(screen.getByText("Демо пользователь")).toBeVisible();
-    expect(screen.getByRole("region", { name: "Баланс" })).toBeVisible();
+    const balance = screen.getByRole("region", { name: "Баланс" });
+    expect(balance).toBeVisible();
+    expect(balance).not.toHaveClass("dashboard-card");
     for (const period of ["1Д", "1Н", "1М", "1Г", "Всё"]) {
       expect(screen.getByRole("button", { name: period })).toBeVisible();
     }
@@ -83,9 +97,15 @@ describe("Dashboard", () => {
     for (const action of ["Отправить", "Получить", "Обменять", "Купить"]) {
       expect(within(quickActions).getByRole("button", { name: action })).toBeVisible();
     }
-    expect(screen.getByRole("region", { name: "Обмен" })).toBeVisible();
-    expect(screen.getByRole("region", { name: "Активы" })).toBeVisible();
-    expect(screen.getByRole("region", { name: "Портфель" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Обмен" })).toHaveAttribute(
+      "data-spotlight",
+    );
+    expect(screen.getByRole("region", { name: "Активы" })).toHaveAttribute(
+      "data-spotlight",
+    );
+    expect(screen.getByRole("region", { name: "Портфель" })).toHaveAttribute(
+      "data-spotlight",
+    );
 
     const navigation = screen.getByRole("navigation", { name: "Основная навигация" });
     for (const section of ["Главная", "Портфель", "Обзор", "Настройки"]) {
@@ -231,9 +251,13 @@ describe("Dashboard", () => {
 });
 
 function renderDashboard(platform: PlatformBridge) {
+  const storage = createMemoryStorage();
+
   return render(
-    <ThemeProvider storage={createMemoryStorage()}>
-      <Dashboard snapshot={SNAPSHOT} platform={platform} video={VIDEO} />
+    <ThemeProvider storage={storage}>
+      <VisualEffectsProvider storage={storage}>
+        <Dashboard snapshot={SNAPSHOT} platform={platform} runtime={RUNTIME} />
+      </VisualEffectsProvider>
     </ThemeProvider>,
   );
 }

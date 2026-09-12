@@ -2,8 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_THEME } from "@wallet/core";
-import { THEME_STORAGE_KEY } from "@wallet/ui";
+import { DEFAULT_THEME, DEFAULT_VISUAL_EFFECTS } from "@wallet/core";
+import { THEME_STORAGE_KEY, VISUAL_EFFECTS_STORAGE_KEY } from "@wallet/ui";
 
 import Page from "../app/page";
 
@@ -18,8 +18,7 @@ beforeEach(() => {
     configurable: true,
     value: "visible",
   });
-  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
-  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
 });
 
 afterEach(() => {
@@ -33,6 +32,12 @@ describe("страница miniapp", () => {
     render(await Page());
 
     expect(await screen.findByRole("region", { name: "Баланс" })).toBeVisible();
+    expect(document.querySelector("[data-wallet-visual-layer]")).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(document.querySelector("[data-visual-fallback]")).toBeInTheDocument();
+    expect(document.querySelector("video")).not.toBeInTheDocument();
     expect(screen.getByText("Holder")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Получить" }));
     expect(screen.getByRole("dialog", { name: "Получить" })).toBeVisible();
@@ -52,8 +57,7 @@ describe("страница miniapp", () => {
     });
   });
 
-  it("останавливает hero-видео, когда вкладка становится скрытой", async () => {
-    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause");
+  it("останавливает Web Threads, когда вкладка становится скрытой", async () => {
     render(await Page());
     await screen.findByRole("region", { name: "Баланс" });
 
@@ -63,7 +67,46 @@ describe("страница miniapp", () => {
     });
     document.dispatchEvent(new Event("visibilitychange"));
 
-    await waitFor(() => expect(pause).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(document.querySelector("[data-wallet-visual-layer]")).toHaveAttribute(
+        "data-active",
+        "false",
+      );
+    });
+  });
+
+  it("использует fallback при reduced motion и saveData, сохраняя действия доступными", async () => {
+    window.matchMedia = (query: string) =>
+      createMediaQueryList(query, query === "(prefers-reduced-motion: reduce)");
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: { saveData: true },
+    });
+
+    render(await Page());
+    await screen.findByRole("region", { name: "Баланс" });
+
+    expect(document.querySelector("[data-wallet-visual-layer]")).toHaveAttribute(
+      "data-active",
+      "false",
+    );
+    expect(document.querySelector("[data-visual-fallback]")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Получить" }));
+    expect(screen.getByRole("dialog", { name: "Получить" })).toBeVisible();
+  });
+
+  it("восстанавливает visual preset независимо от темы", async () => {
+    window.localStorage.setItem(
+      VISUAL_EFFECTS_STORAGE_KEY,
+      JSON.stringify({ ...DEFAULT_VISUAL_EFFECTS, threadCount: 9 }),
+    );
+
+    render(await Page());
+    await screen.findByRole("region", { name: "Баланс" });
+    fireEvent.click(screen.getByRole("button", { name: "Студия темы" }));
+    fireEvent.click(screen.getByText("Web Threads Lab"));
+
+    expect(screen.getByLabelText("Количество нитей")).toHaveValue("9");
   });
 
   it("определяет Telegram bridge и показывает пользователя host", async () => {
