@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PreferenceStorage } from "@wallet/core";
+import { DEFAULT_THEME, type PreferenceStorage } from "@wallet/core";
 
 import { ThemeProvider } from "../theme/theme-provider";
 import { ActionButton } from "./action-button";
@@ -177,6 +177,24 @@ describe("BottomSheet", () => {
     );
 
     expect(screen.getByRole("dialog", { name: "Купить" })).toHaveAttribute("data-motion", "fade");
+  });
+
+  it("масштабирует расстояние появления через motionIntensity", () => {
+    const storage = createMemoryStorage({
+      "wallet4i7.theme.v1": JSON.stringify({ ...DEFAULT_THEME, motionIntensity: 0.2 }),
+    });
+
+    render(
+      <ThemeProvider storage={storage}>
+        <BottomSheet open title="Получить" onClose={() => undefined}>
+          форма
+        </BottomSheet>
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByRole("dialog", { name: "Получить" })).toHaveStyle({
+      transform: "translateY(20%)",
+    });
   });
 });
 

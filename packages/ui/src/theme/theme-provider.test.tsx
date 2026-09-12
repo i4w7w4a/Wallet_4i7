@@ -186,6 +186,27 @@ describe("Theme Studio", () => {
     expect(screen.queryByRole("dialog", { name: "Студия темы" })).not.toBeInTheDocument();
     expect(opener).toHaveFocus();
   });
+
+  it("удерживает фокус внутри модальной панели", () => {
+    render(
+      <ThemeProvider storage={createMemoryStorage()}>
+        <button type="button">Снаружи</button>
+        <ThemeStudio open onClose={() => undefined} />
+      </ThemeProvider>,
+    );
+
+    const studio = screen.getByRole("dialog", { name: "Студия темы" });
+    const close = within(studio).getByRole("button", { name: "Закрыть" });
+    const reset = within(studio).getByRole("button", { name: "Сбросить тему" });
+
+    reset.focus();
+    fireEvent.keyDown(studio, { key: "Tab" });
+    expect(close).toHaveFocus();
+
+    close.focus();
+    fireEvent.keyDown(studio, { key: "Tab", shiftKey: true });
+    expect(reset).toHaveFocus();
+  });
 });
 
 function ThemeControls() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, type HTMLAttributes } from "react";
+import { createContext, useContext, useSyncExternalStore, type HTMLAttributes } from "react";
 
 import "./primitives.css";
 
@@ -14,7 +14,7 @@ export function GlassSurface(
 ) {
   const { variant = "regular", interactive = false, className, children, ...rest } = props;
   const nested = useContext(GlassNestingContext);
-  const backdropSupported = useMemo(() => supportsBackdropBlur(), []);
+  const backdropSupported = useSyncExternalStore(noopSubscribe, supportsBackdropBlur, () => false);
   const classNames = ["glass-surface", className].filter(Boolean).join(" ");
 
   if (nested) {
@@ -38,6 +38,10 @@ export function GlassSurface(
       </div>
     </GlassNestingContext.Provider>
   );
+}
+
+function noopSubscribe() {
+  return () => undefined;
 }
 
 function supportsBackdropBlur(): boolean {

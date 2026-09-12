@@ -59,6 +59,26 @@ export function ThemeStudio(props: { open: boolean; onClose(): void }) {
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const nodes = getFocusable(panelRef.current);
+      if (nodes.length === 0) {
+        return;
+      }
+
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
 
@@ -130,6 +150,16 @@ export function ThemeStudio(props: { open: boolean; onClose(): void }) {
       </button>
     </div>
   );
+}
+
+function getFocusable(root: HTMLElement | null): HTMLElement[] {
+  if (!root) {
+    return [];
+  }
+
+  return [...root.querySelectorAll<HTMLElement>(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  )].filter((element) => element.getAttribute("aria-hidden") !== "true");
 }
 
 function toColorInputValue(hex: string): string {

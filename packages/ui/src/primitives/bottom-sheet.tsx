@@ -22,7 +22,7 @@ export function BottomSheet(props: {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const motionMode = fade ? "fade" : "spatial";
-  const yOffset = `${Math.round(100 * Math.max(theme.motionIntensity, 0.4))}%`;
+  const yOffset = `${Math.round(100 * theme.motionIntensity)}%`;
 
   useEffect(() => {
     if (!open) {
