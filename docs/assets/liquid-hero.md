@@ -4,7 +4,7 @@
 
 Оригинал передан под именем `2026-09-12T00-17-22_generation.mp4`. На машине
 кодирования он был доступен как
-`C:\Users\win11\Downloads\2026-09-12T00-17-22_generation.mp4` и сохранён в
+`C:\Users\iwwa\Downloads\2026-09-12T00-17-22_generation.mp4` и сохранён в
 репозитории как `assets/source/liquid-hero-source.mp4`. Файл в `Downloads` при
 этом не изменялся.
 

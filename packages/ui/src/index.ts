@@ -8,4 +8,5 @@ export { ThemeStudio } from "./theme/theme-studio";
 export { GlassSurface } from "./primitives/glass-surface";
 export { ActionButton } from "./primitives/action-button";
 export { BottomSheet } from "./primitives/bottom-sheet";
+export { HeroVideo } from "./media/hero-video";
 export type { PreferenceStorage, ThemeConfig } from "@wallet/core";
