@@ -74,10 +74,11 @@ describe("BottomNavigation", () => {
     for (const [section, label] of SECTIONS) {
       const button = screen.getByRole("button", { name: label });
       expect(navigation).toContainElement(button);
-      expect(button).toHaveAttribute(
-        "aria-current",
-        section === "portfolio" ? "page" : null,
-      );
+      if (section === "portfolio") {
+        expect(button).toHaveAttribute("aria-current", "page");
+      } else {
+        expect(button).not.toHaveAttribute("aria-current");
+      }
       fireEvent.click(button);
       expect(onSectionChange).toHaveBeenLastCalledWith(section);
     }
@@ -177,7 +178,7 @@ describe("SectionPlaceholder", () => {
 
 describe("dashboard-controls.css", () => {
   it("использует mobile-first touch targets и существующие токены темы", () => {
-    const css = readFileSync(new URL("./dashboard-controls.css", import.meta.url), "utf8");
+    const css = readFileSync("src/dashboard/dashboard-controls.css", "utf8");
 
     expect(css).toMatch(/min-height:\s*44px/);
     expect(css).toContain("--radius");
