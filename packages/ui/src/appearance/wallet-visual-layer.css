@@ -19,11 +19,13 @@
 }
 
 .wallet-visual-layer__mask {
-  background: radial-gradient(circle at 72% 18%, transparent 0 24%, rgb(5 7 11 / 42%) 74%);
+  background:
+    radial-gradient(circle at 78% 20%, transparent 0 13%, rgb(5 7 11 / 36%) 34%, rgb(5 7 11 / 86%) 76%),
+    linear-gradient(90deg, rgb(5 7 11 / 78%) 0 30%, transparent 78%);
 }
 
 .wallet-visual-layer__scrim {
-  background: linear-gradient(180deg, rgb(5 7 11 / 8%), rgb(5 7 11 / 68%));
+  background: linear-gradient(180deg, rgb(5 7 11 / 24%), rgb(5 7 11 / 72%) 58%, rgb(5 7 11 / 92%));
 }
 
 .wallet-visual-layer__noise {

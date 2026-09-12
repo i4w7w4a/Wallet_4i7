@@ -13,6 +13,7 @@ import "./spotlight-surface.css";
 
 type SpotlightSurfaceProps = PropsWithChildren<{
   as?: "section" | "article" | "div";
+  "aria-label"?: string;
   className?: string;
   finePointer: boolean;
   spotlightColor?: string;
@@ -21,6 +22,7 @@ type SpotlightSurfaceProps = PropsWithChildren<{
 export function SpotlightSurface(props: SpotlightSurfaceProps): ReactElement {
   const {
     as: Tag = "div",
+    "aria-label": ariaLabel,
     children,
     className,
     finePointer,
@@ -45,6 +47,7 @@ export function SpotlightSurface(props: SpotlightSurfaceProps): ReactElement {
         rootRef.current = node;
       }}
       className={["wallet-spotlight", className].filter(Boolean).join(" ")}
+      aria-label={ariaLabel}
       data-spotlight={finePointer ? "enabled" : "disabled"}
       onPointerMove={finePointer ? onPointerMove : undefined}
     >

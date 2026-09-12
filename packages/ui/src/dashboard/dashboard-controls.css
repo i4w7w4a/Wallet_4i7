@@ -12,7 +12,7 @@
   min-width: 0;
 }
 
-.wallet-controls__action {
+.wallet-controls__action-grid .wallet-controls__action {
   width: 100%;
   min-width: 44px;
   min-height: 82px;
@@ -27,12 +27,18 @@
     border-color calc(160ms * var(--motion-intensity, 1)) ease;
 }
 
+.wallet-controls__action-grid .wallet-controls__action .glass-action__label {
+  top: calc(100% + 5px);
+  color: var(--color-text-primary);
+  font-size: clamp(0.66rem, 2.8vw, 0.76rem);
+}
+
 .wallet-controls__action svg {
   color: var(--color-accent);
   filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-accent) 38%, transparent));
 }
 
-.wallet-controls__action:active {
+.wallet-controls__action-grid .wallet-controls__action:active {
   transform: translateY(1px) scale(calc(1 - 0.02 * var(--motion-intensity, 1)));
 }
 
@@ -174,7 +180,7 @@
     gap: 5px;
   }
 
-  .wallet-controls__action {
+  .wallet-controls__action-grid .wallet-controls__action {
     min-height: 76px;
   }
 }

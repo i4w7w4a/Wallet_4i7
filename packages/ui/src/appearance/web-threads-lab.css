@@ -18,11 +18,11 @@
 }
 
 .web-threads-lab__range input,
-.web-threads-lab__range output {
+.web-threads-lab__value {
   min-width: 0;
 }
 
-.web-threads-lab__range output {
+.web-threads-lab__value {
   color: var(--color-text-muted);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;

@@ -82,7 +82,9 @@ export function WebThreadsLab() {
               value={effects[key]}
               onChange={(event) => setNumber(key, event)}
             />
-            <output>{effects[key]}</output>
+            <span className="web-threads-lab__value" aria-hidden="true">
+              {effects[key]}
+            </span>
           </label>
         ))}
       </div>

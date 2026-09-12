@@ -69,6 +69,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   window.matchMedia = () => createMediaQueryList(false);
   Object.defineProperty(window.CSS, "supports", {
     configurable: true,

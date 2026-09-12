@@ -36,8 +36,8 @@ function AnimatedAmount(props: WalletCountUpProps) {
   const nodeRef = useRef<HTMLSpanElement>(null);
   const motionValue = useMotionValue(0);
   const springValue = useSpring(motionValue, {
-    damping: 20 + 40 * (1 / duration),
-    stiffness: 100 * (1 / duration),
+    visualDuration: duration,
+    bounce: 0,
   });
 
   useEffect(() => {

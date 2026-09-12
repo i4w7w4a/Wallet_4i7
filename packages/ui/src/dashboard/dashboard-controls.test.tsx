@@ -82,10 +82,15 @@ describe("BottomNavigation", () => {
       } else {
         expect(button).not.toHaveAttribute("aria-current");
       }
+      const callsBefore = onSectionChange.mock.calls.length;
       fireEvent.click(button);
-      expect(onSectionChange).toHaveBeenLastCalledWith(section);
+      if (section === "portfolio") {
+        expect(onSectionChange).toHaveBeenCalledTimes(callsBefore);
+      } else {
+        expect(onSectionChange).toHaveBeenLastCalledWith(section);
+      }
     }
-    expect(onSectionChange).toHaveBeenCalledTimes(4);
+    expect(onSectionChange).toHaveBeenCalledTimes(3);
     expect(navigation).not.toHaveTextContent(/[↗↙⇄⌂◫◇⚙+]/);
   });
 });

@@ -48,6 +48,7 @@ export function BalanceHero(props: {
                   locale="ru-RU"
                   currency={balance.currency}
                   reducedMotion={reducedMotion}
+                  duration={0.42}
                 />
               )}
             </p>

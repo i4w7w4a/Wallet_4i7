@@ -25,6 +25,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   Reflect.deleteProperty(window, "Telegram");
+  Reflect.deleteProperty(navigator, "connection");
 });
 
 describe("страница miniapp", () => {
@@ -92,7 +93,9 @@ describe("страница miniapp", () => {
     );
     expect(document.querySelector("[data-visual-fallback]")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Получить" }));
-    expect(screen.getByRole("dialog", { name: "Получить" })).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: "Получить" })).toBeVisible();
+    });
   });
 
   it("восстанавливает visual preset независимо от темы", async () => {

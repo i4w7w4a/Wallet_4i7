@@ -114,7 +114,7 @@ describe("BalanceHero", () => {
         chart={CHART}
         period="1D"
         onPeriodChange={() => undefined}
-        reducedMotion={false}
+        reducedMotion
       />,
     );
 

@@ -30,13 +30,13 @@ export function BottomNavigation(props: {
   }));
 
   return (
-    <nav className="wallet-controls__bottom-navigation" aria-label="Основная навигация">
+    <div className="wallet-controls__bottom-navigation">
       <WalletGooeyNav
         items={items}
         activeId={activeSection}
         onChange={onSectionChange}
         reducedMotion={reducedMotion}
       />
-    </nav>
+    </div>
   );
 }
