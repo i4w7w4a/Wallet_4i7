@@ -1,0 +1,53 @@
+# Сторонние компоненты
+
+## React Bits
+
+- Источник: https://github.com/DavidHDev/react-bits
+- Зафиксированный commit: `3a1c7f2f9f94ed833934ab5c2635760b9e644583`
+- Copyright (c) 2026 David Haz
+- Лицензия: MIT + Commons Clause License Condition v1.0
+- Условие: компоненты используются внутри Wallet_4i7 и не распространяются как отдельная библиотека.
+
+Используемые upstream-файлы:
+
+- `src/ts-default/Backgrounds/WebThreads/WebThreads.tsx` и `WebThreads.css`;
+- `src/ts-default/Components/GlassIcons/GlassIcons.tsx` и `GlassIcons.css`;
+- `src/ts-default/Components/SpotlightCard/SpotlightCard.tsx` и `SpotlightCard.css`;
+- `src/ts-default/TextAnimations/CountUp/CountUp.tsx`;
+- `src/ts-default/TextAnimations/GradientText/GradientText.tsx` и `GradientText.css`;
+- `src/ts-default/Animations/ClickSpark/ClickSpark.tsx`;
+- `src/ts-default/Components/GooeyNav/GooeyNav.tsx` и `GooeyNav.css`.
+
+Содержательные изменения Wallet_4i7: controlled callbacks, русская локализация,
+доступность, lifecycle/fallback, единая тема и ограничения мобильных ресурсов.
+Сырые React Bits-компоненты не экспортируются как самостоятельная библиотека.
+
+### Текст лицензии upstream
+
+```text
+MIT + Commons Clause License Condition v1.0
+
+Copyright (c) 2026 David Haz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, and distribute the Software **as part of an application, website, or product**, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+## Commons Clause Restriction
+
+You may use this Software, including for any commercial purpose, **so long as you do not sell, sublicense, or redistribute the components themselves-whether alone, in a bundle, or as a ported version.**
+
+## No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

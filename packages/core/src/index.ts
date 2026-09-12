@@ -19,3 +19,9 @@ export {
   type MockWalletRepositoryOptions,
 } from "./mock-wallet-repository";
 export type { WalletRepository } from "./wallet-repository";
+export {
+  DEFAULT_VISUAL_EFFECTS,
+  normalizeVisualEffects,
+  type ThreadFanMode,
+  type VisualEffectsConfig,
+} from "./visual-effects";
