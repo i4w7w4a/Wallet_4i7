@@ -23,6 +23,15 @@ importers:
 
   apps/miniapp:
     dependencies:
+      '@wallet/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@wallet/platform':
+        specifier: workspace:*
+        version: link:../../packages/platform
+      '@wallet/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       motion:
         specifier: 13.2.0
         version: 13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

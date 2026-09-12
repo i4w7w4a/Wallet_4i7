@@ -10,6 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@wallet/core": "workspace:*",
+    "@wallet/platform": "workspace:*",
+    "@wallet/ui": "workspace:*",
     "motion": "13.2.0",
     "next": "16.3.5",
     "react": "19.3.0",
