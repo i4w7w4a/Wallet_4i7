@@ -1,0 +1,49 @@
+/*
+Adapted for Wallet_4i7 from React Bits at commit
+3a1c7f2f9f94ed833934ab5c2635760b9e644583.
+Copyright (c) 2026 David Haz. MIT + Commons Clause License Condition v1.0.
+Upstream: src/ts-default/TextAnimations/GradientText/GradientText.css
+*/
+
+.wallet-gradient-text {
+  display: inline-block;
+  font-weight: 600;
+}
+
+.wallet-gradient-text--static {
+  color: var(--color-accent, #5b8cff);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+.wallet-gradient-text--animated {
+  color: transparent;
+  background-image: var(--gradient-image);
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: wallet-gradient-shimmer var(--gradient-speed, 8s) ease-in-out infinite alternate;
+}
+
+.wallet-gradient-text--animated[data-paused="true"] {
+  animation-play-state: paused;
+}
+
+@keyframes wallet-gradient-shimmer {
+  from {
+    background-position: 0% 50%;
+  }
+
+  to {
+    background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet-gradient-text--animated {
+    animation: none;
+    color: var(--color-accent, #5b8cff);
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
