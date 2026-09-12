@@ -1,0 +1,52 @@
+.theme-studio {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12px * var(--density, 1));
+  padding: calc(16px * var(--density, 1));
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 20px);
+}
+
+.theme-studio__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.theme-studio__header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.theme-studio__fields {
+  display: grid;
+  gap: calc(10px * var(--density, 1));
+}
+
+.theme-studio__field {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) 3rem minmax(3rem, auto);
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.theme-studio input[type="color"],
+.theme-studio input[type="range"],
+.theme-studio button {
+  min-height: 44px;
+}
+
+.theme-studio button:focus-visible,
+.theme-studio input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.theme-studio__value {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
