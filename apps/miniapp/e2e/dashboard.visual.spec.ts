@@ -244,13 +244,22 @@ async function exerciseDashboard(page: Page) {
 
   await page.getByRole("button", { name: "Портфель" }).click();
   await expect(page.locator('[data-dashboard-surface="content"]')).toBeVisible();
-  await page.waitForTimeout(140);
-  const particleOpacity = await page
-    .locator(".wallet-gooey-nav__particle.is-active")
-    .evaluateAll((particles) =>
-      Math.max(0, ...particles.map((particle) => Number.parseFloat(getComputedStyle(particle).opacity))),
-    );
-  expect(particleOpacity).toBeGreaterThan(0.05);
+  await expect
+    .poll(
+      () =>
+        page
+          .locator(".wallet-gooey-nav__particle.is-active")
+          .evaluateAll((particles) =>
+            Math.max(
+              0,
+              ...particles.map((particle) =>
+                Number.parseFloat(getComputedStyle(particle).opacity),
+              ),
+            ),
+          ),
+      { intervals: [25, 25, 50], timeout: 700 },
+    )
+    .toBeGreaterThan(0.05);
   await page.getByRole("button", { name: "Главная" }).click();
 
   await page.getByRole("button", { name: "Студия темы" }).click();
