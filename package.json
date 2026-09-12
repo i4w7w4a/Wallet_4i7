@@ -9,6 +9,7 @@
     "dev": "pnpm --filter @wallet/miniapp dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @wallet/miniapp test:e2e",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint ."
   },

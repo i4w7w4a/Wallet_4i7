@@ -19,6 +19,15 @@
 Только исходный MP4 хранится через Git LFS. Производные файлы находятся в
 `apps/miniapp/public/media/` и доступны в обычном checkout.
 
+## Использование на Dashboard
+
+Главная страница больше не загружает `liquid-hero.mp4` и
+`liquid-hero.webm`: единственный живой фон Dashboard создаёт Web Threads.
+Файл `liquid-hero-poster.avif` остаётся лёгким fallback при недоступном WebGL,
+`prefers-reduced-motion: reduce`, включённом `saveData` или временно неактивном
+host/document. Исходное видео и производные video-файлы сохраняются как
+резервные assets для будущих сцен, но `<video>` на Dashboard не создаётся.
+
 ## Обработка
 
 Пайплайн оставляет основной фрагмент 0,60–8,15 с и добавляет шов длительностью
