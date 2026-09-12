@@ -5,4 +5,7 @@ export {
   type ThemeController,
 } from "./theme/theme-provider";
 export { ThemeStudio } from "./theme/theme-studio";
+export { GlassSurface } from "./primitives/glass-surface";
+export { ActionButton } from "./primitives/action-button";
+export { BottomSheet } from "./primitives/bottom-sheet";
 export type { PreferenceStorage, ThemeConfig } from "@wallet/core";
