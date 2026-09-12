@@ -23,6 +23,7 @@
 - `prefers-reduced-motion`, `saveData`, неактивный host, скрытая вкладка и ошибка WebGL2 включают статический fallback.
 - `prefers-reduced-transparency` отключает `backdrop-filter` и заменяет glass непрозрачной surface.
 - Интерактивные цели имеют размер не менее 44×44 px, русские accessible names и видимый `:focus-visible`.
+- В action/header/navigation controls запрещены Unicode/emoji icons; используется собственный SVG-набор Wallet_4i7 на сетке 24×24, без новой icon runtime-зависимости.
 - Финансовые операции остаются демонстрационными; существующие sheets, Telegram Back Button, поиск, уведомления и смена разделов не регрессируют.
 - GitHub-коммиты, Issue/PR-тексты и новая проектная документация пишутся на русском.
 
@@ -48,6 +49,7 @@
 - `packages/ui/src/react-bits/web-threads/web-threads.css` — canvas layout.
 - `packages/ui/src/react-bits/web-threads/web-threads.test.tsx` — один context, update без recreation, pause и dispose.
 - `packages/ui/src/react-bits/glass-action/glass-action.tsx` и `.css` — контролируемая адаптация GlassIcons.
+- `packages/ui/src/icons/wallet-icon.tsx`, `wallet-icon.css` и `wallet-icon.test.tsx` — единый SVG-набор из двенадцати резких промо-иконок.
 - `packages/ui/src/react-bits/spotlight-surface/spotlight-surface.tsx` и `.css` — surface с fine-pointer spotlight.
 - `packages/ui/src/react-bits/wallet-count-up/wallet-count-up.tsx` — locale/currency адаптация CountUp.
 - `packages/ui/src/react-bits/gradient-text/gradient-text.tsx` и `.css` — короткий animated accent.
@@ -712,6 +714,9 @@ git commit -m "feat(ui): добавить живые content-эффекты"
 ### Task 6: Создать glass actions, sparks и controlled gooey navigation
 
 **Files:**
+- Create: `packages/ui/src/icons/wallet-icon.tsx`
+- Create: `packages/ui/src/icons/wallet-icon.css`
+- Create: `packages/ui/src/icons/wallet-icon.test.tsx`
 - Create: `packages/ui/src/react-bits/glass-action/glass-action.tsx`
 - Create: `packages/ui/src/react-bits/glass-action/glass-action.css`
 - Create: `packages/ui/src/react-bits/click-spark/click-spark.tsx`
@@ -722,11 +727,11 @@ git commit -m "feat(ui): добавить живые content-эффекты"
 
 **Interfaces:**
 - Consumes: React nodes/callbacks и Theme CSS variables.
-- Produces: keyboard-safe `GlassAction`, event-driven `ClickSpark`, controlled `WalletGooeyNav<T>`.
+- Produces: `WalletIcon`, keyboard-safe `GlassAction`, event-driven `ClickSpark`, controlled `WalletGooeyNav<T>`.
 
-- [ ] **Step 1: Расширить failing tests**
+- [ ] **Step 1: Написать failing tests SVG-системы и расширить adapter tests**
 
-Проверить `GlassAction` click/Enter и 44 px class contract; ClickSpark не запрашивает RAF до pointer activation, создаёт один canvas и отменяет RAF при unmount; nav вызывает callback один раз и синхронизирует external active id.
+В `wallet-icon.test.tsx` отрендерить все имена `send|receive|swap|buy|search|notifications|appearance|home|portfolio|explore|settings|eye` и для каждого проверить ровно один `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">`, отсутствие text nodes и отсутствие `transform: scale()` на SVG. Проверить `GlassAction` click/Enter и 44 px class contract; ClickSpark не запрашивает RAF до pointer activation, создаёт один canvas и отменяет RAF при unmount; nav вызывает callback один раз и синхронизирует external active id.
 
 ```tsx
 const onChange = vi.fn();
@@ -772,6 +777,17 @@ type GlassActionProps = {
   className?: string;
 };
 
+export type WalletIconName =
+  | "send" | "receive" | "swap" | "buy"
+  | "search" | "notifications" | "appearance" | "eye"
+  | "home" | "portfolio" | "explore" | "settings";
+
+type WalletIconProps = {
+  name: WalletIconName;
+  size?: 20 | 24 | 28;
+  className?: string;
+};
+
 type ClickSparkProps = PropsWithChildren<{
   color: string;
   reducedMotion: boolean;
@@ -788,14 +804,14 @@ type WalletGooeyNavProps<T extends string> = {
 };
 ```
 
-GlassAction сохраняет upstream front/back объём, но принимает callback и использует `button`. ClickSpark хранит sparks в ref и запускает RAF только если массив непуст; reduced motion вызывает children action без canvas animation. GooeyNav не содержит `href` или внутренний active state; положение indicator обновляется из `activeId`, particles создаются только после пользовательской смены, все timeout/RAF id хранятся в sets и очищаются на unmount.
+`WalletIcon` выбирает только заранее определённый JSX path/group, использует `fill="none"`, `stroke="currentColor"`, `strokeWidth={1.7}`, `strokeLinecap="round"`, `strokeLinejoin="round"`; отдельные filled accents допускаются только с `fill="currentColor"` и opacity. GlassAction сохраняет upstream front/back объём, но принимает callback и использует `button`. Его promo plate состоит из `glass-action__core`, `glass-action__lens` и `glass-action__rim`; icon располагается над ними без blur, чтобы штрихи оставались резкими. ClickSpark хранит sparks в ref и запускает RAF только если массив непуст; reduced motion вызывает children action без canvas animation. GooeyNav не содержит `href` или внутренний active state; положение indicator обновляется из `activeId`, particles создаются только после пользовательской смены, все timeout/RAF id хранятся в sets и очищаются на unmount.
 
 - [ ] **Step 4: Подтвердить GREEN без timer leaks**
 
 Run:
 
 ```bash
-pnpm --filter @wallet/ui test -- react-bits-adapters.test.tsx
+pnpm --filter @wallet/ui test -- wallet-icon.test.tsx react-bits-adapters.test.tsx
 pnpm --filter @wallet/ui typecheck
 ```
 
@@ -804,7 +820,7 @@ Expected: PASS; `vi.getTimerCount()` равен 0 после cleanup.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/ui/src/react-bits/glass-action packages/ui/src/react-bits/click-spark packages/ui/src/react-bits/wallet-gooey-nav packages/ui/src/react-bits/react-bits-adapters.test.tsx
+git add packages/ui/src/icons packages/ui/src/react-bits/glass-action packages/ui/src/react-bits/click-spark packages/ui/src/react-bits/wallet-gooey-nav packages/ui/src/react-bits/react-bits-adapters.test.tsx
 git commit -m "feat(ui): добавить liquid glass взаимодействия"
 ```
 

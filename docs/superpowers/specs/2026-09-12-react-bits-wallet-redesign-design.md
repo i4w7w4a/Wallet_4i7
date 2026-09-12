@@ -25,6 +25,7 @@ Registry: <https://reactbits.dev/r/{name}.json>
 - Web Threads формирует живую сцену всей страницы, а не отдельный декоративный баннер.
 - Баланс остаётся главным объектом первого экрана и читается поверх анимации при любой палитре.
 - Быстрые действия, header controls и нижняя навигация получают цельный React Bits-inspired glass-язык.
+- Все action/navigation icons заменяются собственным SVG-набором Wallet_4i7; Unicode-стрелки, `+`, emoji и системные глифы в финальном интерфейсе запрещены.
 - Основные четыре цвета темы сразу управляют фоном, стеклом, подсветкой карточек и акцентами.
 - Расширенные параметры Web Threads доступны пользователю в Theme Studio и применяются в реальном времени.
 - На мобильном устройстве существует не более одного WebGL-контекста и одного постоянного animation loop.
@@ -80,6 +81,18 @@ Registry: <https://reactbits.dev/r/{name}.json>
 | `GradientText-TS-CSS` | Короткие premium-акценты и статусы | Не применять к основному балансу или длинным текстам |
 | `ClickSpark-TS-CSS` | Тактильный визуальный отклик quick actions | Запуск только по явному действию; отключение при reduced motion |
 | `GooeyNav-TS-CSS` | Активный индикатор нижней навигации | Controlled API без `href`, семантика button/tab, cleanup таймеров |
+
+### 5.1. Иконографика Wallet_4i7
+
+Набор строится на сетке 24×24 с округлыми окончаниями, оптической толщиной
+штриха 1.7 px и единым visual weight. В первую итерацию входят `send`,
+`receive`, `swap`, `buy`, `search`, `notifications`, `appearance`, `home`,
+`portfolio`, `explore`, `settings` и `eye`. SVG использует `currentColor`,
+остаётся резким при DPR 1–3 и не требует отдельной runtime-зависимости.
+
+Quick actions получают трёхслойную promo-плашку: цветное ядро, прозрачную
+линзу и тонкий спектральный кант. Свет и press-state реагируют на тему;
+декоративные слои имеют `aria-hidden`, а accessible name остаётся на button.
 
 `AnimatedContent` не переносится в первой итерации: он требует GSAP и ScrollTrigger. Существующий `motion` покрывает entrance transitions без второй animation runtime.
 
@@ -199,6 +212,7 @@ apps/miniapp
 - Canvas декоративный: `aria-hidden="true"`, `pointer-events: none` вне режима интерактивного фона.
 - Интерактивность нити не является единственным способом выполнить действие.
 - Все quick actions и nav items остаются настоящими `button` с русскими accessible names.
+- SVG-иконки не содержат собственных accessible names и не дублируют подпись кнопки.
 - `prefers-reduced-motion` отключает CountUp, sparks, gooey particles, shimmer и пространственные transitions.
 - `prefers-reduced-transparency` заменяет glass на непрозрачные surfaces.
 - Текст сохраняет WCAG AA contrast на всех четырёх контрольных палитрах.
