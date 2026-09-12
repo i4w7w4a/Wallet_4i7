@@ -268,7 +268,36 @@ describe("createWebThreadsEngine", () => {
     expect(intersectionDisconnect).toHaveBeenCalledTimes(1);
     expect(oglMock.state.programRemove).toHaveBeenCalledTimes(1);
     expect(oglMock.state.geometryRemove).toHaveBeenCalledTimes(1);
-    expect(loseContext).toHaveBeenCalledTimes(1);
+    expect(loseContext).not.toHaveBeenCalled();
+  });
+
+  it("после dispose позволяет повторно создать движок на том же canvas", () => {
+    const canvas = document.createElement("canvas");
+    let contextAvailable = true;
+    const context = {
+      canvas,
+      clearColor: vi.fn(),
+      drawingBufferWidth: 300,
+      drawingBufferHeight: 150,
+      getExtension: vi.fn((name: string) =>
+        name === "WEBGL_lose_context"
+          ? { loseContext: () => (contextAvailable = false) }
+          : null,
+      ),
+    } as unknown as WebGL2RenderingContext;
+    Object.defineProperty(canvas, "getContext", {
+      value: vi.fn(() => (contextAvailable ? context : null)),
+    });
+    const unavailable = vi.fn();
+
+    const firstEngine = createWebThreadsEngine(canvas, createInput(unavailable));
+    firstEngine?.dispose();
+    const secondEngine = createWebThreadsEngine(canvas, createInput(unavailable));
+
+    expect(firstEngine).not.toBeNull();
+    expect(secondEngine).not.toBeNull();
+    expect(unavailable).not.toHaveBeenCalled();
+    secondEngine?.dispose();
   });
 
   it("останавливается при выходе из viewport и сообщает о context loss", () => {

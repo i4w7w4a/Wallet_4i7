@@ -347,7 +347,6 @@ export function createWebThreadsEngine(
       canvas.removeEventListener("webglcontextlost", onContextLost);
       program.remove();
       geometry.remove();
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
     },
   };
 
