@@ -59,7 +59,7 @@ export function ClickSpark(props: ClickSparkProps) {
         const eased = progress * (2 - progress);
         const distance = eased * 16;
         const length = 10 * (1 - eased);
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = resolveCanvasColor(canvas, color);
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(spark.x + distance * Math.cos(spark.angle), spark.y + distance * Math.sin(spark.angle));
@@ -138,4 +138,27 @@ export function ClickSpark(props: ClickSparkProps) {
       {children}
     </div>
   );
+}
+
+function resolveCanvasColor(host: HTMLElement, color: string): string {
+  const trimmed = color.trim();
+  const variable = trimmed.match(/^var\(\s*(--[A-Za-z0-9-]+)(?:\s*,\s*((?:[^)(]+|\([^)]*\))+))?\s*\)$/);
+  if (!variable) {
+    return trimmed;
+  }
+
+  let node: HTMLElement | null = host;
+  while (node) {
+    const inline = node.style.getPropertyValue(variable[1]).trim();
+    if (inline) {
+      return inline;
+    }
+    const computed = getComputedStyle(node).getPropertyValue(variable[1]).trim();
+    if (computed) {
+      return computed;
+    }
+    node = node.parentElement;
+  }
+
+  return variable[2]?.trim() || "#5b8cff";
 }

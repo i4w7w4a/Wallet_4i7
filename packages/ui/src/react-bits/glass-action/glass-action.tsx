@@ -36,13 +36,21 @@ export function GlassAction(props: GlassActionProps) {
       onClick={onAction}
       onKeyDown={onKeyDown}
     >
-      <span className="glass-action__back" aria-hidden="true" />
+      <span
+        className="glass-action__back"
+        aria-hidden="true"
+        style={{ ["--glass-action-transition" as string]: "transform" }}
+      />
       <span className="glass-action__front" aria-hidden="true">
         <span className="glass-action__core" />
         <span className="glass-action__lens" />
         <span className="glass-action__rim" />
       </span>
-      <span className="glass-action__icon" aria-hidden="true">
+      <span
+        className="glass-action__icon"
+        aria-hidden="true"
+        style={{ ["--glyph-filter" as string]: "none", ["--glyph-color" as string]: "#e8f4ff" }}
+      >
         {icon}
       </span>
       <span className="glass-action__label">{label}</span>

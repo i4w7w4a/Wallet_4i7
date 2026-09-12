@@ -57,6 +57,46 @@ describe("GradientText", () => {
     expect(screen.getByText("Swap smarter")).toHaveClass("wallet-gradient-text--static");
     expect(raf).not.toHaveBeenCalled();
   });
+
+  it("анимированный вариант использует CSS, а не постоянный JS RAF", () => {
+    const raf = vi.spyOn(window, "requestAnimationFrame");
+
+    render(
+      <GradientText reducedMotion={false} colors={["#5B8CFF", "#7C6CFF"]}>
+        Swap smarter
+      </GradientText>,
+    );
+
+    const node = screen.getByText("Swap smarter");
+    expect(node).toHaveClass("wallet-gradient-text--animated");
+    expect(node).not.toHaveClass("wallet-gradient-text--static");
+    expect(raf).not.toHaveBeenCalled();
+  });
+
+  it("останавливает shimmer при saveData, inactive и hidden", () => {
+    const { rerender } = render(
+      <GradientText reducedMotion={false} saveData>
+        Swap smarter
+      </GradientText>,
+    );
+    expect(screen.getByText("Swap smarter")).toHaveClass("wallet-gradient-text--static");
+
+    rerender(
+      <GradientText reducedMotion={false} active={false}>
+        Swap smarter
+      </GradientText>,
+    );
+    expect(screen.getByText("Swap smarter")).toHaveClass("wallet-gradient-text--static");
+
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    rerender(
+      <GradientText reducedMotion={false} active>
+        Swap smarter
+      </GradientText>,
+    );
+    expect(screen.getByText("Swap smarter")).toHaveAttribute("data-paused", "true");
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+  });
 });
 
 describe("GlassAction", () => {
@@ -78,6 +118,12 @@ describe("GlassAction", () => {
 
     fireEvent.keyDown(button, { key: "Enter" });
     expect(onAction).toHaveBeenCalledTimes(2);
+
+    const back = button.querySelector(".glass-action__back") as HTMLElement;
+    const icon = button.querySelector(".glass-action__icon") as HTMLElement;
+    expect(getComputedStyle(back).getPropertyValue("--glass-action-transition")).toMatch(/transform/);
+    expect(getComputedStyle(icon).getPropertyValue("--glyph-filter").trim() || "none").toBe("none");
+    expect(getComputedStyle(icon).getPropertyValue("--glyph-color").trim()).toMatch(/#e8f4ff|#e7f3ff/i);
   });
 });
 
@@ -114,6 +160,55 @@ describe("ClickSpark", () => {
     fireEvent.click(screen.getByRole("button", { name: "Тихо" }));
     expect(raf).not.toHaveBeenCalled();
   });
+
+  it("разрешает CSS-переменную в конкретный цвет для Canvas2D", () => {
+    const strokes: string[] = [];
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return 21;
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+      () =>
+        ({
+          clearRect() {
+            return undefined;
+          },
+          beginPath() {
+            return undefined;
+          },
+          moveTo() {
+            return undefined;
+          },
+          lineTo() {
+            return undefined;
+          },
+          stroke() {
+            return undefined;
+          },
+          set strokeStyle(value: string) {
+            strokes.push(value);
+          },
+          lineWidth: 0,
+        }) as unknown as CanvasRenderingContext2D,
+    );
+
+    render(
+      <div style={{ ["--color-accent" as string]: "#5b8cff" }}>
+        <ClickSpark color="var(--color-accent)" reducedMotion={false}>
+          <button type="button">Цвет</button>
+        </ClickSpark>
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Цвет" }));
+    frames[0]?.(16);
+
+    expect(strokes.length).toBeGreaterThan(0);
+    expect(strokes[0]?.toLowerCase()).not.toBe("#000000");
+    expect(strokes[0]?.toLowerCase()).not.toBe("var(--color-accent)");
+    expect(strokes[0]).toMatch(/#5b8cff|rgb\(\s*91,\s*140,\s*255\s*\)/i);
+  });
 });
 
 describe("WalletGooeyNav", () => {
@@ -136,6 +231,13 @@ describe("WalletGooeyNav", () => {
 
     rerender(<WalletGooeyNav items={items} activeId="settings" onChange={onChange} reducedMotion={false} />);
     expect(screen.getByRole("button", { name: "Настройки" })).toHaveAttribute("aria-current", "page");
+
+    fireEvent.click(screen.getByRole("button", { name: "Главная" }));
+    vi.advanceTimersByTime(40);
+    const particle = document.querySelector(".wallet-gooey-nav__particle");
+    expect(particle).toBeTruthy();
+    expect(particle).toHaveClass("is-active");
+    expect(particle).toHaveAttribute("data-peak-opacity", "0.9");
 
     unmount();
     expect(vi.getTimerCount()).toBe(0);

@@ -62,8 +62,10 @@ export function WalletGooeyNav<T extends string>(props: WalletGooeyNavProps<T>) 
         const particle = document.createElement("span");
         particle.className = "wallet-gooey-nav__particle";
         particle.setAttribute("aria-hidden", "true");
+        particle.setAttribute("data-peak-opacity", "0.9");
         particle.style.setProperty("--start-x", `${(Math.random() - 0.5) * 36}px`);
         particle.style.setProperty("--start-y", `${(Math.random() - 0.5) * 24}px`);
+        particle.style.setProperty("--particle-peak-opacity", "0.9");
         element.appendChild(particle);
         const raf = requestAnimationFrame(() => {
           rafsRef.current.delete(raf);
