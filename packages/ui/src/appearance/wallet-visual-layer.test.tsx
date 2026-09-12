@@ -54,7 +54,8 @@ describe("WalletVisualLayer", () => {
       expect.objectContaining({
         colors: expect.objectContaining({
           color1: DEFAULT_THEME.accent,
-          color2: DEFAULT_THEME.glassTint,
+          color2: "#67E8FF",
+          color3: "#8AF4FF",
           backgroundColor: DEFAULT_THEME.background,
         }),
       }),

@@ -134,15 +134,25 @@
 .balance-hero__safe-zone {
   position: absolute;
   z-index: -1;
-  top: 0;
-  bottom: 58px;
-  left: -20px;
-  width: min(82vw, 350px);
-  border-radius: 48% 52% 44% 20%;
+  top: -18px;
+  right: -22px;
+  bottom: 42px;
+  left: -22px;
   background:
-    radial-gradient(circle at 18% 34%, color-mix(in srgb, var(--color-background, #05070b) 99%, transparent) 0 23%, transparent 70%),
-    linear-gradient(90deg, var(--color-background, #05070b) 0 40%, color-mix(in srgb, var(--color-background, #05070b) 84%, transparent) 70%, transparent 100%);
-  filter: blur(2px);
+    linear-gradient(
+      90deg,
+      var(--color-background, #05070b) 0 50%,
+      color-mix(in srgb, var(--color-background, #05070b) 96%, transparent) 56%,
+      color-mix(in srgb, var(--color-background, #05070b) 18%, transparent) 70%,
+      transparent 85%
+    ),
+    linear-gradient(
+      180deg,
+      transparent 0 48%,
+      color-mix(in srgb, var(--color-background, #05070b) 78%, transparent) 78%,
+      color-mix(in srgb, var(--color-background, #05070b) 94%, transparent) 100%
+    );
+  filter: blur(10px);
   pointer-events: none;
 }
 
@@ -483,18 +493,31 @@
 }
 
 @media (max-width: 359px) {
+  .profile-header {
+    gap: 6px;
+  }
+
+  .profile-header__identity {
+    gap: 8px;
+  }
+
+  .profile-header__avatar {
+    width: 44px;
+    height: 44px;
+  }
+
   .profile-header__name,
   .profile-header__address {
-    max-width: 92px;
+    max-width: 82px;
   }
 
   .profile-header__actions {
-    gap: 3px;
+    gap: 2px;
   }
 
   .profile-header .profile-header__control {
-    width: 40px;
-    min-width: 40px;
+    width: 44px;
+    min-width: 44px;
     height: 44px;
   }
 

@@ -34,8 +34,46 @@
 }
 
 .wallet-controls__action svg {
-  color: var(--color-accent);
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-accent) 38%, transparent));
+  color: color-mix(in srgb, var(--color-accent) 38%, #f2fbff);
+  filter: drop-shadow(0 0 9px color-mix(in srgb, #73e7ff 62%, transparent));
+}
+
+.wallet-controls__action-grid .wallet-controls__action .glass-action__back {
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--color-accent) 36%, #102039),
+    color-mix(in srgb, var(--color-background) 88%, #13284a)
+  );
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-background) 72%, transparent);
+}
+
+.wallet-controls__action-grid .wallet-controls__action .glass-action__core {
+  background: radial-gradient(
+    circle at 34% 24%,
+    color-mix(in srgb, #73e7ff 13%, var(--color-surface)) 0,
+    color-mix(in srgb, var(--color-background) 92%, #10234a) 72%
+  );
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent);
+}
+
+.wallet-controls__action-grid .wallet-controls__action .glass-action__lens {
+  border-color: color-mix(in srgb, #b9f5ff 22%, transparent);
+  background: color-mix(in srgb, var(--color-background) 68%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent);
+}
+
+.wallet-controls__action-grid .wallet-controls__action .glass-action__rim {
+  background: conic-gradient(
+    from 118deg,
+    #c5f8ff,
+    color-mix(in srgb, var(--color-accent) 88%, #4fe8ff) 18%,
+    transparent 36%,
+    color-mix(in srgb, var(--color-glass-tint) 64%, #77efff) 64%,
+    transparent 82%,
+    #c5f8ff
+  );
 }
 
 .wallet-controls__action-grid .wallet-controls__action:active {
@@ -53,6 +91,13 @@
     inset 0 1px 0 color-mix(in srgb, var(--color-text-primary) 18%, transparent),
     0 18px 54px color-mix(in srgb, var(--color-background) 76%, transparent);
   backdrop-filter: blur(var(--glass-blur, 18px)) saturate(128%);
+  -webkit-backdrop-filter: blur(var(--glass-blur, 18px)) saturate(128%);
+}
+
+.wallet-dashboard[data-reduced-transparency="true"] .wallet-controls__bottom-navigation {
+  background: var(--color-surface, #111620);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .wallet-controls__bottom-navigation button:focus-visible,
@@ -192,5 +237,13 @@
 
   .wallet-controls__action:active {
     transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .wallet-controls__bottom-navigation {
+    background: var(--color-surface, #111620);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }

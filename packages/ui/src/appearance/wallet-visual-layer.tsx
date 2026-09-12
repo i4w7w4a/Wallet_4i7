@@ -2,8 +2,6 @@
 
 import { useCallback, useState } from "react";
 
-import { deriveThemeTokens } from "@wallet/core";
-
 import {
   WebThreads,
   type WebThreadsProps,
@@ -38,7 +36,17 @@ export function WalletVisualLayer({
     !runtime.saveData;
   const mountWebGl = !runtime.reducedMotion && !runtime.saveData && !unavailable;
   const showFallback = !animated || unavailable;
-  const tokens = deriveThemeTokens(theme);
+  const dashboardEffects = {
+    ...effects,
+    spread: effects.spread * 0.4,
+    taper: effects.taper * 0.45,
+    position: 0.65 + effects.position * 0.15,
+    glow: Math.max(0.0045, effects.glow * 0.06),
+    falloff: 0.65 + effects.falloff * 0.1,
+    thickness: Math.max(0.02, effects.thickness * 0.05),
+    brightness: Math.min(3, effects.brightness * 2.4),
+    opacity: Math.min(0.96, effects.opacity * 1.04),
+  };
   const onUnavailable = useCallback(() => setUnavailable(true), []);
 
   return (
@@ -52,11 +60,11 @@ export function WalletVisualLayer({
     >
       {mountWebGl ? (
         <WebThreads
-          effects={effects}
+          effects={dashboardEffects}
           colors={{
             color1: theme.accent,
-            color2: theme.glassTint,
-            color3: tokens.textPrimary,
+            color2: "#67E8FF",
+            color3: "#8AF4FF",
             backgroundColor: theme.background,
           }}
           active={animated}

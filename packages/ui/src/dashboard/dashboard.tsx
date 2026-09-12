@@ -87,6 +87,7 @@ export function Dashboard(props: {
     <div
       className="wallet-dashboard"
       data-platform={platform.kind}
+      data-reduced-transparency={runtime.reducedTransparency ? "true" : "false"}
       style={shellStyle}
     >
       <WalletVisualLayer runtime={runtime} />
