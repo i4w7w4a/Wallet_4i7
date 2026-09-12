@@ -230,12 +230,27 @@ async function exerciseDashboard(page: Page) {
   await expect(page.getByRole("region", { name: "Баланс" })).toBeVisible();
   await expect(page.locator("video")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Получить" }).click();
+  const receiveAction = page
+    .locator(".wallet-click-spark")
+    .filter({ has: page.getByRole("button", { name: "Получить", exact: true }) });
+  await receiveAction.getByRole("button", { name: "Получить", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Получить" })).toBeVisible();
+  await page.waitForTimeout(80);
+  const sparkColor = await receiveAction.locator("canvas").evaluate((node) => {
+    return (node as HTMLCanvasElement).getContext("2d")?.strokeStyle ?? null;
+  });
+  expect(sparkColor).toMatch(/#5b8cff|rgb\(91,\s*140,\s*255\)/i);
   await page.getByRole("button", { name: "Закрыть", exact: true }).click();
 
   await page.getByRole("button", { name: "Портфель" }).click();
   await expect(page.locator('[data-dashboard-surface="content"]')).toBeVisible();
+  await page.waitForTimeout(140);
+  const particleOpacity = await page
+    .locator(".wallet-gooey-nav__particle.is-active")
+    .evaluateAll((particles) =>
+      Math.max(0, ...particles.map((particle) => Number.parseFloat(getComputedStyle(particle).opacity))),
+    );
+  expect(particleOpacity).toBeGreaterThan(0.05);
   await page.getByRole("button", { name: "Главная" }).click();
 
   await page.getByRole("button", { name: "Студия темы" }).click();

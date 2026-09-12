@@ -90,7 +90,12 @@ export function Dashboard(props: {
       data-reduced-transparency={runtime.reducedTransparency ? "true" : "false"}
       style={shellStyle}
     >
-      <WalletVisualLayer runtime={runtime} />
+      <WalletVisualLayer
+        runtime={{
+          ...runtime,
+          hostActive: runtime.hostActive && overlay === null,
+        }}
+      />
       <div className="wallet-dashboard__foreground">
         <ProfileHeader
           profile={snapshot.profile}
@@ -183,8 +188,10 @@ function DashboardHome(props: DashboardHomeProps) {
         onAction={props.onAction}
       />
       <LiquidPromoCard
+        active={props.runtime.hostActive && props.runtime.documentVisible}
         finePointer={!props.runtime.coarsePointer}
         reducedMotion={props.runtime.reducedMotion}
+        saveData={props.runtime.saveData}
         onOpen={() => props.onAction("swap")}
       />
       <AssetListCard

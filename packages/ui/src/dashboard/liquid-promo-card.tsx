@@ -5,8 +5,10 @@ import { SpotlightSurface } from "../react-bits/spotlight-surface/spotlight-surf
 import "./dashboard-visuals.css";
 
 export function LiquidPromoCard(props: {
+  active: boolean;
   finePointer: boolean;
   reducedMotion: boolean;
+  saveData: boolean;
   onOpen(): void;
 }) {
   return (
@@ -20,7 +22,13 @@ export function LiquidPromoCard(props: {
       <div>
         <p className="liquid-promo__eyebrow">Новый маршрут</p>
         <h2>
-          <GradientText reducedMotion={props.reducedMotion}>Swap smarter</GradientText>
+          <GradientText
+            active={props.active}
+            reducedMotion={props.reducedMotion}
+            saveData={props.saveData}
+          >
+            Swap smarter
+          </GradientText>
         </h2>
         <p>Демонстрационный курс. Операция не будет отправлена.</p>
         <button type="button" className="liquid-promo__action" onClick={props.onOpen}>

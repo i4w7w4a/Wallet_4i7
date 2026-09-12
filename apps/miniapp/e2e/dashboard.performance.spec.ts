@@ -40,7 +40,7 @@ test("Dashboard соблюдает WebGL, RAF, render и interaction budgets", a
   });
   const quickAction = page
     .locator(".wallet-controls__quick-actions")
-    .getByRole("button", { name: "Получить", exact: true });
+    .getByRole("button", { name: "Обменять", exact: true });
   const interaction = await quickAction.evaluate(
     (button) =>
       new Promise<{ endedAt: number; interactionMs: number; startedAt: number }>((resolve) => {
@@ -56,7 +56,7 @@ test("Dashboard соблюдает WebGL, RAF, render и interaction budgets", a
         (button as HTMLButtonElement).click();
       }),
   );
-  await expect(page.getByRole("dialog", { name: "Получить" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Обменять" })).toBeVisible();
   expect(interaction.interactionMs).toBeLessThan(250);
 
   const monitoringWindowMs = 500;
@@ -71,30 +71,37 @@ test("Dashboard соблюдает WebGL, RAF, render и interaction budgets", a
     ? Math.max(0, ...interactionLongTasks.map((entry) => entry.duration))
     : null;
   if (maxLongTaskMs !== null) {
-    expect(maxLongTaskMs).toBeLessThanOrEqual(100);
+    expect(
+      maxLongTaskMs,
+      JSON.stringify({ interaction, interactionLongTasks }),
+    ).toBeLessThanOrEqual(100);
   }
+  await page.getByRole("button", { name: "Закрыть", exact: true }).click();
+  await page.waitForTimeout(500);
 
-  const beforeHidden = await readPerformanceSnapshot(page);
   await setDocumentVisibility(page, "hidden");
   await expect(visualLayer).toHaveAttribute("data-active", "false");
+  await page.waitForTimeout(100);
+  const hiddenStart = await readPerformanceSnapshot(page);
   await page.waitForTimeout(250);
-  const afterHidden = await readPerformanceSnapshot(page);
-  expectPaused(beforeHidden, afterHidden);
+  const hiddenEnd = await readPerformanceSnapshot(page);
+  expectPaused(hiddenStart, hiddenEnd);
 
   await setDocumentVisibility(page, "visible");
   await expect(visualLayer).toHaveAttribute("data-active", "true");
   await page.waitForTimeout(100);
 
-  const beforeHostInactive = await readPerformanceSnapshot(page);
   await page.evaluate(() => {
     (
       window as typeof window & { __walletEmitActivity?: (event: "deactivated") => void }
     ).__walletEmitActivity?.("deactivated");
   });
   await expect(visualLayer).toHaveAttribute("data-active", "false");
+  await page.waitForTimeout(100);
+  const hostInactiveStart = await readPerformanceSnapshot(page);
   await page.waitForTimeout(250);
-  const afterHostInactive = await readPerformanceSnapshot(page);
-  expectPaused(beforeHostInactive, afterHostInactive);
+  const hostInactiveEnd = await readPerformanceSnapshot(page);
+  expectPaused(hostInactiveStart, hostInactiveEnd);
 
   await page.evaluate(() => {
     (
@@ -104,16 +111,17 @@ test("Dashboard соблюдает WebGL, RAF, render и interaction budgets", a
   await expect(visualLayer).toHaveAttribute("data-active", "true");
   await page.waitForTimeout(100);
 
-  const beforeSaveData = await readPerformanceSnapshot(page);
   await page.evaluate(() => {
     (window as typeof window & { __walletSetSaveData?: (active: boolean) => void })
       .__walletSetSaveData?.(true);
   });
   await expect(canvas).toHaveCount(0);
   await expect(page.locator("[data-visual-fallback]")).toBeVisible();
+  await page.waitForTimeout(100);
+  const saveDataStart = await readPerformanceSnapshot(page);
   await page.waitForTimeout(250);
-  const afterSaveData = await readPerformanceSnapshot(page);
-  expectPaused(beforeSaveData, afterSaveData);
+  const saveDataEnd = await readPerformanceSnapshot(page);
+  expectPaused(saveDataStart, saveDataEnd);
 
   const evidence = {
     canvasCount: 1,
@@ -125,13 +133,13 @@ test("Dashboard соблюдает WebGL, RAF, render и interaction budgets", a
     activePendingRafCount: activeEnd.pendingRafCount,
     activeRafCallbacks: activeEnd.firedRafCount - activeStart.firedRafCount,
     activeRenders: activeEnd.renderCount - activeStart.renderCount,
-    hiddenRafCallbacks: afterHidden.firedRafCount - beforeHidden.firedRafCount,
-    hiddenRenders: afterHidden.renderCount - beforeHidden.renderCount,
+    hiddenRafCallbacks: hiddenEnd.firedRafCount - hiddenStart.firedRafCount,
+    hiddenRenders: hiddenEnd.renderCount - hiddenStart.renderCount,
     inactiveRafCallbacks:
-      afterHostInactive.firedRafCount - beforeHostInactive.firedRafCount,
-    inactiveRenders: afterHostInactive.renderCount - beforeHostInactive.renderCount,
-    saveDataRafCallbacks: afterSaveData.firedRafCount - beforeSaveData.firedRafCount,
-    saveDataRenders: afterSaveData.renderCount - beforeSaveData.renderCount,
+      hostInactiveEnd.firedRafCount - hostInactiveStart.firedRafCount,
+    inactiveRenders: hostInactiveEnd.renderCount - hostInactiveStart.renderCount,
+    saveDataRafCallbacks: saveDataEnd.firedRafCount - saveDataStart.firedRafCount,
+    saveDataRenders: saveDataEnd.renderCount - saveDataStart.renderCount,
   };
   testInfo.annotations.push({ type: "performance", description: JSON.stringify(evidence) });
   await testInfo.attach("performance-evidence.json", {

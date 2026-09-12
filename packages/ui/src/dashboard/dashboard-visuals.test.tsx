@@ -180,7 +180,15 @@ describe("LiquidPromoCard", () => {
   it("открывает промо по кнопке и скрывает декоративный SVG", () => {
     const onOpen = vi.fn();
 
-    render(<LiquidPromoCard finePointer reducedMotion={false} onOpen={onOpen} />);
+    render(
+      <LiquidPromoCard
+        active
+        finePointer
+        reducedMotion={false}
+        saveData={false}
+        onOpen={onOpen}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /Обменять/ }));
     expect(onOpen).toHaveBeenCalledTimes(1);
@@ -189,6 +197,31 @@ describe("LiquidPromoCard", () => {
     expect(card).toHaveAttribute("data-spotlight", "enabled");
     expect(card.querySelector("[data-glass-variant]")).not.toBeInTheDocument();
     expect(card).not.toHaveClass("glass-surface");
+  });
+
+  it("останавливает GradientText при inactive runtime и saveData", () => {
+    const { rerender } = render(
+      <LiquidPromoCard
+        active={false}
+        finePointer
+        reducedMotion={false}
+        saveData={false}
+        onOpen={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText("Swap smarter")).toHaveClass("wallet-gradient-text--static");
+
+    rerender(
+      <LiquidPromoCard
+        active
+        finePointer
+        reducedMotion={false}
+        saveData
+        onOpen={() => undefined}
+      />,
+    );
+    expect(screen.getByText("Swap smarter")).toHaveClass("wallet-gradient-text--static");
   });
 });
 
