@@ -56,7 +56,9 @@ const PALETTES = [
 
 for (const [paletteName, background, surface, accent, glassTint] of PALETTES) {
   for (const width of WIDTHS) {
-    test(`${paletteName}: Dashboard ${width}px не переполняет viewport`, async ({ page }) => {
+    test(`${paletteName}: initial Dashboard ${width}px не переполняет viewport`, async ({
+      page,
+    }) => {
       await page.setViewportSize({ width, height: HEIGHTS[width] });
       await seedPreferences(page, {
         ...DEFAULT_THEME,
@@ -66,28 +68,45 @@ for (const [paletteName, background, surface, accent, glassTint] of PALETTES) {
         glassTint,
       });
       await page.goto("/");
-      await exerciseDashboard(page);
+      await expect(page.locator("[data-wallet-visual-layer]")).toBeVisible();
+      await expect(page.getByRole("region", { name: "Баланс" })).toBeVisible();
+      await expect(page.locator("video")).toHaveCount(0);
 
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
       await expect(page).toHaveScreenshot(`dashboard-${paletteName}-${width}.png`, {
-        fullPage: true,
         animations: "disabled",
       });
     });
   }
 }
 
-test("default palette на 390px загружается без localStorage", async ({ page }) => {
+test("default palette на 390px получает deterministic visual preset", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await seedVisualEffects(page);
   await page.goto("/");
   await expect(page.locator("[data-wallet-visual-layer]")).toBeVisible();
   await expect(page.getByRole("region", { name: "Баланс" })).toBeVisible();
   await expect(page).toHaveScreenshot("dashboard-default-390.png", {
-    fullPage: true,
     animations: "disabled",
   });
+});
+
+test("interaction-flow работает отдельно от initial screenshots", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seedPreferences(page, DEFAULT_THEME);
+  await page.goto("/");
+
+  await exerciseDashboard(page);
+});
+
+test("все touch targets сохраняют минимум 44x44 на 320px", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await seedPreferences(page, DEFAULT_THEME);
+  await page.goto("/");
+
+  expect(await undersizedTouchTargets(page)).toEqual([]);
 });
 
 test("reduced motion оставляет fallback и доступные controls", async ({ page }) => {
@@ -120,6 +139,46 @@ test("WebGL unavailable переключается на poster без потер
   await expect(page.getByRole("dialog", { name: "Обменять" })).toBeVisible();
 });
 
+test("reduced transparency отключает blur нижней навигации", async ({ page }) => {
+  await page.addInitScript(() => {
+    const nativeMatchMedia = window.matchMedia.bind(window);
+    window.matchMedia = (query: string) => {
+      const nativeQuery = nativeMatchMedia(query);
+      if (query !== "(prefers-reduced-transparency: reduce)") {
+        return nativeQuery;
+      }
+
+      return {
+        matches: true,
+        media: query,
+        onchange: null,
+        addEventListener: nativeQuery.addEventListener.bind(nativeQuery),
+        removeEventListener: nativeQuery.removeEventListener.bind(nativeQuery),
+        addListener: nativeQuery.addListener.bind(nativeQuery),
+        removeListener: nativeQuery.removeListener.bind(nativeQuery),
+        dispatchEvent: nativeQuery.dispatchEvent.bind(nativeQuery),
+      };
+    };
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seedPreferences(page, DEFAULT_THEME);
+  await page.goto("/");
+
+  await expect(page.locator(".wallet-dashboard")).toHaveAttribute(
+    "data-reduced-transparency",
+    "true",
+  );
+  const navStyle = await page.locator(".wallet-controls__bottom-navigation").evaluate((node) => {
+    const style = getComputedStyle(node);
+    return {
+      backdropFilter: style.backdropFilter,
+      backgroundColor: style.backgroundColor,
+    };
+  });
+  expect(navStyle.backdropFilter).toBe("none");
+  expect(navStyle.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+});
+
 async function seedPreferences(page: Page, theme: typeof DEFAULT_THEME) {
   await page.addInitScript(
     ({ themeStorageKey, visualStorageKey, savedTheme, savedEffects }) => {
@@ -132,6 +191,37 @@ async function seedPreferences(page: Page, theme: typeof DEFAULT_THEME) {
       savedTheme: theme,
       savedEffects: STATIC_VISUAL_EFFECTS,
     },
+  );
+}
+
+async function seedVisualEffects(page: Page) {
+  await page.addInitScript(
+    ({ visualStorageKey, savedEffects }) => {
+      window.localStorage.setItem(visualStorageKey, JSON.stringify(savedEffects));
+    },
+    {
+      visualStorageKey: VISUAL_STORAGE_KEY,
+      savedEffects: STATIC_VISUAL_EFFECTS,
+    },
+  );
+}
+
+async function undersizedTouchTargets(page: Page) {
+  return page.locator("button:visible").evaluateAll((buttons) =>
+    buttons.flatMap((button) => {
+      const rect = button.getBoundingClientRect();
+      if (rect.width >= 44 && rect.height >= 44) {
+        return [];
+      }
+
+      return [
+        {
+          label: button.getAttribute("aria-label") ?? button.textContent?.trim() ?? "button",
+          width: rect.width,
+          height: rect.height,
+        },
+      ];
+    }),
   );
 }
 
