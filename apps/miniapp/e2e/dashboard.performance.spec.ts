@@ -31,6 +31,16 @@ test("Dashboard соблюдает WebGL, RAF, render и interaction budgets", a
   expect(activeEnd.firedRafCount - activeStart.firedRafCount).toBeGreaterThan(0);
   expect(activeEnd.renderCount - activeStart.renderCount).toBeGreaterThan(0);
 
+  const warmupAction = page
+    .locator(".wallet-controls__quick-actions")
+    .getByRole("button", { name: "Отправить", exact: true });
+  await warmupAction.click();
+  await expect(page.getByRole("dialog", { name: "Отправить" })).toBeVisible();
+  await page.getByRole("button", { name: "Закрыть", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Отправить" })).toHaveCount(0);
+  await expect(visualLayer).toHaveAttribute("data-active", "true");
+  await page.waitForTimeout(500);
+
   await page.evaluate(() => {
     (
       window as typeof window & {
