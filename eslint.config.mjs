@@ -12,6 +12,8 @@ export default defineConfig([
     },
   },
   globalIgnores([
+    "**/.superpowers/**",
+    "**/.worktrees/**",
     "**/.next/**",
     "**/coverage/**",
     "**/dist/**",
