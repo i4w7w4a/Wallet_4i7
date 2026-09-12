@@ -1,0 +1,87 @@
+/*
+Adapted for Wallet_4i7 from React Bits at commit
+3a1c7f2f9f94ed833934ab5c2635760b9e644583.
+Copyright (c) 2026 David Haz. MIT + Commons Clause License Condition v1.0.
+Upstream: src/ts-default/Components/GooeyNav/GooeyNav.css
+*/
+
+.wallet-gooey-nav {
+  position: relative;
+  width: 100%;
+}
+
+.wallet-gooey-nav nav ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  position: relative;
+  z-index: 2;
+}
+
+.wallet-gooey-nav button {
+  display: flex;
+  min-width: 44px;
+  min-height: 44px;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-text-muted, #c8cdd6);
+  background: transparent;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.wallet-gooey-nav button[aria-current="page"] {
+  color: var(--color-text-primary, #fff);
+  background: color-mix(in srgb, var(--color-accent, #5b8cff) 22%, transparent);
+}
+
+.wallet-gooey-nav button:focus-visible {
+  outline: 2px solid var(--color-accent, #5b8cff);
+  outline-offset: 2px;
+}
+
+.wallet-gooey-nav__effect {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.wallet-gooey-nav__particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent, #5b8cff);
+  opacity: 0;
+  transform: translate(var(--start-x, 0), var(--start-y, 0)) scale(0.4);
+}
+
+.wallet-gooey-nav__particle.is-active {
+  animation: wallet-gooey-particle 420ms ease forwards;
+}
+
+@keyframes wallet-gooey-particle {
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--start-x, 0) * 1.6), calc(var(--start-y, 0) * 1.6)) scale(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet-gooey-nav__particle {
+    animation: none;
+    display: none;
+  }
+}
