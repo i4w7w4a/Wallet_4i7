@@ -104,6 +104,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
@@ -208,6 +209,8 @@ describe("createWebThreadsEngine", () => {
     const { canvas } = createCanvasWithContext();
     vi.stubGlobal("devicePixelRatio", 3);
     const engine = createWebThreadsEngine(canvas, createInput(vi.fn(), 420));
+    const renderer = oglMock.state.renderers[0];
+    const program = oglMock.state.programs[0];
 
     expect(oglMock.state.rendererOptions[0]).toEqual(
       expect.objectContaining({ canvas, webgl: 2, dpr: 1.5 }),
@@ -216,11 +219,32 @@ describe("createWebThreadsEngine", () => {
     engine?.update({
       ...createInput(vi.fn(), 900),
       effects: { ...DEFAULT_VISUAL_EFFECTS, speed: 1.7, threadCount: 4 },
-      colors: { ...COLORS, color1: "#ff0000" },
+      colors: {
+        color1: "#ff0000",
+        color2: "#00ff00",
+        color3: "#0000ff",
+        backgroundColor: "#804020",
+      },
     });
 
-    const program = oglMock.state.rendererOptions.length;
-    expect(program).toBe(1);
+    expect(oglMock.state.renderers).toHaveLength(1);
+    expect(oglMock.state.programs).toHaveLength(1);
+    expect(oglMock.state.renderers[0]).toBe(renderer);
+    expect(oglMock.state.programs[0]).toBe(program);
+    expect(program?.uniforms.uSpeed?.value).toBe(1.7);
+    expect(program?.uniforms.uThreadCount?.value).toBe(4);
+    expect(program?.uniforms.uColor1?.value).toEqual(
+      new Float32Array([1, 0, 0]),
+    );
+    expect(program?.uniforms.uColor2?.value).toEqual(
+      new Float32Array([0, 1, 0]),
+    );
+    expect(program?.uniforms.uColor3?.value).toEqual(
+      new Float32Array([0, 0, 1]),
+    );
+    expect(program?.uniforms.uBackgroundColor?.value).toEqual(
+      new Float32Array([128 / 255, 64 / 255, 32 / 255]),
+    );
     engine?.dispose();
   });
 
