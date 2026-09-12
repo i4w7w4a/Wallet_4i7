@@ -147,8 +147,13 @@ describe("Dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Поиск" }));
-    expect(screen.getByRole("dialog", { name: "Поиск" })).toBeVisible();
-    expect(screen.getByRole("searchbox", { name: "Поиск по кошельку" })).toBeVisible();
+    const searchDialog = screen.getByRole("dialog", { name: "Поиск" });
+    const searchbox = within(searchDialog).getByRole("searchbox", { name: "Поиск по кошельку" });
+    fireEvent.change(searchbox, { target: { value: "bit" } });
+    expect(within(searchDialog).getByRole("button", { name: /Bitcoin/ })).toBeVisible();
+    expect(within(searchDialog).queryByRole("button", { name: /Ethereum/ })).not.toBeInTheDocument();
+    fireEvent.click(within(searchDialog).getByRole("button", { name: /Bitcoin/ }));
+    expect(screen.getByRole("dialog", { name: "Bitcoin" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
 
     fireEvent.click(screen.getByRole("button", { name: /Уведомления/ }));
@@ -160,6 +165,9 @@ describe("Dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Студия темы" }));
     expect(screen.getByRole("dialog", { name: "Студия темы" })).toBeVisible();
     expect(screen.getByLabelText("Акцент")).toHaveAttribute("type", "color");
+    expect(document.querySelector("[data-theme-overlay]")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть студию темы" }));
+    expect(screen.queryByRole("dialog", { name: "Студия темы" })).not.toBeInTheDocument();
   });
 
   it("переключает раздел и показывает его mock-контент", () => {
@@ -201,6 +209,24 @@ describe("Dashboard", () => {
     view.unmount();
     expect(platform.cleanup).toHaveBeenCalled();
     expect(platform.currentBackHandler()).toBeNull();
+  });
+
+  it("не сохраняет demo-результат после закрытия action sheet через Back Button", async () => {
+    const platform = createPlatformHarness();
+    renderDashboard(platform.bridge);
+    const actions = screen.getByRole("group", { name: "Быстрые действия" });
+
+    fireEvent.click(within(actions).getByRole("button", { name: "Отправить" }));
+    fireEvent.submit(screen.getByRole("form", { name: /Демонстрационная форма/ }));
+    expect(screen.getByRole("status")).toHaveTextContent("Демо: данные не отправлены");
+
+    act(() => platform.back());
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Отправить" })).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(within(actions).getByRole("button", { name: "Отправить" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });
 

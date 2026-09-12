@@ -125,11 +125,27 @@ export function Dashboard(props: {
       </div>
 
       <DemoActionSheet
+        key={overlay?.type === "action" ? overlay.action : "closed"}
         action={overlay?.type === "action" ? overlay.action : null}
         onClose={closeOverlay}
       />
-      <ThemeStudio open={overlay?.type === "theme"} onClose={closeOverlay} />
-      <InformationSheet overlay={overlay} snapshot={snapshot} onClose={closeOverlay} />
+      {overlay?.type === "theme" ? (
+        <div className="wallet-dashboard__theme-overlay" data-theme-overlay>
+          <button
+            type="button"
+            className="wallet-dashboard__theme-backdrop"
+            aria-label="Закрыть студию темы"
+            onClick={closeOverlay}
+          />
+          <ThemeStudio open onClose={closeOverlay} />
+        </div>
+      ) : null}
+      <InformationSheet
+        overlay={overlay}
+        snapshot={snapshot}
+        onClose={closeOverlay}
+        onSelectAsset={(asset) => setOverlay({ type: "asset", asset })}
+      />
     </div>
   );
 }
@@ -138,19 +154,12 @@ function InformationSheet(props: {
   overlay: DashboardOverlay | null;
   snapshot: WalletSnapshot;
   onClose(): void;
+  onSelectAsset(asset: WalletAsset): void;
 }) {
-  const { overlay, snapshot, onClose } = props;
+  const { overlay, snapshot, onClose, onSelectAsset } = props;
 
   if (overlay?.type === "search") {
-    return (
-      <BottomSheet open title="Поиск" onClose={onClose}>
-        <label className="wallet-dashboard__search">
-          <span>Найдите актив или раздел</span>
-          <input type="search" aria-label="Поиск по кошельку" placeholder="Bitcoin, портфель…" />
-        </label>
-        <p className="wallet-dashboard__hint">Поиск работает локально в демонстрационном интерфейсе.</p>
-      </BottomSheet>
-    );
+    return <SearchSheet assets={snapshot.assets} onClose={onClose} onSelect={onSelectAsset} />;
   }
 
   if (overlay?.type === "notifications") {
@@ -182,6 +191,53 @@ function InformationSheet(props: {
   }
 
   return null;
+}
+
+function SearchSheet(props: {
+  assets: WalletAsset[];
+  onClose(): void;
+  onSelect(asset: WalletAsset): void;
+}) {
+  const [query, setQuery] = useState("");
+  const normalized = query.trim().toLocaleLowerCase("ru-RU");
+  const results = normalized
+    ? props.assets.filter((asset) =>
+        `${asset.name} ${asset.symbol}`.toLocaleLowerCase("ru-RU").includes(normalized),
+      )
+    : [];
+
+  return (
+    <BottomSheet open title="Поиск" onClose={props.onClose}>
+      <label className="wallet-dashboard__search">
+        <span>Найдите актив</span>
+        <input
+          type="search"
+          aria-label="Поиск по кошельку"
+          placeholder="Bitcoin, ETH…"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </label>
+      {normalized ? (
+        results.length > 0 ? (
+          <ul className="wallet-dashboard__search-results" aria-label="Результаты поиска">
+            {results.map((asset) => (
+              <li key={asset.symbol}>
+                <button type="button" onClick={() => props.onSelect(asset)}>
+                  <span>{asset.name}</span>
+                  <span>{asset.symbol}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="wallet-dashboard__hint" role="status">Ничего не найдено</p>
+        )
+      ) : (
+        <p className="wallet-dashboard__hint">Результаты появятся по мере ввода.</p>
+      )}
+    </BottomSheet>
+  );
 }
 
 function formatAmount(value: number): string {
