@@ -8,9 +8,6 @@ Upstream: src/ts-default/TextAnimations/GradientText/GradientText.css
 .wallet-gradient-text {
   display: inline-block;
   font-weight: 600;
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
 }
 
 .wallet-gradient-text--static {
@@ -19,8 +16,34 @@ Upstream: src/ts-default/TextAnimations/GradientText/GradientText.css
   -webkit-text-fill-color: currentColor;
 }
 
+.wallet-gradient-text--animated {
+  color: transparent;
+  background-image: var(--gradient-image);
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: wallet-gradient-shimmer var(--gradient-speed, 8s) ease-in-out infinite alternate;
+}
+
+.wallet-gradient-text--animated[data-paused="true"] {
+  animation-play-state: paused;
+}
+
+@keyframes wallet-gradient-shimmer {
+  from {
+    background-position: 0% 50%;
+  }
+
+  to {
+    background-position: 100% 50%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .wallet-gradient-text:not(.wallet-gradient-text--static) {
+  .wallet-gradient-text--animated {
     animation: none;
+    color: var(--color-accent, #5b8cff);
+    background: none;
+    -webkit-text-fill-color: currentColor;
   }
 }
