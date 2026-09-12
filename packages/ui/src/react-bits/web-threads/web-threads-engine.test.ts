@@ -5,6 +5,8 @@ import { DEFAULT_VISUAL_EFFECTS } from "@wallet/core";
 const oglMock = vi.hoisted(() => {
   const state = {
     rendererOptions: [] as Array<Record<string, unknown>>,
+    renderers: [] as Renderer[],
+    programs: [] as Program[],
     render: vi.fn(),
     setSize: vi.fn(),
     programRemove: vi.fn(),
@@ -19,6 +21,7 @@ const oglMock = vi.hoisted(() => {
 
     constructor(options: Record<string, unknown>) {
       state.rendererOptions.push(options);
+      state.renderers.push(this);
       const canvas = options.canvas as HTMLCanvasElement;
       this.gl = canvas.getContext("webgl2") as WebGL2RenderingContext;
     }
@@ -30,6 +33,7 @@ const oglMock = vi.hoisted(() => {
 
     constructor(_gl: WebGL2RenderingContext, options: Record<string, unknown>) {
       this.uniforms = options.uniforms as Record<string, { value: unknown }>;
+      state.programs.push(this);
     }
   }
 
@@ -69,6 +73,8 @@ let intersectionCallback: IntersectionObserverCallback | undefined;
 beforeEach(() => {
   vi.useFakeTimers();
   oglMock.state.rendererOptions.length = 0;
+  oglMock.state.renderers.length = 0;
+  oglMock.state.programs.length = 0;
   oglMock.state.render.mockClear();
   oglMock.state.setSize.mockClear();
   oglMock.state.programRemove.mockClear();
@@ -98,11 +104,95 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
 describe("createWebThreadsEngine", () => {
+  it("обновляет mouse uniforms от window pointer относительно canvas и снимает listener", () => {
+    const { canvas } = createCanvasWithContext();
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      left: 100,
+      top: 50,
+      width: 200,
+      height: 100,
+      right: 300,
+      bottom: 150,
+      x: 100,
+      y: 50,
+      toJSON: () => ({}),
+    });
+    let frameCallback: FrameRequestCallback | undefined;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frameCallback = callback;
+      return 1;
+    });
+    const removeListener = vi.spyOn(window, "removeEventListener");
+    const engine = createWebThreadsEngine(canvas, createInput(vi.fn()));
+
+    engine?.setRunning(true);
+    window.dispatchEvent(
+      new MouseEvent("pointermove", { clientX: 150, clientY: 75 }),
+    );
+    frameCallback?.(16);
+
+    const uniforms = oglMock.state.programs[0]?.uniforms;
+    expect(uniforms?.uMouse?.value).toEqual(
+      new Float32Array([0.4875, 0.5125]),
+    );
+    expect(uniforms?.uMouseActive?.value).toBeCloseTo(0.05);
+
+    engine?.dispose();
+    expect(removeListener).toHaveBeenCalledWith(
+      "pointermove",
+      expect.any(Function),
+    );
+    expect(removeListener).toHaveBeenCalledWith(
+      "pointerenter",
+      expect.any(Function),
+    );
+    expect(removeListener).toHaveBeenCalledWith(
+      "pointerleave",
+      expect.any(Function),
+    );
+  });
+
+  it("не меняет mouse uniforms при отключённом pointer interaction", () => {
+    const { canvas } = createCanvasWithContext();
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 200,
+      height: 100,
+      right: 200,
+      bottom: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    let frameCallback: FrameRequestCallback | undefined;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frameCallback = callback;
+      return 1;
+    });
+    const engine = createWebThreadsEngine(canvas, {
+      ...createInput(vi.fn()),
+      mouseInteraction: false,
+    });
+
+    engine?.setRunning(true);
+    window.dispatchEvent(
+      new MouseEvent("pointermove", { clientX: 50, clientY: 25 }),
+    );
+    frameCallback?.(16);
+
+    const uniforms = oglMock.state.programs[0]?.uniforms;
+    expect(uniforms?.uMouse?.value).toEqual(new Float32Array([0.5, 0.5]));
+    expect(uniforms?.uMouseActive?.value).toBe(0);
+    engine?.dispose();
+  });
+
   it("отказывается от WebGL1 fallback, если WebGL2 недоступен", () => {
     const canvas = document.createElement("canvas");
     Object.defineProperty(canvas, "getContext", { value: vi.fn(() => null) });
@@ -119,6 +209,8 @@ describe("createWebThreadsEngine", () => {
     const { canvas } = createCanvasWithContext();
     vi.stubGlobal("devicePixelRatio", 3);
     const engine = createWebThreadsEngine(canvas, createInput(vi.fn(), 420));
+    const renderer = oglMock.state.renderers[0];
+    const program = oglMock.state.programs[0];
 
     expect(oglMock.state.rendererOptions[0]).toEqual(
       expect.objectContaining({ canvas, webgl: 2, dpr: 1.5 }),
@@ -127,11 +219,32 @@ describe("createWebThreadsEngine", () => {
     engine?.update({
       ...createInput(vi.fn(), 900),
       effects: { ...DEFAULT_VISUAL_EFFECTS, speed: 1.7, threadCount: 4 },
-      colors: { ...COLORS, color1: "#ff0000" },
+      colors: {
+        color1: "#ff0000",
+        color2: "#00ff00",
+        color3: "#0000ff",
+        backgroundColor: "#804020",
+      },
     });
 
-    const program = oglMock.state.rendererOptions.length;
-    expect(program).toBe(1);
+    expect(oglMock.state.renderers).toHaveLength(1);
+    expect(oglMock.state.programs).toHaveLength(1);
+    expect(oglMock.state.renderers[0]).toBe(renderer);
+    expect(oglMock.state.programs[0]).toBe(program);
+    expect(program?.uniforms.uSpeed?.value).toBe(1.7);
+    expect(program?.uniforms.uThreadCount?.value).toBe(4);
+    expect(program?.uniforms.uColor1?.value).toEqual(
+      new Float32Array([1, 0, 0]),
+    );
+    expect(program?.uniforms.uColor2?.value).toEqual(
+      new Float32Array([0, 1, 0]),
+    );
+    expect(program?.uniforms.uColor3?.value).toEqual(
+      new Float32Array([0, 0, 1]),
+    );
+    expect(program?.uniforms.uBackgroundColor?.value).toEqual(
+      new Float32Array([128 / 255, 64 / 255, 32 / 255]),
+    );
     engine?.dispose();
   });
 

@@ -302,9 +302,9 @@ export function createWebThreadsEngine(
     input.onUnavailable("context-lost");
   };
 
-  canvas.addEventListener("pointermove", onPointerMove);
-  canvas.addEventListener("pointerenter", onPointerEnter);
-  canvas.addEventListener("pointerleave", onPointerLeave);
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerenter", onPointerEnter);
+  window.addEventListener("pointerleave", onPointerLeave);
   canvas.addEventListener("webglcontextlost", onContextLost);
 
   const resizeObserver =
@@ -341,9 +341,9 @@ export function createWebThreadsEngine(
       stop();
       resizeObserver?.disconnect();
       intersectionObserver?.disconnect();
-      canvas.removeEventListener("pointermove", onPointerMove);
-      canvas.removeEventListener("pointerenter", onPointerEnter);
-      canvas.removeEventListener("pointerleave", onPointerLeave);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerenter", onPointerEnter);
+      window.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       program.remove();
       geometry.remove();
