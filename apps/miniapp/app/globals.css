@@ -18,6 +18,7 @@ html,
 body {
   min-height: 100%;
   margin: 0;
+  overflow-x: clip;
   background: #05070b;
   color: #f7f9ff;
 }
@@ -33,14 +34,61 @@ select {
   font: inherit;
 }
 
-.app-shell {
+.app-poster-shell {
+  position: relative;
+  display: grid;
   min-height: 100dvh;
-  padding: var(--safe-area-top) var(--safe-area-right) var(--safe-area-bottom)
-    var(--safe-area-left);
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: calc(var(--safe-area-top) + 24px) calc(var(--safe-area-right) + 18px)
+    calc(var(--safe-area-bottom) + 24px) calc(var(--safe-area-left) + 18px);
+  overflow: hidden;
+  text-align: center;
+}
+
+.app-poster-shell::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    radial-gradient(circle at 68% 25%, rgb(62 122 255 / 28%), transparent 34%),
+    radial-gradient(circle at 28% 70%, rgb(64 238 218 / 15%), transparent 30%);
+  content: "";
+}
+
+.app-poster-shell__orb {
+  position: relative;
+  z-index: 1;
+  width: 92px;
+  aspect-ratio: 1;
+  border: 1px solid rgb(158 200 255 / 48%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgb(255 255 255 / 80%), transparent 13%),
+    conic-gradient(from 210deg, #07101d, #397fff, #8bbdff, #081321, #397fff);
+  box-shadow: 0 0 64px rgb(58 128 255 / 38%);
+}
+
+.app-poster-shell p,
+.app-poster-shell span {
+  position: relative;
+  z-index: 1;
+}
+
+.app-poster-shell p {
+  margin: 18px 0 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+
+.app-poster-shell span {
+  color: #8f9caf;
+  font-size: 0.85rem;
 }
 
 @media (display-mode: browser) {
-  .app-shell {
+  .app-poster-shell {
     width: min(100%, 480px);
     margin-inline: auto;
   }

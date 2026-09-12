@@ -1,7 +1,9 @@
-export default function Page() {
-  return (
-    <main className="app-shell">
-      <h1>Wallet_4i7</h1>
-    </main>
-  );
+import { MockWalletRepository } from "@wallet/core";
+
+import { AppProviders } from "../src/app-providers";
+
+export default async function Page() {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+
+  return <AppProviders snapshot={snapshot} />;
 }
