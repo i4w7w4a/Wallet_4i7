@@ -1,0 +1,21 @@
+{
+  "name": "wallet-4i7",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @wallet/miniapp dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/compat": "2.1.1",
+    "eslint": "10.10.0",
+    "eslint-config-next": "16.3.5",
+    "typescript": "5.9.2"
+  }
+}
