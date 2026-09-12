@@ -79,10 +79,9 @@ describe("Dashboard", () => {
     for (const period of ["1Д", "1Н", "1М", "1Г", "Всё"]) {
       expect(screen.getByRole("button", { name: period })).toBeVisible();
     }
+    const quickActions = screen.getByRole("group", { name: "Быстрые действия" });
     for (const action of ["Отправить", "Получить", "Обменять", "Купить"]) {
-      expect(screen.getByRole("group", { name: "Быстрые действия" })).toContainElement(
-        screen.getByRole("button", { name: action }),
-      );
+      expect(within(quickActions).getByRole("button", { name: action })).toBeVisible();
     }
     expect(screen.getByRole("region", { name: "Обмен" })).toBeVisible();
     expect(screen.getByRole("region", { name: "Активы" })).toBeVisible();
@@ -103,7 +102,11 @@ describe("Dashboard", () => {
     const platform = createPlatformHarness();
     renderDashboard(platform.bridge);
 
-    fireEvent.click(screen.getByRole("button", { name: buttonName }));
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Быстрые действия" })).getByRole("button", {
+        name: buttonName,
+      }),
+    );
 
     expect(screen.getByRole("dialog", { name: dialogName })).toBeVisible();
     expect(platform.haptic).toHaveBeenLastCalledWith("selection");
@@ -140,7 +143,7 @@ describe("Dashboard", () => {
     renderDashboard(createPlatformHarness().bridge);
 
     fireEvent.click(screen.getByRole("button", { name: /Bitcoin/ }));
-    expect(screen.getByRole("dialog", { name: "Bitcoin" })).toHaveTextContent("0.12 BTC");
+    expect(screen.getByRole("dialog", { name: "Bitcoin" })).toHaveTextContent("0,12 BTC");
     fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Поиск" }));
@@ -181,12 +184,12 @@ describe("Dashboard", () => {
     const navigation = screen.getByRole("navigation", { name: "Основная навигация" });
 
     fireEvent.click(within(navigation).getByRole("button", { name: "Портфель" }));
-    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
-    expect(screen.getByRole("dialog", { name: "Отправить" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Поиск" }));
+    expect(screen.getByRole("dialog", { name: "Поиск" })).toBeVisible();
 
     act(() => platform.back());
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "Отправить" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Поиск" })).not.toBeInTheDocument();
     });
     expect(screen.getByRole("region", { name: "Портфель" })).toBeVisible();
 
