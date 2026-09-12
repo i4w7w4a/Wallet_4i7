@@ -18,4 +18,8 @@ export {
   useVisualEffects,
   type VisualEffectsController,
 } from "./appearance/visual-effects-provider";
+export {
+  WalletVisualLayer,
+  type VisualRuntimeCapabilities,
+} from "./appearance/wallet-visual-layer";
 export type { PreferenceStorage, ThemeConfig } from "@wallet/core";
