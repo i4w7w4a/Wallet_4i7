@@ -1,7 +1,7 @@
 .wallet-dashboard {
   position: relative;
   isolation: isolate;
-  width: 100%;
+  width: min(100%, 480px);
   min-height: 100dvh;
   margin: 0 auto;
   overflow: clip;
@@ -12,7 +12,8 @@
 .wallet-dashboard__foreground {
   position: relative;
   z-index: 1;
-  width: min(100%, 480px);
+  width: 100%;
+  max-width: none;
   min-height: 100dvh;
   margin-inline: auto;
   padding:
@@ -128,10 +129,14 @@
 .wallet-dashboard__theme-overlay {
   position: fixed;
   z-index: 50;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
   display: flex;
+  width: min(100%, 480px);
   align-items: flex-end;
   justify-content: center;
+  transform: translateX(-50%);
   padding:
     max(18px, var(--dashboard-safe-top, 0px))
     max(12px, var(--dashboard-safe-right, 0px))

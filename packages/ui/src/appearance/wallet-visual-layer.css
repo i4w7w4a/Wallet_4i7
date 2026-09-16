@@ -1,8 +1,12 @@
 .wallet-visual-layer {
   position: fixed;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
   z-index: 0;
+  width: min(100%, 480px);
   overflow: hidden;
+  transform: translateX(-50%);
   pointer-events: none;
   background: var(--color-background, #05070b);
 }
