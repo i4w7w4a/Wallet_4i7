@@ -335,7 +335,7 @@
 
 .liquid-promo h2 {
   margin-top: 5px;
-  font-size: clamp(1.75rem, min(7.5vw, 36px), 2.65rem);
+  font-size: clamp(1.75rem, min(8vw, 38.4px), 2.65rem);
 }
 
 .liquid-promo p:not(.liquid-promo__eyebrow) {
@@ -567,6 +567,12 @@
 
   .wallet-material-surface {
     padding: 24px;
+  }
+}
+
+@media (min-width: 360px) {
+  .liquid-promo h2 {
+    white-space: nowrap;
   }
 }
 

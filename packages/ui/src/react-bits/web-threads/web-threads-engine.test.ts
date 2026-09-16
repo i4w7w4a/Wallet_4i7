@@ -190,6 +190,38 @@ describe("createWebThreadsEngine", () => {
     engine?.dispose();
   });
 
+  it("считает правую границу canvas внешней для pointer interaction", () => {
+    const { canvas } = createCanvasWithContext();
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      left: 272,
+      top: 0,
+      width: 480,
+      height: 900,
+      right: 752,
+      bottom: 900,
+      x: 272,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    let frameCallback: FrameRequestCallback | undefined;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frameCallback = callback;
+      return 1;
+    });
+    const engine = createWebThreadsEngine(canvas, createInput(vi.fn()));
+
+    engine?.setRunning(true);
+    window.dispatchEvent(
+      new MouseEvent("pointermove", { clientX: 752, clientY: 200 }),
+    );
+    frameCallback?.(16);
+
+    const uniforms = oglMock.state.programs[0]?.uniforms;
+    expect(uniforms?.uMouse?.value).toEqual(new Float32Array([0.5, 0.5]));
+    expect(uniforms?.uMouseActive?.value).toBe(0);
+    engine?.dispose();
+  });
+
   it("не меняет mouse uniforms при отключённом pointer interaction", () => {
     const { canvas } = createCanvasWithContext();
     vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
@@ -276,6 +308,29 @@ describe("createWebThreadsEngine", () => {
     );
     expect(program?.uniforms.uBackgroundColor?.value).toEqual(
       new Float32Array([128 / 255, 64 / 255, 32 / 255]),
+    );
+    engine?.dispose();
+  });
+
+  it("ограничивает DPR по ширине canvas, а не desktop viewport", () => {
+    const { canvas } = createCanvasWithContext();
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      left: 272,
+      top: 0,
+      width: 480,
+      height: 900,
+      right: 752,
+      bottom: 900,
+      x: 272,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    vi.stubGlobal("devicePixelRatio", 2);
+
+    const engine = createWebThreadsEngine(canvas, createInput(vi.fn(), 1024));
+
+    expect(oglMock.state.rendererOptions[0]).toEqual(
+      expect.objectContaining({ dpr: 1.5 }),
     );
     engine?.dispose();
   });

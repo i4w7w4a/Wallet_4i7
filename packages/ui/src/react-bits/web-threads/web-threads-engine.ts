@@ -175,8 +175,10 @@ export function createWebThreadsEngine(
     return null;
   }
 
+  const canvasWidth = canvas.getBoundingClientRect().width;
+  const renderWidth = canvasWidth > 0 ? canvasWidth : initialInput.viewportWidth;
   const dpr =
-    initialInput.viewportWidth <= 480
+    renderWidth <= 480
       ? Math.min(window.devicePixelRatio || 1, 1.5)
       : Math.min(window.devicePixelRatio || 1, 2);
   const renderer = new Renderer({
@@ -287,9 +289,9 @@ export function createWebThreadsEngine(
     if (rect.width <= 0 || rect.height <= 0) return;
     const outsideCanvas =
       event.clientX < rect.left ||
-      event.clientX > rect.right ||
+      event.clientX >= rect.right ||
       event.clientY < rect.top ||
-      event.clientY > rect.bottom;
+      event.clientY >= rect.bottom;
     if (outsideCanvas) {
       targetActive = 0;
       return;
