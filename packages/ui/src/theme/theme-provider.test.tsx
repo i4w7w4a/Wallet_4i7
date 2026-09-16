@@ -1,12 +1,13 @@
 import "@testing-library/jest-dom/vitest";
 
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PreferenceStorage } from "@wallet/core";
 import { DEFAULT_THEME } from "@wallet/core";
 
+import { VisualEffectsProvider } from "../appearance/visual-effects-provider";
 import { ThemeProvider, useTheme } from "./theme-provider";
 import { ThemeStudio } from "./theme-studio";
 
@@ -125,9 +126,9 @@ describe("ThemeProvider", () => {
 describe("Theme Studio", () => {
   it("ограничивает значения бегунков утверждёнными диапазонами", () => {
     render(
-      <ThemeProvider storage={createMemoryStorage()}>
+      <ThemeStudioProviders>
         <ThemeStudio open onClose={() => undefined} />
-      </ThemeProvider>,
+      </ThemeStudioProviders>,
     );
 
     const studio = screen.getByRole("dialog", { name: "Студия темы" });
@@ -148,9 +149,9 @@ describe("Theme Studio", () => {
 
   it("не объявляет движение бегунка в live region", () => {
     render(
-      <ThemeProvider storage={createMemoryStorage()}>
+      <ThemeStudioProviders>
         <ThemeStudio open onClose={() => undefined} />
-      </ThemeProvider>,
+      </ThemeStudioProviders>,
     );
 
     fireEvent.change(screen.getByRole("slider", { name: "Скругление" }), {
@@ -166,12 +167,12 @@ describe("Theme Studio", () => {
       const [open, setOpen] = useState(false);
 
       return (
-        <ThemeProvider storage={createMemoryStorage()}>
+        <ThemeStudioProviders>
           <button type="button" onClick={() => setOpen(true)}>
             Открыть тему
           </button>
           <ThemeStudio open={open} onClose={() => setOpen(false)} />
-        </ThemeProvider>
+        </ThemeStudioProviders>
       );
     }
 
@@ -189,15 +190,15 @@ describe("Theme Studio", () => {
 
   it("удерживает фокус внутри модальной панели", () => {
     render(
-      <ThemeProvider storage={createMemoryStorage()}>
+      <ThemeStudioProviders>
         <button type="button">Снаружи</button>
         <ThemeStudio open onClose={() => undefined} />
-      </ThemeProvider>,
+      </ThemeStudioProviders>,
     );
 
     const studio = screen.getByRole("dialog", { name: "Студия темы" });
     const close = within(studio).getByRole("button", { name: "Закрыть" });
-    const reset = within(studio).getByRole("button", { name: "Сбросить тему" });
+    const reset = within(studio).getByRole("button", { name: "Сбросить всю тему" });
 
     reset.focus();
     fireEvent.keyDown(studio, { key: "Tab" });
@@ -234,6 +235,16 @@ function ThemeControls() {
         Сбросить тему
       </button>
     </>
+  );
+}
+
+function ThemeStudioProviders(props: { children: ReactNode }) {
+  const storage = createMemoryStorage();
+
+  return (
+    <ThemeProvider storage={storage}>
+      <VisualEffectsProvider storage={storage}>{props.children}</VisualEffectsProvider>
+    </ThemeProvider>
   );
 }
 

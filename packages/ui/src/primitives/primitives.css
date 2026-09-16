@@ -113,11 +113,15 @@
 
 .bottom-sheet {
   position: fixed;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
   z-index: 20;
   display: flex;
+  width: min(100%, 480px);
   align-items: flex-end;
   justify-content: center;
+  transform: translateX(-50%);
 }
 
 .bottom-sheet__backdrop {
@@ -128,7 +132,7 @@
 
 .bottom-sheet__dialog {
   position: relative;
-  width: min(100%, 480px);
+  width: 100%;
   max-height: 86vh;
   display: flex;
   flex-direction: column;

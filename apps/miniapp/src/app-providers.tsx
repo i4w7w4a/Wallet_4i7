@@ -8,7 +8,12 @@ import {
   type PlatformBridge,
   type PlatformWindowLike,
 } from "@wallet/platform";
-import { Dashboard, ThemeProvider } from "@wallet/ui";
+import {
+  Dashboard,
+  ThemeProvider,
+  VisualEffectsProvider,
+  type VisualRuntimeCapabilities,
+} from "@wallet/ui";
 
 type ConnectionLike = {
   readonly saveData?: boolean;
@@ -30,7 +35,17 @@ export function AppProviders(props: { snapshot: WalletSnapshot }) {
   const hostActive = usePlatformActivity(platform);
   const documentVisible = useDocumentVisible();
   const reducedMotion = useMediaFlag("(prefers-reduced-motion: reduce)");
+  const reducedTransparency = useMediaFlag("(prefers-reduced-transparency: reduce)");
   const saveData = useSaveData();
+  const coarsePointer = useMediaFlag("(pointer: coarse)");
+  const runtime: VisualRuntimeCapabilities = {
+    hostActive,
+    documentVisible,
+    reducedMotion,
+    reducedTransparency,
+    saveData,
+    coarsePointer,
+  };
 
   const displaySnapshot = useMemo(() => {
     if (platform === null) {
@@ -55,15 +70,9 @@ export function AppProviders(props: { snapshot: WalletSnapshot }) {
 
   return (
     <ThemeProvider storage={storage}>
-      <Dashboard
-        snapshot={displaySnapshot}
-        platform={platform}
-        video={{
-          active: hostActive && documentVisible,
-          reducedMotion,
-          saveData,
-        }}
-      />
+      <VisualEffectsProvider storage={storage}>
+        <Dashboard snapshot={displaySnapshot} platform={platform} runtime={runtime} />
+      </VisualEffectsProvider>
     </ThemeProvider>
   );
 }

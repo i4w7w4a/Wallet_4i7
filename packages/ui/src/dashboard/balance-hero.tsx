@@ -2,7 +2,8 @@
 
 import type { ChartPeriod, WalletBalance } from "@wallet/core";
 
-import { HeroVideo } from "../media/hero-video";
+import { WalletIcon } from "../icons/wallet-icon";
+import { WalletCountUp } from "../react-bits/wallet-count-up/wallet-count-up";
 import "./dashboard-visuals.css";
 
 const PERIODS: Array<{ id: ChartPeriod; label: string; description: string }> = [
@@ -18,14 +19,13 @@ export function BalanceHero(props: {
   chart: Record<ChartPeriod, number[]>;
   period: ChartPeriod;
   onPeriodChange(period: ChartPeriod): void;
-  video: { active: boolean; reducedMotion: boolean; saveData: boolean };
+  reducedMotion: boolean;
   onToggleHidden?(): void;
 }) {
-  const { balance, chart, period, onPeriodChange, video, onToggleHidden } = props;
+  const { balance, chart, period, onPeriodChange, reducedMotion, onToggleHidden } = props;
   const selected = PERIODS.find((item) => item.id === period) ?? PERIODS[0];
   const series = chart[period] ?? [];
   const hidden = balance.hidden;
-  const amountText = hidden ? "••••••" : formatUsd(balance.amount);
   const changeText = hidden ? "••••" : formatChange(balance.change24h);
   const chartLabel = hidden
     ? `График баланса за ${selected.description}. Сумма скрыта.`
@@ -33,21 +33,25 @@ export function BalanceHero(props: {
 
   return (
     <section className="balance-hero" aria-label="Баланс">
-      <div className="balance-hero__media" aria-hidden="true">
-        <HeroVideo
-          className="balance-hero__video"
-          active={video.active}
-          reducedMotion={video.reducedMotion}
-          saveData={video.saveData}
-        />
-        <div className="balance-hero__mask" data-balance-mask />
-      </div>
+      <div className="balance-hero__safe-zone" data-balance-safe-zone aria-hidden="true" />
 
       <div className="balance-hero__content">
         <div className="balance-hero__top">
           <div>
             <p className="balance-hero__greeting">Добрый день</p>
-            <p className="balance-hero__amount">{amountText}</p>
+            <p className="balance-hero__amount">
+              {hidden ? (
+                <span aria-label="Баланс скрыт">••••••</span>
+              ) : (
+                <WalletCountUp
+                  value={balance.amount}
+                  locale="ru-RU"
+                  currency={balance.currency}
+                  reducedMotion={reducedMotion}
+                  duration={0.42}
+                />
+              )}
+            </p>
             <p className="balance-hero__change" data-trend={hidden ? "hidden" : balance.change24h >= 0 ? "up" : "down"}>
               {hidden ? "Изменение скрыто" : `за сутки ${changeText}`}
             </p>
@@ -59,7 +63,7 @@ export function BalanceHero(props: {
             aria-label={hidden ? "Показать баланс" : "Скрыть баланс"}
             onClick={onToggleHidden}
           >
-            {hidden ? "Показать" : "Скрыть"}
+            <WalletIcon name="eye" size={20} />
           </button>
         </div>
 
@@ -83,10 +87,6 @@ export function BalanceHero(props: {
       </div>
     </section>
   );
-}
-
-function formatUsd(amount: number): string {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "USD" }).format(amount);
 }
 
 function formatChange(value: number): string {

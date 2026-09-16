@@ -2,15 +2,28 @@
 
 import type { WalletAsset } from "@wallet/core";
 
+import { SpotlightSurface } from "../react-bits/spotlight-surface/spotlight-surface";
 import "./dashboard-visuals.css";
 
 export function AssetListCard(props: {
   assets: WalletAsset[];
+  finePointer: boolean;
   onSelect(asset: WalletAsset): void;
 }) {
   return (
-    <section className="dashboard-card asset-list" aria-label="Активы">
-      <h2>Активы</h2>
+    <SpotlightSurface
+      as="section"
+      className="wallet-material-surface asset-list"
+      finePointer={props.finePointer}
+      aria-label="Активы"
+    >
+      <div className="dashboard-section-heading">
+        <div>
+          <p>Ваши позиции</p>
+          <h2>Активы</h2>
+        </div>
+        <span>{props.assets.length}</span>
+      </div>
       <ul className="asset-list__rows">
         {props.assets.map((asset) => (
           <li key={asset.symbol}>
@@ -25,7 +38,7 @@ export function AssetListCard(props: {
           </li>
         ))}
       </ul>
-    </section>
+    </SpotlightSurface>
   );
 }
 

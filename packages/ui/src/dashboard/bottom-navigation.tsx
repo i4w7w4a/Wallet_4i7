@@ -1,54 +1,42 @@
 "use client";
 
-import { GlassSurface } from "../primitives/glass-surface";
+import { WalletIcon, type WalletIconName } from "../icons/wallet-icon";
+import { WalletGooeyNav } from "../react-bits/wallet-gooey-nav/wallet-gooey-nav";
 import "./dashboard-controls.css";
 
 export type DashboardSection = "home" | "portfolio" | "explore" | "settings";
 
 const SECTIONS = [
-  { id: "home", label: "Главная", icon: "⌂" },
-  { id: "portfolio", label: "Портфель", icon: "◫" },
-  { id: "explore", label: "Обзор", icon: "◇" },
-  { id: "settings", label: "Настройки", icon: "⚙" },
+  { id: "home", label: "Главная", icon: "home" },
+  { id: "portfolio", label: "Портфель", icon: "portfolio" },
+  { id: "explore", label: "Обзор", icon: "explore" },
+  { id: "settings", label: "Настройки", icon: "settings" },
 ] as const satisfies ReadonlyArray<{
   id: DashboardSection;
   label: string;
-  icon: string;
+  icon: WalletIconName;
 }>;
 
 export function BottomNavigation(props: {
   activeSection: DashboardSection;
+  reducedMotion: boolean;
   onSectionChange(section: DashboardSection): void;
 }) {
-  const { activeSection, onSectionChange } = props;
+  const { activeSection, reducedMotion, onSectionChange } = props;
+  const items = SECTIONS.map((section) => ({
+    id: section.id,
+    label: section.label,
+    icon: <WalletIcon name={section.icon} size={24} />,
+  }));
 
   return (
-    <nav className="wallet-controls__bottom-navigation" aria-label="Основная навигация">
-      <GlassSurface variant="regular" className="wallet-controls__bottom-navigation-surface">
-        <ul className="wallet-controls__navigation-list">
-          {SECTIONS.map((section) => {
-            const active = section.id === activeSection;
-
-            return (
-              <li key={section.id}>
-                <button
-                  type="button"
-                  className="wallet-controls__navigation-item"
-                  aria-label={section.label}
-                  aria-current={active ? "page" : undefined}
-                  data-active={active ? "true" : "false"}
-                  onClick={() => onSectionChange(section.id)}
-                >
-                  <span className="wallet-controls__navigation-icon" aria-hidden="true">
-                    {section.icon}
-                  </span>
-                  <span>{section.label}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </GlassSurface>
-    </nav>
+    <div className="wallet-controls__bottom-navigation">
+      <WalletGooeyNav
+        items={items}
+        activeId={activeSection}
+        onChange={onSectionChange}
+        reducedMotion={reducedMotion}
+      />
+    </div>
   );
 }

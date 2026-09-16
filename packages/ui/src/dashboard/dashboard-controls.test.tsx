@@ -43,17 +43,18 @@ describe("QuickActions", () => {
   it("показывает четыре ActionButton и передаёт точный DashboardAction", () => {
     const onAction = vi.fn();
 
-    renderWithTheme(<QuickActions onAction={onAction} />);
+    renderWithTheme(<QuickActions reducedMotion={false} onAction={onAction} />);
 
     const group = screen.getByRole("group", { name: "Быстрые действия" });
     for (const [action, label] of ACTIONS) {
       const button = screen.getByRole("button", { name: label });
       expect(group).toContainElement(button);
-      expect(button).toHaveAttribute("data-glass-variant", "regular");
+      expect(button.querySelector("svg")).toHaveAttribute("viewBox", "0 0 24 24");
       fireEvent.click(button);
       expect(onAction).toHaveBeenLastCalledWith(action);
     }
     expect(onAction).toHaveBeenCalledTimes(4);
+    expect(group).not.toHaveTextContent(/[↗↙⇄⌂◫◇⚙+]/);
   });
 });
 
@@ -62,14 +63,16 @@ describe("BottomNavigation", () => {
     const onSectionChange = vi.fn();
 
     renderWithTheme(
-      <BottomNavigation activeSection="portfolio" onSectionChange={onSectionChange} />,
+      <BottomNavigation
+        activeSection="portfolio"
+        reducedMotion={false}
+        onSectionChange={onSectionChange}
+      />,
     );
 
     const navigation = screen.getByRole("navigation", { name: "Основная навигация" });
-    expect(navigation.querySelectorAll('[data-glass-variant="regular"]')).toHaveLength(1);
-    expect(
-      navigation.querySelector('[data-glass-variant="regular"] [data-glass-variant]'),
-    ).not.toBeInTheDocument();
+    expect(navigation.querySelectorAll("svg")).toHaveLength(4);
+    expect(navigation.querySelector("[data-glass-nested='true']")).not.toBeInTheDocument();
 
     for (const [section, label] of SECTIONS) {
       const button = screen.getByRole("button", { name: label });
@@ -79,10 +82,16 @@ describe("BottomNavigation", () => {
       } else {
         expect(button).not.toHaveAttribute("aria-current");
       }
+      const callsBefore = onSectionChange.mock.calls.length;
       fireEvent.click(button);
-      expect(onSectionChange).toHaveBeenLastCalledWith(section);
+      if (section === "portfolio") {
+        expect(onSectionChange).toHaveBeenCalledTimes(callsBefore);
+      } else {
+        expect(onSectionChange).toHaveBeenLastCalledWith(section);
+      }
     }
-    expect(onSectionChange).toHaveBeenCalledTimes(4);
+    expect(onSectionChange).toHaveBeenCalledTimes(3);
+    expect(navigation).not.toHaveTextContent(/[↗↙⇄⌂◫◇⚙+]/);
   });
 });
 

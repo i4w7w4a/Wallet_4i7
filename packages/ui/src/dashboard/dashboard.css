@@ -1,31 +1,43 @@
 .wallet-dashboard {
+  position: relative;
+  isolation: isolate;
   width: min(100%, 480px);
   min-height: 100dvh;
   margin: 0 auto;
+  overflow: clip;
+  color: var(--color-text-primary);
+  background: var(--color-background);
+}
+
+.wallet-dashboard__foreground {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  margin-inline: auto;
   padding:
-    calc(var(--dashboard-safe-top, 0px) + 18px)
+    calc(var(--dashboard-safe-top, 0px) + 14px)
     calc(var(--dashboard-safe-right, 0px) + 16px)
     calc(var(--dashboard-safe-bottom, 0px) + 18px)
     calc(var(--dashboard-safe-left, 0px) + 16px);
-  color: var(--color-text-primary);
-  background:
-    radial-gradient(circle at 76% 5%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 29%),
-    var(--color-background);
 }
 
 .wallet-dashboard__content {
   display: grid;
-  gap: calc(18px * var(--density, 1));
-  padding: calc(22px * var(--density, 1)) 0 calc(18px * var(--density, 1));
+  gap: clamp(18px, min(5vw, 24px), 28px);
+  padding: 2px 0 116px;
 }
 
 .wallet-dashboard__navigation {
-  position: sticky;
-  z-index: 20;
-  bottom: calc(var(--dashboard-safe-bottom, 0px) + 8px);
+  position: fixed;
+  z-index: 12;
+  bottom: max(10px, var(--dashboard-safe-bottom, 0px));
+  left: 50%;
   display: flex;
+  width: min(calc(100% - 24px), 456px);
   justify-content: center;
-  margin: 0 -6px;
+  transform: translateX(-50%);
 }
 
 .wallet-dashboard__search {
@@ -111,16 +123,20 @@
 .wallet-dashboard__asset-details .wallet-dashboard__asset-amount {
   margin-top: 0;
   color: var(--color-text-primary);
-  font-size: clamp(1.8rem, 9vw, 2.7rem);
+  font-size: clamp(1.8rem, min(9vw, 43.2px), 2.7rem);
 }
 
 .wallet-dashboard__theme-overlay {
   position: fixed;
   z-index: 50;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
   display: flex;
+  width: min(100%, 480px);
   align-items: flex-end;
   justify-content: center;
+  transform: translateX(-50%);
   padding:
     max(18px, var(--dashboard-safe-top, 0px))
     max(12px, var(--dashboard-safe-right, 0px))
@@ -147,13 +163,24 @@
 }
 
 @media (max-width: 359px) {
-  .wallet-dashboard {
+  .wallet-dashboard__foreground {
     padding-right: calc(var(--dashboard-safe-right, 0px) + 10px);
     padding-left: calc(var(--dashboard-safe-left, 0px) + 10px);
   }
 
   .wallet-dashboard__content {
-    gap: calc(14px * var(--density, 1));
+    gap: 17px;
+  }
+
+  .wallet-dashboard__navigation {
+    width: calc(100% - 16px);
+  }
+}
+
+@media (min-width: 430px) {
+  .wallet-dashboard__foreground {
+    padding-right: calc(var(--dashboard-safe-right, 0px) + 20px);
+    padding-left: calc(var(--dashboard-safe-left, 0px) + 20px);
   }
 }
 

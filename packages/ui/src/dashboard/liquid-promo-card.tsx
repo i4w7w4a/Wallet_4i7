@@ -1,12 +1,35 @@
 "use client";
 
+import { GradientText } from "../react-bits/gradient-text/gradient-text";
+import { SpotlightSurface } from "../react-bits/spotlight-surface/spotlight-surface";
 import "./dashboard-visuals.css";
 
-export function LiquidPromoCard(props: { onOpen(): void }) {
+export function LiquidPromoCard(props: {
+  active: boolean;
+  finePointer: boolean;
+  reducedMotion: boolean;
+  saveData: boolean;
+  onOpen(): void;
+}) {
   return (
-    <section className="dashboard-card liquid-promo" aria-label="Обмен">
+    <SpotlightSurface
+      as="section"
+      className="wallet-material-surface liquid-promo"
+      finePointer={props.finePointer}
+      spotlightColor="color-mix(in srgb, var(--color-accent) 22%, transparent)"
+      aria-label="Обмен"
+    >
       <div>
-        <h2>Обмен с выгодой</h2>
+        <p className="liquid-promo__eyebrow">Новый маршрут</p>
+        <h2>
+          <GradientText
+            active={props.active}
+            reducedMotion={props.reducedMotion}
+            saveData={props.saveData}
+          >
+            Swap smarter
+          </GradientText>
+        </h2>
         <p>Демонстрационный курс. Операция не будет отправлена.</p>
         <button type="button" className="liquid-promo__action" onClick={props.onOpen}>
           Обменять
@@ -36,6 +59,6 @@ export function LiquidPromoCard(props: { onOpen(): void }) {
           opacity="0.55"
         />
       </svg>
-    </section>
+    </SpotlightSurface>
   );
 }

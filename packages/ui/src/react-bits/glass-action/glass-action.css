@@ -1,0 +1,171 @@
+/*
+Adapted for Wallet_4i7 from React Bits at commit
+3a1c7f2f9f94ed833934ab5c2635760b9e644583.
+Copyright (c) 2026 David Haz. MIT + Commons Clause License Condition v1.0.
+Upstream: src/ts-default/Components/GlassIcons/GlassIcons.css
+*/
+
+.glass-action {
+  position: relative;
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  width: 4.5em;
+  height: 4.5em;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary, #fff);
+  cursor: pointer;
+  perspective: 24em;
+  transform-style: preserve-3d;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass-action__back,
+.glass-action__front,
+.glass-action__core,
+.glass-action__lens,
+.glass-action__rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 1.25em;
+  pointer-events: none;
+}
+
+.glass-action__back,
+.glass-action__front {
+  --glass-action-transition: transform;
+  transition:
+    transform calc(180ms * var(--motion-intensity, 1)) cubic-bezier(0.83, 0, 0.17, 1),
+    box-shadow calc(180ms * var(--motion-intensity, 1)) ease,
+    opacity calc(180ms * var(--motion-intensity, 1)) ease;
+}
+
+.glass-action__back {
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--color-accent, #5b8cff) 28%, transparent),
+    color-mix(in srgb, #05070b 82%, var(--color-surface, #111620))
+  );
+  transform: rotate(10deg);
+  transform-origin: 100% 100%;
+  box-shadow: 0.28em -0.28em 0.7em color-mix(in srgb, #000 42%, transparent);
+}
+
+.glass-action__core {
+  z-index: 0;
+  background: radial-gradient(
+    circle at 30% 24%,
+    color-mix(in srgb, var(--color-accent, #5b8cff) 26%, transparent),
+    color-mix(in srgb, #070b12 86%, var(--color-surface, #111620)) 68%
+  );
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent, #5b8cff) 32%, transparent);
+}
+
+.glass-action__lens {
+  z-index: 1;
+  background: color-mix(in srgb, #081018 58%, transparent);
+  border: 1px solid color-mix(in srgb, #d7ecff 16%, transparent);
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent);
+}
+
+.glass-action__rim {
+  z-index: 2;
+  padding: 1px;
+  background: conic-gradient(
+    from 110deg,
+    color-mix(in srgb, #c9e7ff 85%, var(--color-accent, #5b8cff)),
+    transparent 26%,
+    color-mix(in srgb, var(--color-glass-tint, #7c6cff) 70%, #fff) 52%,
+    transparent 78%,
+    color-mix(in srgb, #c9e7ff 85%, var(--color-accent, #5b8cff))
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.glass-action__icon {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: #e8f4ff;
+  --glyph-color: #e8f4ff;
+  --glyph-filter: none;
+  filter: none;
+}
+
+.glass-action__icon svg {
+  color: #e8f4ff;
+  filter: none;
+  transform: none;
+}
+
+.glass-action__label {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-align: center;
+  color: var(--color-text-muted, #c8cdd6);
+}
+
+.glass-action:hover .glass-action__back,
+.glass-action:focus-visible .glass-action__back {
+  transform: rotate(16deg) translate3d(-0.18em, -0.18em, 0.28em);
+}
+
+.glass-action:hover .glass-action__front,
+.glass-action:focus-visible .glass-action__front {
+  transform: translate3d(0, 0, 0.7em);
+}
+
+.glass-action:active .glass-action__front,
+.glass-action:active .glass-action__back {
+  transform: translate3d(0, 0.06em, 0.12em);
+}
+
+.glass-action:focus-visible {
+  outline: 2px solid var(--color-accent, #5b8cff);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-action__back,
+  .glass-action__front {
+    transition: none;
+    transform: none;
+  }
+
+  .glass-action:hover .glass-action__back,
+  .glass-action:focus-visible .glass-action__back,
+  .glass-action:active .glass-action__front,
+  .glass-action:active .glass-action__back {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-action__lens {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--color-surface, #111620);
+  }
+}

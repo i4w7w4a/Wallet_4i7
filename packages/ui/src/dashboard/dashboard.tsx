@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import type { ChartPeriod, WalletAsset, WalletSnapshot } from "@wallet/core";
 import type { PlatformBridge } from "@wallet/platform";
 
+import {
+  WalletVisualLayer,
+  type VisualRuntimeCapabilities,
+} from "../appearance/wallet-visual-layer";
 import { BottomSheet } from "../primitives/bottom-sheet";
 import { ThemeStudio } from "../theme/theme-studio";
 import { AssetListCard } from "./asset-list-card";
@@ -27,9 +31,9 @@ type DashboardOverlay =
 export function Dashboard(props: {
   snapshot: WalletSnapshot;
   platform: PlatformBridge;
-  video: { active: boolean; reducedMotion: boolean; saveData: boolean };
+  runtime: VisualRuntimeCapabilities;
 }) {
-  const { snapshot, platform, video } = props;
+  const { snapshot, platform, runtime } = props;
   const [period, setPeriod] = useState<ChartPeriod>("1D");
   const [balanceHidden, setBalanceHidden] = useState(snapshot.balance.hidden);
   const [overlay, setOverlay] = useState<DashboardOverlay | null>(null);
@@ -83,45 +87,52 @@ export function Dashboard(props: {
     <div
       className="wallet-dashboard"
       data-platform={platform.kind}
+      data-reduced-transparency={runtime.reducedTransparency ? "true" : "false"}
       style={shellStyle}
     >
-      <ProfileHeader
-        profile={snapshot.profile}
-        unreadCount={unreadCount}
-        onSearch={() => setOverlay({ type: "search" })}
-        onNotifications={() => setOverlay({ type: "notifications" })}
-        onTheme={() => setOverlay({ type: "theme" })}
+      <WalletVisualLayer
+        runtime={{
+          ...runtime,
+          hostActive: runtime.hostActive && overlay === null,
+        }}
       />
+      <div className="wallet-dashboard__foreground">
+        <ProfileHeader
+          profile={snapshot.profile}
+          unreadCount={unreadCount}
+          onSearch={() => setOverlay({ type: "search" })}
+          onNotifications={() => setOverlay({ type: "notifications" })}
+          onTheme={() => setOverlay({ type: "theme" })}
+          reducedMotion={runtime.reducedMotion}
+        />
 
-      <main className="wallet-dashboard__content">
-        {activeSection === "home" ? (
-          <>
-            <BalanceHero
-              balance={{ ...snapshot.balance, hidden: balanceHidden }}
-              chart={snapshot.chart}
+        <main className="wallet-dashboard__content">
+          {activeSection === "home" ? (
+            <DashboardHome
+              snapshot={snapshot}
               period={period}
+              balanceHidden={balanceHidden}
+              runtime={runtime}
               onPeriodChange={setPeriod}
-              video={video}
               onToggleHidden={() => {
                 platform.haptic("selection");
                 setBalanceHidden((hidden) => !hidden);
               }}
+              onAction={openAction}
+              onSelectAsset={(asset) => setOverlay({ type: "asset", asset })}
             />
-            <QuickActions onAction={openAction} />
-            <LiquidPromoCard onOpen={() => openAction("swap")} />
-            <AssetListCard
-              assets={snapshot.assets}
-              onSelect={(asset) => setOverlay({ type: "asset", asset })}
-            />
-            <PortfolioSummaryCard balance={snapshot.balance} assets={snapshot.assets} />
-          </>
-        ) : (
-          <SectionPlaceholder section={activeSection} />
-        )}
-      </main>
+          ) : (
+            <SectionPlaceholder section={activeSection} />
+          )}
+        </main>
 
-      <div className="wallet-dashboard__navigation">
-        <BottomNavigation activeSection={activeSection} onSectionChange={selectSection} />
+        <div className="wallet-dashboard__navigation">
+          <BottomNavigation
+            activeSection={activeSection}
+            reducedMotion={runtime.reducedMotion}
+            onSectionChange={selectSection}
+          />
+        </div>
       </div>
 
       <DemoActionSheet
@@ -147,6 +158,53 @@ export function Dashboard(props: {
         onSelectAsset={(asset) => setOverlay({ type: "asset", asset })}
       />
     </div>
+  );
+}
+
+type DashboardHomeProps = {
+  snapshot: WalletSnapshot;
+  period: ChartPeriod;
+  balanceHidden: boolean;
+  runtime: VisualRuntimeCapabilities;
+  onPeriodChange(period: ChartPeriod): void;
+  onToggleHidden(): void;
+  onAction(action: DashboardAction): void;
+  onSelectAsset(asset: WalletAsset): void;
+};
+
+function DashboardHome(props: DashboardHomeProps) {
+  return (
+    <>
+      <BalanceHero
+        balance={{ ...props.snapshot.balance, hidden: props.balanceHidden }}
+        chart={props.snapshot.chart}
+        period={props.period}
+        reducedMotion={props.runtime.reducedMotion}
+        onPeriodChange={props.onPeriodChange}
+        onToggleHidden={props.onToggleHidden}
+      />
+      <QuickActions
+        reducedMotion={props.runtime.reducedMotion}
+        onAction={props.onAction}
+      />
+      <LiquidPromoCard
+        active={props.runtime.hostActive && props.runtime.documentVisible}
+        finePointer={!props.runtime.coarsePointer}
+        reducedMotion={props.runtime.reducedMotion}
+        saveData={props.runtime.saveData}
+        onOpen={() => props.onAction("swap")}
+      />
+      <AssetListCard
+        assets={props.snapshot.assets}
+        finePointer={!props.runtime.coarsePointer}
+        onSelect={props.onSelectAsset}
+      />
+      <PortfolioSummaryCard
+        balance={props.snapshot.balance}
+        assets={props.snapshot.assets}
+        finePointer={!props.runtime.coarsePointer}
+      />
+    </>
   );
 }
 

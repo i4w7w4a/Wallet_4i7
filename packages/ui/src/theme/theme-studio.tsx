@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, type ChangeEvent } from "react";
 import type { ThemeConfig } from "@wallet/core";
 
+import { useVisualEffects } from "../appearance/visual-effects-provider";
+import { WebThreadsLab } from "../appearance/web-threads-lab";
 import { useTheme } from "./theme-provider";
 import "./theme-studio.css";
 
@@ -42,7 +44,9 @@ const SLIDER_FIELDS: Array<{
 export function ThemeStudio(props: { open: boolean; onClose(): void }) {
   const { open, onClose } = props;
   const { theme, setTheme, resetTheme } = useTheme();
+  const { resetEffects } = useVisualEffects();
   const titleId = useId();
+  const paletteTitleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
 
@@ -108,7 +112,9 @@ export function ThemeStudio(props: { open: boolean; onClose(): void }) {
         </button>
       </div>
 
-      <div className="theme-studio__fields">
+      <section className="theme-studio__palette" aria-labelledby={paletteTitleId}>
+        <h3 id={paletteTitleId}>Палитра и материал</h3>
+        <div className="theme-studio__fields">
         {COLOR_FIELDS.map((field) => (
           <label key={field.key} className="theme-studio__field">
             <span>{field.label}</span>
@@ -143,10 +149,22 @@ export function ThemeStudio(props: { open: boolean; onClose(): void }) {
             <span className="theme-studio__value">{theme[field.key]}</span>
           </label>
         ))}
-      </div>
+        </div>
+      </section>
 
-      <button type="button" onClick={resetTheme}>
-        Сбросить тему
+      <details className="theme-studio__lab">
+        <summary>Web Threads Lab</summary>
+        <WebThreadsLab />
+      </details>
+
+      <button
+        type="button"
+        onClick={() => {
+          resetTheme();
+          resetEffects();
+        }}
+      >
+        Сбросить всю тему
       </button>
     </div>
   );

@@ -1,5 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 
+import { readFileSync } from "node:fs";
+
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -60,16 +62,13 @@ const ASSETS: WalletAsset[] = [
   },
 ];
 
-const VIDEO = { active: true, reducedMotion: false, saveData: false };
-
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
 
 beforeEach(() => {
-  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
-  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+  window.matchMedia = () => createMediaQueryList(false);
 });
 
 describe("ProfileHeader", () => {
@@ -85,6 +84,7 @@ describe("ProfileHeader", () => {
         onSearch={onSearch}
         onNotifications={onNotifications}
         onTheme={onTheme}
+        reducedMotion={false}
       />,
     );
 
@@ -98,24 +98,29 @@ describe("ProfileHeader", () => {
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onNotifications).toHaveBeenCalledTimes(1);
     expect(onTheme).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll(".profile-header__actions svg")).toHaveLength(3);
+    for (const icon of document.querySelectorAll(".profile-header__actions svg")) {
+      expect(icon).toHaveAttribute("viewBox", "0 0 24 24");
+      expect(icon).toHaveAttribute("aria-hidden", "true");
+    }
   });
 });
 
 describe("BalanceHero", () => {
-  it("показывает баланс, тёмную маску, HeroVideo и пять периодов", () => {
+  it("показывает открытый баланс, безопасную тёмную зону и пять периодов без video", () => {
     const { container } = render(
       <BalanceHero
         balance={BALANCE}
         chart={CHART}
         period="1D"
         onPeriodChange={() => undefined}
-        video={VIDEO}
+        reducedMotion
       />,
     );
 
     expect(container.textContent).toMatch(/12[\s\u00a0,]?840/);
-    expect(container.querySelector("[data-balance-mask]")).toBeInTheDocument();
-    expect(container.querySelector("video")).toBeInTheDocument();
+    expect(container.querySelector("[data-balance-safe-zone]")).toBeInTheDocument();
+    expect(container.querySelector("video")).not.toBeInTheDocument();
 
     for (const name of ["1Д", "1Н", "1М", "1Г", "Всё"]) {
       expect(screen.getByRole("button", { name })).toBeVisible();
@@ -134,7 +139,7 @@ describe("BalanceHero", () => {
         chart={CHART}
         period="1D"
         onPeriodChange={() => undefined}
-        video={VIDEO}
+        reducedMotion={false}
       />,
     );
 
@@ -153,7 +158,7 @@ describe("BalanceHero", () => {
           chart={CHART}
           period={period}
           onPeriodChange={setPeriod}
-          video={VIDEO}
+          reducedMotion={false}
         />
       );
     }
@@ -175,15 +180,48 @@ describe("LiquidPromoCard", () => {
   it("открывает промо по кнопке и скрывает декоративный SVG", () => {
     const onOpen = vi.fn();
 
-    render(<LiquidPromoCard onOpen={onOpen} />);
+    render(
+      <LiquidPromoCard
+        active
+        finePointer
+        reducedMotion={false}
+        saveData={false}
+        onOpen={onOpen}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /Обменять/ }));
     expect(onOpen).toHaveBeenCalledTimes(1);
 
     const card = screen.getByRole("region", { name: /обмен/i });
-    expect(card.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(card).toHaveAttribute("data-spotlight", "enabled");
     expect(card.querySelector("[data-glass-variant]")).not.toBeInTheDocument();
     expect(card).not.toHaveClass("glass-surface");
+  });
+
+  it("останавливает GradientText при inactive runtime и saveData", () => {
+    const { rerender } = render(
+      <LiquidPromoCard
+        active={false}
+        finePointer
+        reducedMotion={false}
+        saveData={false}
+        onOpen={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText("Swap smarter")).toHaveClass("wallet-gradient-text--static");
+
+    rerender(
+      <LiquidPromoCard
+        active
+        finePointer
+        reducedMotion={false}
+        saveData
+        onOpen={() => undefined}
+      />,
+    );
+    expect(screen.getByText("Swap smarter")).toHaveClass("wallet-gradient-text--static");
   });
 });
 
@@ -191,7 +229,7 @@ describe("AssetListCard", () => {
   it("показывает активы кнопками и сообщает выбранный актив", () => {
     const onSelect = vi.fn();
 
-    render(<AssetListCard assets={ASSETS} onSelect={onSelect} />);
+    render(<AssetListCard assets={ASSETS} finePointer onSelect={onSelect} />);
 
     const bitcoin = screen.getByRole("button", { name: /Bitcoin/ });
     const ethereum = screen.getByRole("button", { name: /Ethereum/ });
@@ -210,6 +248,7 @@ describe("AssetListCard", () => {
     expect(sparkline).toHaveAttribute("viewBox");
 
     const card = screen.getByRole("region", { name: /активы/i });
+    expect(card).toHaveAttribute("data-spotlight", "enabled");
     expect(card.querySelector("[data-glass-variant]")).not.toBeInTheDocument();
     expect(card).not.toHaveClass("glass-surface");
   });
@@ -217,14 +256,42 @@ describe("AssetListCard", () => {
 
 describe("PortfolioSummaryCard", () => {
   it("показывает распределение портфеля без стеклянной поверхности", () => {
-    render(<PortfolioSummaryCard balance={BALANCE} assets={ASSETS} />);
+    render(<PortfolioSummaryCard balance={BALANCE} assets={ASSETS} finePointer />);
 
     const card = screen.getByRole("region", { name: /портфел/i });
     expect(screen.getByText("Bitcoin")).toBeVisible();
     expect(screen.getByText("Ethereum")).toBeVisible();
     expect(screen.getByText("USD Coin")).toBeVisible();
     expect(card.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(card).toHaveAttribute("data-spotlight", "enabled");
     expect(card.querySelector("[data-glass-variant]")).not.toBeInTheDocument();
     expect(card).not.toHaveClass("glass-surface");
   });
 });
+
+describe("mobile art direction", () => {
+  it("фиксирует ограниченную hero-сцену, mobile breakpoints и безопасный focus layer", () => {
+    const css = readFileSync("src/dashboard/dashboard-visuals.css", "utf8")
+      + readFileSync("src/dashboard/dashboard.css", "utf8");
+
+    expect(css).toContain("min-height: 340px");
+    expect(css).toContain("clamp(2.65rem, min(12vw, 57.6px), 4.6rem)");
+    expect(css).toContain("max-width: 359px");
+    expect(css).toContain("min-width: 430px");
+    expect(css).toContain("position: fixed");
+    expect(css).toMatch(/focus-visible[\s\S]*z-index/);
+  });
+});
+
+function createMediaQueryList(matches: boolean): MediaQueryList {
+  return {
+    matches,
+    media: "",
+    onchange: null,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    dispatchEvent: () => false,
+  };
+}
