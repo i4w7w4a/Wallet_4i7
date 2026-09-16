@@ -158,6 +158,38 @@ describe("createWebThreadsEngine", () => {
     );
   });
 
+  it("игнорирует pointer за пределами мобильной сцены", () => {
+    const { canvas } = createCanvasWithContext();
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      left: 272,
+      top: 0,
+      width: 480,
+      height: 900,
+      right: 752,
+      bottom: 900,
+      x: 272,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    let frameCallback: FrameRequestCallback | undefined;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frameCallback = callback;
+      return 1;
+    });
+    const engine = createWebThreadsEngine(canvas, createInput(vi.fn()));
+
+    engine?.setRunning(true);
+    window.dispatchEvent(
+      new MouseEvent("pointermove", { clientX: 40, clientY: 200 }),
+    );
+    frameCallback?.(16);
+
+    const uniforms = oglMock.state.programs[0]?.uniforms;
+    expect(uniforms?.uMouse?.value).toEqual(new Float32Array([0.5, 0.5]));
+    expect(uniforms?.uMouseActive?.value).toBe(0);
+    engine?.dispose();
+  });
+
   it("не меняет mouse uniforms при отключённом pointer interaction", () => {
     const { canvas } = createCanvasWithContext();
     vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({

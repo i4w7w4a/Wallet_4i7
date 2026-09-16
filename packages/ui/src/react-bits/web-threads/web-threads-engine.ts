@@ -285,6 +285,15 @@ export function createWebThreadsEngine(
     if (!input.mouseInteraction) return;
     const rect = canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
+    const outsideCanvas =
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom;
+    if (outsideCanvas) {
+      targetActive = 0;
+      return;
+    }
     targetMouse[0] = (event.clientX - rect.left) / rect.width;
     targetMouse[1] = 1 - (event.clientY - rect.top) / rect.height;
     targetActive = 1;
