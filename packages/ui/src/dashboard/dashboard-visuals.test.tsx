@@ -270,12 +270,12 @@ describe("PortfolioSummaryCard", () => {
 });
 
 describe("mobile art direction", () => {
-  it("фиксирует открытую hero-сцену, mobile breakpoints и безопасный focus layer", () => {
+  it("фиксирует ограниченную hero-сцену, mobile breakpoints и безопасный focus layer", () => {
     const css = readFileSync("src/dashboard/dashboard-visuals.css", "utf8")
       + readFileSync("src/dashboard/dashboard.css", "utf8");
 
     expect(css).toContain("min-height: 340px");
-    expect(css).toContain("clamp(2.65rem, 12vw, 4.6rem)");
+    expect(css).toContain("clamp(2.65rem, min(12vw, 57.6px), 4.6rem)");
     expect(css).toContain("max-width: 359px");
     expect(css).toContain("min-width: 430px");
     expect(css).toContain("position: fixed");
