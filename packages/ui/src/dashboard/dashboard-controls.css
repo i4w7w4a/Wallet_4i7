@@ -30,7 +30,7 @@
 .wallet-controls__action-grid .wallet-controls__action .glass-action__label {
   top: calc(100% + 5px);
   color: var(--color-text-primary);
-  font-size: clamp(0.66rem, 2.8vw, 0.76rem);
+  font-size: clamp(0.66rem, min(2.8vw, 13.44px), 0.76rem);
 }
 
 .wallet-controls__action svg {
@@ -209,7 +209,7 @@
 
 .wallet-controls__section-placeholder h2 {
   margin: 0;
-  font-size: clamp(1.35rem, 7vw, 2rem);
+  font-size: clamp(1.35rem, min(7vw, 33.6px), 2rem);
 }
 
 .wallet-controls__section-kicker {

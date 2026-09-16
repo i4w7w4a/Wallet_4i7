@@ -8,6 +8,8 @@ test("desktop ограничивает живую сцену и overlays шир�
   await expectSceneRect(page.locator(".wallet-dashboard"), 272, 480);
   await expectSceneRect(page.locator("[data-wallet-visual-layer]"), 272, 480);
   await expectSceneRect(page.locator("canvas[data-web-threads]"), 272, 480);
+  await expectSingleLineMobileType(page.locator(".balance-hero__amount"), 60);
+  await expectSingleLineMobileType(page.locator(".liquid-promo h2"), 60);
   expect(await pointBelongsToDashboard(page, 40, 200)).toBe(false);
   expect(await page.locator("body").evaluate((node) => getComputedStyle(node).backgroundColor)).toBe(
     "rgb(0, 0, 0)",
@@ -33,6 +35,7 @@ test("mobile сохраняет полноэкранную ширину сцен
   await expectSceneRect(page.locator(".wallet-dashboard"), 0, 390);
   await expectSceneRect(page.locator("[data-wallet-visual-layer]"), 0, 390);
   await expectSceneRect(page.locator("canvas[data-web-threads]"), 0, 390);
+  await expectSingleLineMobileType(page.locator(".liquid-promo h2"), 60);
 });
 
 async function expectSceneRect(locator: Locator, x: number, width: number) {
@@ -41,6 +44,13 @@ async function expectSceneRect(locator: Locator, x: number, width: number) {
   expect(box).not.toBeNull();
   expect(box?.x).toBeCloseTo(x, 0);
   expect(box?.width).toBeCloseTo(width, 0);
+}
+
+async function expectSingleLineMobileType(locator: Locator, maxHeight: number) {
+  await expect(locator).toBeVisible();
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box?.height).toBeLessThanOrEqual(maxHeight);
 }
 
 async function pointBelongsToDashboard(page: Page, x: number, y: number) {

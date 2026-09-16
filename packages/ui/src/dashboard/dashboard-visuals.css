@@ -128,7 +128,7 @@
   position: relative;
   isolation: isolate;
   min-height: 340px;
-  padding: clamp(18px, 5vw, 26px) 0 8px;
+  padding: clamp(18px, min(5vw, 24px), 26px) 0 8px;
 }
 
 .balance-hero__safe-zone {
@@ -180,7 +180,7 @@
 .balance-hero__greeting {
   margin: 0 0 5px;
   color: var(--color-text-muted, #9299aa);
-  font-size: clamp(0.78rem, 2.8vw, 0.9rem);
+  font-size: clamp(0.78rem, min(2.8vw, 13.44px), 0.9rem);
   letter-spacing: 0.03em;
 }
 
@@ -189,7 +189,7 @@
   margin: 0;
   overflow-wrap: anywhere;
   color: var(--color-text-primary, #ffffff);
-  font-size: clamp(2.65rem, 12vw, 4.6rem);
+  font-size: clamp(2.65rem, min(12vw, 57.6px), 4.6rem);
   font-weight: 650;
   letter-spacing: -0.065em;
   line-height: 0.98;
@@ -283,7 +283,7 @@
 .wallet-material-surface {
   position: relative;
   overflow: hidden;
-  padding: clamp(18px, 5vw, 24px);
+  padding: clamp(18px, min(5vw, 24px), 24px);
   border: 1px solid color-mix(in srgb, var(--color-text-primary, #ffffff) 14%, transparent);
   border-radius: var(--radius, 24px);
   background: color-mix(in srgb, var(--color-surface, #111620) 78%, transparent);
@@ -298,7 +298,7 @@
 }
 
 .wallet-material-surface h2 {
-  font-size: clamp(1.25rem, 5vw, 1.75rem);
+  font-size: clamp(1.25rem, min(5vw, 24px), 1.75rem);
   font-weight: 620;
   letter-spacing: -0.035em;
 }
@@ -335,7 +335,7 @@
 
 .liquid-promo h2 {
   margin-top: 5px;
-  font-size: clamp(1.75rem, 8vw, 2.65rem);
+  font-size: clamp(1.75rem, min(7.5vw, 36px), 2.65rem);
 }
 
 .liquid-promo p:not(.liquid-promo__eyebrow) {
@@ -527,7 +527,7 @@
 
   .balance-hero__amount {
     max-width: 250px;
-    font-size: clamp(2.35rem, 13vw, 3rem);
+    font-size: clamp(2.35rem, min(13vw, 62.4px), 3rem);
   }
 
   .liquid-promo {
