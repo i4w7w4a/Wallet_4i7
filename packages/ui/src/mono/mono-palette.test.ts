@@ -146,6 +146,18 @@ describe("MONO scoped deterministic randomization", () => {
 });
 
 describe("MONO coherent recipe randomization", () => {
+  it("retains V1 linked and offset focus colors for non-default saved character recipes", () => {
+    const config = normalizeMonoPaletteConfig();
+    const theme = config.themes.dark;
+    theme.recipe = { ...theme.recipe, anchorHue: 40, anchorChroma: 0.008, temperature: 0.5 };
+    expect(resolveMonoPalette(theme).roles.focus).toEqual({ l: 0.94, c: 0.008, h: 46, alpha: 1 });
+
+    theme.roles.focus.mode = "offset";
+    theme.roles.focus.offset = { l: -0.01, c: 0.003, h: 20 };
+    expect(resolveMonoPalette(theme).roles.focus).toMatchObject({ c: 0.011, h: 66, alpha: 1 });
+    expect(resolveMonoPalette(theme).roles.focus.l).toBeCloseTo(0.93, 12);
+  });
+
   it("keeps an unlocked focus role recipe-derived after a quick variant", () => {
     const config = normalizeMonoPaletteConfig({ seed: "focus-remains-linked" });
     const originalState = structuredClone(config.themes.dark.roles.focus);

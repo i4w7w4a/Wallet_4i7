@@ -128,9 +128,8 @@ function recipeColor(theme: ThemePaletteState, id: MonoPaletteRole): MonoOklch {
   const spectral = recipe.harmony === "spectral-graphite" && decorative ? 0.45 : 1;
   const l = 0.5 + (schema[theme.mode] - 0.5) * (schema.group === "content" ? recipe.contrast : 1)
     + recipe.exposure + (schema.group === "core" && id !== "canvas" ? (recipe.surfaceResponse - 0.5) * 0.035 : 0);
-  return normalizeMonoOklch({ l, c: id === "focus" ? schema.chroma : Math.min(schema.chroma, recipe.anchorChroma * saturation * spectral),
-    h: id === "focus" ? MONO_PALETTE_RECIPE_BOUNDS.anchorHue.default
-      : recipe.anchorHue + recipe.temperature * 12 + (decorative ? harmonyOffsets[recipe.harmony][schema.hue] : 0), alpha: schema.alpha });
+  return normalizeMonoOklch({ l, c: Math.min(schema.chroma, recipe.anchorChroma * saturation * spectral),
+    h: recipe.anchorHue + recipe.temperature * 12 + (decorative ? harmonyOffsets[recipe.harmony][schema.hue] : 0), alpha: schema.alpha });
 }
 
 function resolvedFromRoles(mode: MonoPaletteMode, roles: Record<MonoPaletteRole, MonoOklch>): MonoResolvedPalette {
@@ -323,8 +322,8 @@ export type MonoPaletteRecipeRandomizeResult = {
 };
 
 const MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA = {
-  anchorHue: { min: 0, max: 359, step: 1 },
-  anchorChroma: { min: 0.05, max: 0.16, step: 0.001 },
+  anchorHue: { min: 0, max: 360, coupledTo: "temperature-for-focus" },
+  anchorChroma: { min: 0.05, max: 0.16, step: 0.001, preserveBelow: MONO_PALETTE_ROLE_SCHEMA.focus.chroma },
   harmony: MONO_PALETTE_QUICK_HARMONIES,
   temperature: { min: -0.6, max: 0.6, step: 0.01 },
   iridescence: { min: 0.25, max: 0.9, step: 0.01 },
@@ -345,11 +344,17 @@ function sampleMonoPaletteCharacter(theme: ThemePaletteState, prefix: string): P
   if (harmony === theme.recipe.harmony) {
     harmony = MONO_PALETTE_QUICK_HARMONIES[(MONO_PALETTE_QUICK_HARMONIES.indexOf(harmony) + 1) % MONO_PALETTE_QUICK_HARMONIES.length];
   }
+  // Focus remains a linked/offset role. Couple hue and temperature so its V1
+  // recipe hue stays fixed without rewriting the role or the resolver.
+  const current = theme.recipe;
+  const temperature = sampleDifferentRange(current.temperature, -0.6, 0.6, 0.01,
+    (sample("anchorHue") + sample("temperature")) / 2);
   return {
-    anchorHue: sampleDifferentRange(theme.recipe.anchorHue, 0, 359, 1, sample("anchorHue")),
-    anchorChroma: sampleDifferentRange(theme.recipe.anchorChroma, 0.05, 0.16, 0.001, sample("anchorChroma")),
+    anchorHue: wrapHue(current.anchorHue + (current.temperature - temperature) * 12),
+    anchorChroma: current.anchorChroma < MONO_PALETTE_ROLE_SCHEMA.focus.chroma
+      ? current.anchorChroma : sampleDifferentRange(current.anchorChroma, 0.05, 0.16, 0.001, sample("anchorChroma")),
     harmony,
-    temperature: sampleDifferentRange(theme.recipe.temperature, -0.6, 0.6, 0.01, sample("temperature")),
+    temperature,
     iridescence: sampleDifferentRange(theme.recipe.iridescence, 0.25, 0.9, 0.01, sample("iridescence")),
   };
 }
