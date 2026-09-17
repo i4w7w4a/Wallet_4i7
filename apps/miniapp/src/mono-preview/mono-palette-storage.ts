@@ -73,7 +73,13 @@ export function loadMonoPaletteWorkspace(storage: StoragePort): MonoPaletteWorks
 export function saveMonoPaletteWorkspace(storage: StoragePort, workspace: MonoPaletteWorkspace): void {
   if (workspace.version !== 1) throw new Error("Unsupported palette workspace version");
   const serialized = structuredClone(workspace);
-  for (const slot of serialized.slots) slot.transaction = null;
+  for (const slot of serialized.slots) {
+    if (slot.transaction && JSON.stringify(slot.transaction.before) !== JSON.stringify(slot.present)) {
+      slot.past = [...slot.past, slot.transaction.before].slice(-50);
+      slot.future = [];
+    }
+    slot.transaction = null;
+  }
   storage.setItem(MONO_PALETTE_WORKSPACE_KEY, JSON.stringify(serialized));
 }
 

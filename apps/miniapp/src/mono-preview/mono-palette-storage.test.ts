@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { normalizeMonoPaletteConfig, resolveMonoPalette, setMonoPaletteLock } from "@wallet/ui";
 import { createHash } from "node:crypto";
 import { exportMonoPalettePreset, importMonoPalettePreset, type MonoSha256 } from "./mono-preset-codec";
-import { createMonoPaletteWorkspace, editMonoPaletteRecipe } from "./mono-palette-workspace";
+import { beginMonoPaletteTransaction, createMonoPaletteWorkspace, editMonoPaletteRecipe, redoMonoPaletteWorkspace, undoMonoPaletteWorkspace } from "./mono-palette-workspace";
 import {
   MONO_PALETTE_ACTIVE_KEY, MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY,
   applyMonoPaletteActive, loadMonoPaletteActive, loadMonoPalettePresets,
@@ -75,5 +75,18 @@ describe("mono palette storage", () => {
     forged.config.seed = "forged";
     localStorage.setItem(MONO_PALETTE_PRESETS_KEY, JSON.stringify({ version: 1, presets: [preset, forged] }));
     expect(await loadVerifiedMonoPalettePresets(localStorage, digest)).toEqual([]);
+  });
+
+  it("saves an active edited gesture as one coherent history branch", () => {
+    let state = editMonoPaletteRecipe(createMonoPaletteWorkspace(), { anchorHue: 42 });
+    state = undoMonoPaletteWorkspace(state);
+    state = beginMonoPaletteTransaction(state, "hue-drag");
+    state = editMonoPaletteRecipe(state, { anchorHue: 80 });
+    saveMonoPaletteWorkspace(localStorage, state);
+    const restored = loadMonoPaletteWorkspace(localStorage);
+    expect(restored.slots[0].past).toHaveLength(1);
+    expect(restored.slots[0].future).toHaveLength(0);
+    expect(undoMonoPaletteWorkspace(restored).slots[0].present.config.themes.dark.recipe.anchorHue).toBe(250);
+    expect(redoMonoPaletteWorkspace(undoMonoPaletteWorkspace(restored)).slots[0].present.config.themes.dark.recipe.anchorHue).toBe(80);
   });
 });

@@ -1,6 +1,6 @@
 import {
   MONO_PALETTE_GROUPS, MONO_PALETTE_ROLES, MONO_PALETTE_SCHEMA_HASH,
-  normalizeMonoPaletteConfig, resolveMonoPalette, validateMonoPaletteApply,
+  normalizeMonoPaletteConfig, resolveMonoPalette, setMonoPaletteLock, validateMonoPaletteApply,
   type MonoPaletteConfigV1, type MonoPaletteMode, type MonoPaletteRole,
   type MonoResolvedPalette, type ThemePaletteState,
 } from "@wallet/ui";
@@ -14,7 +14,7 @@ export type MonoPalettePresetV1 = {
 export type MonoPaletteFragmentScope = "entire" | "dark" | "light" | "palette" | "background" | "glass-color" | "typography";
 export type MonoPaletteFragment = { version: 1; scope: MonoPaletteFragmentScope; payload: unknown };
 export type MonoPaletteDiff = { path: string; before: unknown; after: unknown };
-export type MonoPaletteMerge = { config: MonoPaletteConfigV1; diff: MonoPaletteDiff[]; skipped: string[]; issues: string[] };
+export type MonoPaletteMerge = { config: MonoPaletteConfigV1; resolved: Record<MonoPaletteMode, MonoResolvedPalette>; diff: MonoPaletteDiff[]; skipped: string[]; issues: string[] };
 
 const LIMIT = 131_072;
 const scopes: MonoPaletteFragmentScope[] = ["entire", "dark", "light", "palette", "background", "glass-color", "typography"];
@@ -94,7 +94,18 @@ function roleSelection(scope: MonoPaletteFragmentScope): MonoPaletteRole[] {
 }
 
 function copyRoleValue(target: ThemePaletteState["roles"][MonoPaletteRole], source: ThemePaletteState["roles"][MonoPaletteRole], respectLocks: boolean) {
-  return respectLocks ? { ...clone(source), locked: target.locked, lockedValue: clone(target.lockedValue) } : clone(source);
+  return { ...clone(source), locked: target.locked, lockedValue: respectLocks ? clone(target.lockedValue) : null };
+}
+
+function resnapshotTargetLocks(theme: ThemePaletteState, target: ThemePaletteState): ThemePaletteState {
+  let next = theme;
+  for (const role of MONO_PALETTE_ROLES) {
+    if (target.roles[role].locked) next = setMonoPaletteLock(next, { kind: "point", role }, true);
+  }
+  for (const group of Object.keys(MONO_PALETTE_GROUPS) as Array<keyof typeof MONO_PALETTE_GROUPS>) {
+    if (target.groupLocks[group]) next = setMonoPaletteLock(next, { kind: "group", group }, true);
+  }
+  return next;
 }
 
 export function createMonoPaletteFragment(preset: MonoPalettePresetV1, scope: MonoPaletteFragmentScope): MonoPaletteFragment {
@@ -104,21 +115,34 @@ export function createMonoPaletteFragment(preset: MonoPalettePresetV1, scope: Mo
   if (scope === "palette") return { version: 1, scope, payload: clone(preset.config.themes) };
   const roles = roleSelection(scope);
   return { version: 1, scope, payload: {
-    dark: Object.fromEntries(roles.map(role => [role, clone(preset.config.themes.dark.roles[role])])),
-    light: Object.fromEntries(roles.map(role => [role, clone(preset.config.themes.light.roles[role])])),
+    roles: {
+      dark: Object.fromEntries(roles.map(role => [role, clone(preset.config.themes.dark.roles[role])])),
+      light: Object.fromEntries(roles.map(role => [role, clone(preset.config.themes.light.roles[role])])),
+    },
+    resolved: {
+      dark: Object.fromEntries(roles.map(role => [role, clone(preset.resolved.dark.roles[role])])),
+      light: Object.fromEntries(roles.map(role => [role, clone(preset.resolved.light.roles[role])])),
+    },
   } };
 }
 
 function validateFragment(fragment: MonoPaletteFragment): void {
   if (fragment.version !== 1 || !scopes.includes(fragment.scope)) throw new Error("Unsupported palette fragment scope or version");
   const defaults = normalizeMonoPaletteConfig();
-  if (fragment.scope === "entire") strictShape(fragment.payload, defaults, "fragment");
+  if (fragment.scope === "entire") {
+    normalizeMonoPaletteConfig(fragment.payload);
+    strictShape(fragment.payload, defaults, "fragment");
+  }
   else if (fragment.scope === "dark" || fragment.scope === "light") strictShape(fragment.payload, defaults.themes[fragment.scope], "fragment");
   else if (fragment.scope === "palette") strictShape(fragment.payload, defaults.themes, "fragment");
   else {
     const roles = roleSelection(fragment.scope);
-    const template = Object.fromEntries((["dark", "light"] as const).map(mode => [mode,
-      Object.fromEntries(roles.map(role => [role, defaults.themes[mode].roles[role]]))]));
+    const template = {
+      roles: Object.fromEntries((["dark", "light"] as const).map(mode => [mode,
+        Object.fromEntries(roles.map(role => [role, defaults.themes[mode].roles[role]]))])),
+      resolved: Object.fromEntries((["dark", "light"] as const).map(mode => [mode,
+        Object.fromEntries(roles.map(role => [role, colorTemplate]))])),
+    };
     strictShape(fragment.payload, template, "fragment");
   }
 }
@@ -140,7 +164,6 @@ function mergeTheme(target: ThemePaletteState, source: ThemePaletteState, respec
     diff.push({ path: rolePath, before: clone(target.roles[role]), after: clone(after) });
     next.roles[role] = after;
   }
-  if (!respectLocks) next.groupLocks = clone(source.groupLocks);
   return next;
 }
 
@@ -155,24 +178,36 @@ export function mergeMonoPaletteFragment(target: MonoPaletteConfigV1, fragment: 
     for (const mode of modes) config.themes[mode] = mergeTheme(config.themes[mode], source[mode]!, respectLocks, `themes.${mode}`, diff, skipped);
     if (fragment.scope === "entire") {
       const full = fragment.payload as MonoPaletteConfigV1;
+      for (const key of ["seed", "actionCounter", "linkedThemes"] as const) {
+        if (config[key] !== full[key]) diff.push({ path: key, before: config[key], after: full[key] });
+      }
       config.seed = full.seed; config.actionCounter = full.actionCounter; config.linkedThemes = full.linkedThemes;
     }
   } else {
-    const source = fragment.payload as Record<MonoPaletteMode, Record<MonoPaletteRole, ThemePaletteState["roles"][MonoPaletteRole]>>;
+    const source = fragment.payload as {
+      roles: Record<MonoPaletteMode, Record<MonoPaletteRole, ThemePaletteState["roles"][MonoPaletteRole]>>;
+      resolved: Record<MonoPaletteMode, Record<MonoPaletteRole, MonoResolvedPalette["roles"][MonoPaletteRole]>>;
+    };
     for (const mode of modes) for (const role of roleSelection(fragment.scope)) {
       const current = config.themes[mode], rolePath = `themes.${mode}.roles.${role}`;
-      if (equal(current.roles[role], source[mode][role])) continue;
       const group = Object.entries(MONO_PALETTE_GROUPS).find(([, values]) => (values as readonly string[]).includes(role))![0] as keyof typeof MONO_PALETTE_GROUPS;
+      const sourceRole = clone(source.roles[mode][role]);
+      if (sourceRole.mode !== "manual") {
+        sourceRole.mode = "manual";
+        sourceRole.value = clone(source.resolved[mode][role]);
+      }
+      if (equal(current.roles[role], sourceRole) && equal(resolveMonoPalette(current).roles[role], source.resolved[mode][role])) continue;
       if (respectLocks && (current.groupLocks[group] || current.roles[role].locked)) { skipped.push(rolePath); continue; }
-      const after = copyRoleValue(current.roles[role], source[mode][role], respectLocks);
+      const after = copyRoleValue(current.roles[role], sourceRole, respectLocks);
       diff.push({ path: rolePath, before: clone(current.roles[role]), after: clone(after) });
       current.roles[role] = after;
     }
   }
+  if (!respectLocks) for (const mode of modes) config.themes[mode] = resnapshotTargetLocks(config.themes[mode], target.themes[mode]);
   const normalized = normalizeMonoPaletteConfig(config);
   const issues = modes.flatMap(mode => validateMonoPaletteApply(normalized.themes[mode]).issues.map(issue => `${mode}.${issue.role}: ${issue.message}`));
   if (fragment.scope === "typography") issues.push("Typography is not part of MonoPaletteConfigV1");
-  return { config: normalized, diff, skipped, issues };
+  return { config: normalized, resolved: { dark: resolveMonoPalette(normalized.themes.dark), light: resolveMonoPalette(normalized.themes.light) }, diff, skipped, issues };
 }
 
 export function previewMonoPaletteFragment(target: MonoPaletteConfigV1, fragment: MonoPaletteFragment): MonoPaletteMerge {

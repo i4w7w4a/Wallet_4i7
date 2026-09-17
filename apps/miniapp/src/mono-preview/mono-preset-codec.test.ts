@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { normalizeMonoPaletteConfig, resolveMonoPalette } from "@wallet/ui";
+import { normalizeMonoPaletteConfig, resolveMonoPalette, setMonoPaletteLock } from "@wallet/ui";
 import {
   createMonoPaletteFragment, exportMonoPalettePreset, importMonoPalettePreset,
   mergeMonoPaletteFragment, previewMonoPaletteFragment,
@@ -70,5 +70,59 @@ describe("portable mono preset", () => {
     const result = mergeMonoPaletteFragment(normalizeMonoPaletteConfig(), typography);
     expect(result.diff).toEqual([]);
     expect(result.issues).toEqual(["Typography is not part of MonoPaletteConfigV1"]);
+  });
+
+  it("copies a linked glass-color fragment at its source resolved hue without changing outside roles", async () => {
+    const source = normalizeMonoPaletteConfig();
+    source.themes.dark.recipe.anchorHue = 42;
+    const target = normalizeMonoPaletteConfig();
+    const outsideBefore = resolveMonoPalette(target.themes.dark).roles.accentPrimary;
+    const sourceHue = resolveMonoPalette(source.themes.dark).roles.edgeCool.h;
+    const preset = await importMonoPalettePreset(await exportMonoPalettePreset(source, digest), digest);
+    const result = mergeMonoPaletteFragment(target, createMonoPaletteFragment(preset, "glass-color"));
+    expect(resolveMonoPalette(result.config.themes.dark).roles.edgeCool.h).toBeCloseTo(sourceHue, 9);
+    expect(result.diff.some(item => item.path === "themes.dark.roles.edgeCool")).toBe(true);
+    expect(resolveMonoPalette(result.config.themes.dark).roles.accentPrimary).toEqual(outsideBefore);
+  });
+
+  it("overrides color without importing source editor locks when respectLocks is false", async () => {
+    const source = normalizeMonoPaletteConfig();
+    source.themes.dark.roles.edgeCool.mode = "manual";
+    source.themes.dark.roles.edgeCool.value = { l: 0.75, c: 0.05, h: 70, alpha: 1 };
+    source.themes.dark = setMonoPaletteLock(source.themes.dark, { kind: "group", group: "core" }, true);
+    const target = normalizeMonoPaletteConfig();
+    target.themes.dark = setMonoPaletteLock(target.themes.dark, { kind: "point", role: "edgeCool" }, true);
+    target.themes.dark = setMonoPaletteLock(target.themes.dark, { kind: "group", group: "decorative" }, true);
+    const preset = await importMonoPalettePreset(await exportMonoPalettePreset(source, digest), digest);
+    const merged = mergeMonoPaletteFragment(target, createMonoPaletteFragment(preset, "dark"), { respectLocks: false });
+    expect(merged.config.themes.dark.groupLocks.decorative).toBe(true);
+    expect(merged.config.themes.dark.groupLocks.core).toBe(false);
+    expect(merged.config.themes.dark.roles.edgeCool.locked).toBe(true);
+    expect(resolveMonoPalette(merged.config.themes.dark).roles.edgeCool).toEqual(resolveMonoPalette(source.themes.dark).roles.edgeCool);
+  });
+
+  it("rejects an entire fragment with an unknown internal config version atomically", async () => {
+    const source = normalizeMonoPaletteConfig();
+    source.seed = "imported";
+    const preset = await importMonoPalettePreset(await exportMonoPalettePreset(source, digest), digest);
+    const fragment = createMonoPaletteFragment(preset, "entire");
+    (fragment.payload as { version: number }).version = 99;
+    const target = normalizeMonoPaletteConfig();
+    expect(() => mergeMonoPaletteFragment(target, fragment)).toThrow(/version/i);
+    expect(target.seed).toBe("mono");
+  });
+
+  it("shows seed, counter and theme-link changes with resulting palette strips in entire preview", async () => {
+    const source = normalizeMonoPaletteConfig();
+    source.seed = "new-seed";
+    source.actionCounter = 3;
+    source.linkedThemes = true;
+    source.themes.dark.recipe.anchorHue = 42;
+    const target = normalizeMonoPaletteConfig();
+    const preset = await importMonoPalettePreset(await exportMonoPalettePreset(source, digest), digest);
+    const preview = previewMonoPaletteFragment(target, createMonoPaletteFragment(preset, "entire"));
+    expect(preview.diff.map(item => item.path)).toEqual(expect.arrayContaining(["seed", "actionCounter", "linkedThemes"]));
+    expect(preview.resolved.dark.roles.edgeCool).toEqual(resolveMonoPalette(preview.config.themes.dark).roles.edgeCool);
+    expect(preview.resolved.light.roles.canvas).toEqual(resolveMonoPalette(preview.config.themes.light).roles.canvas);
   });
 });
