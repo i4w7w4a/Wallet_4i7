@@ -1,0 +1,69 @@
+.mono-preset-library {
+  --preset-ease: cubic-bezier(.2, 0, 0, 1);
+  display: grid;
+  gap: 12px;
+  padding-block: 17px 4px;
+  border-block-start: 1px solid #565b53;
+  color: #e8eae4;
+  font: 12px/1.45 var(--mono-font-ui);
+}
+.mono-preset-library__head { display: grid; gap: 3px; }
+.mono-preset-library__head span { color: #aeb8a7; font: 10px var(--mono-font-mono); letter-spacing: .13em; }
+.mono-preset-library__head h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.015em; }
+.mono-preset-library p { margin: 0; }
+.mono-preset-library__intro, .mono-preset-library__foot { color: #b9c0b3; }
+.mono-preset-library fieldset { display: grid; gap: 9px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.mono-preset-library legend { margin-block-end: 7px; color: #c4cbbf; }
+.mono-preset-library label { display: grid; gap: 5px; min-width: 0; }
+.mono-preset-library :is(input, select, button) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #596057;
+  border-radius: 8px;
+  background: #232721;
+  color: #f3f4ef;
+  font: inherit;
+  transition: background-color 190ms var(--preset-ease), border-color 190ms var(--preset-ease), color 190ms var(--preset-ease);
+}
+.mono-preset-library input::placeholder { color: #aeb5a8; }
+.mono-preset-library button { cursor: pointer; user-select: none; }
+.mono-preset-library button:disabled { cursor: not-allowed; opacity: .56; }
+.mono-preset-library :is(input, select, button):focus-visible { outline: 2px solid #e7f2df; outline-offset: 3px; }
+.mono-preset-library button:active { background: #4b5448; transition-duration: 80ms; }
+.mono-preset-library__primary { border-color: #aebda8 !important; background: linear-gradient(145deg, #3c493b, #28352a) !important; }
+.mono-preset-library__finder { display: grid; gap: 7px; padding-block-start: 9px; border-block-start: 1px solid #4a5048; }
+.mono-preset-library__status, .mono-preset-library__error, .mono-preset-library__empty {
+  padding: 10px; border-radius: 7px; overflow-wrap: anywhere;
+  border: 1px solid #586557; background: #1b251e;
+}
+.mono-preset-library__error { border-color: #a87d70; background: #332520; color: #f5d9ce; }
+.mono-preset-library__empty { color: #c3cabd; }
+.mono-preset-library__cards { display: grid; gap: 10px; }
+.mono-preset-library__card {
+  display: grid; gap: 10px; padding: 12px; min-width: 0;
+  border: 1px solid #5c665b; border-radius: 11px;
+  background: linear-gradient(152deg, #2d342d, #20251f 69%);
+  box-shadow: inset 0 1px 0 #ffffff12, 0 8px 22px #00000020;
+}
+.mono-preset-library__card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mono-preset-library__card-head strong { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.mono-preset-library__card-head span { color: #cbd4c5; white-space: nowrap; font-size: 10px; }
+.mono-preset-library__meta { display: flex; flex-wrap: wrap; gap: 3px 10px; color: #adb6a9; font: 10px var(--mono-font-mono); }
+.mono-preset-library__strips { display: grid; gap: 5px; }
+.mono-preset-library__strip { display: flex; align-items: stretch; height: 16px; gap: 1px; overflow: hidden; border: 1px solid #ffffff2b; border-radius: 4px; }
+.mono-preset-library__strip span { display: grid; place-items: center; width: 19px; flex: none; background: #333b32; color: #f1f3ed; font: 9px var(--mono-font-mono); }
+.mono-preset-library__strip i { display: block; flex: 1; min-width: 0; }
+.mono-preset-library__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.mono-preset-library__quiet { background: transparent !important; color: #c7d1c2 !important; }
+.mono-preset-library__history { display: grid; gap: 5px; padding-block-start: 9px; border-block-start: 1px solid #4c554b; }
+.mono-preset-library__history button { text-align: start; }
+.mono-preset-library__share input { font-family: var(--mono-font-mono); font-size: 10px; }
+@media (hover: hover) and (pointer: fine) {
+  .mono-preset-library button:not(:disabled):hover { background: #3a4439; border-color: #9caa98; transition-duration: 90ms; }
+  .mono-preset-library__primary:not(:disabled):hover { background: linear-gradient(145deg, #526451, #344437) !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mono-preset-library * { transition: none !important; }
+}

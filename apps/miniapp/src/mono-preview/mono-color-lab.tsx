@@ -19,6 +19,7 @@ import { exportMonoPalettePreset, createMonoPaletteFragment, importMonoPalettePr
   type MonoPaletteFragmentScope, type MonoPaletteMerge } from "./mono-preset-codec";
 import { monoPaletteStyle } from "./mono-palette-tokens";
 import { saveMonoPalettePrepaint } from "./mono-palette-prepaint";
+import type { PresetView } from "../preset-library/preset-types";
 import "./mono-color-lab.css";
 
 type Edit = (workspace: MonoPaletteWorkspace) => MonoPaletteWorkspace;
@@ -39,6 +40,8 @@ export function useMonoColorLab() {
   const [name, setName] = useState("");
   const [json, setJson] = useState("");
   const [pending, setPending] = useState<MonoPaletteMerge | null>(null);
+  const [pendingOrigin, setPendingOrigin] = useState<{ source: { id: string; slug: string } | null; scope: MonoPaletteFragmentScope } | null>(null);
+  const [remoteSources, setRemoteSources] = useState<Partial<Record<1 | 2 | 3, { id: string; slug: string }>>>({});
   const [linkDiff, setLinkDiff] = useState<ReturnType<typeof previewMonoThemesLink> | null>(null);
   const [busy, setBusy] = useState(false);
   const pendingRecipe = useRef<Partial<MonoPaletteRecipe>>({});
@@ -49,6 +52,8 @@ export function useMonoColorLab() {
       const next = edit(current.current);
       current.current = next;
       setWorkspace(next);
+      setPending(null);
+      setPendingOrigin(null);
       setStatus("");
     } catch (error) { setStatus(error instanceof Error ? error.message : "Изменение отклонено"); }
   }, []);
@@ -77,8 +82,8 @@ export function useMonoColorLab() {
   useEffect(() => {
     if (!ready) return;
     try {
-      saveMonoPaletteWorkspace(localStorage, workspace);
-      saveMonoPalettePrepaint(localStorage, workspace);
+      saveMonoPaletteWorkspace(localStorage, current.current);
+      saveMonoPalettePrepaint(localStorage, current.current);
     }
     catch { queueMicrotask(() => setStatus("Не удалось сохранить рабочее место; черновик остаётся в памяти.")); }
   }, [workspace.slots, workspace.activeSlotId, ready]);
@@ -139,8 +144,28 @@ export function useMonoColorLab() {
     } catch { setStatus("Не удалось удалить пресет из хранилища."); }
   };
   const previewFragment = (entry: MonoPaletteLibraryEntry, scope: MonoPaletteFragmentScope) => {
-    try { setPending(previewMonoPaletteFragment(present.config, createMonoPaletteFragment(entry.preset, scope))); }
+    try {
+      setPending(previewMonoPaletteFragment(present.config, createMonoPaletteFragment(entry.preset, scope)));
+      setPendingOrigin({ source: null, scope });
+    }
     catch (error) { setStatus(String(error)); }
+  };
+  const previewRemotePreset = (entry: PresetView, scope: MonoPaletteFragmentScope) => run(async () => {
+    const verified = await importMonoPalettePreset(JSON.stringify(entry.preset));
+    setPending(previewMonoPaletteFragment(current.current.slots[current.current.activeSlotId - 1].present.config,
+      createMonoPaletteFragment(verified, scope)));
+    setPendingOrigin({ source: { id: entry.id, slug: entry.slug }, scope });
+  });
+  const acceptPending = () => {
+    if (!pending || pending.issues.length || !pending.diff.length || current.current.compare === "baseline") return;
+    const origin = pendingOrigin;
+    const slotId = current.current.activeSlotId;
+    commit(state => replaceMonoPaletteConfig(state, pending.config));
+    if (origin?.source) {
+      const source = origin.source;
+      setRemoteSources(previous => ({ ...previous, [slotId]: source }));
+    }
+    else if (origin?.scope === "entire") setRemoteSources(previous => ({ ...previous, [slotId]: undefined }));
   };
   const output = () => run(async () => {
     const value = await exportMonoPalettePreset(present.config); setJson(value);
@@ -154,8 +179,9 @@ export function useMonoColorLab() {
   });
   return { workspace, present, shown, theme, resolved, style, issues, ready, status, setStatus, expert, setExpert, role, setRole,
     library, name, setName, json, setJson, pending, setPending, linkDiff, setLinkDiff, busy, commit, begin, end, editRecipe,
-    randomize, save, remove, previewFragment, output, download,
-    importPreview: () => run(async () => { const imported = await importMonoPalettePreset(json); setPending(previewMonoPaletteFragment(present.config, createMonoPaletteFragment(imported, "entire"))); }),
+    randomize, save, remove, previewFragment, previewRemotePreset, activeRemoteSource: remoteSources[workspace.activeSlotId] ?? null,
+    acceptPending, output, download,
+    importPreview: () => run(async () => { const imported = await importMonoPalettePreset(json); setPending(previewMonoPaletteFragment(present.config, createMonoPaletteFragment(imported, "entire"))); setPendingOrigin({ source: null, scope: "entire" }); }),
     switchTheme: (mode: "dark" | "light") => { end(); commit(state => switchMonoPaletteTheme(state, mode)); },
     switchSlot: (id: 1 | 2 | 3) => { end(); commit(state => switchMonoPaletteSlot(state, id)); },
   };
@@ -237,7 +263,7 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
         {(["dark", "light"] as const).map(mode => <div key={mode} className="mono-color-lab__strip" aria-label={`${mode} палитра`}>
           {MONO_PALETTE_GROUPS.decorative.slice(0, 5).map(role => { const color = entry.preset.resolved[mode].srgb[role]; return <i key={role} style={{ background: `rgb(${color.r*255} ${color.g*255} ${color.b*255})` }} />; })}
         </div>)}
-        <button type="button" onClick={() => commit(state => replaceMonoPaletteConfig(state, entry.preset.config))}>Загрузить</button>
+        <button type="button" onClick={() => lab.previewFragment(entry, "entire")}>Загрузить</button>
         <div className="mono-color-lab__row"><button type="button" onClick={() => void lab.save(entry)}>Обновить</button><button type="button" onClick={() => lab.remove(entry)}>Удалить</button></div>
         <label>Скопировать модуль<select defaultValue="" onChange={event => { if (event.target.value) lab.previewFragment(entry, event.target.value as MonoPaletteFragmentScope); event.target.value = ""; }}>
           <option value="" disabled>Выбрать…</option>{["entire", "dark", "light", "palette", "background", "glass-color"].map(scope => <option key={scope} value={scope}>{scope}</option>)}
@@ -251,7 +277,7 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
       <p>Изменений: {lab.pending.diff.length}. Сохранено замков: {lab.pending.skipped.length}.</p>
       <ul>{lab.pending.diff.map(item => <li key={item.path}>{item.path}: {JSON.stringify(item.before)} → {JSON.stringify(item.after)}</li>)}</ul>
       {lab.pending.issues.map(issue => <p key={issue}>{issue}</p>)}
-      <button type="button" onClick={() => { const config = lab.pending!.config; commit(state => replaceMonoPaletteConfig(state, config)); lab.setPending(null); }}>Принять в черновик</button>
+      <button type="button" disabled={lab.pending.issues.length > 0 || lab.pending.diff.length === 0 || workspace.compare === "baseline"} onClick={lab.acceptPending}>Принять в черновик</button>
       <button type="button" onClick={() => lab.setPending(null)}>Отмена импорта</button>
     </div>}
     <p role="status" aria-live="polite">{lab.status}</p>
@@ -273,7 +299,7 @@ export function MonoColorInspector({ lab }: { lab: MonoColorLabState }) {
         {Object.entries(MONO_PALETTE_GROUPS).map(([id, roles]) => <optgroup key={id} label={groups[id as MonoPaletteGroup]}>{roles.map(item => <option key={item} value={item}>{item}</option>)}</optgroup>)}
       </select></label>
       <div className="mono-color-lab__swatch" style={{ background: hex } as CSSProperties} aria-hidden="true" />
-      <fieldset disabled={!lab.present.paletteEnabled || group === "system"}><legend>{groups[group]}</legend>
+      <fieldset disabled={!lab.present.paletteEnabled || group === "system" || lab.workspace.compare === "baseline"}><legend>{groups[group]}</legend>
         <label>Режим роли<select value={state.mode} disabled={locked} onChange={event => { setHexDraft(null); commit(workspace => setMonoPaletteRoleMode(workspace, role, event.target.value as "linked" | "offset" | "manual")); }}>
           <option value="linked">Связанный</option><option value="offset">С поправкой</option><option value="manual">Ручной</option>
         </select></label>

@@ -106,12 +106,13 @@ export function createPresetHttpHandlers(repository: PresetRepository) {
 
   async function fork(request: NextRequest, slug: string): Promise<NextResponse> {
     try {
-      const body = await readBody(request, ["name"]);
+      const body = await readBody(request, ["name", "preset"]);
       validatePresetMetadata(body);
+      if (body.preset !== undefined) await validatePresetEnvelope(body.preset);
       const sourceSlug = slugOrThrow(slug);
       if (!await service.read(sourceSlug)) throw new PresetServiceError("Preset not found", 404);
       const identity = await getOrCreatePresetOwner(repository, cookieValue(request));
-      const preset = await service.fork({ slug: sourceSlug, ownerId: identity.ownerId, name: body.name as string });
+      const preset = await service.fork({ slug: sourceSlug, ownerId: identity.ownerId, name: body.name as string, preset: body.preset });
       const response = json(preset, 201);
       if (identity.issued) issueCookie(response, identity.cookieValue);
       return response;

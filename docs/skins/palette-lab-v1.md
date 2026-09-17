@@ -105,13 +105,15 @@ PostgreSQL хранит anonymous owners, presets и immutable revisions. Чел
 имя не является ID; глобальные дубликаты разрешены. Preset имеет UUID, unguessable
 slug, owner, visibility (`unlisted|public`), source preset для fork и soft delete.
 
-Анонимный владелец подтверждается случайным секретом в Secure HttpOnly SameSite=Lax
-cookie; сервер хранит только hash. Потеря cookie не даёт права перезаписать preset.
-Экспорт JSON и recovery token дают переносимость до появления account binding.
+Анонимный владелец подтверждается случайным секретом в HttpOnly SameSite=Lax
+cookie (с `Secure` на HTTPS); сервер хранит только salted hash. Потеря cookie
+не даёт права перезаписать preset. Экспорт JSON даёт переносимость; recovery
+token и привязка к аккаунту ещё не реализованы.
 
 Default visibility — `unlisted`. Любой посетитель может читать preset по ссылке,
-создать собственный fork и сохранить его под своим именем. Публичный каталог
-включается только с rate limiting и moderation-ready полями.
+создать собственный fork и сохранить его под своим именем. Поле `public`
+пока лишь метаданные; публичного каталога нет. Его запуск требует gateway/IP
+rate limiting и модерации: лимит только по анонимному cookie обходится его сбросом.
 
 API принимает только allowlisted versioned envelopes, ограничивает имя, описание,
 payload size и частоту записи. Никто не может обновить чужой preset.
@@ -122,10 +124,11 @@ payload size и частоту записи. Никто не может обно
 справа — semantic role inspector. Rails сворачиваются независимо и вместе, не
 меняя ширину preview.
 
-Preset card показывает Dark/Light palette strips и действия: Preview, Apply, Copy
-Dark, Copy Light, Copy Palette, Copy Background, Copy Glass Color, Fork, JSON, Link.
-Любое частичное действие сначала показывает diff, количество сохранённых locks и
-constraint warnings.
+Preset card показывает Dark/Light palette strips, имя, visibility, ревизию и
+происхождение. Загрузка и Copy Dark/Light/Palette/Background/Glass идут через
+preview/diff с количеством сохранённых locks и constraint warnings. Общая
+команда JSON оставляет переносимый выход даже без сервера. Server Save создаёт
+новый preset либо новую ревизию своего; чужой preset можно только Fork.
 
 ## 10. Definition of done
 
@@ -139,3 +142,18 @@ constraint warnings.
 - visual matrix проходит на 320/390/430/480, Dark/Light и всех harmony recipes;
 - один WebGL context/RAF сохраняется, renderer не remount-ится при цветовых правках.
 
+## 11. Проверка реализации на 2026-09-17
+
+Color Lab, локальная и серверная UI-библиотека реализованы в изолированном
+`/mono`. Полный unit-прогон: core `13`, platform `17`, UI `153`, miniapp `86` —
+все прошли. Typecheck, production build и lint прошли; у lint остался один
+ранее существовавший warning в `mono-preview.tsx`. Целевые browser E2E `16/16`
+проверили prepaint, оптику, rails, мобильный focus, read-by-link, diff, Fork и
+единственный canvas. Автоматическая матрица проверила `4 × 2 × 5 = 40`
+сочетаний ширины, темы и гармонии; выборочные кадры осмотрены визуально.
+
+Это не подтверждение работы с реальной PostgreSQL на этом Windows-хосте и не
+разрешение выкатывать серверные записи публично. Перед rollout нужны staging
+с БД, проверка backup/migration/restore и лимит новых анонимных владельцев на
+gateway. Без БД сервер возвращает 503, а локальные черновики/JSON остаются
+доступны.

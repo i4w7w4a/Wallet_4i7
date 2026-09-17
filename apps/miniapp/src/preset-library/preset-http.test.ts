@@ -62,11 +62,15 @@ describe("preset HTTP boundary", () => {
     expect((await opened.json()).id).toBe(source.id);
     const foreignPatch = await api.revise(request(`/api/skin-presets/${source.slug}`, "PATCH", { expectedRevision: 1, name: "Stolen" }), source.slug);
     expect(foreignPatch.status).toBe(403);
-    const forkResponse = await api.fork(request(`/api/skin-presets/${source.slug}/fork`, "POST", { name: "My version" }), source.slug);
+    const editedConfig = normalizeMonoPaletteConfig();
+    editedConfig.themes.dark.recipe.anchorHue = 43;
+    const edited = JSON.parse(await exportMonoPalettePreset(editedConfig));
+    const forkResponse = await api.fork(request(`/api/skin-presets/${source.slug}/fork`, "POST", { name: "My version", preset: edited }), source.slug);
     expect(forkResponse.status).toBe(201);
     const fork = await forkResponse.json();
     expect(fork.sourcePresetId).toBe(source.id);
     expect(fork.id).not.toBe(source.id);
+    expect(fork.preset).toEqual(edited);
     const revised = await api.revise(request(`/api/skin-presets/${source.slug}`, "PATCH", { expectedRevision: 1, name: "Updated" }, sourceCookie), source.slug);
     expect(revised.status).toBe(200);
     expect((await revised.json()).revision).toBe(2);

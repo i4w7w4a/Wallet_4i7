@@ -85,6 +85,19 @@ describe("preset service", () => {
     await expect(service.revise({ id: original.id, ownerId: "owner-b", expectedRevision: 1, name: "Stolen", preset })).rejects.toMatchObject({ status: 403 });
   });
 
+  it("keeps source provenance when forking an edited copy of someone else's preset", async () => {
+    const { createPresetService, MemoryPresetRepository } = await import("./preset-service");
+    const service = createPresetService(new MemoryPresetRepository());
+    const source = await service.create({ ownerId: "owner-a", name: "Source", preset: await validPreset() });
+    const config = normalizeMonoPaletteConfig();
+    config.themes.dark.recipe.anchorHue = 43;
+    const edited = JSON.parse(await exportMonoPalettePreset(config));
+    const fork = await service.fork({ slug: source.slug, ownerId: "owner-b", name: "Edited fork", preset: edited });
+    expect(fork.sourcePresetId).toBe(source.id);
+    expect(fork.preset).toEqual(edited);
+    expect((await service.read(source.slug))?.preset).toEqual(source.preset);
+  });
+
   it("soft-deletes only an owned preset without erasing its revision history", async () => {
     const { createPresetService, MemoryPresetRepository } = await import("./preset-service");
     const repository = new MemoryPresetRepository();

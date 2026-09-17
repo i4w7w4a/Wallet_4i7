@@ -164,10 +164,10 @@ export function createPresetService(repository: PresetRepository) {
     return view({ ...row, currentRevision: revision.revision }, revision);
   }
 
-  async function fork(input: { slug: string; ownerId: string; name: string }): Promise<PresetView> {
+  async function fork(input: { slug: string; ownerId: string; name: string; preset?: unknown }): Promise<PresetView> {
     const source = await read(input.slug);
     if (!source) throw new PresetServiceError("Preset not found", 404);
-    return create({ ownerId: input.ownerId, name: input.name, preset: source.preset, sourcePresetId: source.id });
+    return create({ ownerId: input.ownerId, name: input.name, preset: input.preset ?? source.preset, sourcePresetId: source.id });
   }
 
   async function history(slug: string): Promise<PresetView[]> {

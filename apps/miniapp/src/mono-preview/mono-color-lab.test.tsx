@@ -1,10 +1,13 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { webcrypto } from "node:crypto";
 import { MockWalletRepository } from "@wallet/core";
 import { normalizeMonoPaletteConfig } from "@wallet/ui";
 import { MonoPreview } from "./mono-preview";
+import { useMonoColorLab } from "./mono-color-lab";
+import { exportMonoPalettePreset } from "./mono-preset-codec";
+import type { PresetView } from "../preset-library/preset-types";
 import { MONO_PALETTE_ACTIVE_KEY, MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY, applyMonoPaletteActive } from "./mono-palette-storage";
 
 beforeEach(() => {
@@ -77,7 +80,32 @@ describe("Color Lab interactions", () => {
     expect(localStorage.getItem(MONO_PALETTE_ACTIVE_KEY)).toContain('"anchorHue":160');
     expect(localStorage.getItem(MONO_PALETTE_PRESETS_KEY)).toBe(saved);
     fireEvent.click(within(screen.getByRole("article", { name: "Камень" })).getByRole("button", { name: "Загрузить" }));
+    expect(hue()).toHaveValue("160");
+    fireEvent.click(screen.getByRole("button", { name: "Принять в черновик" }));
     expect(hue()).toHaveValue("40");
+  });
+  it("previews a local load before changing the live draft", async () => {
+    await open(); editHue("40");
+    fireEvent.change(screen.getByLabelText("Имя пресета"), { target: { value: "Камень" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить новый" }));
+    await waitFor(() => expect(screen.getByRole("article", { name: "Камень" })).toBeInTheDocument());
+    editHue("160");
+    fireEvent.click(within(screen.getByRole("article", { name: "Камень" })).getByRole("button", { name: "Загрузить" }));
+    expect(hue()).toHaveValue("160");
+    expect(screen.getByRole("region", { name: "Различия импорта" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Принять в черновик" }));
+    expect(hue()).toHaveValue("40");
+  });
+  it("invalidates a pending load after another draft edit", async () => {
+    await open(); editHue("40");
+    fireEvent.change(screen.getByLabelText("Имя пресета"), { target: { value: "Камень" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить новый" }));
+    await waitFor(() => expect(screen.getByRole("article", { name: "Камень" })).toBeInTheDocument());
+    editHue("160");
+    fireEvent.click(within(screen.getByRole("article", { name: "Камень" })).getByRole("button", { name: "Загрузить" }));
+    editHue("180");
+    expect(screen.queryByRole("region", { name: "Различия импорта" })).not.toBeInTheDocument();
+    expect(hue()).toHaveValue("180");
   });
   it("keeps one canvas, excludes text inputs from history shortcuts and compares without editing", async () => {
     await open(); editHue("40");
@@ -102,5 +130,25 @@ describe("Color Lab interactions", () => {
     expect(document.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "light");
     expect(screen.getByRole("button", { name: "Сравнить A/B" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: "Применить палитру" })).toBeEnabled();
+  });
+  it("does not allow hidden inspector edits while A/B shows the baseline", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Эксперт" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Цвет · детали" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сравнить A/B" }));
+    expect(screen.getByRole("button", { name: "Замок роли" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Режим роли" })).toBeDisabled();
+  });
+  it("records foreign provenance after accepting only its background", async () => {
+    const config = normalizeMonoPaletteConfig();
+    config.themes.dark.recipe.anchorHue = 43;
+    const preset = JSON.parse(await exportMonoPalettePreset(config));
+    const entry = { id: "11111111-1111-4111-8111-111111111111", slug: "ffffffffffffffffffffffffffffffff", preset } as PresetView;
+    const { result } = renderHook(() => useMonoColorLab());
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => { await result.current.previewRemotePreset(entry, "background"); });
+    expect(result.current.pending?.diff.length).toBeGreaterThan(0);
+    act(() => result.current.acceptPending());
+    expect(result.current.activeRemoteSource).toEqual({ id: entry.id, slug: entry.slug });
   });
 });

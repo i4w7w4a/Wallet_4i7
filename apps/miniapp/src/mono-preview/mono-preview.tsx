@@ -20,6 +20,7 @@ import {
 
 import { MonoGlassTuner } from "./mono-glass-tuner";
 import { MonoColorLab, MonoColorInspector, useMonoColorLab } from "./mono-color-lab";
+import { MonoPresetLibrary } from "./mono-preset-library";
 import { stepTideMotion, type TideMotionState } from "./mono-tide-motion";
 
 import "./mono-fonts.css";
@@ -554,6 +555,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           </div>
         </MonoRailSection>
         <MonoColorLab lab={colorLab} />
+        <MonoPresetLibrary lab={colorLab} />
         <p className="mono-rail__hint"><span>1 / 2 / 3</span> переключают характер без касания телефона.</p>
       </aside>
 
