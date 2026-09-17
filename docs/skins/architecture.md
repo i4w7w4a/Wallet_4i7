@@ -233,6 +233,18 @@ type SkinControl = {
 
 Сложный custom editor допустим, но изменяет config только через тот же codec/schema. Ranges не дублируются вручную в component, normalizer и test fixture.
 
+### MONO Palette Lab V1: чистый цветовой слой
+
+[Решение от 2026-09-17](palette-lab-v1.md) supersedes прежний запрет свободного hue/chroma именно для Palette Lab. `MonoPaletteConfigV1` и `ThemePaletteState` в `packages/ui/src/mono/mono-palette.ts` — единый versioned цветовой контракт MONO: две theme branches, recipe, role modes (`linked/offset/manual`), offsets, manual values, group/role locks и snapshots заблокированных resolved values. `MonoResolvedPalette` отдаёт OKLCH и gamut-mapped sRGB одних и тех же semantic roles; это два представления значения, не две независимые палитры. UI/storage adapters должны использовать этот контракт, не вводить параллельный список HEX.
+
+Recipe содержит anchor hue/chroma, harmony, temperature, iridescence и отдельные для каждой темы exposure/contrast/surface response. `linkedThemes` хранит намерение редактора связывать характер; синхронизация двух ветвей, diff перед повторным связыванием и history принадлежат следующему editor/reducer слою, а не renderer. Чистый engine не читает browser storage, время или entropy и не импортирует optical settings.
+
+`resolveMonoPalette` исправляет contrast только для unlocked linked/offset ролей; manual preview сохраняется и проверяется через `validateMonoPaletteApply`. Контраст считается после CSS source-over compositing в sRGB: непрозрачный canvas ограничивает каталог допустимых фонов, каждая core surface проверяется поверх canvas, glass tint — поверх каждой допустимой surface. Для foreground roles берётся худший фон: textPrimary `7:1`, content/system `4.5:1`, focus/strong border/chart/primary accent `3:1`. Это контракт допустимых сочетаний ролей; renderer должен отдельно валидировать новые комбинации или внешние background assets. Неизвестный фон нельзя считать проверенным. Core/content chroma выше `0.018` и прозрачный canvas блокируют Apply. `borderSubtle` — декоративный divider, не единственная граница интерактивного control.
+
+Замки устанавливаются через `setMonoPaletteLock`, чтобы сохранить точное вычисленное значение. `updateMonoPaletteRecipe` сохраняет эти snapshots и сообщает конфликт контраста с locked role исключением. `randomizeMonoPalette` возвращает атомарные `changed/noop/error`, список changed/skipped и replay metadata с base/schema hash. FNV-1a здесь служит воспроизводимости и обнаружению изменений, не криптографической целостности или авторизации. Independent per-role streams не сдвигаются из-за lock соседа. System roles и focus не участвуют в эстетической randomization. Recovery normalizer удаляет неизвестные поля и отвергает неизвестные версии целиком; строгий import envelope с size/allowlist проверкой реализуется отдельным codec.
+
+Расширение hue/chroma не меняет optical Ledger JSON, IOR/geometry/flow/dispersion, semantic financial status, DOM/focus order или resource budgets. У renderer по-прежнему один WebGL context и один постоянный RAF.
+
 ## 7. Preset, draft и session
 
 ```ts

@@ -148,7 +148,11 @@ MONO LEDGER должен ощущаться как банковский сейф
 
 ## 3. Neutral core и ограниченный перелив
 
-Будущий config должен хранить neutral luminance steps для текста, controls и core surfaces, а не свободные RGB colors. Более позднее решение владельца разрешило тончайшую цветовую аберрацию в background и material edges: только curated холодно-тёплые оттенки с низкой непрозрачностью, без RGB glitch, neon и цветового раздвоения текста. Свободный hue slider/randomizer по-прежнему не разрешён. В `/mono` палитра пока задана локальными CSS tokens.
+Решение владельца от 2026-09-17 в [Palette Lab V1](palette-lab-v1.md) заменяет прежний запрет на свободный hue/chroma slider и randomizer именно в Palette Lab. Цветовой контракт — OKLCH/OKLab semantic roles с gamut mapping в sRGB через уменьшение chroma при постоянных L/H. HEX остаётся форматом ввода/копирования. Пять гармоний (`spectral-graphite`, `mineral`, `thermal-duet`, `analog-mist`, `split-prism`) управляют материалом; secondary hues выводятся только в decorative roles. Связанные core/content сохраняют chroma не выше `0.018`. Ручной черновик с нарушением нейтральности или контраста доступен для preview, но не для Apply.
+
+Чистый engine и schema находятся в `packages/ui/src/mono/mono-palette.ts`, цветовая математика — в `mono-color-space.ts`. Это фундамент Palette Lab, ещё не замена локальных CSS tokens живого `/mono`. У каждой темы собственные recipe, overrides и lock snapshots; `system` защищён от эстетических overrides/randomization, focus не рандомизируется. Scope global/group/point не меняет resolved values за своими границами; независимые streams имеют seed, mode, parameter ID, counter и schema/engine/catalog metadata. Counter увеличивается только после успешной операции. Recipe edit и randomize не нарушают locks; невозможный контраст выдаёт объяснимую ошибку.
+
+Расширение палитры не изменяет approved optical JSON Ledger, положительный `ior: 1.34`, geometry, flow, shader dispersion `0` или лимит одного WebGL context/RAF. RGB glitch, chromatic split текста/цифр/иконок и использование декоративного цвета как финансового статуса по-прежнему запрещены.
 
 Стартовая ramp:
 
@@ -350,9 +354,9 @@ Safe random ranges — это диапазоны генерации вариан
 
 Не randomizable:
 
-- свободный hue/chroma randomization; разрешены только curated низконасыщенные environment recipes;
+- hue/chroma вне versioned Palette Lab semantic contract; свободный Palette Lab hue/chroma разрешён решением от 2026-09-17 при сохранении neutral core, contrast guard и protected system roles;
 - `dispersion` — всегда `0`;
-- temperature/tint;
+- optical temperature/tint (Palette Lab temperature относится только к цветовой recipe);
 - arbitrary exposure/gamma;
 - pixel ratio;
 - focus ring и contrast guard;

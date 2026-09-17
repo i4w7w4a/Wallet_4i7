@@ -18,6 +18,21 @@ export {
   type MonoOpticalPreset,
 } from "./mono/mono-optical-glass";
 export { Dashboard } from "./dashboard/dashboard";
+export {
+  normalizeMonoOklch, srgbToOklch, oklchToSrgb, gamutMapMonoOklch,
+  compositeMonoSrgb, monoContrastRatio, monoWorstContrast,
+  type MonoOklch, type MonoSrgb,
+} from "./mono/mono-color-space";
+export {
+  MONO_PALETTE_GROUPS, MONO_PALETTE_ROLES, MONO_PALETTE_HARMONIES,
+  MONO_PALETTE_RECIPE_BOUNDS, MONO_PALETTE_ROLE_SCHEMA, MONO_PALETTE_SCHEMA_HASH,
+  normalizeMonoPaletteConfig, resolveMonoPalette, validateMonoPaletteApply,
+  setMonoPaletteLock, updateMonoPaletteRecipe, randomizeMonoPalette,
+  type MonoPaletteConfigV1, type ThemePaletteState, type MonoResolvedPalette,
+  type MonoPaletteRecipe, type MonoPaletteRoleState, type MonoPaletteMode,
+  type MonoPaletteGroup, type MonoPaletteRole, type MonoPaletteHarmony,
+  type MonoPaletteScope, type MonoPaletteIssue, type MonoPaletteRandomizeResult,
+} from "./mono/mono-palette";
 export { type DashboardAction } from "./dashboard/quick-actions";
 export { type DashboardSection } from "./dashboard/bottom-navigation";
 export {
