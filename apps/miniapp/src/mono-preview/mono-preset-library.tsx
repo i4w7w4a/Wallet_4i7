@@ -38,6 +38,9 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Операция с серверной библиотекой не выполнена.";
 }
 
+const isUnavailable = (error: unknown) => error instanceof PresetHttpError &&
+  (error.status === 503 || error.kind === "network");
+
 function PaletteStrips({ entry }: { entry: PresetView }) {
   return <div className="mono-preset-library__strips">
     {(["dark", "light"] as const).map(mode => <div className="mono-preset-library__strip" key={mode} aria-label={`${mode === "dark" ? "Dark" : "Light"} палитра`}>
@@ -59,6 +62,7 @@ export function MonoPresetLibrary({ lab }: { lab: MonoColorLabState }) {
   const [linkInput, setLinkInput] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [busy, setBusy] = useState(true);
+  const [offline, setOffline] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -71,20 +75,40 @@ export function MonoPresetLibrary({ lab }: { lab: MonoColorLabState }) {
     void Promise.allSettled([presetClient.listMine({ signal: controller.signal }), shared]).then(([mineResult, sharedResult]) => {
       if (!live) return;
       if (mineResult.status === "fulfilled") setMine(mineResult.value);
+      else if (isUnavailable(mineResult.reason)) setOffline(true);
       else setError(errorMessage(mineResult.reason));
       if (sharedResult.status === "fulfilled" && sharedResult.value) setOpened(sharedResult.value);
-      else if (sharedResult.status === "rejected") setError(errorMessage(sharedResult.reason));
+      else if (sharedResult.status === "rejected") {
+        if (isUnavailable(sharedResult.reason)) setOffline(true);
+        else setError(errorMessage(sharedResult.reason));
+      }
     }).finally(() => { if (live) setBusy(false); });
     return () => { live = false; controller.abort(); };
   }, [lab.ready]);
 
-  const disabled = busy || !lab.ready || lab.workspace.compare === "baseline";
+  const connectionBusy = busy || !lab.ready || lab.workspace.compare === "baseline";
+  const disabled = connectionBusy || offline;
   const operate = async (work: () => Promise<string>) => {
     if (disabled) return;
     setBusy(true); setError(""); setNotice("");
     try { setNotice(await work()); }
-    catch (reason) { setError(errorMessage(reason)); }
+    catch (reason) {
+      if (isUnavailable(reason)) setOffline(true);
+      else setError(errorMessage(reason));
+    }
     finally { setBusy(false); }
+  };
+  const refresh = async () => {
+    if (connectionBusy) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      setMine(await presetClient.listMine());
+      setOffline(false);
+      setNotice("Список обновлён.");
+    } catch (reason) {
+      if (isUnavailable(reason)) setOffline(true);
+      else setError(errorMessage(reason));
+    } finally { setBusy(false); }
   };
   const title = (fallback = "") => (name.trim() || fallback).slice(0, 80);
   const verifiedDraft = async () => importMonoPalettePreset(await exportMonoPalettePreset(lab.present.config));
@@ -159,13 +183,14 @@ export function MonoPresetLibrary({ lab }: { lab: MonoColorLabState }) {
         <label>Ссылка или код пресета<input value={linkInput} onChange={event => setLinkInput(event.target.value)} placeholder="Вставьте ссылку" autoComplete="off" /></label>
         <button type="button" onClick={open}>Открыть пресет</button>
       </div>
-      <button type="button" onClick={() => void operate(async () => { setMine(await presetClient.listMine()); return "Список обновлён."; })}>Обновить список</button>
     </fieldset>
+    <button type="button" disabled={connectionBusy} onClick={() => void refresh()}>{offline ? "Повторить соединение" : "Обновить список"}</button>
     {busy && <p className="mono-preset-library__status" role="status">Соединение с библиотекой…</p>}
+    {offline && !busy && <p className="mono-preset-library__status" role="status">Серверная библиотека пока недоступна. Локальные пресеты и экспорт JSON работают.</p>}
     {error && <p className="mono-preset-library__error" role="alert">{error}</p>}
     {notice && <p className="mono-preset-library__status" role="status">{notice}</p>}
     {shareUrl && <label className="mono-preset-library__share">Ссылка для передачи<input readOnly value={shareUrl} onFocus={event => event.target.select()} /></label>}
-    {cards.length === 0 && !busy && <p className="mono-preset-library__empty">На этом устройстве пока нет серверных пресетов. Локальная библиотека и экспорт JSON доступны всегда.</p>}
+    {cards.length === 0 && !busy && !offline && <p className="mono-preset-library__empty">На этом устройстве пока нет серверных пресетов. Локальная библиотека и экспорт JSON доступны всегда.</p>}
     <div className="mono-preset-library__cards">
       {cards.map(entry => <article className="mono-preset-library__card" key={entry.id} aria-label={entry.name}>
         <div className="mono-preset-library__card-head"><strong>{entry.name}</strong><span>{entry.visibility === "public" ? "Публичный (без каталога)" : "По ссылке"}</span></div>

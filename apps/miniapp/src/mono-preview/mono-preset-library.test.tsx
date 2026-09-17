@@ -100,9 +100,26 @@ describe("remote preset library", () => {
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "Preset service unavailable" }, { status: 503 })));
     const state = lab();
     render(<MonoPresetLibrary lab={state} />);
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/сервер/i));
-    expect(screen.getByRole("alert")).toHaveTextContent(/локальная библиотека и экспорт JSON доступны/i);
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/серверная библиотека пока недоступна/i));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Сохранить на сервере" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Открыть пресет" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Повторить соединение" })).toBeEnabled();
     expect(state.previewRemotePreset).not.toHaveBeenCalled();
+  });
+
+  it("restores server actions after a successful reconnect", async () => {
+    let available = false;
+    vi.stubGlobal("fetch", vi.fn(async () => available
+      ? Response.json({ presets: [own()] })
+      : Response.json({ error: "Preset service unavailable" }, { status: 503 })));
+    render(<MonoPresetLibrary lab={lab()} />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Повторить соединение" })).toBeEnabled());
+    available = true;
+    fireEvent.click(screen.getByRole("button", { name: "Повторить соединение" }));
+    expect(await screen.findByRole("article", { name: "Обсидиан" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Сохранить на сервере" })).toBeEnabled();
+    expect(screen.queryByText(/серверная библиотека пока недоступна/i)).not.toBeInTheDocument();
   });
 
   it("opens a shared link on entry without changing or previewing the draft", async () => {
