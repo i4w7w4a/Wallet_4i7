@@ -1,7 +1,8 @@
 import {
-  normalizeMonoPaletteConfig, randomizeMonoPalette, resolveMonoPalette, setMonoPaletteLock, updateMonoPaletteRecipe,
+  normalizeMonoPaletteConfig, randomizeMonoPalette, randomizeMonoPaletteRecipe, resolveMonoPalette, setMonoPaletteLock, updateMonoPaletteRecipe,
   type MonoPaletteConfigV1, type MonoPaletteMode, type MonoPaletteRecipe,
-  type MonoPaletteRandomizeResult, type MonoPaletteRole, type MonoPaletteScope, type MonoOklch, MONO_PALETTE_ROLE_SCHEMA,
+  type MonoPaletteRandomizeResult, type MonoPaletteRecipeRandomizeResult, type MonoPaletteRole,
+  type MonoPaletteScope, type MonoOklch, MONO_PALETTE_ROLE_SCHEMA,
 } from "@wallet/ui";
 
 export type MonoPaletteEditorSnapshot = { config: MonoPaletteConfigV1; mode: MonoPaletteMode; paletteEnabled?: boolean };
@@ -135,6 +136,46 @@ export function randomizeMonoPaletteWorkspace(workspace: MonoPaletteWorkspace, s
   const result = randomizeMonoPalette(present.config, present.mode, scope);
   if (result.status !== "changed") return { workspace, result };
   return { result, workspace: change(workspace, snapshot => ({ ...snapshot, config: result.config })) };
+}
+
+export function randomizeMonoPaletteRecipeWorkspace(workspace: MonoPaletteWorkspace): { workspace: MonoPaletteWorkspace; result: MonoPaletteRecipeRandomizeResult } {
+  const present = workspace.slots[slotIndex(workspace)].present;
+  const result = randomizeMonoPaletteRecipe(present.config, present.mode);
+  if (result.status !== "changed") return { workspace, result };
+  return { result, workspace: change(workspace, snapshot => ({ ...snapshot, config: result.config })) };
+}
+
+export const MONO_PALETTE_QUICK_ZONES = {
+  foundation: ["canvas", "surfaceBase", "surfaceRaised", "surfaceOverlay", "borderSubtle", "borderStrong"],
+  accents: ["accentPrimary", "accentSecondary", "chartLine", "selection"],
+  glass: ["glassTint", "edgeCool", "edgeWarm", "atmosphereCool", "atmosphereWarm"],
+} as const satisfies Record<string, readonly MonoPaletteRole[]>;
+export type MonoPaletteQuickZone = keyof typeof MONO_PALETTE_QUICK_ZONES;
+export type MonoPaletteQuickZoneLockState = "unlocked" | "mixed" | "locked" | "inherited";
+
+function quickZoneLockState(theme: MonoPaletteConfigV1["themes"][MonoPaletteMode], zone: MonoPaletteQuickZone): MonoPaletteQuickZoneLockState {
+  const roles = MONO_PALETTE_QUICK_ZONES[zone];
+  if (roles.some(role => theme.groupLocks[MONO_PALETTE_ROLE_SCHEMA[role].group])) return "inherited";
+  const locked = roles.filter(role => theme.roles[role].locked).length;
+  return locked === 0 ? "unlocked" : locked === roles.length ? "locked" : "mixed";
+}
+
+export function getMonoPaletteQuickZoneLockState(workspace: MonoPaletteWorkspace, zone: MonoPaletteQuickZone): MonoPaletteQuickZoneLockState {
+  const present = workspace.slots[slotIndex(workspace)].present;
+  return quickZoneLockState(present.config.themes[present.mode], zone);
+}
+
+export function toggleMonoPaletteQuickZoneLock(workspace: MonoPaletteWorkspace, zone: MonoPaletteQuickZone): MonoPaletteWorkspace {
+  const present = workspace.slots[slotIndex(workspace)].present;
+  const current = quickZoneLockState(present.config.themes[present.mode], zone);
+  if (current === "inherited") return workspace;
+  const locked = current !== "locked";
+  return change(workspace, snapshot => {
+    for (const role of MONO_PALETTE_QUICK_ZONES[zone]) {
+      snapshot.config.themes[snapshot.mode] = setMonoPaletteLock(snapshot.config.themes[snapshot.mode], { kind: "point", role }, locked);
+    }
+    return snapshot;
+  });
 }
 
 export function resetMonoPaletteSlot(workspace: MonoPaletteWorkspace): MonoPaletteWorkspace {

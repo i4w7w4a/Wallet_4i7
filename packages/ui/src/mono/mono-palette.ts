@@ -298,3 +298,136 @@ export function randomizeMonoPalette(config: MonoPaletteConfigV1, mode: MonoPale
     skinId: "mono-ledger-v1", schemaHash: MONO_PALETTE_SCHEMA_HASH, baseHash: stableHash(JSON.stringify(normalizeMonoPaletteConfig(config))), mode, scope,
   } };
 }
+
+export const MONO_PALETTE_QUICK_HARMONIES = ["spectral-graphite", "mineral", "analog-mist", "thermal-duet"] as const;
+type MonoPaletteCharacterKey = "anchorHue" | "anchorChroma" | "harmony" | "temperature" | "iridescence";
+export type MonoPaletteRecipeRandomizeResult = {
+  status: "changed" | "noop" | "error";
+  config: MonoPaletteConfigV1;
+  changed: MonoPaletteMode[];
+  issues: MonoPaletteIssue[];
+  message: string | null;
+  replay: {
+    seed: string;
+    actionCounter: number;
+    randomizerVersion: 1;
+    engineVersion: 1;
+    catalogVersion: 1;
+    schemaHash: string;
+    baseHash: string;
+    skinId: "mono-ledger-v1";
+    mode: MonoPaletteMode;
+    linkedThemes: boolean;
+  } | null;
+};
+
+const MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA = {
+  anchorHue: { min: 0, max: 359, step: 1 },
+  anchorChroma: { min: 0.05, max: 0.16, step: 0.001 },
+  harmony: MONO_PALETTE_QUICK_HARMONIES,
+  temperature: { min: -0.6, max: 0.6, step: 0.01 },
+  iridescence: { min: 0.25, max: 0.9, step: 0.01 },
+} as const;
+export const MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA_HASH = stableHash(JSON.stringify(MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA));
+
+function sampleDifferentRange(current: number, min: number, max: number, step: number, unit: number): number {
+  const steps = Math.round((max - min) / step);
+  let value = min + Math.floor(unit * (steps + 1)) * step;
+  value = Math.round(value / step) * step;
+  if (Math.abs(value - current) < step / 2) value = value + step <= max ? value + step : value - step;
+  return Number(value.toFixed(6));
+}
+
+function sampleMonoPaletteCharacter(theme: ThemePaletteState, prefix: string): Pick<MonoPaletteRecipe, MonoPaletteCharacterKey> {
+  const sample = (channel: string) => parseInt(stableHash(`${prefix}/${channel}`), 16) / 0x100000000;
+  let harmony = MONO_PALETTE_QUICK_HARMONIES[Math.floor(sample("harmony") * MONO_PALETTE_QUICK_HARMONIES.length)];
+  if (harmony === theme.recipe.harmony) {
+    harmony = MONO_PALETTE_QUICK_HARMONIES[(MONO_PALETTE_QUICK_HARMONIES.indexOf(harmony) + 1) % MONO_PALETTE_QUICK_HARMONIES.length];
+  }
+  return {
+    anchorHue: sampleDifferentRange(theme.recipe.anchorHue, 0, 359, 1, sample("anchorHue")),
+    anchorChroma: sampleDifferentRange(theme.recipe.anchorChroma, 0.05, 0.16, 0.001, sample("anchorChroma")),
+    harmony,
+    temperature: sampleDifferentRange(theme.recipe.temperature, -0.6, 0.6, 0.01, sample("temperature")),
+    iridescence: sampleDifferentRange(theme.recipe.iridescence, 0.25, 0.9, 0.01, sample("iridescence")),
+  };
+}
+
+function preserveMonoPaletteFocus(theme: ThemePaletteState, focus: MonoOklch): ThemePaletteState {
+  if (isLocked(theme, "focus")) return theme;
+  const next = normalizeTheme(theme, theme.mode);
+  next.roles.focus.mode = "manual";
+  next.roles.focus.value = { ...focus };
+  return next;
+}
+
+function hasVisibleCharacterChange(before: MonoResolvedPalette, after: MonoResolvedPalette, theme: ThemePaletteState): boolean {
+  return MONO_PALETTE_ROLES.some(role => {
+    if (role === "focus" || MONO_PALETTE_ROLE_SCHEMA[role].group === "system" || isLocked(theme, role)) return false;
+    const left = before.roles[role], right = after.roles[role];
+    return Math.abs(left.l - right.l) >= 0.002 || Math.abs(left.c - right.c) >= 0.002
+      || (Math.min(left.c, right.c) >= 0.01 && Math.abs(left.h - right.h) >= 2);
+  });
+}
+
+/** Coherent quick action. The exact global/group/point randomizer above remains a separate tool. */
+export function randomizeMonoPaletteRecipe(config: MonoPaletteConfigV1, mode: MonoPaletteMode): MonoPaletteRecipeRandomizeResult {
+  const base = normalizeMonoPaletteConfig(config);
+  const modes: MonoPaletteMode[] = base.linkedThemes ? [mode, mode === "dark" ? "light" : "dark"] : [mode];
+  const before = Object.fromEntries(modes.map(key => [key, resolveMonoPalette(base.themes[key])])) as Record<MonoPaletteMode, MonoResolvedPalette>;
+  const unchanged = (status: "noop" | "error", message: string, issues: MonoPaletteIssue[] = []): MonoPaletteRecipeRandomizeResult =>
+    ({ status, config, changed: [], issues, message, replay: null });
+  let lastIssues: MonoPaletteIssue[] = [];
+  let lastMessage = "No safe recipe satisfies the current locks and palette constraints";
+  let constraintFailed = false;
+
+  for (let attempt = 0; attempt < 32; attempt++) {
+    const next = normalizeMonoPaletteConfig(base);
+    const prefix = JSON.stringify([1, next.engineVersion, next.catalogVersion, next.skinId, next.version,
+      MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA_HASH, next.seed, mode, next.actionCounter, attempt]);
+    const character = sampleMonoPaletteCharacter(base.themes[mode], prefix);
+    let failed = false;
+    for (const key of modes) {
+      try {
+        const focus = before[key].roles.focus;
+        next.themes[key] = preserveMonoPaletteFocus(updateMonoPaletteRecipe(next.themes[key], character), focus);
+      } catch (error) {
+        failed = true;
+        constraintFailed = true;
+        lastMessage = error instanceof Error ? error.message : lastMessage;
+        break;
+      }
+      const validation = validateMonoPaletteApply(next.themes[key]);
+      if (!validation.valid) {
+        failed = true;
+        constraintFailed = true;
+        lastIssues = validation.issues;
+        lastMessage = "Recipe conflicts with palette constraints";
+        break;
+      }
+      const resolved = resolveMonoPalette(next.themes[key]);
+      for (const role of MONO_PALETTE_ROLES) {
+        const protectedRole = role === "focus" || MONO_PALETTE_ROLE_SCHEMA[role].group === "system" || isLocked(base.themes[key], role);
+        if (protectedRole && JSON.stringify(resolved.roles[role]) !== JSON.stringify(before[key].roles[role])) {
+          failed = true;
+          constraintFailed = true;
+          lastMessage = `${role}: protected or locked value would change`;
+          break;
+        }
+      }
+      if (failed) break;
+    }
+    if (failed) continue;
+    if (!hasVisibleCharacterChange(before[mode], resolveMonoPalette(next.themes[mode]), base.themes[mode])) {
+      lastMessage = "No unlocked recipe-dependent role can produce a visible change";
+      continue;
+    }
+    next.actionCounter += 1;
+    return { status: "changed", config: next, changed: modes, issues: [], message: null, replay: {
+      seed: base.seed, actionCounter: base.actionCounter, randomizerVersion: 1, engineVersion: 1, catalogVersion: 1,
+      schemaHash: MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA_HASH, baseHash: stableHash(JSON.stringify(base)),
+      skinId: "mono-ledger-v1", mode, linkedThemes: base.linkedThemes,
+    } };
+  }
+  return unchanged(constraintFailed ? "error" : "noop", lastMessage, lastIssues);
+}

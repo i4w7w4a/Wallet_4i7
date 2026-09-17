@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   MONO_PALETTE_GROUPS, MONO_PALETTE_HARMONIES, normalizeMonoPaletteConfig, resolveMonoPalette,
-  setMonoPaletteLock, updateMonoPaletteRecipe, validateMonoPaletteApply, randomizeMonoPalette,
+  MONO_PALETTE_QUICK_HARMONIES, setMonoPaletteLock, updateMonoPaletteRecipe,
+  validateMonoPaletteApply, randomizeMonoPalette, randomizeMonoPaletteRecipe,
 } from "./mono-palette";
 import { monoContrastRatio } from "./mono-color-space";
 
@@ -141,6 +142,83 @@ describe("MONO scoped deterministic randomization", () => {
     expect(result.config).toEqual(config);
     expect(result.config.actionCounter).toBe(0);
     expect(result.issues.some(issue => issue.role === "textPrimary")).toBe(true);
+  });
+});
+
+describe("MONO coherent recipe randomization", () => {
+  it("samples one deterministic safe character without changing material axes or protected roles", () => {
+    const config = normalizeMonoPaletteConfig({ seed: "coherent-v1" });
+    const input = structuredClone(config);
+    const before = resolveMonoPalette(config.themes.dark);
+
+    const first = randomizeMonoPaletteRecipe(config, "dark");
+    const repeated = randomizeMonoPaletteRecipe(config, "dark");
+
+    expect(first).toEqual(repeated);
+    expect(first.status).toBe("changed");
+    expect(first.config.actionCounter).toBe(1);
+    expect(first.config.themes.light).toEqual(config.themes.light);
+    expect(first.config.themes.dark.recipe).toMatchObject({
+      exposure: input.themes.dark.recipe.exposure,
+      contrast: input.themes.dark.recipe.contrast,
+      surfaceResponse: input.themes.dark.recipe.surfaceResponse,
+    });
+    expect(MONO_PALETTE_QUICK_HARMONIES).toContain(first.config.themes.dark.recipe.harmony);
+    expect(first.config.themes.dark.recipe.harmony).not.toBe("split-prism");
+    expect(first.config.themes.dark.recipe).not.toEqual(input.themes.dark.recipe);
+    expect(first.replay).toMatchObject({
+      seed: "coherent-v1", actionCounter: 0, randomizerVersion: 1,
+      engineVersion: 1, catalogVersion: 1, skinId: "mono-ledger-v1",
+      mode: "dark", linkedThemes: false, schemaHash: expect.any(String), baseHash: expect.any(String),
+    });
+    expect(first.replay?.schemaHash).not.toBe("c8019898");
+    const after = resolveMonoPalette(first.config.themes.dark);
+    expect(after.roles.focus).toEqual(before.roles.focus);
+    for (const role of MONO_PALETTE_GROUPS.system) expect(after.roles[role]).toEqual(before.roles[role]);
+    expect(after.roles.accentPrimary).not.toEqual(before.roles.accentPrimary);
+    expect(validateMonoPaletteApply(first.config.themes.dark).valid).toBe(true);
+    expect(config).toEqual(input);
+  });
+
+  it("applies the same character to linked themes while preserving exact locks and independent material axes", () => {
+    const config = normalizeMonoPaletteConfig({ seed: "linked-character", linkedThemes: true });
+    config.themes.dark.recipe = { ...config.themes.dark.recipe, exposure: 0.02, contrast: 1.08, surfaceResponse: 0.7 };
+    config.themes.light.recipe = { ...config.themes.light.recipe, exposure: -0.03, contrast: 0.94, surfaceResponse: 0.2 };
+    config.themes.dark = setMonoPaletteLock(config.themes.dark, { kind: "point", role: "accentPrimary" }, true);
+    config.themes.light = setMonoPaletteLock(config.themes.light, { kind: "group", group: "core" }, true);
+    const beforeDark = resolveMonoPalette(config.themes.dark);
+    const beforeLight = resolveMonoPalette(config.themes.light);
+
+    const result = randomizeMonoPaletteRecipe(config, "dark");
+
+    expect(result.status).toBe("changed");
+    const { dark, light } = result.config.themes;
+    for (const key of ["anchorHue", "anchorChroma", "harmony", "temperature", "iridescence"] as const) {
+      expect(light.recipe[key]).toBe(dark.recipe[key]);
+    }
+    expect(dark.recipe).toMatchObject({ exposure: 0.02, contrast: 1.08, surfaceResponse: 0.7 });
+    expect(light.recipe).toMatchObject({ exposure: -0.03, contrast: 0.94, surfaceResponse: 0.2 });
+    expect(resolveMonoPalette(dark).roles.accentPrimary).toEqual(beforeDark.roles.accentPrimary);
+    for (const role of MONO_PALETTE_GROUPS.core) {
+      expect(resolveMonoPalette(light).roles[role]).toEqual(beforeLight.roles[role]);
+    }
+    expect(result.replay).toMatchObject({ linkedThemes: true });
+  });
+
+  it("returns an atomic error without spending the counter when a linked lock conflicts", () => {
+    const config = normalizeMonoPaletteConfig({ seed: "linked-conflict", linkedThemes: true });
+    config.themes.light.roles.textPrimary.mode = "manual";
+    config.themes.light.roles.textPrimary.value = { l: 0.95, c: 0, h: 0, alpha: 1 };
+    config.themes.light = setMonoPaletteLock(config.themes.light, { kind: "point", role: "textPrimary" }, true);
+    const snapshot = structuredClone(config);
+
+    const result = randomizeMonoPaletteRecipe(config, "dark");
+
+    expect(result.status).toBe("error");
+    expect(result.config).toEqual(snapshot);
+    expect(result.config.actionCounter).toBe(0);
+    expect(result.replay).toBeNull();
+    expect(result.message).toMatch(/lock|constraint|contrast/i);
   });
 });
 

@@ -4,7 +4,9 @@ import {
   beginMonoPaletteTransaction, createMonoPaletteWorkspace, editMonoPaletteRecipe,
   endMonoPaletteTransaction, redoMonoPaletteWorkspace, setMonoPaletteRoleMode,
   setMonoPaletteSeed, randomizeMonoPaletteWorkspace, resetMonoPaletteSlot,
-  previewMonoThemesLink, setMonoPaletteWorkspaceLock, setMonoThemesLinked, switchMonoPaletteSlot,
+  MONO_PALETTE_QUICK_ZONES, getMonoPaletteQuickZoneLockState,
+  previewMonoThemesLink, randomizeMonoPaletteRecipeWorkspace, setMonoPaletteWorkspaceLock,
+  setMonoThemesLinked, switchMonoPaletteSlot, toggleMonoPaletteQuickZoneLock,
   switchMonoPaletteTheme, toggleMonoPaletteCompare, undoMonoPaletteWorkspace,
 } from "./mono-palette-workspace";
 
@@ -119,5 +121,52 @@ describe("mono palette workspace", () => {
     state = undoMonoPaletteWorkspace(state);
     expect(state.slots[0].present.config.actionCounter).toBe(0);
     expect(state.slots[0].present.config.seed).toBe("replay");
+  });
+
+  it("randomizes a coherent linked recipe as one undoable workspace change", () => {
+    let state = createMonoPaletteWorkspace(normalizeMonoPaletteConfig({ seed: "workspace-character", linkedThemes: true }));
+    const before = structuredClone(state.slots[0].present);
+
+    const random = randomizeMonoPaletteRecipeWorkspace(state);
+
+    expect(random.result.status).toBe("changed");
+    expect(random.workspace.slots[0].past).toHaveLength(1);
+    expect(random.workspace.slots[0].present.config.themes.light.recipe.anchorHue)
+      .toBe(random.workspace.slots[0].present.config.themes.dark.recipe.anchorHue);
+    expect(undoMonoPaletteWorkspace(random.workspace).slots[0].present).toEqual(before);
+  });
+
+  it("defines the three human zones and toggles every listed point lock in one history entry", () => {
+    expect(MONO_PALETTE_QUICK_ZONES).toEqual({
+      foundation: ["canvas", "surfaceBase", "surfaceRaised", "surfaceOverlay", "borderSubtle", "borderStrong"],
+      accents: ["accentPrimary", "accentSecondary", "chartLine", "selection"],
+      glass: ["glassTint", "edgeCool", "edgeWarm", "atmosphereCool", "atmosphereWarm"],
+    });
+    const before = createMonoPaletteWorkspace();
+    expect(getMonoPaletteQuickZoneLockState(before, "foundation")).toBe("unlocked");
+
+    const locked = toggleMonoPaletteQuickZoneLock(before, "foundation");
+
+    expect(getMonoPaletteQuickZoneLockState(locked, "foundation")).toBe("locked");
+    expect(locked.slots[0].past).toHaveLength(1);
+    for (const role of MONO_PALETTE_QUICK_ZONES.foundation) {
+      expect(locked.slots[0].present.config.themes.dark.roles[role].locked).toBe(true);
+      expect(locked.slots[0].present.config.themes.dark.roles[role].lockedValue).not.toBeNull();
+    }
+    expect(undoMonoPaletteWorkspace(locked).slots[0].present).toEqual(before.slots[0].present);
+  });
+
+  it("reports mixed point locks and leaves inherited exact group locks intact", () => {
+    let state = createMonoPaletteWorkspace();
+    state = setMonoPaletteWorkspaceLock(state, { kind: "point", role: "accentPrimary" }, true);
+    expect(getMonoPaletteQuickZoneLockState(state, "accents")).toBe("mixed");
+    state = toggleMonoPaletteQuickZoneLock(state, "accents");
+    expect(getMonoPaletteQuickZoneLockState(state, "accents")).toBe("locked");
+
+    state = setMonoPaletteWorkspaceLock(state, { kind: "group", group: "core" }, true);
+    const beforeInheritedToggle = structuredClone(state);
+    expect(getMonoPaletteQuickZoneLockState(state, "foundation")).toBe("inherited");
+    expect(toggleMonoPaletteQuickZoneLock(state, "foundation")).toEqual(beforeInheritedToggle);
+    expect(state.slots[0].present.config.themes.dark.groupLocks.core).toBe(true);
   });
 });

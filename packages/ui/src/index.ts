@@ -26,12 +26,14 @@ export {
 export {
   MONO_PALETTE_GROUPS, MONO_PALETTE_ROLES, MONO_PALETTE_HARMONIES,
   MONO_PALETTE_RECIPE_BOUNDS, MONO_PALETTE_ROLE_SCHEMA, MONO_PALETTE_SCHEMA_HASH,
+  MONO_PALETTE_QUICK_HARMONIES, MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA_HASH,
   normalizeMonoPaletteConfig, resolveMonoPalette, validateMonoPaletteApply,
-  setMonoPaletteLock, updateMonoPaletteRecipe, randomizeMonoPalette,
+  setMonoPaletteLock, updateMonoPaletteRecipe, randomizeMonoPalette, randomizeMonoPaletteRecipe,
   type MonoPaletteConfigV1, type ThemePaletteState, type MonoResolvedPalette,
   type MonoPaletteRecipe, type MonoPaletteRoleState, type MonoPaletteMode,
   type MonoPaletteGroup, type MonoPaletteRole, type MonoPaletteHarmony,
   type MonoPaletteScope, type MonoPaletteIssue, type MonoPaletteRandomizeResult,
+  type MonoPaletteRecipeRandomizeResult,
 } from "./mono/mono-palette";
 export { type DashboardAction } from "./dashboard/quick-actions";
 export { type DashboardSection } from "./dashboard/bottom-navigation";
