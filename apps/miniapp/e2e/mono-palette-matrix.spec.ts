@@ -6,7 +6,7 @@ test("Color Lab retains one legible phone across four widths, two themes and fiv
   test.setTimeout(process.env.MONO_PALETTE_CAPTURE === "1" ? 90_000 : 45_000);
   await page.goto("/mono");
   await page.getByRole("button", { name: "Включить палитру" }).click();
-  await page.getByRole("button", { name: "Эксперт" }).click();
+  await page.getByRole("button", { name: "Точная настройка" }).click();
   const preview = page.locator("[data-mono-preview]");
   const harmonies = ["spectral-graphite", "mineral", "thermal-duet", "analog-mist", "split-prism"];
 
@@ -16,7 +16,7 @@ test("Color Lab retains one legible phone across four widths, two themes and fiv
     for (const mode of ["Dark", "Light"] as const) {
       await page.getByRole("button", { name: mode, exact: true }).click();
       for (const harmony of harmonies) {
-        await page.getByRole("combobox", { name: "Гармония" }).selectOption(harmony);
+        await page.getByRole("combobox", { name: "Гармония · точно" }).selectOption(harmony);
         const geometry = await preview.evaluate(node => {
           const rect = node.getBoundingClientRect();
           const style = getComputedStyle(node);

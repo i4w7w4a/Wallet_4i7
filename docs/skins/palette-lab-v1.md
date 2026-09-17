@@ -71,6 +71,22 @@ Randomization детерминирована: seed, engine/catalog version, scop
 action counter. `Math.random()` и `Date.now()` запрещены. Locked/out-of-scope roles
 остаются побитно неизменными.
 
+Первый слой использует отдельную команду `Новый вариант`: она подбирает цельный
+recipe (оттенок, насыщенность, одну из четырёх основных гармоний, температуру и
+перелив), а не независимо переставляет каждую роль. При связанных темах характер
+меняется в обеих ветвях, но их собственная экспозиция и контраст сохраняются.
+Успешный вариант — одна операция Undo и один шаг action counter; no-op/error
+счётчик не расходуют. Замки сравниваются по конечному resolved цвету. Старые
+global/group/point randomizers остаются в точной настройке и не подменяют эту
+команду.
+
+В историческом V1 цвет `focus` зависел от hue/chroma рецепта. Чтобы новый вариант
+не сдвигал защищённый фокус, успешная quick-операция может добавить к теме
+`focusAnchor: { version: 1, h, c }` — базовый hue/chroma фокуса до offset,
+gamut mapping и contrast repair. Финальный resolved `focus` дополнительно
+сравнивается до/после. Снимки без `focusAnchor` вычисляются ровно по V1;
+старые schema hash, exact randomizer и экспорт V1 не переписываются.
+
 ## 6. Доступность и движение
 
 - обычный текст: WCAG 2.2 contrast не ниже `4.5:1`;
@@ -84,11 +100,19 @@ action counter. `Math.random()` и `Date.now()` запрещены. Locked/out-o
 
 ## 7. Persistence и portable fragments
 
-Versioned local keys:
+Текущие versioned local keys:
 
-- `wallet4i7.mono.palette-workspace.v1`;
-- `wallet4i7.mono.palette-active.v1`;
-- `wallet4i7.mono.palette-presets.v1` — offline/local fallback.
+- `wallet4i7.mono.palette-workspace.v2`;
+- `wallet4i7.mono.palette-active.v2`;
+- `wallet4i7.mono.palette-presets.v2` — offline/local fallback.
+
+Чтение проверяет текущий ключ и, если его ещё нет, принимает прежний `.v1`.
+Чтение само не переписывает storage; следующая явная запись использует `.v2`.
+Внутренние envelope `workspace.version` и `active.version` остаются `1`:
+суффикс ключа отделяет новый формат хранения, а не объявляет новый skin.
+Portable preset без защищённого фокуса остаётся `schemaVersion: 1`; preset с
+`focusAnchor` получает `schemaVersion: 2` и отдельный schema hash. Импорт и
+фрагменты обеих версий строго проверяются, включая content hash.
 
 Preset revision хранит recipe, обе theme branches, resolved values, links, editor
 locks, seed/counters, schema/engine/catalog versions и content hash. Runtime Apply
@@ -120,9 +144,36 @@ payload size и частоту записи. Никто не может обно
 
 ## 9. UX
 
-Телефон остаётся чистым. Слева — theme/recipe/global controls/history/library,
-справа — semantic role inspector. Rails сворачиваются независимо и вместе, не
-меняя ширину preview.
+Телефон остаётся чистым. Слева по умолчанию — понятный цветовой слой:
+`Основной цвет`, `Как звучит цвет`, `Цветовой перелив`, `Что не менять` и
+`Новый вариант`. Круговое поле задаёт hue углом (сверху 0°, справа 90°),
+насыщенность — расстоянием от центра по квадратной кривой для точности у
+нейтрального центра. Видимые `Тон` и `Интенсивность` дают клавиатурный и
+assistive-tech путь. Один drag поля — одна операция Undo.
+
+Четыре карточки характера: `Графит` (`spectral-graphite`), `Один тон`
+(`mineral`), `Дымка` (`analog-mist`) и `Дуэт` (`thermal-duet`). Экспертный
+`split-prism` доступен только через `Точную настройку`. Три быстрых замка
+показывают реальные цвета, состояние и действуют на текущую Dark/Light ветвь:
+
+- `Основа` — canvas, surfaceBase, surfaceRaised, surfaceOverlay, borderSubtle,
+  borderStrong;
+- `Акценты` — accentPrimary, accentSecondary, chartLine, selection;
+- `Стекло` — glassTint, edgeCool, edgeWarm, atmosphereCool, atmosphereWarm.
+
+Состояния замка: меняется, частично закреплено, закреплено, закреплено в точной
+настройке. Родительский group lock быстрый UI не снимает. `system` и `focus`
+не меняются; текст может подстроиться по нейтральной шкале, но обязан пройти
+контрастную проверку и не получает chromatic split. В `Точной настройке` сохранены отдельные
+semantic роли, поправки, point/group randomization, seed, Apply, JSON и локальная
+библиотека; серверная библиотека остаётся отдельной секцией. Dark и Light помнят
+свои независимые настройки. Rails сворачиваются независимо и вместе, не меняя
+ширину preview. На узком экране это доступные drawers, не элементы телефона.
+
+Поле и карточки имеют keyboard/focus-visible путь и touch targets от 44 CSS px.
+Палитра обновляется мягко, без overshoot; `prefers-reduced-motion` убирает
+palette crossfade и пространственное движение. Цветовой UI не добавляет второго
+canvas, WebGL context, постоянного RAF или таймера.
 
 Preset card показывает Dark/Light palette strips, имя, visibility, ревизию и
 происхождение. Загрузка и Copy Dark/Light/Palette/Background/Glass идут через
@@ -157,3 +208,18 @@ Color Lab, локальная и серверная UI-библиотека ре
 с БД, проверка backup/migration/restore и лимит новых анонимных владельцев на
 gateway. Без БД сервер возвращает 503, а локальные черновики/JSON остаются
 доступны.
+
+## 12. Проверка нового первого слоя на 2026-09-17
+
+После human-first интеграции: `@wallet/ui` 160/160, miniapp 109/109;
+typecheck и production build прошли, lint — 0 ошибок и один существовавший
+ранее warning в `mono-preview.tsx`. Все browser E2E MONO — 50/50: круговой
+жест и Undo, видимое изменение палитры, четыре карточки, быстрый замок,
+единственный canvas, независимые rails, prepaint, импортный diff, 40 комбинаций
+ширины/темы/гармонии и reduced motion без palette-анимации. Скриншоты Dark/Light
+для 320/390/430/480 px и прокрученной цветовой панели проверены глазами;
+переключатель всех панелей больше не накрывает кнопку нового варианта.
+
+Это локальная проверка реализации; развёртывание на сервере и реальная
+PostgreSQL фиксируются отдельно. Исторические результаты выше оставлены как baseline
+предыдущего этапа, а не суммируются с этим прогоном.

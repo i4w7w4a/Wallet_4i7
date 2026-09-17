@@ -2,9 +2,12 @@
 
 Статус: обязательная спецификация поведения
 
-Текущая реализация — Color Lab внутри `/mono`: три цветовых slot, Dark/Light,
-ручные роли и замки, deterministic randomize, history, A/B, Apply, локальные и
-серверные (при настроенной БД) пресеты. Разделы про шрифты, произвольные skins,
+Текущая реализация — Color Lab внутри `/mono`: понятный первый слой с круговым
+выбором цвета, четырьмя характерами, тремя быстрыми замками и командой
+`Новый вариант`; за `Точной настройкой` сохранены отдельные роли, группы, seed
+и прежняя точная рандомизация. Работают три цветовых slot, Dark/Light, history,
+A/B, Apply, локальные и серверные (при настроенной БД) пресеты. Разделы про
+шрифты, произвольные skins,
 общий `SkinHost`, account binding и lifecycle полного приложения — целевой
 контракт, не утверждение об уже готовой функции. Текущий формат и его ограничения
 описаны в [palette-lab-v1.md](palette-lab-v1.md).
@@ -74,10 +77,11 @@ Prototype workbench использует две fixed sibling rails вокруг
 LEFT / QUICK                 PREVIEW                  RIGHT / FINE
 [Variants 1 / 2 / 3]     [clean mono-page]          [Environment]
 [320 / 390 / 430 / 480]  [no lab controls]          [Embedded Optics]
+[Color Lab]                                      [Semantic inspector]
 ```
 
-- левая rail содержит `Варианты` и `Экран`;
-- правая rail содержит `Среда` и embedded `Оптика`;
+- левая rail содержит `Варианты`, компактный `Экран` и `Цвет`;
+- правая rail содержит `Среда`, embedded `Оптика` и инспектор отдельных цветов;
 - каждая секция имеет независимый accessible collapse;
 - один master switch скрывает/возвращает обе rails, не меняя их expanded state и не сдвигая preview;
 - ниже `1200px` rails становятся dismissible drawers: отдельные launchers, scrim, Escape, `inert` для скрытого содержимого и возврат focus к launcher;
@@ -96,7 +100,12 @@ Optical controls исполняются live. Draft хранится отдел�
 
 Preview не масштабируется через `transform`: `.mono-preview-frame` получает реальную ширину и становится named inline-size container. Внутренние responsive rules используют container queries/`cqw`, а fixed nav получает ту же resolved width. Если browser viewport уже выбранного profile, применяется clamp до доступной ширины без horizontal overflow. Поэтому кнопки проверяют композицию skin, а не имитируют уменьшенный screenshot.
 
-Эта оболочка — уже рабочий инструмент визуальной настройки, но ещё не общий Skin Lab: Ledger/Frost/Mercury остаются фиксированными directions с отдельными optical drafts, без full slot snapshot, locks, history, deterministic randomize и production Apply.
+Эта оболочка — уже рабочий инструмент визуальной настройки, но ещё не общий Skin
+Lab. У Color Lab есть собственные snapshot, locks, history, deterministic
+randomize и локальный Apply. Ledger/Frost/Mercury по-прежнему фиксированные
+directions с отдельными optical drafts; оптика не получила общий slot/session
+contract и production Apply. Наличие Color Lab нельзя выдавать за готовый
+SkinHost, Font Lab или общую рандомизацию всех параметров приложения.
 
 ### Целевая общая лаборатория
 

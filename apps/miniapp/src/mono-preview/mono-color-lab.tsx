@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
-  MONO_PALETTE_GROUPS, MONO_PALETTE_HARMONIES, MONO_PALETTE_RECIPE_BOUNDS, MONO_PALETTE_ROLE_SCHEMA,
+  MONO_PALETTE_GROUPS, MONO_PALETTE_HARMONIES, MONO_PALETTE_QUICK_HARMONIES, MONO_PALETTE_RECIPE_BOUNDS, MONO_PALETTE_ROLE_SCHEMA,
   resolveMonoPalette, srgbToOklch, validateMonoPaletteApply,
   type MonoPaletteGroup, type MonoPaletteRole, type MonoPaletteRecipe, type MonoPaletteScope,
 } from "@wallet/ui";
 import {
   beginMonoPaletteTransaction, createMonoPaletteWorkspace, editMonoPaletteRecipe, editMonoPaletteRole,
-  enableMonoPalette, endMonoPaletteTransaction, previewMonoThemesLink, randomizeMonoPaletteWorkspace,
+  enableMonoPalette, endMonoPaletteTransaction, getMonoPaletteQuickZoneLockState, MONO_PALETTE_QUICK_ZONES,
+  previewMonoThemesLink, randomizeMonoPaletteRecipeWorkspace, randomizeMonoPaletteWorkspace,
   redoMonoPaletteWorkspace, replaceMonoPaletteConfig, resetMonoPaletteSlot, setMonoPaletteRoleMode,
   setMonoPaletteSeed, setMonoPaletteWorkspaceLock, setMonoThemesLinked, switchMonoPaletteSlot,
-  switchMonoPaletteTheme, toggleMonoPaletteCompare, undoMonoPaletteWorkspace, type MonoPaletteWorkspace,
+  switchMonoPaletteTheme, toggleMonoPaletteCompare, toggleMonoPaletteQuickZoneLock,
+  undoMonoPaletteWorkspace, type MonoPaletteQuickZone, type MonoPaletteWorkspace,
 } from "./mono-palette-workspace";
+import { MonoColorField } from "./mono-color-field";
 import { applyMonoPaletteActive, loadMonoPaletteActive, loadMonoPaletteLibrary,
   readMonoPaletteWorkspace, saveMonoPaletteLibrary, saveMonoPaletteWorkspace, type MonoPaletteLibraryEntry } from "./mono-palette-storage";
 import { exportMonoPalettePreset, createMonoPaletteFragment, importMonoPalettePreset, previewMonoPaletteFragment,
@@ -24,10 +27,22 @@ import "./mono-color-lab.css";
 
 type Edit = (workspace: MonoPaletteWorkspace) => MonoPaletteWorkspace;
 type NumericRecipe = keyof typeof MONO_PALETTE_RECIPE_BOUNDS;
-const labels: Record<NumericRecipe, string> = { anchorHue: "Мастер-пигмент", anchorChroma: "Насыщенность", temperature: "Температура",
-  iridescence: "Перелив", exposure: "Экспозиция", contrast: "Контраст", surfaceResponse: "Материал" };
+const labels: Record<NumericRecipe, string> = { anchorHue: "Тон", anchorChroma: "Интенсивность", temperature: "Температура",
+  iridescence: "Цветовой перелив", exposure: "Экспозиция", contrast: "Контраст", surfaceResponse: "Материал" };
 const harmonyLabels: Record<MonoPaletteRecipe["harmony"], string> = { "spectral-graphite": "Спектральный графит", mineral: "Минерал", "thermal-duet": "Тепловой дуэт", "analog-mist": "Соседние оттенки", "split-prism": "Разделённая призма" };
 const groups: Record<MonoPaletteGroup, string> = { core: "Поверхности", content: "Содержание", structure: "Структура", decorative: "Акценты", system: "Системные" };
+const quickHarmonyLabels = { "spectral-graphite": "Графит", mineral: "Один тон", "analog-mist": "Дымка", "thermal-duet": "Дуэт" } as const;
+const quickZoneLabels: Record<MonoPaletteQuickZone, string> = { foundation: "Основа", accents: "Акценты", glass: "Стекло" };
+const roleLabels: Record<MonoPaletteRole, string> = {
+  canvas: "Фон приложения", surfaceBase: "Основная поверхность", surfaceRaised: "Приподнятая поверхность", surfaceOverlay: "Верхний слой",
+  textPrimary: "Основной текст", textSecondary: "Вторичный текст", textMuted: "Приглушённый текст", textDisabled: "Недоступный текст",
+  borderSubtle: "Тонкий контур", borderStrong: "Сильный контур", focus: "Контур фокуса", accentPrimary: "Основной акцент",
+  accentSecondary: "Второй акцент", glassTint: "Тон стекла", edgeCool: "Холодная кромка", edgeWarm: "Тёплая кромка",
+  atmosphereCool: "Холодный фон", atmosphereWarm: "Тёплый фон", chartLine: "Линия графика", selection: "Выделение",
+  success: "Успех", warning: "Предупреждение", danger: "Ошибка", info: "Информация",
+};
+const cssColor = (color: { r: number; g: number; b: number }): string =>
+  `rgb(${Math.round(color.r * 255)} ${Math.round(color.g * 255)} ${Math.round(color.b * 255)})`;
 
 export function useMonoColorLab() {
   const [workspace, setWorkspace] = useState(createMonoPaletteWorkspace);
@@ -122,6 +137,16 @@ export function useMonoColorLab() {
     commit(() => outcome.workspace);
     setStatus(`Изменено: ${outcome.result.changed.length}; пропущено: ${outcome.result.skipped.length}. ${outcome.result.status === "error" ? "Ограничения не позволяют применить результат." : ""}`);
   };
+  const newVariant = () => {
+    end();
+    const outcome = randomizeMonoPaletteRecipeWorkspace(current.current);
+    if (outcome.result.status === "changed") {
+      commit(() => outcome.workspace);
+      setStatus(`Новый вариант готов. Закреплённые цвета сохранены${outcome.result.changed.length === 2 ? " в обеих темах" : ""}.`);
+    } else setStatus(outcome.result.status === "noop"
+      ? "Новый вариант не изменил видимые цвета. Проверьте замки и режимы цветов в «Точной настройке»."
+      : "Не удалось подобрать читаемое сочетание с текущими ограничениями. Смягчите настройки цвета или замки.");
+  };
   async function run(work: () => Promise<void>) {
     setBusy(true);
     try { await work(); } catch (error) { setStatus(error instanceof Error ? error.message : "Операция не выполнена"); }
@@ -179,7 +204,7 @@ export function useMonoColorLab() {
   });
   return { workspace, present, shown, theme, resolved, style, issues, ready, status, setStatus, expert, setExpert, role, setRole,
     library, name, setName, json, setJson, pending, setPending, linkDiff, setLinkDiff, busy, commit, begin, end, editRecipe,
-    randomize, save, remove, previewFragment, previewRemotePreset, activeRemoteSource: remoteSources[workspace.activeSlotId] ?? null,
+    randomize, newVariant, save, remove, previewFragment, previewRemotePreset, activeRemoteSource: remoteSources[workspace.activeSlotId] ?? null,
     acceptPending, output, download,
     importPreview: () => run(async () => { const imported = await importMonoPalettePreset(json); setPending(previewMonoPaletteFragment(present.config, createMonoPaletteFragment(imported, "entire"))); setPendingOrigin({ source: null, scope: "entire" }); }),
     switchTheme: (mode: "dark" | "light") => { end(); commit(state => switchMonoPaletteTheme(state, mode)); },
@@ -217,20 +242,78 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
       <button type="button" aria-pressed={present.mode === "dark"} onClick={() => lab.switchTheme("dark")}>Dark</button>
       <button type="button" aria-pressed={present.mode === "light"} onClick={() => lab.switchTheme("light")}>Light</button>
     </div>
-    <fieldset disabled={!enabled}><legend>Характер</legend>
-      <label>Гармония<select value={theme.recipe.harmony} onChange={event => lab.editRecipe({ harmony: event.target.value as MonoPaletteRecipe["harmony"] })}>
-        {MONO_PALETTE_HARMONIES.filter(id => lab.expert || id !== "split-prism" || theme.recipe.harmony === id).map(id => <option key={id} value={id}>{harmonyLabels[id]}</option>)}
+    <div className="mono-color-lab__quick">
+      <div className="mono-color-lab__heading"><span>01 / ЦВЕТ</span><h3>Основной цвет</h3><p>Выберите оттенок. Остальные цвета соберутся вокруг него.</p></div>
+      <fieldset disabled={!enabled || workspace.compare === "baseline"} className="mono-color-lab__quick-field">
+        <legend className="mono-color-lab__sr-only">Основной цвет</legend>
+        <MonoColorField hue={theme.recipe.anchorHue} chroma={theme.recipe.anchorChroma} maxChroma={0.2}
+          disabled={!enabled || workspace.compare === "baseline"}
+          onChange={value => lab.editRecipe({ anchorHue: value.hue, anchorChroma: value.chroma })}
+          onGestureStart={() => lab.begin("color-field")}
+          onGestureEnd={lab.end} />
+      </fieldset>
+      <div className="mono-color-lab__heading"><span>02 / СОЧЕТАНИЕ</span><h3>Как звучит цвет</h3></div>
+      <fieldset disabled={!enabled || workspace.compare === "baseline"} className="mono-color-lab__harmony-field">
+        <legend className="mono-color-lab__sr-only">Сочетание</legend>
+        <div className="mono-color-lab__harmonies" role="radiogroup" aria-label="Сочетание">
+          {MONO_PALETTE_QUICK_HARMONIES.map(id => {
+            const preview = resolveMonoPalette({ ...theme, recipe: { ...theme.recipe, harmony: id } });
+            return <label key={id} className="mono-color-lab__harmony-card">
+              <input type="radio" name="mono-quick-harmony" value={id} checked={theme.recipe.harmony === id}
+                onChange={() => lab.editRecipe({ harmony: id })} />
+              <span className="mono-color-lab__harmony-name">{quickHarmonyLabels[id]}</span>
+              <span className="mono-color-lab__harmony-strip" aria-hidden="true">
+                {(["surfaceBase", "accentPrimary", "edgeCool", "edgeWarm"] as const).map(role =>
+                  <i key={role} style={{ background: cssColor(preview.srgb[role]) }} />)}
+              </span>
+            </label>;
+          })}
+        </div>
+      </fieldset>
+      <label className="mono-color-lab__quick-range">Цветовой перелив <output>{Math.round(theme.recipe.iridescence * 100)}%</output>
+        <input type="range" aria-label="Цветовой перелив" min="0" max="1" step="0.01" value={theme.recipe.iridescence}
+          disabled={!enabled || workspace.compare === "baseline"}
+          onPointerDown={() => lab.begin("iridescence")} onPointerUp={lab.end} onPointerCancel={lab.end}
+          onChange={event => lab.editRecipe({ iridescence: Number(event.currentTarget.value) })} />
+      </label>
+      <div className="mono-color-lab__heading"><span>03 / СОХРАНИТЬ</span><h3>Что не менять</h3></div>
+      <div className="mono-color-lab__zones">
+        {(Object.keys(MONO_PALETTE_QUICK_ZONES) as MonoPaletteQuickZone[]).map(zone => {
+          const state = getMonoPaletteQuickZoneLockState(workspace, zone);
+          const stateLabel = { unlocked: "Меняется", mixed: "Частично закреплено", locked: "Закреплено", inherited: "Закреплено в точной настройке" }[state];
+          return <div key={zone} className="mono-color-lab__zone" data-lock-state={state}>
+            <span className="mono-color-lab__zone-strip" aria-hidden="true">
+              {MONO_PALETTE_QUICK_ZONES[zone].slice(0, 4).map(role => <i key={role} style={{ background: cssColor(lab.resolved.srgb[role]) }} />)}
+            </span>
+            <span className="mono-color-lab__zone-copy"><strong>{quickZoneLabels[zone]}</strong><small>{stateLabel}</small></span>
+            <button type="button" aria-label={`Не менять ${quickZoneLabels[zone]}`} aria-pressed={state === "locked" || state === "inherited"}
+              disabled={!enabled || workspace.compare === "baseline" || state === "inherited"}
+              onClick={() => commit(current => toggleMonoPaletteQuickZoneLock(current, zone))}>
+              {state === "locked" || state === "inherited" ? "◆" : "◇"}
+            </button>
+          </div>;
+        })}
+      </div>
+      <button className="mono-color-lab__new-variant" type="button" disabled={!enabled || workspace.compare === "baseline"} onClick={lab.newVariant}>Новый вариант</button>
+      <p className="mono-color-lab__hint">Закреплённые части останутся прежними.</p>
+    </div>
+    <button type="button" className="mono-color-lab__exact-toggle" aria-controls="mono-color-exact" aria-expanded={lab.expert}
+      onClick={() => lab.setExpert(!lab.expert)}>Точная настройка <span aria-hidden="true">{lab.expert ? "−" : "+"}</span></button>
+    <div id="mono-color-exact" hidden={!lab.expert} className="mono-color-lab__exact">
+    <fieldset disabled={!enabled || workspace.compare === "baseline"}><legend>Рецепт и отдельные цвета</legend>
+      <label>Гармония · точно<select value={theme.recipe.harmony} onChange={event => lab.editRecipe({ harmony: event.target.value as MonoPaletteRecipe["harmony"] })}>
+        {MONO_PALETTE_HARMONIES.map(id => <option key={id} value={id}>{harmonyLabels[id]}</option>)}
       </select></label>
-      {(Object.keys(MONO_PALETTE_RECIPE_BOUNDS) as NumericRecipe[]).filter(id => lab.expert || ["anchorHue", "anchorChroma", "iridescence"].includes(id)).map(id => {
+      {(Object.keys(MONO_PALETTE_RECIPE_BOUNDS) as NumericRecipe[]).map(id => {
         const bound = MONO_PALETTE_RECIPE_BOUNDS[id];
         return <label key={id}>{labels[id]}<output>{theme.recipe[id].toFixed(id === "anchorHue" ? 0 : 3)}</output>
-          <input type="range" aria-label={labels[id]} min={bound.min} max={bound.max} step={id === "anchorHue" ? 1 : 0.001} value={theme.recipe[id]}
+          <input type="range" aria-label={`${labels[id]} · точно`} min={bound.min} max={bound.max} step={id === "anchorHue" ? 1 : 0.001} value={theme.recipe[id]}
             onPointerDown={() => lab.begin(id)} onPointerUp={lab.end} onPointerCancel={lab.end} onBlur={lab.end}
             onKeyDown={event => { if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(event.key)) lab.begin(id); }} onKeyUp={lab.end}
             onChange={event => lab.editRecipe({ [id]: Number(event.target.value) })} />
         </label>;
       })}
-      <button type="button" aria-pressed={present.config.linkedThemes} onClick={link}>Связать темы</button>
+      <button type="button" aria-pressed={present.config.linkedThemes} onClick={link}>Один цветовой характер для обеих тем</button>
       {lab.linkDiff && <div className="mono-color-lab__diff" role="region" aria-label="Различия перед связыванием">
         <p>Характер второй темы изменится. Ручные роли сохранятся.</p>
         {lab.linkDiff.map(item => <p key={item.key}>{item.key}: {item.dark} → {item.light}</p>)}
@@ -238,9 +321,9 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
         <button type="button" onClick={() => lab.setLinkDiff(null)}>Отмена связи</button>
       </div>}
       <label>Seed<input value={present.config.seed} maxLength={256} onChange={event => commit(state => setMonoPaletteSeed(state, event.target.value))} /></label>
-      <button type="button" onClick={() => lab.randomize({ kind: "global" })}>Случайная палитра</button>
+      <button type="button" onClick={() => lab.randomize({ kind: "global" })}>Другой вариант для всех цветов</button>
     </fieldset>
-    <button type="button" aria-pressed={lab.expert} onClick={() => lab.setExpert(!lab.expert)}>Эксперт</button>
+    </div>
     <div className="mono-color-lab__row">
       <button type="button" aria-label="Отменить цвет" disabled={!slot.past.length} onClick={() => { lab.end(); commit(undoMonoPaletteWorkspace); }}>↶ Undo</button>
       <button type="button" aria-label="Повторить цвет" disabled={!slot.future.length} onClick={() => commit(redoMonoPaletteWorkspace)}>↷ Redo</button>
@@ -248,6 +331,7 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
     <button type="button" aria-label="Сравнить A/B" aria-pressed={workspace.compare === "baseline"} onClick={() => commit(toggleMonoPaletteCompare)}>
       {workspace.compare === "baseline" ? "A · Исходный материал" : "B · Черновик"}
     </button>
+    <div hidden={!lab.expert} className="mono-color-lab__exact-tail">
     <button type="button" onClick={() => commit(resetMonoPaletteSlot)}>Сбросить цвет</button>
     <button type="button" disabled={!enabled || lab.issues.length > 0 || workspace.compare === "baseline"} onClick={() => {
       try { applyMonoPaletteActive(localStorage, present.config); lab.setStatus("Палитра применена локально. Библиотека не изменена."); }
@@ -273,6 +357,7 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
       <label>JSON пресета<textarea value={lab.json} maxLength={131072} onChange={event => lab.setJson(event.target.value)} /></label>
       <button type="button" onClick={() => void lab.importPreview()}>Предпросмотр импорта</button>
     </fieldset>
+    </div>
     {lab.pending && <div className="mono-color-lab__diff" role="region" aria-label="Различия импорта">
       <p>Изменений: {lab.pending.diff.length}. Сохранено замков: {lab.pending.skipped.length}.</p>
       <ul>{lab.pending.diff.map(item => <li key={item.path}>{item.path}: {JSON.stringify(item.before)} → {JSON.stringify(item.after)}</li>)}</ul>
@@ -294,14 +379,14 @@ export function MonoColorInspector({ lab }: { lab: MonoColorLabState }) {
   const [hexDraft, setHexDraft] = useState<string | null>(null);
   const values = state.mode === "offset" ? state.offset : resolved.roles[role];
   return <section className="mono-color-lab" aria-label="Смысловые цвета" data-mono-control>
-    {!lab.expert ? <p>Включите «Эксперт» слева, чтобы управлять отдельными ролями.</p> : <>
+    {!lab.expert ? <p>Откройте «Точную настройку» слева, чтобы менять отдельные цвета.</p> : <>
       <label>Смысловая роль<select value={role} onChange={event => { lab.setRole(event.target.value as MonoPaletteRole); setHexDraft(null); }}>
-        {Object.entries(MONO_PALETTE_GROUPS).map(([id, roles]) => <optgroup key={id} label={groups[id as MonoPaletteGroup]}>{roles.map(item => <option key={item} value={item}>{item}</option>)}</optgroup>)}
+        {Object.entries(MONO_PALETTE_GROUPS).map(([id, roles]) => <optgroup key={id} label={groups[id as MonoPaletteGroup]}>{roles.map(item => <option key={item} value={item}>{roleLabels[item]}</option>)}</optgroup>)}
       </select></label>
       <div className="mono-color-lab__swatch" style={{ background: hex } as CSSProperties} aria-hidden="true" />
       <fieldset disabled={!lab.present.paletteEnabled || group === "system" || lab.workspace.compare === "baseline"}><legend>{groups[group]}</legend>
         <label>Режим роли<select value={state.mode} disabled={locked} onChange={event => { setHexDraft(null); commit(workspace => setMonoPaletteRoleMode(workspace, role, event.target.value as "linked" | "offset" | "manual")); }}>
-          <option value="linked">Связанный</option><option value="offset">С поправкой</option><option value="manual">Ручной</option>
+          <option value="linked">Следует палитре</option><option value="offset">С поправкой</option><option value="manual">Свой цвет</option>
         </select></label>
         <label>HEX<input value={hexDraft ?? hex} disabled={locked || state.mode !== "manual"} onChange={event => setHexDraft(event.target.value)} onBlur={() => {
           if (hexDraft === null) return;
@@ -314,10 +399,10 @@ export function MonoColorInspector({ lab }: { lab: MonoColorLabState }) {
           value={Number(values[key].toFixed(5))} disabled={locked || state.mode === "linked"} onChange={event => {
             if (event.target.value !== "") commit(workspace => editMonoPaletteRole(workspace, role, { [key]: Number(event.target.value) }));
           }} /></label>)}
-        <button type="button" aria-label="Замок роли" aria-pressed={state.locked} disabled={theme.groupLocks[group]} onClick={() => commit(workspace => setMonoPaletteWorkspaceLock(workspace, { kind: "point", role }, !state.locked))}>{state.locked ? "Роль закреплена" : "Закрепить роль"}</button>
-        <button type="button" aria-pressed={theme.groupLocks[group]} onClick={() => commit(workspace => setMonoPaletteWorkspaceLock(workspace, { kind: "group", group }, !theme.groupLocks[group]))}>{theme.groupLocks[group] ? "Снять замок группы" : "Закрепить группу"}</button>
-        <button type="button" disabled={locked || role === "focus"} onClick={() => lab.randomize({ kind: "point", role })}>Случайная роль</button>
-        <button type="button" disabled={theme.groupLocks[group]} onClick={() => lab.randomize({ kind: "group", group })}>Случайная группа</button>
+        <button type="button" aria-label={`Не менять «${roleLabels[role]}»`} aria-pressed={state.locked} disabled={theme.groupLocks[group]} onClick={() => commit(workspace => setMonoPaletteWorkspaceLock(workspace, { kind: "point", role }, !state.locked))}>{state.locked ? "Цвет закреплён" : "Не менять цвет"}</button>
+        <button type="button" aria-pressed={theme.groupLocks[group]} onClick={() => commit(workspace => setMonoPaletteWorkspaceLock(workspace, { kind: "group", group }, !theme.groupLocks[group]))}>{theme.groupLocks[group] ? `Закреплено: ${groups[group]}` : `Не менять: ${groups[group]}`}</button>
+        <button type="button" disabled={locked || role === "focus"} onClick={() => lab.randomize({ kind: "point", role })}>{`Другой цвет для «${roleLabels[role]}»`}</button>
+        <button type="button" disabled={theme.groupLocks[group]} onClick={() => lab.randomize({ kind: "group", group })}>{`Другой вариант для «${groups[group]}»`}</button>
       </fieldset>
       {group === "system" && <p>Системная роль защищена от эстетических изменений.</p>}
       {locked && <p>Значение закреплено и не меняется вместе с рецептом.</p>}

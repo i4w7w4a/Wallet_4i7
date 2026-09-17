@@ -109,6 +109,9 @@
 .mono-rail--fine[aria-hidden="true"] { transform: translate3d(calc(100% + 24px), 0, 0); }
 
 .mono-rail__head {
+  position: sticky;
+  z-index: 2;
+  top: 0;
   display: flex;
   min-height: 64px;
   flex: 0 0 auto;
@@ -117,7 +120,10 @@
   gap: 12px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--mono-chrome-rule);
+  background: #111418;
 }
+
+.mono-rail--quick .mono-rail__head { padding-left: 64px; }
 
 .mono-rail__head > div {
   display: flex;
@@ -281,7 +287,7 @@
 
 .mono-viewport-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -289,17 +295,17 @@
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: 72px;
-  grid-template-columns: 1fr auto;
+  min-height: 48px;
+  grid-template-columns: 1fr;
   align-content: center;
-  gap: 4px 7px;
-  padding: 10px;
+  gap: 0;
+  padding: 6px;
   border: 1px solid var(--mono-chrome-rule);
   border-radius: 9px;
   background: var(--mono-chrome-surface);
   color: #969ca5;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   transition: border-color 90ms ease, background-color 190ms ease, color 190ms ease, transform 80ms ease;
 }
 
@@ -310,6 +316,9 @@
   font-variant-numeric: tabular-nums;
   font-weight: 590;
 }
+
+.mono-viewport-options button span,
+.mono-viewport-options button small { display: none; }
 
 .mono-viewport-options button span {
   align-self: center;
@@ -392,13 +401,15 @@
 .mono-workbench__master {
   position: fixed;
   z-index: 50;
-  bottom: 26px;
+  top: 26px;
   left: 26px;
   display: inline-flex;
+  width: 44px;
   min-height: 44px;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 0 11px 0 8px;
+  padding: 0;
   border: 1px solid var(--mono-chrome-rule-strong);
   border-radius: 999px;
   background: #090c10e8;
@@ -412,6 +423,8 @@
   backdrop-filter: blur(16px);
   transition: border-color 90ms ease, color 190ms ease, transform 80ms ease;
 }
+
+.mono-workbench__master > span:last-child { display: none; }
 
 .mono-workbench__master:hover { border-color: #d4d9de; color: #f4f6f8; }
 .mono-workbench__master:active { transform: translateY(1px) scale(0.98); }
@@ -520,6 +533,7 @@
 
   .mono-rail--quick { left: 10px; }
   .mono-rail--fine { right: 10px; }
+  .mono-rail--quick .mono-rail__head { padding-left: 14px; }
 
   .mono-workbench__launcher {
     position: fixed;
@@ -556,7 +570,6 @@
     transform: translateX(-50%);
   }
 
-  .mono-workbench__master > span:last-child { display: none; }
   .mono-workbench__master:active { transform: translateX(-50%) translateY(1px) scale(0.98); }
 
   .mono-workbench__scrim {

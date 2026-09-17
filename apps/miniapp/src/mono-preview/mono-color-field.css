@@ -29,6 +29,8 @@
   user-select: none;
 }
 
+.mono-color-field[aria-disabled="true"] { cursor: not-allowed; }
+
 .mono-color-field::after {
   content: "";
   position: absolute;

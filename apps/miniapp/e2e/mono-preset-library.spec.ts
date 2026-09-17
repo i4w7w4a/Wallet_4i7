@@ -51,10 +51,10 @@ test("foreign link previews a diff and forks the edited draft without revision r
   await expect(card.getByRole("button", { name: "Новая ревизия" })).toHaveCount(0);
   await card.getByRole("button", { name: "Предпросмотр" }).click();
   await expect(page.getByRole("region", { name: "Различия импорта" })).toBeVisible();
-  await expect(page.getByRole("slider", { name: "Мастер-пигмент" })).toHaveValue("250");
+  await expect(page.getByRole("slider", { name: "Тон" })).toHaveValue("250");
   await page.getByRole("button", { name: "Принять в черновик" }).click();
-  await expect(page.getByRole("slider", { name: "Мастер-пигмент" })).toHaveValue("43");
-  await page.getByRole("slider", { name: "Мастер-пигмент" }).fill("70");
+  await expect(page.getByRole("slider", { name: "Тон" })).toHaveValue("43");
+  await page.getByRole("slider", { name: "Тон" }).fill("70");
   await page.getByRole("textbox", { name: "Название для сервера" }).fill("Мой вариант");
   await card.getByRole("button", { name: "Создать ответвление" }).click();
   await expect(page.getByRole("article", { name: "Мой вариант" })).toBeVisible();

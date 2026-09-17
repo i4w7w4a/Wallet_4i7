@@ -62,7 +62,7 @@ test("черновик Light-палитры виден до гидратации
   const quick = await openMonoRail(page, "quick");
   await quick.getByRole("button", { name: "Включить палитру" }).click();
   await quick.getByRole("button", { name: "Light", exact: true }).click();
-  await quick.getByRole("slider", { name: "Мастер-пигмент" }).fill("28");
+  await quick.getByRole("slider", { name: "Тон" }).fill("28");
   await page.waitForTimeout(450);
   const preview = page.locator("main[data-mono-preview]");
   const expected = await preview.evaluate((node) => ({

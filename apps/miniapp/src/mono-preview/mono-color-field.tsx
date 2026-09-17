@@ -6,6 +6,7 @@ import "./mono-color-field.css";
 export type MonoColorFieldValue = { hue: number; chroma: number };
 export type MonoColorFieldProps = MonoColorFieldValue & {
   maxChroma: number;
+  disabled?: boolean;
   onChange: (value: MonoColorFieldValue) => void;
   onGestureStart: () => void;
   onGestureEnd: () => void;
@@ -37,7 +38,7 @@ export function monoColorFieldPosition(hue: number, chroma: number, maxChroma: n
   return { x: quietZero(Math.sin(angle) * fraction), y: quietZero(-Math.cos(angle) * fraction) };
 }
 
-export function MonoColorField({ hue, chroma, maxChroma, onChange, onGestureStart, onGestureEnd }: MonoColorFieldProps) {
+export function MonoColorField({ hue, chroma, maxChroma, disabled = false, onChange, onGestureStart, onGestureEnd }: MonoColorFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const activePointer = useRef<number | null>(null);
   const activeRangePointer = useRef<number | null>(null);
@@ -67,6 +68,7 @@ export function MonoColorField({ hue, chroma, maxChroma, onChange, onGestureStar
   }, []);
 
   const updateFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+    if (disabled) return;
     const bounds = event.currentTarget.getBoundingClientRect();
     if (bounds.width <= 0 || bounds.height <= 0) return;
     const nextRadius = Math.min(bounds.width, bounds.height) / 2;
@@ -85,7 +87,7 @@ export function MonoColorField({ hue, chroma, maxChroma, onChange, onGestureStar
   };
 
   const beginRangeGesture = (event: PointerEvent<HTMLInputElement>) => {
-    if (activeRangePointer.current !== null) return;
+    if (disabled || activeRangePointer.current !== null) return;
     activeRangePointer.current = event.pointerId;
     onGestureStart();
   };
@@ -96,10 +98,10 @@ export function MonoColorField({ hue, chroma, maxChroma, onChange, onGestureStar
   };
 
   return <div className="mono-color-field-control">
-    <div ref={fieldRef} role="group" aria-label="Цветовое поле"
+    <div ref={fieldRef} role="group" aria-label="Цветовое поле" aria-disabled={disabled}
       className={`mono-color-field${dragging ? " is-dragging" : ""}`} style={style}
       onPointerDown={event => {
-        if (activePointer.current !== null) return;
+        if (disabled || activePointer.current !== null) return;
         activePointer.current = event.pointerId;
         event.currentTarget.setPointerCapture?.(event.pointerId);
         setDragging(true);
@@ -116,14 +118,14 @@ export function MonoColorField({ hue, chroma, maxChroma, onChange, onGestureStar
     <div className="mono-color-field-ranges">
       <label className="mono-color-field-range">
         <span>Тон <output>{Math.round(wrapHue(hue))}°</output></span>
-        <input type="range" aria-label="Тон" min="0" max="359" step="1" value={Math.round(wrapHue(hue))}
-          onChange={event => onChange({ hue: Number(event.currentTarget.value), chroma })}
+        <input type="range" aria-label="Тон" min="0" max="359" step="1" value={Math.round(wrapHue(hue))} disabled={disabled}
+          onChange={event => { if (!disabled) onChange({ hue: Number(event.currentTarget.value), chroma }); }}
           onPointerDown={beginRangeGesture} onPointerUp={endRangeGesture} onPointerCancel={endRangeGesture} />
       </label>
       <label className="mono-color-field-range">
         <span>Интенсивность <output>{Math.round(safeMax > 0 ? chroma / safeMax * 100 : 0)}%</output></span>
-        <input type="range" aria-label="Интенсивность" min="0" max="100" step="1" value={Math.round(safeMax > 0 ? clamp(chroma / safeMax * 100, 0, 100) : 0)}
-          onChange={event => onChange({ hue, chroma: Number((Number(event.currentTarget.value) / 100 * safeMax).toFixed(6)) })}
+        <input type="range" aria-label="Интенсивность" min="0" max="100" step="1" value={Math.round(safeMax > 0 ? clamp(chroma / safeMax * 100, 0, 100) : 0)} disabled={disabled}
+          onChange={event => { if (!disabled) onChange({ hue, chroma: Number((Number(event.currentTarget.value) / 100 * safeMax).toFixed(6)) }); }}
           onPointerDown={beginRangeGesture} onPointerUp={endRangeGesture} onPointerCancel={endRangeGesture} />
       </label>
     </div>

@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MonoColorField, monoColorFieldPoint, monoColorFieldPosition } from "./mono-color-field";
@@ -29,6 +30,22 @@ describe("MONO color field geometry", () => {
 });
 
 describe("MONO color field interaction", () => {
+  it("does not start an invisible gesture while the palette is disabled", () => {
+    const onChange = vi.fn(), onGestureStart = vi.fn(), onGestureEnd = vi.fn();
+    render(<MonoColorField hue={44} chroma={0.05} maxChroma={0.2} disabled
+      onChange={onChange} onGestureStart={onGestureStart} onGestureEnd={onGestureEnd} />);
+    const field = screen.getByRole("group", { name: "Цветовое поле" });
+    Object.defineProperty(field, "getBoundingClientRect", { value: () => ({ left: 0, top: 0, width: 200, height: 200 }) });
+    pointer(field, "pointerdown", 9, 200, 100);
+    pointer(field, "pointermove", 9, 100, 0);
+    pointer(field, "pointerup", 9, 100, 0);
+    expect(field).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("slider", { name: "Тон" })).toBeDisabled();
+    expect(onGestureStart).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onGestureEnd).not.toHaveBeenCalled();
+  });
+
   it("starts and ends exactly one transaction per pointer gesture", () => {
     const onChange = vi.fn(), onGestureStart = vi.fn(), onGestureEnd = vi.fn();
     render(<MonoColorField hue={44} chroma={0.05} maxChroma={0.2}

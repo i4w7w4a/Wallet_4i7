@@ -70,6 +70,25 @@ test.describe("desktop skin workbench", () => {
     await expect(page.locator("[data-mono-rail]").first()).toHaveAttribute("aria-hidden", "false");
     await expect(page.getByRole("button", { name: "Развернуть Экран" })).toHaveAttribute("aria-expanded", "false");
   });
+
+  test("master switch does not cover the color action while the rail scrolls", async ({ page }) => {
+    await page.getByRole("button", { name: "Включить палитру" }).click();
+    const action = page.getByRole("button", { name: "Новый вариант" });
+    await page.getByRole("button", { name: "Не менять Основа" }).click();
+    await action.click();
+    const master = await page.getByRole("button", { name: "Скрыть панели" }).boundingBox();
+    const target = await action.boundingBox();
+    const railHead = await page.locator(".mono-rail--quick .mono-rail__head").boundingBox();
+    expect(master).not.toBeNull();
+    expect(target).not.toBeNull();
+    expect(railHead).not.toBeNull();
+    expect(master!.y + master!.height / 2).toBeLessThanOrEqual(railHead!.y + railHead!.height);
+    const overlapX = Math.min(master!.x + master!.width, target!.x + target!.width) - Math.max(master!.x, target!.x);
+    const overlapY = Math.min(master!.y + master!.height, target!.y + target!.height) - Math.max(master!.y, target!.y);
+    expect(Math.min(overlapX, overlapY)).toBeLessThanOrEqual(0);
+    if (process.env.MONO_PALETTE_CAPTURE === "1")
+      await page.screenshot({ path: test.info().outputPath("color-rail-scrolled.png"), animations: "disabled" });
+  });
 });
 
 test.describe("compact skin workbench", () => {
@@ -98,7 +117,7 @@ test.describe("compact skin workbench", () => {
     await page.getByRole("button", { name: "Открыть быстрые настройки" }).click();
     const quick = page.locator('[data-mono-rail="quick"]');
     const first = quick.getByRole("link", { name: /V1/i });
-    const last = quick.getByRole("button", { name: "Обновить список" });
+    const last = quick.getByRole("button", { name: /^(Обновить список|Повторить соединение)$/ });
     await expect(quick).toHaveAttribute("role", "dialog");
     await expect(quick).toHaveAttribute("aria-modal", "true");
     await expect(page.locator(".mono-preview-frame")).toHaveAttribute("inert", "");

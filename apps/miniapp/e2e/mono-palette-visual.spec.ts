@@ -39,7 +39,7 @@ test("palette gradient change fades previous paint without another renderer", as
   await page.goto("/mono");
   await page.getByRole("button", { name: "Включить палитру" }).click();
   await page.waitForTimeout(450);
-  await page.getByRole("button", { name: "Случайная палитра" }).click();
+  await page.getByRole("button", { name: "Новый вариант" }).click();
 
   const layer = page.locator("[data-mono-palette-crossfade]");
   await expect(layer).toHaveCount(1);
@@ -62,7 +62,7 @@ test("reduced motion swaps palette gradient without a fade", async ({ page }) =>
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/mono");
   await page.getByRole("button", { name: "Включить палитру" }).click();
-  await page.getByRole("button", { name: "Случайная палитра" }).click();
+  await page.getByRole("button", { name: "Новый вариант" }).click();
   const layer = page.locator("[data-mono-palette-crossfade]");
   await expect(layer).toHaveCount(1);
   expect(await layer.evaluate(node => node.getAnimations().length)).toBe(0);
