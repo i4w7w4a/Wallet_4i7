@@ -1,0 +1,14 @@
+FROM node:24-bookworm-slim
+
+ENV NODE_ENV=production
+WORKDIR /workspace/apps/miniapp
+
+# The context must be a verified Linux staging tree with pnpm links and .next.
+COPY --chown=node:node . /workspace
+RUN test -f /workspace/apps/miniapp/.next/BUILD_ID \
+    && test -f /workspace/apps/miniapp/node_modules/next/dist/bin/next
+
+USER node
+EXPOSE 3000
+CMD ["node", "./node_modules/next/dist/bin/next", "start", "-p", "3000", "-H", "0.0.0.0"]
+

@@ -1,0 +1,302 @@
+/*
+ * MONO LEDGER interaction layer. Import after mono-motion.css.
+ * Neutral light, inset depth and short material response; no ambient animation.
+ */
+.mono-page {
+  --mono-interaction-enter: 90ms;
+  --mono-interaction-settle: 190ms;
+  --mono-interaction-press: 80ms;
+  --mono-interaction-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Keyboard clarity is independent from hover capability. */
+.mono-page .mono-labbar__variants button:focus-visible,
+.mono-page .mono-hero__privacy:focus-visible,
+.mono-page .mono-periods span:focus-visible,
+.mono-page .mono-actions__item:focus-visible,
+.mono-page .mono-assets__row:focus-visible,
+.mono-page .mono-nav__item:focus-visible,
+.mono-page .mono-promo-frame:focus-visible {
+  outline: 1px solid #fff;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px #050505, 0 0 0 2px #bdbdbd;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mono-page .mono-labbar__variants button,
+  .mono-page .mono-labbar__tuner,
+  .mono-page .mono-labbar__tuner > span:first-child,
+  .mono-page .mono-labbar__back,
+  .mono-page .mono-labbar__back span,
+  .mono-page .mono-hero__privacy,
+  .mono-page .mono-actions__item,
+  .mono-page .mono-periods span,
+  .mono-page .mono-assets__row,
+  .mono-page .mono-nav__item,
+  .mono-page .mono-promo-frame,
+  .mono-page .mono-app-header,
+  .mono-page .mono-app-header__mark {
+    transition-duration: var(--mono-interaction-settle);
+    transition-timing-function: var(--mono-interaction-ease);
+  }
+
+  .mono-page .mono-labbar__variants button {
+    transition-property: transform, color, background-color, box-shadow;
+  }
+
+  .mono-page .mono-labbar__tuner {
+    border-radius: 6px;
+    transition-property: transform, color, background-color, box-shadow;
+  }
+
+  .mono-page .mono-labbar__tuner > span:first-child {
+    transition-property: transform, color;
+  }
+
+  .mono-page .mono-labbar__tuner:hover {
+    background: #1b1b1b;
+    box-shadow: inset 0 0 0 1px #666, inset 0 1px #ffffff1d;
+    color: #fff;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-labbar__tuner:hover > span:first-child {
+    transform: rotate(45deg) scale(1.04);
+    color: #fff;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-labbar__tuner:active {
+    transform: translateY(1px) scale(0.975);
+    box-shadow: inset 0 1px 2px #000b;
+    transition-duration: var(--mono-interaction-press);
+  }
+
+  .mono-page .mono-labbar__back {
+    border-radius: 6px;
+    transition-property: color, background-color, box-shadow;
+  }
+
+  .mono-page .mono-labbar__back span {
+    display: inline-block;
+    transition-property: transform, color;
+  }
+
+  .mono-page .mono-labbar__back:hover {
+    background: #ffffff08;
+    box-shadow: inset 0 -1px #8d8d8d;
+    color: #fff;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-labbar__back:hover span {
+    transform: translate3d(2px, -1px, 0);
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-hero__privacy {
+    border-radius: 50%;
+    transition-property: transform, color, background-color, box-shadow;
+  }
+
+  .mono-page .mono-hero__privacy:hover {
+    transform: scale(1.035);
+    background: #ffffff0d;
+    box-shadow: inset 0 0 0 1px #ffffff24;
+    color: #fff;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-hero__privacy:active {
+    transform: translateY(1px) scale(0.96);
+    background: #ffffff16;
+    transition-duration: var(--mono-interaction-press);
+  }
+
+  .mono-page .mono-labbar__variants button:not([aria-pressed="true"]):hover {
+    background: #262626;
+    box-shadow: inset 0 0 0 1px #8a8a8a, inset 0 1px #ffffff24;
+    color: #fff;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-labbar__variants button[aria-pressed="true"]:hover {
+    box-shadow: inset 0 1px #fff, 0 1px 8px #0008;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-labbar__variants button:hover:active,
+  .mono-page .mono-labbar__variants button:active {
+    transform: translateY(1px) scale(0.985);
+    box-shadow: inset 0 1px 2px #0009;
+    transition-duration: var(--mono-interaction-press);
+  }
+
+  .mono-page .mono-actions__item {
+    transition-property: color, background-color, box-shadow;
+  }
+
+  .mono-page .mono-actions__icon,
+  .mono-page .mono-nav__item svg,
+  .mono-page .mono-assets__symbol {
+    transition:
+      transform var(--mono-interaction-settle) var(--mono-interaction-ease),
+      color var(--mono-interaction-settle) var(--mono-interaction-ease),
+      border-color var(--mono-interaction-settle) var(--mono-interaction-ease),
+      box-shadow var(--mono-interaction-settle) var(--mono-interaction-ease);
+  }
+
+  .mono-page .mono-actions__item:hover {
+    background: #181818;
+    box-shadow: inset 0 0 0 1px #ffffff24, inset 0 1px #ffffff12;
+    color: #f5f5f5;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-actions__item:hover .mono-actions__icon {
+    transform: translateY(-1px);
+    color: #fff;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-actions__item:active .mono-actions__icon {
+    transform: translateY(1px) scale(0.96);
+    transition-duration: var(--mono-interaction-press);
+  }
+
+  .mono-page .mono-periods span {
+    border-radius: 3px;
+    transition-property: color, background-color, box-shadow;
+  }
+
+  .mono-page .mono-periods span:not(.mono-periods__active):hover {
+    background: #232323;
+    box-shadow: inset 0 0 0 1px #6c6c6c;
+    color: #eee;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-periods span:active {
+    background: #d8d8d8;
+    color: #111;
+    transition-duration: var(--mono-interaction-press);
+  }
+
+  .mono-page .mono-assets__row {
+    transition-property: color, background-color, box-shadow;
+  }
+
+  .mono-page .mono-assets__row:hover {
+    background: #141414;
+    box-shadow: inset 2px 0 #bdbdbd, inset 0 1px #ffffff0d;
+    color: #fff;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-assets__row:hover .mono-assets__symbol {
+    transform: translateX(1px);
+    border-color: #cfcfcf;
+    box-shadow: inset 0 1px #ffffff2b;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-assets__row:active .mono-assets__symbol {
+    transform: translateX(1px) scale(0.96);
+    transition-duration: var(--mono-interaction-press);
+  }
+
+  .mono-page .mono-nav__item {
+    transition-property: color, background-color, box-shadow;
+  }
+
+  .mono-page .mono-nav__item:hover {
+    color: #e8e8e8;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-nav__item:hover svg {
+    transform: translateY(-1px);
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-nav__item:active svg {
+    transform: translateY(1px) scale(0.96);
+    transition-duration: var(--mono-interaction-press);
+  }
+
+  .mono-page .mono-promo-frame {
+    transition-property: box-shadow;
+  }
+
+  .mono-page .mono-promo-frame:hover {
+    box-shadow: inset 0 1px #ffffff7d, inset 14px 0 22px -22px #d8e8ed80, inset -18px 0 28px -30px #e5cfd052, 0 18px 34px #000a;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-promo-frame:active {
+    box-shadow: inset 0 1px 2px #fff8, inset 12px 0 20px -22px #d8e8ed70, 0 14px 28px #000b;
+    transition-duration: var(--mono-interaction-press);
+  }
+
+  .mono-page .mono-app-header {
+    transition-property: color;
+  }
+
+  .mono-page .mono-app-header__mark {
+    transition-property: transform, border-color, box-shadow;
+  }
+
+  .mono-page .mono-app-header:hover {
+    color: #fff;
+    transition-duration: var(--mono-interaction-enter);
+  }
+
+  .mono-page .mono-app-header:hover .mono-app-header__mark {
+    border-color: #eee;
+    box-shadow: inset 0 1px #fff, 0 6px 18px #0009;
+    transition-duration: var(--mono-interaction-enter);
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .mono-page .mono-actions__icon,
+  .mono-page .mono-assets__symbol,
+  .mono-page .mono-nav__item svg {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mono-page .mono-labbar__variants button,
+  .mono-page .mono-labbar__tuner,
+  .mono-page .mono-labbar__tuner > span:first-child,
+  .mono-page .mono-labbar__back,
+  .mono-page .mono-labbar__back span,
+  .mono-page .mono-hero__privacy,
+  .mono-page .mono-actions__item,
+  .mono-page .mono-actions__icon,
+  .mono-page .mono-periods span,
+  .mono-page .mono-assets__row,
+  .mono-page .mono-assets__symbol,
+  .mono-page .mono-nav__item,
+  .mono-page .mono-nav__item svg,
+  .mono-page .mono-promo-frame,
+  .mono-page .mono-app-header,
+  .mono-page .mono-app-header__mark {
+    transition-duration: 0.01ms !important;
+  }
+
+  .mono-page .mono-labbar__variants button:active,
+  .mono-page .mono-labbar__tuner:active,
+  .mono-page .mono-labbar__tuner:hover > span:first-child,
+  .mono-page .mono-labbar__back:hover span,
+  .mono-page .mono-hero__privacy:hover,
+  .mono-page .mono-hero__privacy:active,
+  .mono-page .mono-actions__item:active .mono-actions__icon,
+  .mono-page .mono-assets__row:hover .mono-assets__symbol,
+  .mono-page .mono-assets__row:active .mono-assets__symbol,
+  .mono-page .mono-nav__item:hover svg,
+  .mono-page .mono-nav__item:active svg {
+    transform: none !important;
+  }
+}

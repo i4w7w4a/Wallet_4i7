@@ -1,0 +1,74 @@
+/* MONO LEDGER preview typography. Files are self-hosted; provenance lives in
+   public/fonts/mono/README.md. Faces are requested only when their preset is used. */
+
+@font-face {
+  font-family: "Mono Plex Sans";
+  src: url("/fonts/mono/plex-sans-var-roman.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mono Golos Text";
+  src: url("/fonts/mono/golos-text-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mono Golos Text";
+  src: url("/fonts/mono/golos-text-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mono Golos Text";
+  src: url("/fonts/mono/golos-text-semibold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mono Onest";
+  src: url("/fonts/mono/onest-variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mono Plex Mono";
+  src: url("/fonts/mono/plex-mono-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+[data-mono-preset] {
+  --mono-font-ui: "Mono Plex Sans", "Mono Plex Mono", Arial, sans-serif;
+  --mono-font-display: var(--mono-font-ui);
+  --mono-font-numeric: var(--mono-font-ui);
+  --mono-font-mono: "Mono Plex Mono", ui-monospace, monospace;
+  --mono-font-weight-body: 400;
+  --mono-font-weight-medium: 500;
+  --mono-font-weight-strong: 600;
+  --mono-font-weight-balance: 600;
+
+  font-family: var(--mono-font-ui);
+  font-synthesis: none;
+}
+
+[data-mono-preset="frost"] {
+  --mono-font-ui: "Mono Golos Text", "Mono Plex Mono", Arial, sans-serif;
+  --mono-font-weight-balance: 600;
+}
+
+[data-mono-preset="mercury"] {
+  --mono-font-ui: "Mono Onest", "Mono Plex Mono", Arial, sans-serif;
+  --mono-font-weight-balance: 650;
+}

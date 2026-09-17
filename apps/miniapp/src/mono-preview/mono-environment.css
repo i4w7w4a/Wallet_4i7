@@ -1,0 +1,226 @@
+/* Three background materials share one optical Promo renderer. Pointer wake and
+   repulsion are finite DOM/CSS responses, never a second WebGL scene or RAF. */
+.mono-environment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--mono-rule);
+}
+
+.mono-environment__backgrounds,
+.mono-environment__themes {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mono-environment__backgrounds { min-width: 0; flex: 1; }
+.mono-environment__themes { flex: 0 0 auto; }
+
+.mono-environment button {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--mono-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 190ms var(--mono-ease), border-color 190ms var(--mono-ease), color 190ms var(--mono-ease), transform 190ms var(--mono-ease);
+}
+
+.mono-environment__backgrounds button { flex: 1 1 0; }
+.mono-environment__themes button { width: 44px; padding-inline: 0; font-size: 18px; }
+.mono-environment button[aria-pressed="true"] {
+  border-color: var(--mono-rule-strong);
+  background: var(--mono-surface-high);
+  color: var(--mono-text);
+}
+
+.mono-environment button:focus-visible { outline: 2px solid var(--mono-text); outline-offset: 2px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .mono-environment button:hover {
+    border-color: var(--mono-rule-strong);
+    color: var(--mono-text);
+    transition-duration: 90ms;
+  }
+  .mono-environment button:active { transform: translateY(1px) scale(0.985); transition-duration: 80ms; }
+}
+
+.mono-environment__swatch {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #ffffff28;
+}
+.mono-environment__swatch--iris { background: linear-gradient(135deg, #a9bdc6, #ad8fa5 57%, #c8af8c); }
+.mono-environment__swatch--tide { background: linear-gradient(135deg, #687e86, #cad6d2); }
+.mono-environment__swatch--strata { background: linear-gradient(135deg, #665c55, #d2ccc4); }
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"], html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) {
+  --mono-canvas: #0d0e12;
+  --mono-surface: #1a1c21;
+  --mono-surface-high: #25272e;
+  --mono-rule: #3b3d45;
+  --mono-rule-strong: #777982;
+  --mono-text-muted: #a9abb0;
+}
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"][data-mono-preset="frost"], html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"])[data-mono-preset="frost"] {
+  --mono-canvas: #13151a;
+  --mono-surface: #22252b;
+  --mono-surface-high: #30333a;
+}
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"][data-mono-preset="mercury"], html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"])[data-mono-preset="mercury"] {
+  --mono-canvas: #090b0f;
+  --mono-surface: #15171c;
+  --mono-surface-high: #202329;
+}
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"][data-mono-background="iris"], html[data-mono-prepaint-theme="dark"][data-mono-prepaint-background="iris"] .mono-page:not([data-mono-theme="light"]) {
+  --mono-atmosphere-light: #bdc8e01b;
+  --mono-atmosphere-line: #c3c6d008;
+  --mono-atmosphere-ribbon: #b8a6ba16;
+  background:
+    radial-gradient(ellipse 88% 35% at 73% 7%, #718b9e18, transparent 75%),
+    radial-gradient(ellipse 70% 42% at 18% 63%, #a4829011, transparent 76%),
+    linear-gradient(155deg, #15171d, var(--mono-canvas) 40%, #101115 100%);
+}
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"][data-mono-background="tide"], html[data-mono-prepaint-theme="dark"][data-mono-prepaint-background="tide"] .mono-page:not([data-mono-theme="light"]) {
+  --mono-atmosphere-light: #a9d0d51c;
+  --mono-atmosphere-line: #a6bbc008;
+  --mono-atmosphere-ribbon: #c8d5d315;
+  background:
+    radial-gradient(ellipse 75% 46% at 67% 10%, #58858f17, transparent 80%),
+    radial-gradient(ellipse 88% 42% at 18% 75%, #6d738d13, transparent 76%),
+    linear-gradient(180deg, #10171b, #0d1115 50%, #111318);
+}
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"][data-mono-background="strata"], html[data-mono-prepaint-theme="dark"][data-mono-prepaint-background="strata"] .mono-page:not([data-mono-theme="light"]) {
+  --mono-atmosphere-light: #d5bca71a;
+  --mono-atmosphere-line: #e0d1b50c;
+  --mono-atmosphere-ribbon: #b5aca319;
+  background:
+    radial-gradient(ellipse 94% 38% at 12% 9%, #9a775f16, transparent 74%),
+    linear-gradient(122deg, #171512, #111215 49%, #18181a 100%);
+}
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-labbar, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-labbar {
+  background: #121318;
+  border-bottom-color: #30323a;
+}
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-labbar__variants, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-labbar__variants { background: #1a1c21; border-color: #3a3b43; }
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-labbar__variants button:not([aria-pressed="true"]):hover, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-labbar__variants button:not([aria-pressed="true"]):hover { background: #30343c; }
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-actions, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-actions,
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-assets__list, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-assets__list {
+  box-shadow: inset 0 1px #ffffff0d, 0 13px 28px #0003;
+}
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-nav, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-nav { background: #121419f0; }
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-promo-frame, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-promo-frame {
+  box-shadow: inset 0 1px #ecf3ff48, -8px 16px 38px #607f9c12, 9px 16px 38px #c3998312;
+}
+
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-atmosphere::after, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-atmosphere::after {
+  background:
+    linear-gradient(90deg, #090a0c88, transparent 15%, transparent 85%, #090a0c88),
+    linear-gradient(180deg, transparent 59%, #090a0d65 100%);
+}
+
+.mono-atmosphere__iridescence {
+  position: absolute;
+  inset: -18%;
+  transform: translate3d(calc(var(--mono-pointer-shift-x) * -0.6), calc(var(--mono-pointer-shift-y) * -0.6), 0);
+  background:
+    radial-gradient(ellipse 42% 27% at 84% 13%, #adc9e014, transparent 76%),
+    radial-gradient(ellipse 47% 36% at 10% 68%, #d2aabc0f, transparent 76%),
+    radial-gradient(ellipse 31% 27% at 69% 87%, #d8c9a210, transparent 78%);
+  opacity: 1;
+  transition: transform 420ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+:is(.mono-page[data-mono-background="tide"], html[data-mono-prepaint-background="tide"] .mono-page) .mono-atmosphere__iridescence { opacity: 0.42; }
+:is(.mono-page[data-mono-background="strata"], html[data-mono-prepaint-background="strata"] .mono-page) .mono-atmosphere__iridescence { opacity: 0.25; }
+:is(.mono-page[data-mono-background="strata"], html[data-mono-prepaint-background="strata"] .mono-page) .mono-atmosphere__grid {
+  transform: translate3d(calc(0px - var(--mono-pointer-shift-x)), calc(0px - var(--mono-pointer-shift-y)), 0);
+  opacity: 0.48;
+}
+
+.mono-atmosphere__wake,
+.mono-atmosphere__nodes { position: absolute; inset: 0; pointer-events: none; }
+
+.mono-atmosphere__ripple {
+  position: absolute;
+  top: var(--mono-ripple-y);
+  left: var(--mono-ripple-x);
+  width: var(--mono-ripple-width, 142px);
+  height: var(--mono-ripple-height, 96px);
+  transform: translate3d(-50%, -50%, 0) rotate(var(--mono-ripple-angle)) scale(0.34);
+  border: 1px solid #bad8d53d;
+  border-radius: 57% 43% 54% 46%;
+  background: radial-gradient(ellipse, #e3efec0b 4%, transparent 31%, #b9d8dc10 43%, transparent 55%, #d7dfea07 66%, transparent 76%);
+  box-shadow: inset 0 0 0 4px #e2e9e807;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: mono-tidal-wake var(--mono-ripple-duration, 1320ms) cubic-bezier(0.16, 0.46, 0.22, 1) both;
+}
+
+.mono-atmosphere__ripple::after {
+  position: absolute;
+  inset: 19%;
+  border: 1px solid #f3edda24;
+  border-radius: 56% 44% 53% 47%;
+  content: "";
+}
+
+@keyframes mono-tidal-wake {
+  0% { transform: translate3d(-50%, -50%, 0) rotate(var(--mono-ripple-angle)) scale(0.34); opacity: 0; }
+  22% { opacity: var(--mono-ripple-opacity, 0.28); }
+  68% { opacity: var(--mono-ripple-tail-opacity, 0.09); }
+  100% { transform: translate3d(-50%, -50%, 0) rotate(var(--mono-ripple-angle)) scale(var(--mono-ripple-scale, 1.36)); opacity: 0; }
+}
+
+.mono-atmosphere__node {
+  position: absolute;
+  width: 9px;
+  height: 3px;
+  transform: translate3d(0px, 0px, 0);
+  border-radius: 100%;
+  background: #d5c4b369;
+  box-shadow: 0 0 0 1px #ffffff10, 0 0 9px #d5bca139;
+  opacity: 0;
+  transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:is(.mono-page[data-mono-background="strata"], html[data-mono-prepaint-background="strata"] .mono-page) .mono-atmosphere__node { opacity: 0.67; }
+:is(.mono-page[data-mono-background="tide"], html[data-mono-prepaint-background="tide"] .mono-page) .mono-atmosphere__ribbon { opacity: 0.23; }
+:is(.mono-page[data-mono-background="strata"], html[data-mono-prepaint-background="strata"] .mono-page) .mono-atmosphere__ribbon { opacity: 0.62; }
+
+@media (max-width: 359px) {
+  .mono-environment { gap: 3px; }
+  .mono-environment button { padding-inline: 4px; font-size: 9px; }
+  .mono-environment__themes button { width: 42px; font-size: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .mono-atmosphere__iridescence,
+  .mono-atmosphere__node { transform: none !important; transition: none !important; }
+  .mono-atmosphere__ripple { display: none; animation: none; }
+}

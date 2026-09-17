@@ -1,0 +1,149 @@
+/*
+ * Reactive monochrome atmosphere. It owns no timer and no RAF: fine-pointer
+ * coordinates are written directly, then CSS performs a short material settle.
+ */
+.mono-page {
+  --mono-pointer-x: 68%;
+  --mono-pointer-y: 31%;
+  --mono-pointer-shift-x: 0px;
+  --mono-pointer-shift-y: 0px;
+  --mono-pointer-tilt-x: 0deg;
+  --mono-pointer-tilt-y: 0deg;
+  --mono-atmosphere-light: #ffffff10;
+  --mono-atmosphere-line: #ffffff0a;
+  --mono-atmosphere-ribbon: #ffffff0d;
+  background:
+    radial-gradient(ellipse 82% 36% at 52% 0%, #ffffff08, transparent 72%),
+    linear-gradient(180deg, var(--mono-canvas) 0%, #030303 48%, var(--mono-canvas) 100%);
+}
+
+.mono-page[data-mono-preset="frost"] {
+  --mono-atmosphere-light: #ffffff16;
+  --mono-atmosphere-line: #ffffff0d;
+  --mono-atmosphere-ribbon: #ffffff13;
+}
+
+.mono-page[data-mono-preset="mercury"] {
+  --mono-atmosphere-light: #ffffff1a;
+  --mono-atmosphere-line: #ffffff10;
+  --mono-atmosphere-ribbon: #ffffff18;
+}
+
+.mono-atmosphere {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  width: min(100%, var(--mono-preview-width, 480px));
+  height: 100dvh;
+  margin-inline: auto;
+  overflow: hidden;
+  contain: strict;
+  pointer-events: none;
+}
+
+.mono-atmosphere::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, #0008, transparent 16%, transparent 84%, #0008),
+    linear-gradient(180deg, transparent 55%, #000 100%);
+  content: "";
+}
+
+.mono-atmosphere__focus {
+  position: absolute;
+  top: var(--mono-pointer-y);
+  left: var(--mono-pointer-x);
+  width: 430px;
+  height: 430px;
+  transform: translate3d(-50%, -50%, 0) scale(0.91);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--mono-atmosphere-light) 0%, #ffffff08 23%, #ffffff03 47%, transparent 70%);
+  opacity: 0.48;
+  transition:
+    top 170ms cubic-bezier(0.2, 0, 0, 1),
+    left 170ms cubic-bezier(0.2, 0, 0, 1),
+    transform 190ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 190ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.mono-page[data-pointer-active="true"] .mono-atmosphere__focus {
+  transform: translate3d(-50%, -50%, 0) scale(1);
+  opacity: 1;
+}
+
+.mono-atmosphere__ribbon {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 150%;
+  height: 168px;
+  transform: translate3d(
+    calc(-50% + var(--mono-pointer-shift-x)),
+    calc(-50% + var(--mono-pointer-shift-y)),
+    0
+  ) rotate(-13deg);
+  border-top: 1px solid #ffffff0c;
+  border-bottom: 1px solid #000;
+  background:
+    linear-gradient(180deg, transparent, var(--mono-atmosphere-ribbon) 46%, #ffffff03 54%, transparent),
+    linear-gradient(90deg, transparent 7%, #ffffff08 38%, transparent 74%);
+  opacity: 0.42;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 180ms cubic-bezier(0.2, 0, 0, 1);
+  animation: mono-atmosphere-arrive 900ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+}
+
+.mono-page[data-pointer-active="true"] .mono-atmosphere__ribbon { opacity: 0.72; }
+
+.mono-atmosphere__grid {
+  position: absolute;
+  inset: -14px;
+  transform: translate3d(var(--mono-pointer-shift-x), var(--mono-pointer-shift-y), 0);
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 79px, var(--mono-atmosphere-line) 79px 80px),
+    repeating-linear-gradient(180deg, transparent 0 91px, var(--mono-atmosphere-line) 91px 92px);
+  mask-image: radial-gradient(ellipse 92% 72% at 50% 40%, #000 0%, transparent 78%);
+  opacity: 0.34;
+  transition: transform 280ms cubic-bezier(0.2, 0, 0, 1), opacity 180ms ease;
+}
+
+.mono-page[data-pointer-active="true"] .mono-atmosphere__grid { opacity: 0.58; }
+
+.mono-scene {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mono-app-header__mark {
+    transform: perspective(280px) rotateX(var(--mono-pointer-tilt-x)) rotateY(var(--mono-pointer-tilt-y));
+    transition: transform 210ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
+@keyframes mono-atmosphere-arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(-54%, -42%, 0) rotate(-17deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .mono-atmosphere__focus {
+    top: 31%;
+    left: 68%;
+    transform: translate3d(-50%, -50%, 0);
+  }
+
+  .mono-atmosphere__ribbon {
+    transform: translate3d(-50%, -50%, 0) rotate(-13deg);
+    animation: none;
+    transition: none;
+  }
+
+  .mono-atmosphere__grid,
+  .mono-app-header__mark { transform: none; transition: none; }
+}

@@ -1,0 +1,177 @@
+/*
+ * MONO LEDGER motion layer. Import after mono-preview.css.
+ * One composition per preset selection. The optical canvas owns all ambient life.
+ */
+.mono-page {
+  --mono-motion-quick: 110ms;
+  --mono-motion-standard: 200ms;
+  --mono-motion-reveal: 380ms;
+  --mono-motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.mono-page[data-mono-preset="ledger"] {
+  --mono-motion-rise: mono-ledger-rise;
+  --mono-motion-line: mono-ledger-line;
+  --mono-motion-dot: mono-ledger-dot;
+  --mono-motion-silver: mono-ledger-silver;
+}
+
+.mono-page[data-mono-preset="frost"] {
+  --mono-motion-quick: 120ms;
+  --mono-motion-standard: 220ms;
+  --mono-motion-reveal: 430ms;
+  --mono-motion-rise: mono-frost-rise;
+  --mono-motion-line: mono-frost-line;
+  --mono-motion-dot: mono-frost-dot;
+  --mono-motion-silver: mono-frost-silver;
+}
+
+.mono-page[data-mono-preset="mercury"] {
+  --mono-motion-quick: 120ms;
+  --mono-motion-standard: 220ms;
+  --mono-motion-reveal: 400ms;
+  --mono-motion-rise: mono-mercury-rise;
+  --mono-motion-line: mono-mercury-line;
+  --mono-motion-dot: mono-mercury-dot;
+  --mono-motion-silver: mono-mercury-silver;
+}
+
+/* The amount leads; the chart and controls answer it in a compact cascade. */
+.mono-page .mono-hero__eyebrow,
+.mono-page .mono-hero__amount,
+.mono-page .mono-hero__change,
+.mono-page .mono-actions,
+.mono-page .mono-actions__item,
+.mono-page .mono-promo-frame,
+.mono-page .mono-assets__heading {
+  animation-name: var(--mono-motion-rise);
+  animation-duration: var(--mono-motion-reveal);
+  animation-timing-function: var(--mono-motion-ease);
+  animation-fill-mode: both;
+  animation-iteration-count: 1;
+}
+
+.mono-page .mono-hero__eyebrow { animation-delay: 0ms; animation-duration: 270ms; }
+.mono-page .mono-hero__amount { animation-delay: 60ms; }
+.mono-page .mono-hero__change { animation-delay: 130ms; animation-duration: 300ms; }
+.mono-page .mono-actions { animation-delay: 300ms; animation-duration: 360ms; }
+.mono-page .mono-actions__item { animation-duration: 280ms; }
+.mono-page .mono-actions__item:nth-child(1) { animation-delay: 345ms; }
+.mono-page .mono-actions__item:nth-child(2) { animation-delay: 385ms; }
+.mono-page .mono-actions__item:nth-child(3) { animation-delay: 425ms; }
+.mono-page .mono-actions__item:nth-child(4) { animation-delay: 465ms; }
+.mono-page .mono-promo-frame { animation-delay: 410ms; animation-duration: 430ms; }
+.mono-page .mono-assets__heading { animation-delay: 550ms; animation-duration: 330ms; }
+
+/* Mercury's optical object precedes its action rail in the actual composition. */
+.mono-page[data-mono-preset="mercury"] .mono-promo-frame { animation-delay: 290ms; }
+.mono-page[data-mono-preset="mercury"] .mono-actions { animation-delay: 440ms; }
+.mono-page[data-mono-preset="mercury"] .mono-actions__item:nth-child(1) { animation-delay: 480ms; }
+.mono-page[data-mono-preset="mercury"] .mono-actions__item:nth-child(2) { animation-delay: 520ms; }
+.mono-page[data-mono-preset="mercury"] .mono-actions__item:nth-child(3) { animation-delay: 560ms; }
+.mono-page[data-mono-preset="mercury"] .mono-actions__item:nth-child(4) { animation-delay: 600ms; }
+
+/* SVG paint changes, not the measured chart box. The terminal arrives after the line. */
+.mono-page .mono-chart__line {
+  stroke-dasharray: 520;
+  stroke-dashoffset: 0;
+  animation: var(--mono-motion-line) 590ms var(--mono-motion-ease) 150ms both;
+}
+
+.mono-page .mono-chart__terminal {
+  animation: var(--mono-motion-dot) 160ms var(--mono-motion-ease) 690ms both;
+}
+
+/* A single edge glint signals the material change; no second ambient loop. */
+.mono-page .mono-promo-frame { position: relative; }
+.mono-page .mono-promo-frame::before {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  width: 52%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #f7f7f7 60%, transparent);
+  content: "";
+  pointer-events: none;
+  animation: var(--mono-motion-silver) 520ms var(--mono-motion-ease) 570ms both;
+}
+
+.mono-page .mono-labbar__variants button {
+  transition:
+    transform var(--mono-motion-quick) var(--mono-motion-ease),
+    color var(--mono-motion-standard) var(--mono-motion-ease),
+    background-color var(--mono-motion-standard) var(--mono-motion-ease);
+}
+
+.mono-page .mono-hero__privacy {
+  transition: transform var(--mono-motion-quick) var(--mono-motion-ease), color var(--mono-motion-standard) var(--mono-motion-ease);
+}
+
+.mono-page .mono-labbar__variants button:active,
+.mono-page .mono-hero__privacy:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.mono-page .mono-hero__privacy:hover { color: #fff; }
+
+@keyframes mono-ledger-rise {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes mono-frost-rise {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes mono-mercury-rise {
+  from { opacity: 0; transform: translate3d(-9px, 6px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes mono-ledger-line { from { stroke-dashoffset: 520; } to { stroke-dashoffset: 0; } }
+@keyframes mono-frost-line { from { stroke-dashoffset: 520; } to { stroke-dashoffset: 0; } }
+@keyframes mono-mercury-line { from { stroke-dashoffset: 520; } to { stroke-dashoffset: 0; } }
+
+@keyframes mono-ledger-dot { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mono-frost-dot { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mono-mercury-dot { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes mono-ledger-silver {
+  from { opacity: 0; transform: translateX(-110%); }
+  35% { opacity: 0.72; }
+  to { opacity: 0; transform: translateX(210%); }
+}
+
+@keyframes mono-frost-silver {
+  from { opacity: 0; transform: translateX(-110%); }
+  35% { opacity: 0.88; }
+  to { opacity: 0; transform: translateX(210%); }
+}
+
+@keyframes mono-mercury-silver {
+  from { opacity: 0; transform: translateX(-110%); }
+  35% { opacity: 1; }
+  to { opacity: 0; transform: translateX(210%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mono-page .mono-hero__eyebrow,
+  .mono-page .mono-hero__amount,
+  .mono-page .mono-hero__change,
+  .mono-page .mono-chart__line,
+  .mono-page .mono-chart__terminal,
+  .mono-page .mono-actions,
+  .mono-page .mono-actions__item,
+  .mono-page .mono-promo-frame,
+  .mono-page .mono-promo-frame::before,
+  .mono-page .mono-assets__heading {
+    animation: none !important;
+  }
+
+  .mono-page .mono-labbar__variants button:active,
+  .mono-page .mono-hero__privacy:active {
+    transform: none;
+  }
+}

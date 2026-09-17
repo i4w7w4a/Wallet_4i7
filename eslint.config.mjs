@@ -16,6 +16,8 @@ export default defineConfig([
     "**/.worktrees/**",
     "**/.next/**",
     "**/coverage/**",
+    "**/playwright-report/**",
+    "**/test-results/**",
     "**/dist/**",
     "**/next-env.d.ts",
   ]),
