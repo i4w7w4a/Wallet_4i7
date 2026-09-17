@@ -9,24 +9,24 @@
   --mono-pointer-shift-y: 0px;
   --mono-pointer-tilt-x: 0deg;
   --mono-pointer-tilt-y: 0deg;
-  --mono-atmosphere-light: #ffffff10;
-  --mono-atmosphere-line: #ffffff0a;
-  --mono-atmosphere-ribbon: #ffffff0d;
+  --mono-atmosphere-light: var(--mono-palette-atmosphereCool-10, #ffffff10);
+  --mono-atmosphere-line: var(--mono-palette-borderSubtle-0a, #ffffff0a);
+  --mono-atmosphere-ribbon: var(--mono-palette-atmosphereWarm-0d, #ffffff0d);
   background:
-    radial-gradient(ellipse 82% 36% at 52% 0%, #ffffff08, transparent 72%),
-    linear-gradient(180deg, var(--mono-canvas) 0%, #030303 48%, var(--mono-canvas) 100%);
+    radial-gradient(ellipse 82% 36% at 52% 0%, var(--mono-palette-atmosphereCool-08, #ffffff08), transparent 72%),
+    linear-gradient(180deg, var(--mono-canvas) 0%, var(--mono-palette-canvas-ff, #030303) 48%, var(--mono-canvas) 100%);
 }
 
 .mono-page[data-mono-preset="frost"] {
-  --mono-atmosphere-light: #ffffff16;
-  --mono-atmosphere-line: #ffffff0d;
-  --mono-atmosphere-ribbon: #ffffff13;
+  --mono-atmosphere-light: var(--mono-palette-atmosphereCool-16, #ffffff16);
+  --mono-atmosphere-line: var(--mono-palette-borderSubtle-0d, #ffffff0d);
+  --mono-atmosphere-ribbon: var(--mono-palette-atmosphereWarm-13, #ffffff13);
 }
 
 .mono-page[data-mono-preset="mercury"] {
-  --mono-atmosphere-light: #ffffff1a;
-  --mono-atmosphere-line: #ffffff10;
-  --mono-atmosphere-ribbon: #ffffff18;
+  --mono-atmosphere-light: var(--mono-palette-atmosphereCool-1a, #ffffff1a);
+  --mono-atmosphere-line: var(--mono-palette-borderSubtle-10, #ffffff10);
+  --mono-atmosphere-ribbon: var(--mono-palette-atmosphereWarm-18, #ffffff18);
 }
 
 .mono-atmosphere {
@@ -45,8 +45,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, #0008, transparent 16%, transparent 84%, #0008),
-    linear-gradient(180deg, transparent 55%, #000 100%);
+    linear-gradient(90deg, var(--mono-palette-atmosphereCool-88, #0008), transparent 16%, transparent 84%, var(--mono-palette-atmosphereCool-88, #0008)),
+    linear-gradient(180deg, transparent 55%, var(--mono-palette-canvas-ff, #000) 100%);
   content: "";
 }
 
@@ -59,7 +59,7 @@
   transform: translate3d(-50%, -50%, 0) scale(0.91);
   border-radius: 50%;
   background:
-    radial-gradient(circle, var(--mono-atmosphere-light) 0%, #ffffff08 23%, #ffffff03 47%, transparent 70%);
+    radial-gradient(circle, var(--mono-atmosphere-light) 0%, var(--mono-palette-atmosphereCool-08, #ffffff08) 23%, var(--mono-palette-atmosphereCool-03, #ffffff03) 47%, transparent 70%);
   opacity: 0.48;
   transition:
     top 170ms cubic-bezier(0.2, 0, 0, 1),
@@ -84,11 +84,11 @@
     calc(-50% + var(--mono-pointer-shift-y)),
     0
   ) rotate(-13deg);
-  border-top: 1px solid #ffffff0c;
-  border-bottom: 1px solid #000;
+  border-top: 1px solid var(--mono-palette-borderSubtle-0c, #ffffff0c);
+  border-bottom: 1px solid var(--mono-palette-borderSubtle-ff, #000);
   background:
-    linear-gradient(180deg, transparent, var(--mono-atmosphere-ribbon) 46%, #ffffff03 54%, transparent),
-    linear-gradient(90deg, transparent 7%, #ffffff08 38%, transparent 74%);
+    linear-gradient(180deg, transparent, var(--mono-atmosphere-ribbon) 46%, var(--mono-palette-atmosphereCool-03, #ffffff03) 54%, transparent),
+    linear-gradient(90deg, transparent 7%, var(--mono-palette-atmosphereCool-08, #ffffff08) 38%, transparent 74%);
   opacity: 0.42;
   transition:
     transform 240ms cubic-bezier(0.2, 0, 0, 1),
@@ -105,7 +105,7 @@
   background-image:
     repeating-linear-gradient(90deg, transparent 0 79px, var(--mono-atmosphere-line) 79px 80px),
     repeating-linear-gradient(180deg, transparent 0 91px, var(--mono-atmosphere-line) 91px 92px);
-  mask-image: radial-gradient(ellipse 92% 72% at 50% 40%, #000 0%, transparent 78%);
+  mask-image: radial-gradient(ellipse 92% 72% at 50% 40%, var(--mono-palette-atmosphereCool-ff, #000) 0%, transparent 78%);
   opacity: 0.34;
   transition: transform 280ms cubic-bezier(0.2, 0, 0, 1), opacity 180ms ease;
 }

@@ -45,7 +45,7 @@ function read(storage: StoragePort, key: string): unknown {
 function snapshot(value: unknown): MonoPaletteEditorSnapshot {
   const source = record(value);
   if (!source || (source.mode !== "dark" && source.mode !== "light")) throw new Error("Invalid palette editor snapshot");
-  return { mode: source.mode, config: normalizeMonoPaletteConfig(source.config) };
+  return { mode: source.mode, config: normalizeMonoPaletteConfig(source.config), ...(source.paletteEnabled === true ? { paletteEnabled: true } : source.paletteEnabled === false ? { paletteEnabled: false } : {}) };
 }
 
 function slot(value: unknown): MonoPaletteSlot {
@@ -57,22 +57,27 @@ function slot(value: unknown): MonoPaletteSlot {
   };
 }
 
-export function loadMonoPaletteWorkspace(storage: StoragePort): MonoPaletteWorkspace {
+export function readMonoPaletteWorkspace(storage: StoragePort): MonoPaletteWorkspace | null {
   try {
     const source = record(read(storage, MONO_PALETTE_WORKSPACE_KEY));
     if (!source || source.version !== 1 || !Array.isArray(source.slots) || source.slots.length !== 3 ||
       (source.activeSlotId !== 1 && source.activeSlotId !== 2 && source.activeSlotId !== 3)) throw new Error("Invalid workspace version or shape");
     return { version: 1, activeSlotId: source.activeSlotId,
       slots: [slot(source.slots[0]), slot(source.slots[1]), slot(source.slots[2])],
-      compare: source.compare === "baseline" || source.compare === "draft" ? source.compare : null };
+      compare: null };
   } catch {
-    return createMonoPaletteWorkspace();
+    return null;
   }
+}
+
+export function loadMonoPaletteWorkspace(storage: StoragePort): MonoPaletteWorkspace {
+  return readMonoPaletteWorkspace(storage) ?? createMonoPaletteWorkspace();
 }
 
 export function saveMonoPaletteWorkspace(storage: StoragePort, workspace: MonoPaletteWorkspace): void {
   if (workspace.version !== 1) throw new Error("Unsupported palette workspace version");
   const serialized = structuredClone(workspace);
+  serialized.compare = null;
   for (const slot of serialized.slots) {
     if (slot.transaction && JSON.stringify(slot.transaction.before) !== JSON.stringify(slot.present)) {
       slot.past = [...slot.past, slot.transaction.before].slice(-50);
@@ -129,4 +134,25 @@ export async function loadVerifiedMonoPalettePresets(storage: StoragePort, sha25
 
 export function saveMonoPalettePresets(storage: StoragePort, presets: MonoPalettePresetV1[]): void {
   storage.setItem(MONO_PALETTE_PRESETS_KEY, JSON.stringify({ version: 1, presets }));
+}
+
+export type MonoPaletteLibraryEntry = { id: string; name: string; revision: number; preset: MonoPalettePresetV1 };
+
+export async function loadMonoPaletteLibrary(storage: StoragePort): Promise<MonoPaletteLibraryEntry[]> {
+  const presets = await loadVerifiedMonoPalettePresets(storage);
+  const source = record(read(storage, MONO_PALETTE_PRESETS_KEY));
+  const metadata = Array.isArray(source?.metadata) ? source.metadata : [];
+  return presets.map((preset, index) => {
+    const meta = record(metadata[index]);
+    return { id: typeof meta?.id === "string" ? meta.id.slice(0, 100) : `local-${index + 1}`,
+      name: typeof meta?.name === "string" && meta.name.trim() ? meta.name.trim().slice(0, 80) : `Пресет ${index + 1}`,
+      revision: typeof meta?.revision === "number" && Number.isSafeInteger(meta.revision) && meta.revision > 0 ? meta.revision : 1, preset };
+  });
+}
+
+export function saveMonoPaletteLibrary(storage: StoragePort, entries: MonoPaletteLibraryEntry[]): void {
+  storage.setItem(MONO_PALETTE_PRESETS_KEY, JSON.stringify({ version: 1,
+    presets: entries.map(entry => entry.preset),
+    metadata: entries.map(({id, name, revision}) => ({id, name: name.trim().slice(0, 80), revision})),
+  }));
 }

@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { normalizeMonoPaletteConfig, resolveMonoPalette, setMonoPaletteLock } from "@wallet/ui";
 import { createHash } from "node:crypto";
 import { exportMonoPalettePreset, importMonoPalettePreset, type MonoSha256 } from "./mono-preset-codec";
-import { beginMonoPaletteTransaction, createMonoPaletteWorkspace, editMonoPaletteRecipe, redoMonoPaletteWorkspace, undoMonoPaletteWorkspace } from "./mono-palette-workspace";
+import { beginMonoPaletteTransaction, createMonoPaletteWorkspace, editMonoPaletteRecipe, redoMonoPaletteWorkspace, toggleMonoPaletteCompare, undoMonoPaletteWorkspace } from "./mono-palette-workspace";
 import {
   MONO_PALETTE_ACTIVE_KEY, MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY,
   applyMonoPaletteActive, loadMonoPaletteActive, loadMonoPalettePresets,
-  loadMonoPaletteWorkspace, loadVerifiedMonoPalettePresets, saveMonoPalettePresets, saveMonoPaletteWorkspace,
+  loadMonoPaletteWorkspace, loadVerifiedMonoPalettePresets, readMonoPaletteWorkspace, saveMonoPalettePresets, saveMonoPaletteWorkspace,
 } from "./mono-palette-storage";
 
 const digest: MonoSha256 = async bytes => new Uint8Array(createHash("sha256").update(bytes).digest());
@@ -37,6 +37,20 @@ describe("mono palette storage", () => {
     expect(loadMonoPaletteActive(localStorage)?.config.themes.dark.recipe.anchorHue).toBe(250);
     localStorage.setItem(MONO_PALETTE_ACTIVE_KEY, JSON.stringify({ version: 2, config: normalizeMonoPaletteConfig() }));
     expect(loadMonoPaletteActive(localStorage)).toBeNull();
+  });
+
+  it("distinguishes a corrupt workspace from a valid one so Active can recover", () => {
+    expect(readMonoPaletteWorkspace(localStorage)).toBeNull();
+    localStorage.setItem(MONO_PALETTE_WORKSPACE_KEY, "{bad-json");
+    expect(readMonoPaletteWorkspace(localStorage)).toBeNull();
+    saveMonoPaletteWorkspace(localStorage, createMonoPaletteWorkspace());
+    expect(readMonoPaletteWorkspace(localStorage)?.activeSlotId).toBe(1);
+  });
+
+  it("does not persist the ephemeral Compare state", () => {
+    const state = toggleMonoPaletteCompare(createMonoPaletteWorkspace());
+    saveMonoPaletteWorkspace(localStorage, state);
+    expect(loadMonoPaletteWorkspace(localStorage).compare).toBeNull();
   });
 
   it("does not replace a valid active appearance when Apply validation fails", () => {

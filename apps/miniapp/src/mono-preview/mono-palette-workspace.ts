@@ -1,10 +1,10 @@
 import {
   normalizeMonoPaletteConfig, randomizeMonoPalette, resolveMonoPalette, setMonoPaletteLock, updateMonoPaletteRecipe,
   type MonoPaletteConfigV1, type MonoPaletteMode, type MonoPaletteRecipe,
-  type MonoPaletteRandomizeResult, type MonoPaletteRole, type MonoPaletteScope,
+  type MonoPaletteRandomizeResult, type MonoPaletteRole, type MonoPaletteScope, type MonoOklch, MONO_PALETTE_ROLE_SCHEMA,
 } from "@wallet/ui";
 
-export type MonoPaletteEditorSnapshot = { config: MonoPaletteConfigV1; mode: MonoPaletteMode };
+export type MonoPaletteEditorSnapshot = { config: MonoPaletteConfigV1; mode: MonoPaletteMode; paletteEnabled?: boolean };
 export type MonoPaletteSlot = {
   baseline: MonoPaletteEditorSnapshot;
   present: MonoPaletteEditorSnapshot;
@@ -40,6 +40,7 @@ function change(workspace: MonoPaletteWorkspace, edit: (snapshot: MonoPaletteEdi
     slot.future = [];
   }
   slot.present = after;
+  next.compare = null;
   return next;
 }
 
@@ -164,6 +165,7 @@ export function undoMonoPaletteWorkspace(workspace: MonoPaletteWorkspace): MonoP
   if (slot.transaction || !slot.past.length) return workspace;
   slot.future.push(slot.present);
   slot.present = slot.past.pop()!;
+  next.compare = null;
   return next;
 }
 
@@ -172,9 +174,31 @@ export function redoMonoPaletteWorkspace(workspace: MonoPaletteWorkspace): MonoP
   if (slot.transaction || !slot.future.length) return workspace;
   slot.past.push(slot.present);
   slot.present = slot.future.pop()!;
+  next.compare = null;
   return next;
 }
 
 export function toggleMonoPaletteCompare(workspace: MonoPaletteWorkspace): MonoPaletteWorkspace {
   return { ...workspace, compare: workspace.compare === "baseline" ? "draft" : "baseline" };
+}
+
+export function enableMonoPalette(workspace: MonoPaletteWorkspace, paletteEnabled: boolean): MonoPaletteWorkspace {
+  return change(workspace, snapshot => ({ ...snapshot, paletteEnabled }));
+}
+
+export function replaceMonoPaletteConfig(workspace: MonoPaletteWorkspace, config: MonoPaletteConfigV1): MonoPaletteWorkspace {
+  return change(workspace, snapshot => ({ ...snapshot, config: normalizeMonoPaletteConfig(config), paletteEnabled: true }));
+}
+
+export function editMonoPaletteRole(workspace: MonoPaletteWorkspace, role: MonoPaletteRole, patch: Partial<MonoOklch>): MonoPaletteWorkspace {
+  return change(workspace, snapshot => {
+    const theme = snapshot.config.themes[snapshot.mode], group = MONO_PALETTE_ROLE_SCHEMA[role].group;
+    if (group === "system" || theme.groupLocks[group] || theme.roles[role].locked) return snapshot;
+    const state = theme.roles[role];
+    if (state.mode === "linked") return snapshot;
+    if (state.mode === "manual") state.value = { ...state.value, ...patch };
+    else state.offset = { ...state.offset, ...patch };
+    snapshot.config = normalizeMonoPaletteConfig(snapshot.config);
+    return snapshot;
+  });
 }

@@ -19,6 +19,7 @@ import {
 } from "@wallet/ui";
 
 import { MonoGlassTuner } from "./mono-glass-tuner";
+import { MonoColorLab, MonoColorInspector, useMonoColorLab } from "./mono-color-lab";
 import { stepTideMotion, type TideMotionState } from "./mono-tide-motion";
 
 import "./mono-fonts.css";
@@ -170,9 +171,12 @@ function MonoRailSection({
 }
 
 export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
-  const [preset, setPreset] = useState<MonoPreset>("ledger");
+  const colorLab = useMonoColorLab();
+  const preset = PRESETS[colorLab.workspace.activeSlotId - 1].id;
+  const setPreset = (next: MonoPreset) => colorLab.switchSlot((PRESETS.findIndex(item => item.id === next) + 1) as 1 | 2 | 3);
+  const [fineTab, setFineTab] = useState<"optics" | "color">("optics");
   const [balanceHidden, setBalanceHidden] = useState(snapshot.balance.hidden);
-  const [theme, setTheme] = useState<MonoTheme>("dark");
+  const theme = colorLab.shown.mode;
   const [background, setBackground] = useState<MonoBackground>("iris");
   const [viewport, setViewport] = useState<MonoViewport>(480);
   const [panelsVisible, setPanelsVisible] = useState(true);
@@ -187,6 +191,9 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const [appliedOptics, setAppliedOptics] = useState<MonoSettingsMap>(makeDefaultOptics);
   const [draftOptics, setDraftOptics] = useState<MonoSettingsMap>(makeDefaultOptics);
   const pageRef = useRef<HTMLElement>(null);
+  const paletteCrossfadeRef = useRef<HTMLDivElement>(null);
+  const previousPaletteBackgroundRef = useRef<string | null>(null);
+  const paletteAnimationRef = useRef<Animation | null>(null);
   const quickLauncherRef = useRef<HTMLButtonElement>(null);
   const fineLauncherRef = useRef<HTMLButtonElement>(null);
   const rippleRootRef = useRef<HTMLDivElement>(null);
@@ -227,11 +234,45 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     const saved = loadEnvironmentCandidate();
     applyDocumentEnvironment(saved.theme, saved.background);
     const frame = requestAnimationFrame(() => {
-      setTheme(saved.theme);
       setBackground(saved.background);
     });
     return () => cancelAnimationFrame(frame);
   }, []);
+
+  useEffect(() => {
+    if (colorLab.ready) applyDocumentEnvironment(theme, background);
+  }, [colorLab.ready, theme, background]);
+
+  useLayoutEffect(() => {
+    const host = pageRef.current;
+    const layer = paletteCrossfadeRef.current;
+    if (!host || !layer) return;
+    const next = getComputedStyle(host).background;
+    const previous = previousPaletteBackgroundRef.current;
+    previousPaletteBackgroundRef.current = next;
+    paletteAnimationRef.current?.cancel();
+    paletteAnimationRef.current = null;
+    layer.style.opacity = "0";
+    if (!previous || previous === next || !colorLab.ready || !colorLab.shown.paletteEnabled ||
+        colorLab.workspace.compare !== null || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      layer.style.background = "";
+      return;
+    }
+    layer.style.background = previous;
+    const animation = layer.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: 380, easing: "cubic-bezier(0.2, 0, 0, 1)", fill: "forwards",
+    });
+    paletteAnimationRef.current = animation;
+    animation.onfinish = () => {
+      if (paletteAnimationRef.current !== animation) return;
+      paletteAnimationRef.current = null;
+      layer.style.background = "";
+      layer.style.opacity = "0";
+      animation.cancel();
+    };
+  }, [colorLab.style, colorLab.ready, colorLab.shown.paletteEnabled, colorLab.workspace.compare, theme, background, preset]);
+
+  useEffect(() => () => paletteAnimationRef.current?.cancel(), []);
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 1199px)");
@@ -258,7 +299,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     const panel = document.getElementById(mobileRail === "quick" ? "mono-quick-rail" : "mono-fine-rail");
     if (!panel) return;
     const focusable = () => Array.from(panel.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
     )).filter((node) => node.getClientRects().length > 0 && !node.closest("[hidden], [inert]"));
     const frame = requestAnimationFrame(() => focusable()[0]?.focus());
     const trapTab = (event: KeyboardEvent) => {
@@ -299,7 +340,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
 
   function selectEnvironment(nextTheme: MonoTheme, nextBackground: MonoBackground) {
     applyDocumentEnvironment(nextTheme, nextBackground);
-    setTheme(nextTheme);
+    colorLab.switchTheme(nextTheme);
     setBackground(nextBackground);
     try {
       localStorage.setItem(ENVIRONMENT_STORAGE_KEY,
@@ -512,6 +553,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             ))}
           </div>
         </MonoRailSection>
+        <MonoColorLab lab={colorLab} />
         <p className="mono-rail__hint"><span>1 / 2 / 3</span> переключают характер без касания телефона.</p>
       </aside>
 
@@ -523,6 +565,17 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           <div><span>MATERIAL / LIVE</span><strong>CONTROL</strong></div>
           <span className="mono-rail__status"><i /> ONLINE</span>
         </div>
+        <div className="mono-color-tabs" role="tablist" aria-label="Инспектор материала">
+          {(["optics", "color"] as const).map((tab, index) => <button type="button" key={tab} id={`mono-tab-${tab}`} role="tab"
+            aria-selected={fineTab === tab} aria-controls={`mono-inspector-${tab}`} tabIndex={fineTab === tab ? 0 : -1}
+            onClick={() => setFineTab(tab)} onKeyDown={event => {
+              if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+                event.preventDefault(); const next = event.key === "Home" ? "optics" : event.key === "End" ? "color" : index === 0 ? "color" : "optics";
+                setFineTab(next); document.getElementById(`mono-tab-${next}`)?.focus();
+              }
+            }}>{tab === "optics" ? "Оптика" : "Цвет · детали"}</button>)}
+        </div>
+        <div id="mono-inspector-optics" role="tabpanel" aria-labelledby="mono-tab-optics" hidden={fineTab !== "optics"}>
         <MonoRailSection id="environment" index="01" title="Среда" expanded={sections.environment}
           onToggle={() => toggleSection("environment")}>
           <div className="mono-environment" aria-label="Визуальная среда" data-mono-control>
@@ -548,12 +601,18 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           <MonoGlassTuner preset={preset} settings={draftOptics[preset]}
             onChange={updateDraft} onDefault={resetDraft} onApply={applyDraft} />
         </MonoRailSection>
+        </div>
+        <div id="mono-inspector-color" role="tabpanel" aria-labelledby="mono-tab-color" hidden={fineTab !== "color"}>
+          <MonoColorInspector lab={colorLab} />
+        </div>
       </aside>
 
       <div className="mono-preview-frame" inert={compactChrome && panelsVisible && mobileRail !== null}>
         <main ref={pageRef} className="mono-page" data-mono-preview data-mono-preset={preset}
+          data-palette-enabled={Boolean(colorLab.shown.paletteEnabled)} data-palette-ready={colorLab.ready} style={colorLab.style}
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
           data-pointer-active="false" onPointerMove={moveAtmosphere} onPointerLeave={restAtmosphere}>
+          <div ref={paletteCrossfadeRef} className="mono-palette-crossfade" data-mono-palette-crossfade aria-hidden="true" />
           <div className="mono-atmosphere" data-mono-atmosphere aria-hidden="true">
             <span className="mono-atmosphere__focus" />
             <span className="mono-atmosphere__ribbon" />

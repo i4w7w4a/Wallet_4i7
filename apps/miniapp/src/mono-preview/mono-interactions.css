@@ -17,9 +17,9 @@
 .mono-page .mono-assets__row:focus-visible,
 .mono-page .mono-nav__item:focus-visible,
 .mono-page .mono-promo-frame:focus-visible {
-  outline: 1px solid #fff;
+  outline: 1px solid var(--mono-optical-ffffff, #fff);
   outline-offset: 3px;
-  box-shadow: 0 0 0 1px #050505, 0 0 0 2px #bdbdbd;
+  box-shadow: 0 0 0 1px var(--mono-optical-050505, #050505), 0 0 0 2px var(--mono-optical-bdbdbd, #bdbdbd);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -54,21 +54,21 @@
   }
 
   .mono-page .mono-labbar__tuner:hover {
-    background: #1b1b1b;
-    box-shadow: inset 0 0 0 1px #666, inset 0 1px #ffffff1d;
-    color: #fff;
+    background: var(--mono-palette-canvas-ff, #1b1b1b);
+    box-shadow: inset 0 0 0 1px var(--mono-palette-borderSubtle-ff, #666), inset 0 1px var(--mono-palette-borderSubtle-1d, #ffffff1d);
+    color: var(--mono-palette-textPrimary-ff, #fff);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-labbar__tuner:hover > span:first-child {
     transform: rotate(45deg) scale(1.04);
-    color: #fff;
+    color: var(--mono-palette-textPrimary-ff, #fff);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-labbar__tuner:active {
     transform: translateY(1px) scale(0.975);
-    box-shadow: inset 0 1px 2px #000b;
+    box-shadow: inset 0 1px 2px var(--mono-palette-borderSubtle-bb, #000b);
     transition-duration: var(--mono-interaction-press);
   }
 
@@ -83,9 +83,9 @@
   }
 
   .mono-page .mono-labbar__back:hover {
-    background: #ffffff08;
-    box-shadow: inset 0 -1px #8d8d8d;
-    color: #fff;
+    background: var(--mono-palette-canvas-08, #ffffff08);
+    box-shadow: inset 0 -1px var(--mono-palette-borderSubtle-ff, #8d8d8d);
+    color: var(--mono-palette-textPrimary-ff, #fff);
     transition-duration: var(--mono-interaction-enter);
   }
 
@@ -101,34 +101,34 @@
 
   .mono-page .mono-hero__privacy:hover {
     transform: scale(1.035);
-    background: #ffffff0d;
-    box-shadow: inset 0 0 0 1px #ffffff24;
-    color: #fff;
+    background: var(--mono-palette-canvas-0d, #ffffff0d);
+    box-shadow: inset 0 0 0 1px var(--mono-palette-borderSubtle-24, #ffffff24);
+    color: var(--mono-palette-textPrimary-ff, #fff);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-hero__privacy:active {
     transform: translateY(1px) scale(0.96);
-    background: #ffffff16;
+    background: var(--mono-palette-canvas-16, #ffffff16);
     transition-duration: var(--mono-interaction-press);
   }
 
   .mono-page .mono-labbar__variants button:not([aria-pressed="true"]):hover {
-    background: #262626;
-    box-shadow: inset 0 0 0 1px #8a8a8a, inset 0 1px #ffffff24;
-    color: #fff;
+    background: var(--mono-palette-canvas-ff, #262626);
+    box-shadow: inset 0 0 0 1px var(--mono-palette-borderSubtle-ff, #8a8a8a), inset 0 1px var(--mono-palette-borderSubtle-24, #ffffff24);
+    color: var(--mono-palette-textPrimary-ff, #fff);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-labbar__variants button[aria-pressed="true"]:hover {
-    box-shadow: inset 0 1px #fff, 0 1px 8px #0008;
+    box-shadow: inset 0 1px var(--mono-palette-borderSubtle-ff, #fff), 0 1px 8px var(--mono-palette-borderSubtle-88, #0008);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-labbar__variants button:hover:active,
   .mono-page .mono-labbar__variants button:active {
     transform: translateY(1px) scale(0.985);
-    box-shadow: inset 0 1px 2px #0009;
+    box-shadow: inset 0 1px 2px var(--mono-palette-borderSubtle-99, #0009);
     transition-duration: var(--mono-interaction-press);
   }
 
@@ -147,15 +147,15 @@
   }
 
   .mono-page .mono-actions__item:hover {
-    background: #181818;
-    box-shadow: inset 0 0 0 1px #ffffff24, inset 0 1px #ffffff12;
-    color: #f5f5f5;
+    background: var(--mono-palette-canvas-ff, #181818);
+    box-shadow: inset 0 0 0 1px var(--mono-palette-borderSubtle-24, #ffffff24), inset 0 1px var(--mono-palette-borderSubtle-12, #ffffff12);
+    color: var(--mono-palette-textPrimary-ff, #f5f5f5);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-actions__item:hover .mono-actions__icon {
     transform: translateY(-1px);
-    color: #fff;
+    color: var(--mono-palette-textPrimary-ff, #fff);
     transition-duration: var(--mono-interaction-enter);
   }
 
@@ -170,15 +170,15 @@
   }
 
   .mono-page .mono-periods span:not(.mono-periods__active):hover {
-    background: #232323;
-    box-shadow: inset 0 0 0 1px #6c6c6c;
-    color: #eee;
+    background: var(--mono-palette-canvas-ff, #232323);
+    box-shadow: inset 0 0 0 1px var(--mono-palette-borderSubtle-ff, #6c6c6c);
+    color: var(--mono-palette-textPrimary-ff, #eee);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-periods span:active {
-    background: #d8d8d8;
-    color: #111;
+    background: var(--mono-palette-canvas-ff, #d8d8d8);
+    color: var(--mono-palette-textDisabled-ff, #111);
     transition-duration: var(--mono-interaction-press);
   }
 
@@ -187,16 +187,16 @@
   }
 
   .mono-page .mono-assets__row:hover {
-    background: #141414;
-    box-shadow: inset 2px 0 #bdbdbd, inset 0 1px #ffffff0d;
-    color: #fff;
+    background: var(--mono-palette-canvas-ff, #141414);
+    box-shadow: inset 2px 0 var(--mono-palette-borderSubtle-ff, #bdbdbd), inset 0 1px var(--mono-palette-borderSubtle-0d, #ffffff0d);
+    color: var(--mono-palette-textPrimary-ff, #fff);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-assets__row:hover .mono-assets__symbol {
     transform: translateX(1px);
-    border-color: #cfcfcf;
-    box-shadow: inset 0 1px #ffffff2b;
+    border-color: var(--mono-palette-borderSubtle-ff, #cfcfcf);
+    box-shadow: inset 0 1px var(--mono-palette-borderSubtle-2b, #ffffff2b);
     transition-duration: var(--mono-interaction-enter);
   }
 
@@ -210,7 +210,7 @@
   }
 
   .mono-page .mono-nav__item:hover {
-    color: #e8e8e8;
+    color: var(--mono-palette-textPrimary-ff, #e8e8e8);
     transition-duration: var(--mono-interaction-enter);
   }
 
@@ -229,12 +229,12 @@
   }
 
   .mono-page .mono-promo-frame:hover {
-    box-shadow: inset 0 1px #ffffff7d, inset 14px 0 22px -22px #d8e8ed80, inset -18px 0 28px -30px #e5cfd052, 0 18px 34px #000a;
+    box-shadow: inset 0 1px var(--mono-optical-ffffff7d, #ffffff7d), inset 14px 0 22px -22px var(--mono-optical-d8e8ed80, #d8e8ed80), inset -18px 0 28px -30px var(--mono-optical-e5cfd052, #e5cfd052), 0 18px 34px var(--mono-optical-000000aa, #000a);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-promo-frame:active {
-    box-shadow: inset 0 1px 2px #fff8, inset 12px 0 20px -22px #d8e8ed70, 0 14px 28px #000b;
+    box-shadow: inset 0 1px 2px var(--mono-optical-ffffff88, #fff8), inset 12px 0 20px -22px var(--mono-optical-d8e8ed70, #d8e8ed70), 0 14px 28px var(--mono-optical-000000bb, #000b);
     transition-duration: var(--mono-interaction-press);
   }
 
@@ -247,13 +247,13 @@
   }
 
   .mono-page .mono-app-header:hover {
-    color: #fff;
+    color: var(--mono-palette-textPrimary-ff, #fff);
     transition-duration: var(--mono-interaction-enter);
   }
 
   .mono-page .mono-app-header:hover .mono-app-header__mark {
-    border-color: #eee;
-    box-shadow: inset 0 1px #fff, 0 6px 18px #0009;
+    border-color: var(--mono-palette-borderSubtle-ff, #eee);
+    box-shadow: inset 0 1px var(--mono-palette-borderSubtle-ff, #fff), 0 6px 18px var(--mono-palette-borderSubtle-99, #0009);
     transition-duration: var(--mono-interaction-enter);
   }
 }
