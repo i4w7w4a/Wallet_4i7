@@ -11,10 +11,20 @@ services:
     stop_grace_period: 20s
     expose:
       - "3000"
+    environment:
+      PRESET_DB_HOST: preset-db
+      PRESET_DB_PORT: "5432"
+      PRESET_DB_NAME: wallet_presets
+      PRESET_DB_USER: wallet_preset
+      PRESET_DB_PASSWORD: ${WALLET_POSTGRES_PASSWORD:?Set a private WALLET_POSTGRES_PASSWORD}
+    depends_on:
+      preset-db:
+        condition: service_healthy
     networks:
       gateway:
         aliases:
           - wallet-mono-app
+      preset-data: {}
     healthcheck:
       test:
         - CMD
@@ -30,8 +40,34 @@ services:
     cap_drop:
       - ALL
 
+  preset-db:
+    image: postgres:18.6-alpine3.24
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wallet_presets
+      POSTGRES_USER: wallet_preset
+      POSTGRES_PASSWORD: ${WALLET_POSTGRES_PASSWORD:?Set a private WALLET_POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    volumes:
+      - preset-db-data:/var/lib/postgresql
+      - ./postgres/migrations/001_skin_presets.sql:/docker-entrypoint-initdb.d/001_skin_presets.sql:ro
+    networks:
+      preset-data: {}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet_preset -d wallet_presets"]
+      start_period: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
 networks:
   gateway:
     external: true
     name: dlc-dm_default
+  preset-data:
+    internal: true
 
+volumes:
+  preset-db-data:

@@ -1,5 +1,13 @@
 # Сторонние компоненты
 
+## Postgres.js
+
+- Пакет: `postgres@3.4.7` — <https://github.com/porsager/postgres/tree/v3.4.7>.
+- Автор: Rasmus Porsager и участники проекта.
+- Лицензия: Unlicense (<https://github.com/porsager/postgres/blob/v3.4.7/UNLICENSE>).
+- Использование: только серверный PostgreSQL driver библиотеки пресетов; браузерный bundle его не содержит.
+- Текст лицензии находится в установленном пакете `node_modules/postgres/UNLICENSE`.
+
 ## React Bits
 
 - Источник: https://github.com/DavidHDev/react-bits
