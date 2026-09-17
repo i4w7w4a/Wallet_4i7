@@ -128,8 +128,9 @@ function recipeColor(theme: ThemePaletteState, id: MonoPaletteRole): MonoOklch {
   const spectral = recipe.harmony === "spectral-graphite" && decorative ? 0.45 : 1;
   const l = 0.5 + (schema[theme.mode] - 0.5) * (schema.group === "content" ? recipe.contrast : 1)
     + recipe.exposure + (schema.group === "core" && id !== "canvas" ? (recipe.surfaceResponse - 0.5) * 0.035 : 0);
-  return normalizeMonoOklch({ l, c: Math.min(schema.chroma, recipe.anchorChroma * saturation * spectral),
-    h: recipe.anchorHue + recipe.temperature * 12 + (decorative ? harmonyOffsets[recipe.harmony][schema.hue] : 0), alpha: schema.alpha });
+  return normalizeMonoOklch({ l, c: id === "focus" ? schema.chroma : Math.min(schema.chroma, recipe.anchorChroma * saturation * spectral),
+    h: id === "focus" ? MONO_PALETTE_RECIPE_BOUNDS.anchorHue.default
+      : recipe.anchorHue + recipe.temperature * 12 + (decorative ? harmonyOffsets[recipe.harmony][schema.hue] : 0), alpha: schema.alpha });
 }
 
 function resolvedFromRoles(mode: MonoPaletteMode, roles: Record<MonoPaletteRole, MonoOklch>): MonoResolvedPalette {
@@ -353,14 +354,6 @@ function sampleMonoPaletteCharacter(theme: ThemePaletteState, prefix: string): P
   };
 }
 
-function preserveMonoPaletteFocus(theme: ThemePaletteState, focus: MonoOklch): ThemePaletteState {
-  if (isLocked(theme, "focus")) return theme;
-  const next = normalizeTheme(theme, theme.mode);
-  next.roles.focus.mode = "manual";
-  next.roles.focus.value = { ...focus };
-  return next;
-}
-
 function hasVisibleCharacterChange(before: MonoResolvedPalette, after: MonoResolvedPalette, theme: ThemePaletteState): boolean {
   return MONO_PALETTE_ROLES.some(role => {
     if (role === "focus" || MONO_PALETTE_ROLE_SCHEMA[role].group === "system" || isLocked(theme, role)) return false;
@@ -389,8 +382,7 @@ export function randomizeMonoPaletteRecipe(config: MonoPaletteConfigV1, mode: Mo
     let failed = false;
     for (const key of modes) {
       try {
-        const focus = before[key].roles.focus;
-        next.themes[key] = preserveMonoPaletteFocus(updateMonoPaletteRecipe(next.themes[key], character), focus);
+        next.themes[key] = updateMonoPaletteRecipe(next.themes[key], character);
       } catch (error) {
         failed = true;
         constraintFailed = true;

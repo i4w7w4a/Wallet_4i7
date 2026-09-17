@@ -146,6 +146,20 @@ describe("MONO scoped deterministic randomization", () => {
 });
 
 describe("MONO coherent recipe randomization", () => {
+  it("keeps an unlocked focus role recipe-derived after a quick variant", () => {
+    const config = normalizeMonoPaletteConfig({ seed: "focus-remains-linked" });
+    const originalState = structuredClone(config.themes.dark.roles.focus);
+    const originalColor = resolveMonoPalette(config.themes.dark).roles.focus;
+
+    const result = randomizeMonoPaletteRecipe(config, "dark");
+
+    expect(result.status).toBe("changed");
+    expect(result.config.themes.dark.roles.focus).toEqual(originalState);
+    expect(resolveMonoPalette(result.config.themes.dark).roles.focus).toEqual(originalColor);
+    const later = updateMonoPaletteRecipe(result.config.themes.dark, { exposure: 0.02 });
+    expect(resolveMonoPalette(later).roles.focus).not.toEqual(originalColor);
+  });
+
   it("samples one deterministic safe character without changing material axes or protected roles", () => {
     const config = normalizeMonoPaletteConfig({ seed: "coherent-v1" });
     const input = structuredClone(config);
