@@ -26,6 +26,7 @@ export {
 export {
   MONO_PALETTE_GROUPS, MONO_PALETTE_ROLES, MONO_PALETTE_HARMONIES,
   MONO_PALETTE_RECIPE_BOUNDS, MONO_PALETTE_ROLE_SCHEMA, MONO_PALETTE_SCHEMA_HASH,
+  MONO_PALETTE_PROTECTED_SCHEMA_HASH,
   MONO_PALETTE_QUICK_HARMONIES, MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA_HASH,
   normalizeMonoPaletteConfig, resolveMonoPalette, validateMonoPaletteApply,
   setMonoPaletteLock, updateMonoPaletteRecipe, randomizeMonoPalette, randomizeMonoPaletteRecipe,

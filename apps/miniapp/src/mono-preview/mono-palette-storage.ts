@@ -2,9 +2,12 @@ import { MONO_PALETTE_GROUPS, MONO_PALETTE_ROLES, MONO_PALETTE_ROLE_SCHEMA, norm
 import { createMonoPaletteWorkspace, type MonoPaletteEditorSnapshot, type MonoPaletteSlot, type MonoPaletteWorkspace } from "./mono-palette-workspace";
 import { importMonoPalettePreset, type MonoPalettePresetV1, type MonoSha256, webCryptoMonoSha256 } from "./mono-preset-codec";
 
-export const MONO_PALETTE_WORKSPACE_KEY = "wallet4i7.mono.palette-workspace.v1";
-export const MONO_PALETTE_ACTIVE_KEY = "wallet4i7.mono.palette-active.v1";
-export const MONO_PALETTE_PRESETS_KEY = "wallet4i7.mono.palette-presets.v1";
+const LEGACY_WORKSPACE_KEY = "wallet4i7.mono.palette-workspace.v1";
+const LEGACY_ACTIVE_KEY = "wallet4i7.mono.palette-active.v1";
+const LEGACY_PRESETS_KEY = "wallet4i7.mono.palette-presets.v1";
+export const MONO_PALETTE_WORKSPACE_KEY = "wallet4i7.mono.palette-workspace.v2";
+export const MONO_PALETTE_ACTIVE_KEY = "wallet4i7.mono.palette-active.v2";
+export const MONO_PALETTE_PRESETS_KEY = "wallet4i7.mono.palette-presets.v2";
 
 type StoragePort = Pick<Storage, "getItem" | "setItem">;
 export type MonoPaletteActiveV1 = { version: 1; skinId: "mono-ledger-v1"; config: MonoPaletteConfigV1 };
@@ -42,6 +45,11 @@ function read(storage: StoragePort, key: string): unknown {
   }
 }
 
+function readCurrentOrLegacy(storage: StoragePort, current: string, legacy: string): unknown {
+  try { if (storage.getItem(current) !== null) return read(storage, current); } catch { return null; }
+  return read(storage, legacy);
+}
+
 function snapshot(value: unknown): MonoPaletteEditorSnapshot {
   const source = record(value);
   if (!source || (source.mode !== "dark" && source.mode !== "light")) throw new Error("Invalid palette editor snapshot");
@@ -59,7 +67,7 @@ function slot(value: unknown): MonoPaletteSlot {
 
 export function readMonoPaletteWorkspace(storage: StoragePort): MonoPaletteWorkspace | null {
   try {
-    const source = record(read(storage, MONO_PALETTE_WORKSPACE_KEY));
+    const source = record(readCurrentOrLegacy(storage, MONO_PALETTE_WORKSPACE_KEY, LEGACY_WORKSPACE_KEY));
     if (!source || source.version !== 1 || !Array.isArray(source.slots) || source.slots.length !== 3 ||
       (source.activeSlotId !== 1 && source.activeSlotId !== 2 && source.activeSlotId !== 3)) throw new Error("Invalid workspace version or shape");
     return { version: 1, activeSlotId: source.activeSlotId,
@@ -90,7 +98,7 @@ export function saveMonoPaletteWorkspace(storage: StoragePort, workspace: MonoPa
 
 export function loadMonoPaletteActive(storage: StoragePort): MonoPaletteActiveV1 | null {
   try {
-    const source = record(read(storage, MONO_PALETTE_ACTIVE_KEY));
+    const source = record(readCurrentOrLegacy(storage, MONO_PALETTE_ACTIVE_KEY, LEGACY_ACTIVE_KEY));
     if (!source || source.version !== 1 || source.skinId !== "mono-ledger-v1") return null;
     const config = normalizeMonoPaletteConfig(source.config);
     if (Object.values(config.themes).some(theme => !validateMonoPaletteApply(theme).valid)) return null;
@@ -110,12 +118,12 @@ export function applyMonoPaletteActive(storage: StoragePort, config: MonoPalette
 }
 
 export function loadMonoPalettePresets(storage: StoragePort): MonoPalettePresetV1[] {
-  const source = record(read(storage, MONO_PALETTE_PRESETS_KEY));
+  const source = record(readCurrentOrLegacy(storage, MONO_PALETTE_PRESETS_KEY, LEGACY_PRESETS_KEY));
   if (source?.version !== 1 || !Array.isArray(source.presets)) return [];
   const presets = source.presets as unknown[];
   if (!presets.every(value => {
     const entry = record(value);
-    if (!entry || entry.schemaVersion !== 1 || entry.configVersion !== 1 || entry.engineVersion !== 1 ||
+    if (!entry || (entry.schemaVersion !== 1 && entry.schemaVersion !== 2) || entry.configVersion !== 1 || entry.engineVersion !== 1 ||
       entry.catalogVersion !== 1 || entry.skinId !== "mono-ledger-v1" || typeof entry.contentHash !== "string" ||
       !/^sha256-[0-9a-f]{64}$/.test(entry.contentHash) || !record(entry.resolved)) return false;
     try { normalizeMonoPaletteConfig(entry.config); return true; } catch { return false; }
@@ -140,7 +148,7 @@ export type MonoPaletteLibraryEntry = { id: string; name: string; revision: numb
 
 export async function loadMonoPaletteLibrary(storage: StoragePort): Promise<MonoPaletteLibraryEntry[]> {
   const presets = await loadVerifiedMonoPalettePresets(storage);
-  const source = record(read(storage, MONO_PALETTE_PRESETS_KEY));
+  const source = record(readCurrentOrLegacy(storage, MONO_PALETTE_PRESETS_KEY, LEGACY_PRESETS_KEY));
   const metadata = Array.isArray(source?.metadata) ? source.metadata : [];
   return presets.map((preset, index) => {
     const meta = record(metadata[index]);

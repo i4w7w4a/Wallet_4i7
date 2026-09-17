@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { normalizeMonoPaletteConfig, resolveMonoPalette, setMonoPaletteLock } from "@wallet/ui";
+import { normalizeMonoPaletteConfig, randomizeMonoPaletteRecipe, resolveMonoPalette, setMonoPaletteLock } from "@wallet/ui";
 import {
   createMonoPaletteFragment, exportMonoPalettePreset, importMonoPalettePreset,
   mergeMonoPaletteFragment, previewMonoPaletteFragment,
@@ -10,6 +10,37 @@ import {
 const digest: MonoSha256 = async bytes => new Uint8Array(createHash("sha256").update(bytes).digest());
 
 describe("portable mono preset", () => {
+  it("uses a versioned envelope for protected-focus quick variants and keeps V1 exports unchanged", async () => {
+    const legacy = normalizeMonoPaletteConfig({ seed: "preset-focus-version" });
+    const legacyText = await exportMonoPalettePreset(legacy, digest);
+    expect(JSON.parse(legacyText).schemaVersion).toBe(1);
+    const changed = randomizeMonoPaletteRecipe(legacy, "dark");
+    expect(changed.status).toBe("changed");
+    const text = await exportMonoPalettePreset(changed.config, digest);
+    const portable = JSON.parse(text);
+    expect(portable.schemaVersion).toBe(2);
+    expect(portable.config.themes.dark.focusAnchor.version).toBe(1);
+    const imported = await importMonoPalettePreset(text, digest);
+    expect(imported.config).toEqual(changed.config);
+    expect(imported.resolved.dark.roles.focus).toEqual(resolveMonoPalette(legacy.themes.dark).roles.focus);
+    expect(await importMonoPalettePreset(legacyText, digest)).toMatchObject({ schemaVersion: 1, config: legacy });
+  });
+
+  it("carries focus protection through a full theme fragment but not a glass-only fragment", async () => {
+    const base = normalizeMonoPaletteConfig({ seed: "fragment-focus-version" });
+    const changed = randomizeMonoPaletteRecipe(base, "dark");
+    expect(changed.status).toBe("changed");
+    const preset = await importMonoPalettePreset(await exportMonoPalettePreset(changed.config, digest), digest);
+    const dark = createMonoPaletteFragment(preset, "dark");
+    expect(dark.version).toBe(2);
+    const merged = mergeMonoPaletteFragment(base, dark);
+    expect(merged.config.themes.dark.focusAnchor).toEqual(changed.config.themes.dark.focusAnchor);
+    expect(resolveMonoPalette(merged.config.themes.dark).roles.focus).toEqual(resolveMonoPalette(base.themes.dark).roles.focus);
+    const glass = createMonoPaletteFragment(preset, "glass-color");
+    const glassMerged = mergeMonoPaletteFragment(base, glass);
+    expect(glassMerged.config.themes.dark.focusAnchor).toBeUndefined();
+  });
+
   it("exports and imports full normalized Dark/Light snapshots with verified SHA-256", async () => {
     const config = normalizeMonoPaletteConfig();
     config.seed = "portable-seed";

@@ -28,6 +28,8 @@ export type ThemePaletteState = {
   recipe: MonoPaletteRecipe;
   roles: Record<MonoPaletteRole, MonoPaletteRoleState>;
   groupLocks: Record<MonoPaletteGroup, boolean>;
+  /** Present only after a quick variant. V1 themes without it retain their original resolver. */
+  focusAnchor?: { version: 1; h: number; c: number };
 };
 export type MonoPaletteConfigV1 = {
   version: 1; engineVersion: 1; catalogVersion: 1; skinId: "mono-ledger-v1";
@@ -68,6 +70,12 @@ function normalizeRecipe(input: unknown): MonoPaletteRecipe {
 
 function normalizeTheme(input: unknown, mode: MonoPaletteMode): ThemePaletteState {
   const source = record(input), sourceRoles = record(source.roles), groupLocks = record(source.groupLocks);
+  const focusAnchor = source.focusAnchor === undefined ? undefined : record(source.focusAnchor);
+  if (source.focusAnchor !== undefined && (!focusAnchor || focusAnchor.version !== 1 ||
+    typeof focusAnchor.h !== "number" || !Number.isFinite(focusAnchor.h) ||
+    typeof focusAnchor.c !== "number" || !Number.isFinite(focusAnchor.c))) {
+    throw new Error("Unsupported palette focusAnchor version or value");
+  }
   const roles = Object.fromEntries(MONO_PALETTE_ROLES.map(role => {
     const state = record(sourceRoles[role]), offset = record(state.offset);
     return [role, {
@@ -78,7 +86,9 @@ function normalizeTheme(input: unknown, mode: MonoPaletteMode): ThemePaletteStat
     }];
   })) as Record<MonoPaletteRole, MonoPaletteRoleState>;
   return { mode, recipe: normalizeRecipe(source.recipe), roles,
-    groupLocks: Object.fromEntries(Object.keys(MONO_PALETTE_GROUPS).map(group => [group, groupLocks[group] === true])) as ThemePaletteState["groupLocks"] };
+    groupLocks: Object.fromEntries(Object.keys(MONO_PALETTE_GROUPS).map(group => [group, groupLocks[group] === true])) as ThemePaletteState["groupLocks"],
+    ...(focusAnchor ? { focusAnchor: { version: 1 as const, h: wrapHue(focusAnchor.h as number),
+      c: bounded(focusAnchor.c, 0, MONO_PALETTE_ROLE_SCHEMA.focus.chroma, 0) } } : {}) };
 }
 
 /** Recovery normalizer, not an import codec: unknown fields are dropped; unsupported versions reject atomically. */
@@ -128,8 +138,10 @@ function recipeColor(theme: ThemePaletteState, id: MonoPaletteRole): MonoOklch {
   const spectral = recipe.harmony === "spectral-graphite" && decorative ? 0.45 : 1;
   const l = 0.5 + (schema[theme.mode] - 0.5) * (schema.group === "content" ? recipe.contrast : 1)
     + recipe.exposure + (schema.group === "core" && id !== "canvas" ? (recipe.surfaceResponse - 0.5) * 0.035 : 0);
-  return normalizeMonoOklch({ l, c: Math.min(schema.chroma, recipe.anchorChroma * saturation * spectral),
-    h: recipe.anchorHue + recipe.temperature * 12 + (decorative ? harmonyOffsets[recipe.harmony][schema.hue] : 0), alpha: schema.alpha });
+  return normalizeMonoOklch({ l,
+    c: id === "focus" && theme.focusAnchor ? theme.focusAnchor.c : Math.min(schema.chroma, recipe.anchorChroma * saturation * spectral),
+    h: id === "focus" && theme.focusAnchor ? theme.focusAnchor.h
+      : recipe.anchorHue + recipe.temperature * 12 + (decorative ? harmonyOffsets[recipe.harmony][schema.hue] : 0), alpha: schema.alpha });
 }
 
 function resolvedFromRoles(mode: MonoPaletteMode, roles: Record<MonoPaletteRole, MonoOklch>): MonoResolvedPalette {
@@ -243,6 +255,10 @@ function stableHash(text: string): string {
 }
 
 export const MONO_PALETTE_SCHEMA_HASH = stableHash(JSON.stringify({ roles: MONO_PALETTE_ROLE_SCHEMA, recipe: MONO_PALETTE_RECIPE_BOUNDS }));
+/** Additive focus-protection contract; historical V1 schema hash stays frozen. */
+export const MONO_PALETTE_PROTECTED_SCHEMA_HASH = stableHash(JSON.stringify({
+  base: MONO_PALETTE_SCHEMA_HASH, focusAnchor: { version: 1, h: "base-hue", c: "base-chroma" },
+}));
 
 export function randomizeMonoPalette(config: MonoPaletteConfigV1, mode: MonoPaletteMode, scope: MonoPaletteScope): MonoPaletteRandomizeResult {
   const next = normalizeMonoPaletteConfig(config), theme = next.themes[mode];
@@ -310,7 +326,7 @@ export type MonoPaletteRecipeRandomizeResult = {
   replay: {
     seed: string;
     actionCounter: number;
-    randomizerVersion: 1;
+    randomizerVersion: 2;
     engineVersion: 1;
     catalogVersion: 1;
     schemaHash: string;
@@ -322,8 +338,8 @@ export type MonoPaletteRecipeRandomizeResult = {
 };
 
 const MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA = {
-  anchorHue: { min: 0, max: 360, coupledTo: "temperature-for-focus" },
-  anchorChroma: { min: 0.05, max: 0.16, step: 0.001, preserveBelow: MONO_PALETTE_ROLE_SCHEMA.focus.chroma },
+  anchorHue: { min: 0, max: 360, minimumHueDistance: 24 },
+  anchorChroma: { min: 0.05, max: 0.16, step: 0.001 },
   harmony: MONO_PALETTE_QUICK_HARMONIES,
   temperature: { min: -0.6, max: 0.6, step: 0.01 },
   iridescence: { min: 0.25, max: 0.9, step: 0.01 },
@@ -344,15 +360,16 @@ function sampleMonoPaletteCharacter(theme: ThemePaletteState, prefix: string): P
   if (harmony === theme.recipe.harmony) {
     harmony = MONO_PALETTE_QUICK_HARMONIES[(MONO_PALETTE_QUICK_HARMONIES.indexOf(harmony) + 1) % MONO_PALETTE_QUICK_HARMONIES.length];
   }
-  // Focus remains a linked/offset role. Couple hue and temperature so its V1
-  // recipe hue stays fixed without rewriting the role or the resolver.
   const current = theme.recipe;
-  const temperature = sampleDifferentRange(current.temperature, -0.6, 0.6, 0.01,
-    (sample("anchorHue") + sample("temperature")) / 2);
+  const temperature = sampleDifferentRange(current.temperature, -0.6, 0.6, 0.01, sample("temperature"));
+  const currentHue = wrapHue(current.anchorHue + current.temperature * 12);
+  let anchorHue = Math.floor(sample("anchorHue") * 360);
+  const effectiveHue = wrapHue(anchorHue + temperature * 12);
+  const distance = Math.abs(effectiveHue - currentHue);
+  if (Math.min(distance, 360 - distance) < 24) anchorHue = wrapHue(anchorHue + 48);
   return {
-    anchorHue: wrapHue(current.anchorHue + (current.temperature - temperature) * 12),
-    anchorChroma: current.anchorChroma < MONO_PALETTE_ROLE_SCHEMA.focus.chroma
-      ? current.anchorChroma : sampleDifferentRange(current.anchorChroma, 0.05, 0.16, 0.001, sample("anchorChroma")),
+    anchorHue,
+    anchorChroma: sampleDifferentRange(current.anchorChroma, 0.05, 0.16, 0.001, sample("anchorChroma")),
     harmony,
     temperature,
     iridescence: sampleDifferentRange(theme.recipe.iridescence, 0.25, 0.9, 0.01, sample("iridescence")),
@@ -387,7 +404,13 @@ export function randomizeMonoPaletteRecipe(config: MonoPaletteConfigV1, mode: Mo
     let failed = false;
     for (const key of modes) {
       try {
+        // This explicitly versioned protection field is added only to a
+        // successful candidate. Historical themes without it resolve as V1.
+        const focusBase = recipeColor(next.themes[key], "focus");
+        next.themes[key].focusAnchor ??= { version: 1, h: focusBase.h, c: focusBase.c };
+        const focusState = structuredClone(next.themes[key].roles.focus);
         next.themes[key] = updateMonoPaletteRecipe(next.themes[key], character);
+        next.themes[key].roles.focus = focusState;
       } catch (error) {
         failed = true;
         constraintFailed = true;
@@ -421,7 +444,7 @@ export function randomizeMonoPaletteRecipe(config: MonoPaletteConfigV1, mode: Mo
     }
     next.actionCounter += 1;
     return { status: "changed", config: next, changed: modes, issues: [], message: null, replay: {
-      seed: base.seed, actionCounter: base.actionCounter, randomizerVersion: 1, engineVersion: 1, catalogVersion: 1,
+      seed: base.seed, actionCounter: base.actionCounter, randomizerVersion: 2, engineVersion: 1, catalogVersion: 1,
       schemaHash: MONO_PALETTE_RECIPE_RANDOMIZER_SCHEMA_HASH, baseHash: stableHash(JSON.stringify(base)),
       skinId: "mono-ledger-v1", mode, linkedThemes: base.linkedThemes,
     } };

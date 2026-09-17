@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { normalizeMonoPaletteConfig, resolveMonoPalette, setMonoPaletteLock } from "@wallet/ui";
 import { createHash } from "node:crypto";
 import { exportMonoPalettePreset, importMonoPalettePreset, type MonoSha256 } from "./mono-preset-codec";
-import { beginMonoPaletteTransaction, createMonoPaletteWorkspace, editMonoPaletteRecipe, redoMonoPaletteWorkspace, toggleMonoPaletteCompare, undoMonoPaletteWorkspace } from "./mono-palette-workspace";
+import { beginMonoPaletteTransaction, createMonoPaletteWorkspace, editMonoPaletteRecipe, randomizeMonoPaletteRecipeWorkspace, redoMonoPaletteWorkspace, toggleMonoPaletteCompare, undoMonoPaletteWorkspace } from "./mono-palette-workspace";
 import {
   MONO_PALETTE_ACTIVE_KEY, MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY,
   applyMonoPaletteActive, loadMonoPaletteActive, loadMonoPalettePresets,
@@ -14,6 +14,33 @@ const digest: MonoSha256 = async bytes => new Uint8Array(createHash("sha256").up
 beforeEach(() => localStorage.clear());
 
 describe("mono palette storage", () => {
+  it("roundtrips a protected-focus variant across workspace, Apply and preset storage", async () => {
+    const base = normalizeMonoPaletteConfig({ seed: "storage-protected-focus" });
+    const focus = resolveMonoPalette(base.themes.dark).roles.focus;
+    const result = randomizeMonoPaletteRecipeWorkspace(createMonoPaletteWorkspace(base));
+    expect(result.result.status).toBe("changed");
+    saveMonoPaletteWorkspace(localStorage, result.workspace);
+    const restored = loadMonoPaletteWorkspace(localStorage);
+    const current = restored.slots[0].present.config;
+    expect(current.themes.dark.focusAnchor).toEqual(result.result.config.themes.dark.focusAnchor);
+    expect(resolveMonoPalette(current.themes.dark).roles.focus).toEqual(focus);
+    const undone = undoMonoPaletteWorkspace(restored);
+    expect(undone.slots[0].present.config.themes.dark.focusAnchor).toBeUndefined();
+    expect(redoMonoPaletteWorkspace(undone).slots[0].present.config.themes.dark.focusAnchor).toEqual(current.themes.dark.focusAnchor);
+    applyMonoPaletteActive(localStorage, current);
+    expect(loadMonoPaletteActive(localStorage)?.config.themes.dark.focusAnchor).toEqual(current.themes.dark.focusAnchor);
+    const preset = await importMonoPalettePreset(await exportMonoPalettePreset(current, digest), digest);
+    saveMonoPalettePresets(localStorage, [preset]);
+    expect((await loadVerifiedMonoPalettePresets(localStorage, digest))[0].config.themes.dark.focusAnchor).toEqual(current.themes.dark.focusAnchor);
+  });
+
+  it("loads legacy V1 keys without rewriting them on read", () => {
+    const workspace = createMonoPaletteWorkspace();
+    localStorage.setItem("wallet4i7.mono.palette-workspace.v1", JSON.stringify(workspace));
+    expect(loadMonoPaletteWorkspace(localStorage).slots[0].present.config).toEqual(workspace.slots[0].present.config);
+    expect(localStorage.getItem(MONO_PALETTE_WORKSPACE_KEY)).toBeNull();
+  });
+
   it("stores workspace, active appearance and local library under separate V1 keys", () => {
     const draft = editMonoPaletteRecipe(createMonoPaletteWorkspace(), { anchorHue: 42 });
     saveMonoPaletteWorkspace(localStorage, draft);

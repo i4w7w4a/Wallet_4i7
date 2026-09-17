@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeMonoPaletteConfig } from "@wallet/ui";
+import { normalizeMonoPaletteConfig, randomizeMonoPaletteRecipe, resolveMonoPalette } from "@wallet/ui";
 import { exportMonoPalettePreset } from "../mono-preview/mono-preset-codec";
 
 async function validPreset(): Promise<unknown> {
@@ -7,6 +7,21 @@ async function validPreset(): Promise<unknown> {
 }
 
 describe("preset service", () => {
+  it("accepts a protected-focus variant and serves the exact versioned snapshot", async () => {
+    const { createPresetService, MemoryPresetRepository } = await import("./preset-service");
+    const service = createPresetService(new MemoryPresetRepository());
+    const base = normalizeMonoPaletteConfig({ seed: "server-focus-version" });
+    const changed = randomizeMonoPaletteRecipe(base, "dark");
+    expect(changed.status).toBe("changed");
+    const preset = JSON.parse(await exportMonoPalettePreset(changed.config));
+    expect(preset.schemaVersion).toBe(2);
+    const created = await service.create({ ownerId: "owner-v2", name: "Тихий спектр", preset });
+    const restored = await service.read(created.slug);
+    expect(restored?.preset).toEqual(preset);
+    expect(resolveMonoPalette(restored!.preset.config.themes.dark).roles.focus)
+      .toEqual(resolveMonoPalette(base.themes.dark).roles.focus);
+  });
+
   it("creates an unlisted named preset and reads its full snapshot by an unguessable link", async () => {
     const { createPresetService, MemoryPresetRepository } = await import("./preset-service");
     const service = createPresetService(new MemoryPresetRepository());

@@ -146,6 +146,43 @@ describe("MONO scoped deterministic randomization", () => {
 });
 
 describe("MONO coherent recipe randomization", () => {
+  it("preserves an offset focus through repeated variants and normalized reload", () => {
+    const config = normalizeMonoPaletteConfig({ seed: "offset-focus-repeat" });
+    config.themes.dark.recipe = { ...config.themes.dark.recipe, anchorHue: 40, anchorChroma: 0.008, temperature: 0.5 };
+    config.themes.dark.roles.focus.mode = "offset";
+    config.themes.dark.roles.focus.offset = { l: -0.01, c: 0.003, h: 20 };
+    const before = resolveMonoPalette(config.themes.dark).roles.focus;
+    const state = structuredClone(config.themes.dark.roles.focus);
+
+    const first = randomizeMonoPaletteRecipe(config, "dark");
+    expect(first.status).toBe("changed");
+    const restored = normalizeMonoPaletteConfig(JSON.parse(JSON.stringify(first.config)));
+    expect(restored.themes.dark.roles.focus).toEqual(state);
+    expect(resolveMonoPalette(restored.themes.dark).roles.focus).toEqual(before);
+    expect(restored.themes.dark.focusAnchor).toEqual(first.config.themes.dark.focusAnchor);
+
+    const second = randomizeMonoPaletteRecipe(restored, "dark");
+    expect(second.status).toBe("changed");
+    expect(second.config.themes.dark.roles.focus).toEqual(state);
+    expect(resolveMonoPalette(second.config.themes.dark).roles.focus).toEqual(before);
+    expect(second.config.actionCounter).toBe(2);
+  });
+
+  it("changes the primary accent hue meaningfully without changing linked focus", () => {
+    const config = normalizeMonoPaletteConfig({ seed: "base-hue-variant" });
+    const before = resolveMonoPalette(config.themes.dark);
+    const focusState = structuredClone(config.themes.dark.roles.focus);
+
+    const result = randomizeMonoPaletteRecipe(config, "dark");
+
+    expect(result.status).toBe("changed");
+    const after = resolveMonoPalette(result.config.themes.dark);
+    const hueDistance = Math.abs(after.roles.accentPrimary.h - before.roles.accentPrimary.h);
+    expect(Math.min(hueDistance, 360 - hueDistance)).toBeGreaterThanOrEqual(24);
+    expect(after.roles.focus).toEqual(before.roles.focus);
+    expect(result.config.themes.dark.roles.focus).toEqual(focusState);
+  });
+
   it("retains V1 linked and offset focus colors for non-default saved character recipes", () => {
     const config = normalizeMonoPaletteConfig();
     const theme = config.themes.dark;
@@ -193,7 +230,7 @@ describe("MONO coherent recipe randomization", () => {
     expect(first.config.themes.dark.recipe.harmony).not.toBe("split-prism");
     expect(first.config.themes.dark.recipe).not.toEqual(input.themes.dark.recipe);
     expect(first.replay).toMatchObject({
-      seed: "coherent-v1", actionCounter: 0, randomizerVersion: 1,
+      seed: "coherent-v1", actionCounter: 0, randomizerVersion: 2,
       engineVersion: 1, catalogVersion: 1, skinId: "mono-ledger-v1",
       mode: "dark", linkedThemes: false, schemaHash: expect.any(String), baseHash: expect.any(String),
     });

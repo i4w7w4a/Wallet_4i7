@@ -1,5 +1,5 @@
 import {
-  MONO_PALETTE_GROUPS, MONO_PALETTE_ROLES, MONO_PALETTE_SCHEMA_HASH,
+  MONO_PALETTE_GROUPS, MONO_PALETTE_ROLES, MONO_PALETTE_SCHEMA_HASH, MONO_PALETTE_PROTECTED_SCHEMA_HASH,
   normalizeMonoPaletteConfig, resolveMonoPalette, setMonoPaletteLock, validateMonoPaletteApply,
   type MonoPaletteConfigV1, type MonoPaletteMode, type MonoPaletteRole,
   type MonoResolvedPalette, type ThemePaletteState,
@@ -7,12 +7,12 @@ import {
 
 export type MonoSha256 = (bytes: Uint8Array) => Promise<Uint8Array>;
 export type MonoPalettePresetV1 = {
-  schemaVersion: 1; skinId: "mono-ledger-v1"; configVersion: 1; engineVersion: 1; catalogVersion: 1;
+  schemaVersion: 1 | 2; skinId: "mono-ledger-v1"; configVersion: 1; engineVersion: 1; catalogVersion: 1;
   schemaHash: string; config: MonoPaletteConfigV1;
   resolved: Record<MonoPaletteMode, MonoResolvedPalette>; contentHash: string;
 };
 export type MonoPaletteFragmentScope = "entire" | "dark" | "light" | "palette" | "background" | "glass-color" | "typography";
-export type MonoPaletteFragment = { version: 1; scope: MonoPaletteFragmentScope; payload: unknown };
+export type MonoPaletteFragment = { version: 1 | 2; scope: MonoPaletteFragmentScope; payload: unknown };
 export type MonoPaletteDiff = { path: string; before: unknown; after: unknown };
 export type MonoPaletteMerge = { config: MonoPaletteConfigV1; resolved: Record<MonoPaletteMode, MonoResolvedPalette>; diff: MonoPaletteDiff[]; skipped: string[]; issues: string[] };
 
@@ -54,9 +54,12 @@ function strictShape(value: unknown, template: unknown, path: string): void {
 }
 
 function payload(config: MonoPaletteConfigV1) {
+  const protectedFocus = config.themes.dark.focusAnchor !== undefined || config.themes.light.focusAnchor !== undefined;
   return {
-    schemaVersion: 1 as const, skinId: "mono-ledger-v1" as const, configVersion: 1 as const,
-    engineVersion: 1 as const, catalogVersion: 1 as const, schemaHash: MONO_PALETTE_SCHEMA_HASH,
+    schemaVersion: protectedFocus ? 2 as const : 1 as const,
+    skinId: "mono-ledger-v1" as const, configVersion: 1 as const,
+    engineVersion: 1 as const, catalogVersion: 1 as const,
+    schemaHash: protectedFocus ? MONO_PALETTE_PROTECTED_SCHEMA_HASH : MONO_PALETTE_SCHEMA_HASH,
     config,
     resolved: { dark: resolveMonoPalette(config.themes.dark), light: resolveMonoPalette(config.themes.light) },
   };
@@ -71,11 +74,15 @@ export async function importMonoPalettePreset(text: string, sha256: MonoSha256 =
   if (new TextEncoder().encode(text).length > LIMIT) throw new Error("Palette preset size limit exceeded");
   const input: unknown = JSON.parse(text);
   if (!has(input)) throw new Error("Invalid palette preset");
-  for (const key of ["schemaVersion", "configVersion", "engineVersion", "catalogVersion"])
+  if (input.schemaVersion !== 1 && input.schemaVersion !== 2) throw new Error("Unsupported palette schemaVersion version");
+  for (const key of ["configVersion", "engineVersion", "catalogVersion"])
     if (input[key] !== 1) throw new Error(`Unsupported palette ${key} version`);
-  if (input.skinId !== "mono-ledger-v1" || input.schemaHash !== MONO_PALETTE_SCHEMA_HASH) throw new Error("Unsupported palette schema version");
+  if (input.skinId !== "mono-ledger-v1") throw new Error("Unsupported palette skinId");
   const config = normalizeMonoPaletteConfig(input.config);
   const expected = payload(config);
+  if (input.schemaVersion !== expected.schemaVersion || input.schemaHash !== expected.schemaHash) {
+    throw new Error("Unsupported palette schema version");
+  }
   strictShape(input, { ...expected, contentHash: "" }, "preset");
   strictShape(input.config, config, "config");
   strictShape(input.resolved, expected.resolved, "resolved");
@@ -110,11 +117,11 @@ function resnapshotTargetLocks(theme: ThemePaletteState, target: ThemePaletteSta
 
 export function createMonoPaletteFragment(preset: MonoPalettePresetV1, scope: MonoPaletteFragmentScope): MonoPaletteFragment {
   if (!scopes.includes(scope)) throw new Error("Unsupported palette fragment scope");
-  if (scope === "entire") return { version: 1, scope, payload: clone(preset.config) };
-  if (scope === "dark" || scope === "light") return { version: 1, scope, payload: clone(preset.config.themes[scope]) };
-  if (scope === "palette") return { version: 1, scope, payload: clone(preset.config.themes) };
+  if (scope === "entire") return { version: preset.schemaVersion, scope, payload: clone(preset.config) };
+  if (scope === "dark" || scope === "light") return { version: preset.schemaVersion, scope, payload: clone(preset.config.themes[scope]) };
+  if (scope === "palette") return { version: preset.schemaVersion, scope, payload: clone(preset.config.themes) };
   const roles = roleSelection(scope);
-  return { version: 1, scope, payload: {
+  return { version: preset.schemaVersion, scope, payload: {
     roles: {
       dark: Object.fromEntries(roles.map(role => [role, clone(preset.config.themes.dark.roles[role])])),
       light: Object.fromEntries(roles.map(role => [role, clone(preset.config.themes.light.roles[role])])),
@@ -127,14 +134,23 @@ export function createMonoPaletteFragment(preset: MonoPalettePresetV1, scope: Mo
 }
 
 function validateFragment(fragment: MonoPaletteFragment): void {
-  if (fragment.version !== 1 || !scopes.includes(fragment.scope)) throw new Error("Unsupported palette fragment scope or version");
+  if ((fragment.version !== 1 && fragment.version !== 2) || !scopes.includes(fragment.scope)) throw new Error("Unsupported palette fragment scope or version");
   const defaults = normalizeMonoPaletteConfig();
   if (fragment.scope === "entire") {
-    normalizeMonoPaletteConfig(fragment.payload);
-    strictShape(fragment.payload, defaults, "fragment");
+    const normalized = normalizeMonoPaletteConfig(fragment.payload);
+    strictShape(fragment.payload, normalized, "fragment");
+    if (payload(normalized).schemaVersion !== fragment.version) throw new Error("Unsupported palette fragment version");
   }
-  else if (fragment.scope === "dark" || fragment.scope === "light") strictShape(fragment.payload, defaults.themes[fragment.scope], "fragment");
-  else if (fragment.scope === "palette") strictShape(fragment.payload, defaults.themes, "fragment");
+  else if (fragment.scope === "dark" || fragment.scope === "light") {
+    const normalized = normalizeMonoPaletteConfig({ themes: { [fragment.scope]: fragment.payload } });
+    strictShape(fragment.payload, normalized.themes[fragment.scope], "fragment");
+    if (fragment.version === 1 && normalized.themes[fragment.scope].focusAnchor) throw new Error("Unsupported palette fragment version");
+  }
+  else if (fragment.scope === "palette") {
+    const normalized = normalizeMonoPaletteConfig({ themes: fragment.payload });
+    strictShape(fragment.payload, normalized.themes, "fragment");
+    if (payload(normalized).schemaVersion !== fragment.version) throw new Error("Unsupported palette fragment version");
+  }
   else {
     const roles = roleSelection(fragment.scope);
     const template = {
@@ -149,6 +165,11 @@ function validateFragment(fragment: MonoPaletteFragment): void {
 
 function mergeTheme(target: ThemePaletteState, source: ThemePaletteState, respectLocks: boolean, path: string, diff: MonoPaletteDiff[], skipped: string[]): ThemePaletteState {
   const next = clone(target);
+  if (!equal(target.focusAnchor, source.focusAnchor)) {
+    diff.push({ path: `${path}.focusAnchor`, before: clone(target.focusAnchor), after: clone(source.focusAnchor) });
+    if (source.focusAnchor) next.focusAnchor = clone(source.focusAnchor);
+    else delete next.focusAnchor;
+  }
   if (!equal(target.recipe, source.recipe)) {
     diff.push({ path: `${path}.recipe`, before: clone(target.recipe), after: clone(source.recipe) });
     next.recipe = clone(source.recipe);

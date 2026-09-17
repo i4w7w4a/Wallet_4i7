@@ -74,6 +74,21 @@ An inherited exact group lock is not silently cleared by the quick UI.
 Files: `packages/ui/src/mono/mono-palette.ts`, its tests and export surface;
 `apps/miniapp/src/mono-preview/mono-palette-workspace.ts` and its tests.
 
+### Task 1 compatibility ruling (2026-09-17)
+
+The V1 focus color depends on the recipe's effective hue and chroma. A quick
+variant cannot both move that hue and preserve focus without additional
+protection state. Do not couple hue to temperature, rewrite `roles.focus`, or
+change V1 resolution globally. Introduce explicit versioned protection for new
+quick variants while preserving historical V1 snapshots, hashes, exact replay,
+imports, and rendering. The protection anchor records focus recipe H/C before
+offset, gamut mapping, and contrast repair; each candidate still compares the
+final resolved focus and rejects any change. Upgrade only upon a successful
+quick action, in its single Undo transaction. The implementation must cover
+codec, local persistence, workspace history, and preset fragments so the new
+state survives save/load and sharing. This is a compatibility subtask of Task 1,
+not a change to the existing exact randomizer or the owner's design intent.
+
 ## Task 2: accessible OKLCH color field
 
 Create a focused `MonoColorField` client component with a circular visual field.

@@ -124,7 +124,7 @@ describe("mono palette workspace", () => {
   });
 
   it("randomizes a coherent linked recipe as one undoable workspace change", () => {
-    let state = createMonoPaletteWorkspace(normalizeMonoPaletteConfig({ seed: "workspace-character", linkedThemes: true }));
+    const state = createMonoPaletteWorkspace(normalizeMonoPaletteConfig({ seed: "workspace-character", linkedThemes: true }));
     const before = structuredClone(state.slots[0].present);
 
     const random = randomizeMonoPaletteRecipeWorkspace(state);
