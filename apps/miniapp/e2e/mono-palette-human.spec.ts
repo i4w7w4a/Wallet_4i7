@@ -18,6 +18,7 @@ test("human color controls change one preview without exposing the exact editor"
   await expect(page.getByText("Seed")).toBeHidden();
   const accentBefore = await preview.evaluate(node => getComputedStyle(node).getPropertyValue("--mono-palette-chartLine-ff").trim());
 
+  await field.scrollIntoViewIfNeeded();
   const bounds = await field.boundingBox();
   expect(bounds).not.toBeNull();
   await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + 10);
