@@ -117,7 +117,7 @@ test.describe("compact skin workbench", () => {
     await page.getByRole("button", { name: "Открыть быстрые настройки" }).click();
     const quick = page.locator('[data-mono-rail="quick"]');
     const first = quick.getByRole("link", { name: /V1/i });
-    const last = quick.getByRole("button", { name: /^(Обновить список|Повторить соединение)$/ });
+    const last = quick.getByRole("button", { name: "Точная настройка" });
     await expect(quick).toHaveAttribute("role", "dialog");
     await expect(quick).toHaveAttribute("aria-modal", "true");
     await expect(page.locator(".mono-preview-frame")).toHaveAttribute("inert", "");

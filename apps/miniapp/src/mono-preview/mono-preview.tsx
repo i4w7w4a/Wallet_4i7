@@ -611,7 +611,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             onChange={updateShape} onDefault={resetShape} onApply={applyShape} />
         </MonoRailSection>
         <MonoColorLab lab={colorLab} />
-        <MonoPresetLibrary lab={colorLab} />
+        <MonoPresetLibrary lab={colorLab} visible={colorLab.variantsOpen} />
         <p className="mono-rail__hint"><span>1 / 2 / 3</span> переключают характер без касания телефона.</p>
       </aside>
 

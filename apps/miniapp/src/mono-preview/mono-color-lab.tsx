@@ -50,6 +50,7 @@ export function useMonoColorLab() {
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("");
   const [expert, setExpert] = useState(false);
+  const [variantsOpen, setVariantsOpen] = useState(false);
   const [role, setRole] = useState<MonoPaletteRole>("accentPrimary");
   const [library, setLibrary] = useState<MonoPaletteLibraryEntry[]>([]);
   const [name, setName] = useState("");
@@ -193,16 +194,17 @@ export function useMonoColorLab() {
     else if (origin?.scope === "entire") setRemoteSources(previous => ({ ...previous, [slotId]: undefined }));
   };
   const output = () => run(async () => {
-    const value = await exportMonoPalettePreset(present.config); setJson(value);
+    const value = await exportMonoPalettePreset(present.config);
     try { await navigator.clipboard.writeText(value); setStatus("JSON скопирован."); }
-    catch { setStatus("JSON готов в поле ниже; можно скопировать вручную."); }
+    catch { setStatus("Не удалось скопировать JSON. Используйте «Скачать JSON»."); }
   });
   const download = () => run(async () => {
     const value = await exportMonoPalettePreset(present.config);
     const url = URL.createObjectURL(new Blob([value], { type: "application/json" }));
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = "mono-palette.json"; anchor.click(); URL.revokeObjectURL(url);
   });
-  return { workspace, present, shown, theme, resolved, style, issues, ready, status, setStatus, expert, setExpert, role, setRole,
+  return { workspace, present, shown, theme, resolved, style, issues, ready, status, setStatus, expert, setExpert,
+    variantsOpen, setVariantsOpen, role, setRole,
     library, name, setName, json, setJson, pending, setPending, linkDiff, setLinkDiff, busy, commit, begin, end, editRecipe,
     randomize, newVariant, save, remove, previewFragment, previewRemotePreset, activeRemoteSource: remoteSources[workspace.activeSlotId] ?? null,
     acceptPending, output, download,
@@ -216,6 +218,9 @@ export type MonoColorLabState = ReturnType<typeof useMonoColorLab>;
 
 export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
   const { present, theme, workspace, commit } = lab;
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [extrasOpen, setExtrasOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const slot = workspace.slots[workspace.activeSlotId - 1];
   const enabled = Boolean(present.paletteEnabled);
   const link = () => {
@@ -252,6 +257,10 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
           onGestureStart={() => lab.begin("color-field")}
           onGestureEnd={lab.end} />
       </fieldset>
+      <div className="mono-color-lab__reset-row">
+        <span>Сбросит весь черновик этого слота</span>
+        <button type="button" onClick={() => commit(resetMonoPaletteSlot)}>Сбросить цвет</button>
+      </div>
       <div className="mono-color-lab__heading"><span>02 / СОЧЕТАНИЕ</span><h3>Как звучит цвет</h3></div>
       <fieldset disabled={!enabled || workspace.compare === "baseline"} className="mono-color-lab__harmony-field">
         <legend className="mono-color-lab__sr-only">Сочетание</legend>
@@ -297,6 +306,53 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
       <button className="mono-color-lab__new-variant" type="button" disabled={!enabled || workspace.compare === "baseline"} onClick={lab.newVariant}>Новый вариант</button>
       <p className="mono-color-lab__hint">Закреплённые части останутся прежними.</p>
     </div>
+    <div className="mono-color-lab__actions" aria-label="Управление палитрой">
+      <div className="mono-color-lab__toolbar" role="group" aria-label="Инструменты палитры">
+        <button type="button" aria-label="Отменить цвет" title="Отменить" disabled={!slot.past.length}
+          onClick={() => { lab.end(); commit(undoMonoPaletteWorkspace); }}><span aria-hidden="true">↶</span></button>
+        <button type="button" aria-label="Повторить цвет" title="Повторить" disabled={!slot.future.length}
+          onClick={() => commit(redoMonoPaletteWorkspace)}><span aria-hidden="true">↷</span></button>
+        <button type="button" className="mono-color-lab__compare" aria-label="Сравнить A/B"
+          aria-pressed={workspace.compare === "baseline"} onClick={() => commit(toggleMonoPaletteCompare)}>
+          {workspace.compare === "baseline" ? "A · Исходный" : "B · Черновик"}
+        </button>
+        <button type="button" aria-label="Дополнительные действия" title="Дополнительные действия"
+          aria-controls="mono-palette-extras" aria-expanded={extrasOpen}
+          onClick={() => setExtrasOpen(!extrasOpen)}><span aria-hidden="true">⋯</span></button>
+      </div>
+      <button type="button" className="mono-color-lab__secondary" disabled={!enabled || workspace.compare === "baseline"}
+        onClick={() => lab.randomize({ kind: "global" })}>Другая палитра</button>
+      <button type="button" className="mono-color-lab__apply"
+        disabled={!enabled || lab.issues.length > 0 || workspace.compare === "baseline"} onClick={() => {
+          try { applyMonoPaletteActive(localStorage, present.config); lab.setStatus("Палитра применена локально. Библиотека не изменена."); }
+          catch (error) { lab.setStatus(String(error)); }
+        }}>Применить палитру</button>
+      {lab.issues.length > 0 && <div role="note" aria-label="Ограничения Apply">{lab.issues.map((issue, index) => <p key={index}>{issue.message}</p>)}</div>}
+      {workspace.compare === "baseline" && <p role="note">Сейчас показан A · исходный материал. Вернитесь к B, чтобы сохранить или применить черновик.</p>}
+      <div className="mono-color-lab__action-row">
+        <button type="button" aria-controls="mono-palette-save" aria-expanded={saveOpen} onClick={() => setSaveOpen(!saveOpen)}>Сохранить вариант</button>
+        <button type="button" aria-controls="mono-palette-local-variants mono-palette-server-variants"
+          aria-expanded={lab.variantsOpen} onClick={() => lab.setVariantsOpen(!lab.variantsOpen)}>Варианты</button>
+      </div>
+      <fieldset id="mono-palette-save" hidden={!saveOpen} disabled={!enabled || lab.busy || workspace.compare === "baseline"}
+        className="mono-color-lab__save-form">
+        <legend>Сохранить локально</legend>
+        <label>Имя пресета<input maxLength={80} value={lab.name} onChange={event => lab.setName(event.target.value)} /></label>
+        <button type="button" onClick={() => void lab.save()}>Сохранить новый</button>
+      </fieldset>
+      <div id="mono-palette-extras" hidden={!extrasOpen} className="mono-color-lab__extras">
+        <div className="mono-color-lab__row">
+          <button type="button" onClick={() => void lab.output()}>Копировать JSON</button>
+          <button type="button" onClick={() => void lab.download()}>Скачать JSON</button>
+        </div>
+        <button type="button" aria-controls="mono-palette-import" aria-expanded={importOpen}
+          onClick={() => setImportOpen(!importOpen)}>Импорт JSON</button>
+        <div id="mono-palette-import" hidden={!importOpen} className="mono-color-lab__import">
+          <label>JSON пресета<textarea value={lab.json} maxLength={131072} onChange={event => lab.setJson(event.target.value)} /></label>
+          <button type="button" onClick={() => void lab.importPreview()}>Предпросмотр импорта</button>
+        </div>
+      </div>
+    </div>
     <button type="button" className="mono-color-lab__exact-toggle" aria-controls="mono-color-exact" aria-expanded={lab.expert}
       onClick={() => lab.setExpert(!lab.expert)}>Точная настройка <span aria-hidden="true">{lab.expert ? "−" : "+"}</span></button>
     <div id="mono-color-exact" hidden={!lab.expert} className="mono-color-lab__exact">
@@ -321,27 +377,14 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
         <button type="button" onClick={() => lab.setLinkDiff(null)}>Отмена связи</button>
       </div>}
       <label>Seed<input value={present.config.seed} maxLength={256} onChange={event => commit(state => setMonoPaletteSeed(state, event.target.value))} /></label>
-      <button type="button" onClick={() => lab.randomize({ kind: "global" })}>Другой вариант для всех цветов</button>
     </fieldset>
     </div>
-    <div className="mono-color-lab__row">
-      <button type="button" aria-label="Отменить цвет" disabled={!slot.past.length} onClick={() => { lab.end(); commit(undoMonoPaletteWorkspace); }}>↶ Undo</button>
-      <button type="button" aria-label="Повторить цвет" disabled={!slot.future.length} onClick={() => commit(redoMonoPaletteWorkspace)}>↷ Redo</button>
-    </div>
-    <button type="button" aria-label="Сравнить A/B" aria-pressed={workspace.compare === "baseline"} onClick={() => commit(toggleMonoPaletteCompare)}>
-      {workspace.compare === "baseline" ? "A · Исходный материал" : "B · Черновик"}
-    </button>
-    <div hidden={!lab.expert} className="mono-color-lab__exact-tail">
-    <button type="button" onClick={() => commit(resetMonoPaletteSlot)}>Сбросить цвет</button>
-    <button type="button" disabled={!enabled || lab.issues.length > 0 || workspace.compare === "baseline"} onClick={() => {
-      try { applyMonoPaletteActive(localStorage, present.config); lab.setStatus("Палитра применена локально. Библиотека не изменена."); }
-      catch (error) { lab.setStatus(String(error)); }
-    }}>Применить палитру</button>
-    {lab.issues.length > 0 && <div role="note" aria-label="Ограничения Apply">{lab.issues.map((issue, index) => <p key={index}>{issue.message}</p>)}</div>}
-    {workspace.compare === "baseline" && <p role="note">Сейчас показан A · исходный материал. Вернитесь к B, чтобы сохранить или применить черновик.</p>}
-    <fieldset disabled={!enabled || lab.busy || workspace.compare === "baseline"}><legend>Локальная библиотека</legend>
-      <label>Имя пресета<input maxLength={80} value={lab.name} onChange={event => lab.setName(event.target.value)} /></label>
-      <button type="button" onClick={() => void lab.save()}>Сохранить новый</button>
+    <div id="mono-palette-local-variants" hidden={!lab.variantsOpen} className="mono-color-lab__local-variants"
+      role="region" aria-label="Локальные варианты">
+      <div className="mono-color-lab__library-head"><strong>На этом устройстве</strong><small>Локальные · только в этом браузере</small></div>
+      {lab.library.length === 0 && <p>Сохранённых локальных вариантов пока нет.</p>}
+      <fieldset disabled={!enabled || lab.busy || workspace.compare === "baseline"}>
+        <legend className="mono-color-lab__sr-only">Сохранённые локальные варианты</legend>
       {lab.library.map(entry => <article key={entry.id} aria-label={entry.name}>
         <strong>{entry.name}</strong><small>Ревизия {entry.revision}</small>
         {(["dark", "light"] as const).map(mode => <div key={mode} className="mono-color-lab__strip" aria-label={`${mode} палитра`}>
@@ -353,10 +396,7 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
           <option value="" disabled>Выбрать…</option>{["entire", "dark", "light", "palette", "background", "glass-color"].map(scope => <option key={scope} value={scope}>{scope}</option>)}
         </select></label>
       </article>)}
-      <div className="mono-color-lab__row"><button type="button" onClick={() => void lab.output()}>Копировать JSON</button><button type="button" onClick={() => void lab.download()}>Скачать JSON</button></div>
-      <label>JSON пресета<textarea value={lab.json} maxLength={131072} onChange={event => lab.setJson(event.target.value)} /></label>
-      <button type="button" onClick={() => void lab.importPreview()}>Предпросмотр импорта</button>
-    </fieldset>
+      </fieldset>
     </div>
     {lab.pending && <div className="mono-color-lab__diff" role="region" aria-label="Различия импорта">
       <p>Изменений: {lab.pending.diff.length}. Сохранено замков: {lab.pending.skipped.length}.</p>

@@ -53,7 +53,7 @@ function PaletteStrips({ entry }: { entry: PresetView }) {
   </div>;
 }
 
-export function MonoPresetLibrary({ lab }: { lab: MonoColorLabState }) {
+export function MonoPresetLibrary({ lab, visible = true }: { lab: MonoColorLabState; visible?: boolean }) {
   const [mine, setMine] = useState<PresetView[]>([]);
   const [opened, setOpened] = useState<PresetView | null>(null);
   const [revisions, setRevisions] = useState<{ slug: string; entries: PresetView[] } | null>(null);
@@ -169,8 +169,9 @@ export function MonoPresetLibrary({ lab }: { lab: MonoColorLabState }) {
   const ownIds = new Set(mine.map(entry => entry.id));
   const cards = opened && !ownIds.has(opened.id) ? [...mine, opened] : mine;
 
-  return <section className="mono-preset-library" aria-label="Серверная библиотека" aria-busy={busy} data-mono-control>
-    <header className="mono-preset-library__head"><span>PRESET / CLOUD</span><h3>Библиотека вариантов</h3></header>
+  return <section id="mono-palette-server-variants" hidden={!visible} className="mono-preset-library"
+    aria-label="Серверная библиотека" aria-busy={busy} data-mono-control>
+    <header className="mono-preset-library__head"><span>НА СЕРВЕРЕ</span><h3>Серверные варианты</h3></header>
     <p className="mono-preset-library__intro">Черновик живёт отдельно. На сервер он попадает только после явного сохранения.</p>
     <fieldset disabled={disabled}>
       <legend>Новый снимок</legend>

@@ -25,6 +25,8 @@ async function open() {
 const hue = () => screen.getByRole("slider", { name: "Тон" });
 const editHue = (value: string) => fireEvent.change(hue(), { target: { value } });
 const openExact = () => fireEvent.click(screen.getByRole("button", { name: "Точная настройка" }));
+const openLocalSave = () => fireEvent.click(screen.getByRole("button", { name: "Сохранить вариант" }));
+const openVariants = () => fireEvent.click(screen.getByRole("button", { name: "Варианты" }));
 function pointer(element: Element, type: string, pointerId: number, clientX: number, clientY: number) {
   const event = new Event(type, { bubbles: true });
   Object.defineProperties(event, { pointerId: { value: pointerId }, clientX: { value: clientX }, clientY: { value: clientY } });
@@ -32,6 +34,31 @@ function pointer(element: Element, type: string, pointerId: number, clientX: num
 }
 
 describe("Color Lab interactions", () => {
+  it("keeps only palette essentials visible and reveals each secondary action on request", async () => {
+    await open();
+    expect(screen.getByRole("button", { name: "Применить палитру" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Другая палитра" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Сохранить вариант" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Варианты" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("textbox", { name: "Имя пресета" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "JSON пресета" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Серверная библиотека" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить вариант" }));
+    expect(screen.getByRole("textbox", { name: "Имя пресета" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Варианты" }));
+    expect(screen.getByRole("region", { name: "Локальные варианты" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Серверная библиотека" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Дополнительные действия" }));
+    const colorLab = within(screen.getByRole("region", { name: "Color Lab" }));
+    expect(colorLab.getByRole("button", { name: "Копировать JSON" })).toBeVisible();
+    expect(colorLab.getByRole("button", { name: "Скачать JSON" })).toBeVisible();
+    expect(screen.queryByRole("textbox", { name: "JSON пресета" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Импорт JSON" }));
+    expect(screen.getByRole("textbox", { name: "JSON пресета" })).toBeVisible();
+  });
+
   it("does not edit a hidden draft through the wheel before palette activation", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
     await waitFor(() => expect(screen.getByRole("button", { name: "Включить палитру" })).toBeEnabled());
@@ -184,7 +211,7 @@ describe("Color Lab interactions", () => {
     expect(hex()).toHaveValue(randomized);
   });
   it("saves a named local revision without Apply; Apply does not mutate its saved revision", async () => {
-    await open(); openExact(); editHue("40");
+    await open(); openExact(); editHue("40"); openLocalSave();
     fireEvent.change(screen.getByLabelText("Имя пресета"), { target: { value: "Камень" } });
     fireEvent.click(screen.getByRole("button", { name: "Сохранить новый" }));
     await waitFor(() => expect(localStorage.getItem(MONO_PALETTE_PRESETS_KEY)).toContain("Камень"));
@@ -193,15 +220,17 @@ describe("Color Lab interactions", () => {
     editHue("160"); fireEvent.click(screen.getByRole("button", { name: "Применить палитру" }));
     expect(localStorage.getItem(MONO_PALETTE_ACTIVE_KEY)).toContain('"anchorHue":160');
     expect(localStorage.getItem(MONO_PALETTE_PRESETS_KEY)).toBe(saved);
+    openVariants();
     fireEvent.click(within(screen.getByRole("article", { name: "Камень" })).getByRole("button", { name: "Загрузить" }));
     expect(hue()).toHaveValue("160");
     fireEvent.click(screen.getByRole("button", { name: "Принять в черновик" }));
     expect(hue()).toHaveValue("40");
   });
   it("previews a local load before changing the live draft", async () => {
-    await open(); openExact(); editHue("40");
+    await open(); openExact(); editHue("40"); openLocalSave();
     fireEvent.change(screen.getByLabelText("Имя пресета"), { target: { value: "Камень" } });
     fireEvent.click(screen.getByRole("button", { name: "Сохранить новый" }));
+    openVariants();
     await waitFor(() => expect(screen.getByRole("article", { name: "Камень" })).toBeInTheDocument());
     editHue("160");
     fireEvent.click(within(screen.getByRole("article", { name: "Камень" })).getByRole("button", { name: "Загрузить" }));
@@ -211,9 +240,10 @@ describe("Color Lab interactions", () => {
     expect(hue()).toHaveValue("40");
   });
   it("invalidates a pending load after another draft edit", async () => {
-    await open(); openExact(); editHue("40");
+    await open(); openExact(); editHue("40"); openLocalSave();
     fireEvent.change(screen.getByLabelText("Имя пресета"), { target: { value: "Камень" } });
     fireEvent.click(screen.getByRole("button", { name: "Сохранить новый" }));
+    openVariants();
     await waitFor(() => expect(screen.getByRole("article", { name: "Камень" })).toBeInTheDocument());
     editHue("160");
     fireEvent.click(within(screen.getByRole("article", { name: "Камень" })).getByRole("button", { name: "Загрузить" }));
@@ -222,7 +252,7 @@ describe("Color Lab interactions", () => {
     expect(hue()).toHaveValue("180");
   });
   it("keeps one canvas, excludes text inputs from history shortcuts and compares without editing", async () => {
-    await open(); openExact(); editHue("40");
+    await open(); openExact(); editHue("40"); openLocalSave();
     const canvas = document.querySelector("canvas");
     const input = screen.getByLabelText("Имя пресета");
     fireEvent.keyDown(input, { key: "z", ctrlKey: true }); expect(hue()).toHaveValue("40");

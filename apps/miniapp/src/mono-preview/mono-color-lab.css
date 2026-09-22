@@ -89,13 +89,33 @@
 .mono-color-lab__zone-copy small { color: #aeb3b4; font-size: 10px; line-height: 1.25; }
 .mono-color-lab .mono-color-lab__zone button { width: 44px; height: 44px; min-width: 44px; padding: 0; border-radius: 8px; font-size: 18px; }
 .mono-color-lab .mono-color-lab__new-variant {
-  width: 100%; min-height: 54px; border-color: #e7ebeb; border-radius: 10px;
-  background: linear-gradient(115deg, #e6e9e9, #bfc6c8 48%, #eceded);
-  box-shadow: 0 9px 22px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.8);
-  color: #141719; font-size: 13px; font-weight: 700; letter-spacing: .01em;
+  width: 100%; min-height: 44px; border-color: #737b78; border-radius: 8px;
+  background: #303638; color: #e8eceb; font-size: 12px; font-weight: 600;
 }
-.mono-color-lab .mono-color-lab__new-variant:hover { background: linear-gradient(115deg, #f3f5f5, #cbd1d2 48%, #f6f7f7); }
-.mono-color-lab .mono-color-lab__new-variant:active { background: #bbc1c2; }
+.mono-color-lab .mono-color-lab__new-variant:hover { background: #41494a; }
+.mono-color-lab .mono-color-lab__new-variant:active { background: #556061; }
+.mono-color-lab__reset-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5px 8px; }
+.mono-color-lab__reset-row span { color: #a8acad; font-size: 10px; }
+.mono-color-lab .mono-color-lab__reset-row button { width: auto; min-height: 44px; padding-inline: 10px; background: transparent; }
+.mono-color-lab__actions { display: grid; gap: 8px; padding-block: 12px; border-block-start: 1px solid #484d4c; }
+.mono-color-lab__toolbar { display: grid; grid-template-columns: 44px 44px minmax(0, 1fr) 44px; gap: 6px; }
+.mono-color-lab .mono-color-lab__toolbar button { width: 100%; min-width: 0; height: 44px; padding: 0; }
+.mono-color-lab .mono-color-lab__toolbar button:not(.mono-color-lab__compare) { font-size: 21px; line-height: 1; }
+.mono-color-lab .mono-color-lab__toolbar .mono-color-lab__compare { font-size: 11px; white-space: nowrap; }
+.mono-color-lab .mono-color-lab__secondary { width: fit-content; padding-inline: 12px; color: #d9ded9; }
+.mono-color-lab .mono-color-lab__apply {
+  width: 100%; min-height: 50px; border-color: #ecf1e9; background: #e2e9dc;
+  color: #172019; font-size: 13px; font-weight: 700;
+}
+.mono-color-lab .mono-color-lab__apply:not(:disabled):hover { background: #f0f5eb; }
+.mono-color-lab .mono-color-lab__apply:not(:disabled):active { background: #c5d2c3; }
+.mono-color-lab__action-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.mono-color-lab .mono-color-lab__action-row button { width: 100%; min-width: 0; }
+.mono-color-lab__save-form, .mono-color-lab__extras, .mono-color-lab__import, .mono-color-lab__local-variants { display: grid; gap: 9px; }
+.mono-color-lab__save-form, .mono-color-lab__extras, .mono-color-lab__local-variants { padding-block: 10px; border-block-start: 1px solid #4e5650; }
+.mono-color-lab__library-head { display: grid; gap: 2px; }
+.mono-color-lab__library-head strong { font-size: 13px; }
+.mono-color-lab__library-head small { color: #b7bdb5; font-size: 11px; }
 .mono-color-lab .mono-color-lab__exact-toggle { display: flex; align-items: center; justify-content: space-between; background: transparent; border-color: #484b4d; }
 .mono-color-lab__exact, .mono-color-lab__exact-tail { display: grid; gap: 10px; }
 .mono-palette-crossfade { position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0; }

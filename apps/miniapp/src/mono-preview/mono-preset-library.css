@@ -7,6 +7,7 @@
   color: #e8eae4;
   font: 12px/1.45 var(--mono-font-ui);
 }
+.mono-preset-library[hidden] { display: none; }
 .mono-preset-library__head { display: grid; gap: 3px; }
 .mono-preset-library__head span { color: #aeb8a7; font: 10px var(--mono-font-mono); letter-spacing: .13em; }
 .mono-preset-library__head h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.015em; }
