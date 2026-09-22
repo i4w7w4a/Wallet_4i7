@@ -22,7 +22,13 @@ Remote refs нужно повторно прочитать; эти SHA не «в
 - `docs/superpowers/specs/2026-09-22-novex-design-studio-design.md`;
 - `docs/superpowers/plans/2026-09-22-novex-design-studio-implementation.md`.
 
-Commit добавляет только эти два документа; runtime там не изменён. Ветка остаётся без upstream, remote branch и PR. Issue, точный идентификатор сессии, выполненные проверки и намерение push не сообщены. До status/handoff эта область занята; worktree, ветку, commit и два файла не менять, не публиковать за исполнителя и не назначать повторно.
+Commit добавляет только эти два документа. Однако к последней синхронизации `2026-09-22 07:20:14 +03:00` агент продолжил работу и оставил незакоммиченные изменения в трёх общих test-surfaces:
+
+- `apps/miniapp/e2e/dashboard.visual.spec.ts`;
+- `packages/ui/src/dashboard/dashboard-visuals.test.tsx`;
+- `packages/ui/src/dashboard/dashboard.test.tsx`.
+
+Продуктовые runtime-файлы в этом status не показаны, но работа уже вышла за исходный двухдокументный результат. Ветка остаётся без upstream, remote branch и PR. Issue, revision расширения scope, точный идентификатор сессии, выполненные проверки и намерение push не сообщены. До status/handoff вся эта область занята; worktree, ветку, commit и изменённые файлы не трогать, не публиковать за исполнителя и не назначать повторно.
 
 Также найден старый грязный `review/agent-results` с изменённым `pnpm-lock.yaml`. Его владелец неизвестен. Не очищать, не включать в bootstrap и считать зависимости/lockfile замороженными.
 
@@ -41,6 +47,8 @@ Commit добавляет только эти два документа; runtime
 Работа обнаружена в отдельном локальном окне и считается занятой до его ответа. Исходный разрешённый результат:
 - `docs/superpowers/specs/2026-09-22-novex-design-studio-design.md`;
 - `docs/superpowers/plans/2026-09-22-novex-design-studio-implementation.md`.
+
+Последующие незакоммиченные dashboard-test изменения не считать автоматически согласованной частью `DESIGN_ONLY`: сначала нужен ответ исполнителя и task revision.
 
 Содержание: четыре раздела «Логотип», «Цвета и фон», «Кнопки и меню», «Блоки»; объектные настройки; компактные controls; preview/save/cancel; главный экран без графиков. Не реализовывать редактор и не удалять графики в этом же DESIGN_ONLY этапе.
 
