@@ -17,12 +17,12 @@ Remote refs нужно повторно прочитать; эти SHA не «в
 
 ## Локальная работа, которую нельзя захватывать
 
-Обнаружен отдельный локальный worktree `codex/novex-design-studio-plan` на `b08cf23e5066b9c870bd89b0cc8048d1f57b82a8`. В нём два незакоммиченных документа компактной студии:
+Обнаружен отдельный локальный worktree `codex/novex-design-studio-plan`, созданный от `b08cf23e5066b9c870bd89b0cc8048d1f57b82a8`. Во время bootstrap его состояние изменилось: два документа компактной студии были собраны в локальный commit `23d8c7f1a54610dcc3b66d92e23603790d7a5c3d`:
 
 - `docs/superpowers/specs/2026-09-22-novex-design-studio-design.md`;
 - `docs/superpowers/plans/2026-09-22-novex-design-studio-implementation.md`.
 
-Runtime там не изменён. Issue, PR, точный идентификатор сессии, выполненные проверки и намерение commit/push не сообщены. До status/handoff эта область занята; worktree, ветку и два файла не менять и не назначать повторно.
+Commit добавляет только эти два документа; runtime там не изменён. Ветка остаётся без upstream, remote branch и PR. Issue, точный идентификатор сессии, выполненные проверки и намерение push не сообщены. До status/handoff эта область занята; worktree, ветку, commit и два файла не менять, не публиковать за исполнителя и не назначать повторно.
 
 Также найден старый грязный `review/agent-results` с изменённым `pnpm-lock.yaml`. Его владелец неизвестен. Не очищать, не включать в bootstrap и считать зависимости/lockfile замороженными.
 
