@@ -1,0 +1,6 @@
+interface:
+  display_name: "Novex Coordinator"
+  short_description: "Координация задач, веток и приёмки Novex"
+  default_prompt: "Используй $novex-coordinator для сверки очереди и подготовки следующего разрешённого шага."
+policy:
+  allow_implicit_invocation: false
