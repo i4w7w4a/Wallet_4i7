@@ -1,0 +1,140 @@
+.mono-shape-tuner {
+  display: grid;
+  gap: 12px;
+  padding: 3px 0 8px;
+}
+
+.mono-shape-tuner > p {
+  margin: 0;
+  color: #aeb3b5;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.mono-shape-tuner__groups,
+.mono-shape-tuner__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mono-shape-tuner__groups label {
+  position: relative;
+  display: block;
+  min-height: 44px;
+}
+
+.mono-shape-tuner__groups label > span,
+.mono-shape-tuner__actions button {
+  display: grid;
+  min-height: 44px;
+  place-items: center;
+  border: 1px solid #72787b;
+  border-radius: 8px;
+  background: #202325;
+  color: #dfe3e4;
+  font: inherit;
+}
+
+.mono-shape-tuner__groups label > span {
+  grid-template-columns: minmax(0, 1fr) 16px;
+  gap: 4px;
+  padding-inline: 10px;
+}
+
+.mono-shape-tuner__groups label i {
+  min-width: 16px;
+  font-style: normal;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mono-shape-tuner__groups input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.mono-shape-tuner__groups input:checked + span {
+  border-color: #dfe3e4;
+  background: #dfe3e4;
+  color: #111314;
+}
+
+.mono-shape-tuner__groups input:focus + span {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.mono-shape-tuner__radius {
+  display: grid;
+  gap: 8px;
+  color: #dfe3e4;
+  font-size: 12px;
+}
+
+.mono-shape-tuner__radius-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mono-shape-tuner__radius output {
+  color: #aeb3b5;
+  font-variant-numeric: tabular-nums;
+}
+
+.mono-shape-tuner__radius > input {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+}
+
+.mono-shape-tuner__exact-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px;
+  align-items: center;
+  gap: 8px;
+  color: #aeb3b5;
+}
+
+.mono-shape-tuner__radius .mono-shape-tuner__exact {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding-inline: 10px;
+  border: 1px solid #72787b;
+  border-radius: 8px;
+  background: #17191b;
+  color: #eef1f2;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.mono-shape-tuner__radius > input:focus,
+.mono-shape-tuner__exact:focus,
+.mono-shape-tuner__actions button:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.mono-shape-tuner__actions button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.mono-shape-tuner .mono-shape-tuner__status {
+  min-height: 16px;
+  color: #c9cdcf;
+}
+
+@media (forced-colors: active) {
+  .mono-shape-tuner__groups input:checked + span {
+    outline: 2px solid Highlight;
+    outline-offset: -3px;
+  }
+}

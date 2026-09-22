@@ -21,6 +21,14 @@ import {
 import { MonoGlassTuner } from "./mono-glass-tuner";
 import { MonoColorLab, MonoColorInspector, useMonoColorLab } from "./mono-color-lab";
 import { MonoPresetLibrary } from "./mono-preset-library";
+import { MonoShapeTuner } from "./mono-shape-tuner";
+import {
+  applyMonoShapeCandidate,
+  createMonoShapeDefaults,
+  loadMonoShapeCandidateFrom,
+  type MonoShapeGroup,
+  type MonoShapeMap,
+} from "./mono-shape-preview";
 import { stepTideMotion, type TideMotionState } from "./mono-tide-motion";
 
 import "./mono-fonts.css";
@@ -31,6 +39,7 @@ import "./mono-interactions.css";
 import "./mono-environment.css";
 import "./mono-theme.css";
 import "./mono-workbench.css";
+import "./mono-shape-tuner.css";
 
 type MonoPreset = "ledger" | "frost" | "mercury";
 type MonoSettingsMap = Record<MonoPreset, MonoGlassSettings>;
@@ -38,7 +47,7 @@ type MonoTheme = "dark" | "light";
 type MonoBackground = "iris" | "tide" | "strata";
 type MonoViewport = 320 | 390 | 430 | 480;
 type MonoRail = "quick" | "fine";
-type MonoSection = "variants" | "viewport" | "environment" | "optics";
+type MonoSection = "variants" | "viewport" | "shape" | "environment" | "optics";
 
 const OPTICAL_STORAGE_KEY = "wallet4i7.mono.optical-preview.v1";
 const ENVIRONMENT_STORAGE_KEY = "wallet4i7.mono.environment-preview.v1";
@@ -174,7 +183,11 @@ function MonoRailSection({
 export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const colorLab = useMonoColorLab();
   const preset = PRESETS[colorLab.workspace.activeSlotId - 1].id;
-  const setPreset = (next: MonoPreset) => colorLab.switchSlot((PRESETS.findIndex(item => item.id === next) + 1) as 1 | 2 | 3);
+  const [shapeStatus, setShapeStatus] = useState("");
+  const setPreset = (next: MonoPreset) => {
+    setShapeStatus("");
+    colorLab.switchSlot((PRESETS.findIndex(item => item.id === next) + 1) as 1 | 2 | 3);
+  };
   const [fineTab, setFineTab] = useState<"optics" | "color">("optics");
   const [balanceHidden, setBalanceHidden] = useState(snapshot.balance.hidden);
   const theme = colorLab.shown.mode;
@@ -186,11 +199,14 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const [sections, setSections] = useState<Record<MonoSection, boolean>>({
     variants: true,
     viewport: true,
+    shape: true,
     environment: true,
     optics: true,
   });
   const [appliedOptics, setAppliedOptics] = useState<MonoSettingsMap>(makeDefaultOptics);
   const [draftOptics, setDraftOptics] = useState<MonoSettingsMap>(makeDefaultOptics);
+  const [appliedShapes, setAppliedShapes] = useState<MonoShapeMap>(createMonoShapeDefaults);
+  const [draftShapes, setDraftShapes] = useState<MonoShapeMap>(createMonoShapeDefaults);
   const pageRef = useRef<HTMLElement>(null);
   const paletteCrossfadeRef = useRef<HTMLDivElement>(null);
   const previousPaletteBackgroundRef = useRef<string | null>(null);
@@ -227,6 +243,9 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       const saved = loadOpticalCandidate();
       setAppliedOptics(saved);
       setDraftOptics(saved);
+      const savedShapes = loadMonoShapeCandidateFrom(() => localStorage);
+      setAppliedShapes(savedShapes);
+      setDraftShapes(savedShapes);
     });
     return () => cancelAnimationFrame(frame);
   }, []);
@@ -436,6 +455,32 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
   }
 
+  function updateShape(group: MonoShapeGroup, radius: number) {
+    setShapeStatus("");
+    setDraftShapes((current) => ({
+      ...current,
+      [preset]: { ...current[preset], [group]: radius },
+    }));
+  }
+
+  function resetShape() {
+    const defaults = createMonoShapeDefaults();
+    setShapeStatus("");
+    setDraftShapes((current) => ({ ...current, [preset]: { ...defaults[preset] } }));
+  }
+
+  function applyShape() {
+    const candidate = { ...appliedShapes, [preset]: { ...draftShapes[preset] } };
+    try {
+      const next = applyMonoShapeCandidate(localStorage, candidate);
+      setAppliedShapes(next);
+      setDraftShapes((current) => ({ ...current, [preset]: { ...next[preset] } }));
+      setShapeStatus("Форма применена.");
+    } catch {
+      setShapeStatus("Не удалось сохранить форму. Черновик остался в предпросмотре.");
+    }
+  }
+
   function toggleSection(section: MonoSection) {
     setSections((current) => ({ ...current, [section]: !current[section] }));
   }
@@ -490,6 +535,12 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   }
 
   const workbenchStyle = { "--mono-preview-width": `${viewport}px` } as CSSProperties;
+  const shapeStyle = {
+    ...colorLab.style,
+    "--mono-actions-radius": `${draftShapes[preset]["quick-actions"]}px`,
+    "--mono-nav-radius": `${draftShapes[preset]["bottom-navigation"]}px`,
+  } as CSSProperties;
+  const shapeDirty = JSON.stringify(draftShapes[preset]) !== JSON.stringify(appliedShapes[preset]);
   const quickRailHidden = !panelsVisible || (compactChrome && mobileRail !== "quick");
   const fineRailHidden = !panelsVisible || (compactChrome && mobileRail !== "fine");
 
@@ -554,6 +605,11 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             ))}
           </div>
         </MonoRailSection>
+        <MonoRailSection id="shape" index="03" title="Форма" expanded={sections.shape}
+          onToggle={() => toggleSection("shape")}>
+          <MonoShapeTuner values={draftShapes[preset]} dirty={shapeDirty} status={shapeStatus}
+            onChange={updateShape} onDefault={resetShape} onApply={applyShape} />
+        </MonoRailSection>
         <MonoColorLab lab={colorLab} />
         <MonoPresetLibrary lab={colorLab} />
         <p className="mono-rail__hint"><span>1 / 2 / 3</span> переключают характер без касания телефона.</p>
@@ -611,7 +667,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
 
       <div className="mono-preview-frame" inert={compactChrome && panelsVisible && mobileRail !== null}>
         <main ref={pageRef} className="mono-page" data-mono-preview data-mono-preset={preset}
-          data-palette-enabled={Boolean(colorLab.shown.paletteEnabled)} data-palette-ready={colorLab.ready} style={colorLab.style}
+          data-palette-enabled={Boolean(colorLab.shown.paletteEnabled)} data-palette-ready={colorLab.ready} style={shapeStyle}
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
           data-pointer-active="false" onPointerMove={moveAtmosphere} onPointerLeave={restAtmosphere}>
           <div ref={paletteCrossfadeRef} className="mono-palette-crossfade" data-mono-palette-crossfade aria-hidden="true" />

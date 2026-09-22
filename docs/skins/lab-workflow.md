@@ -77,10 +77,11 @@ Prototype workbench использует две fixed sibling rails вокруг
 LEFT / QUICK                 PREVIEW                  RIGHT / FINE
 [Variants 1 / 2 / 3]     [clean mono-page]          [Environment]
 [320 / 390 / 430 / 480]  [no lab controls]          [Embedded Optics]
+[Shape: Actions / Nav]
 [Color Lab]                                      [Semantic inspector]
 ```
 
-- левая rail содержит `Варианты`, компактный `Экран` и `Цвет`;
+- левая rail содержит `Варианты`, компактный `Экран`, `Форму` и `Цвет`;
 - правая rail содержит `Среда`, embedded `Оптика` и инспектор отдельных цветов;
 - каждая секция имеет независимый accessible collapse;
 - один master switch скрывает/возвращает обе rails, не меняя их expanded state и не сдвигая preview;
@@ -88,6 +89,8 @@ LEFT / QUICK                 PREVIEW                  RIGHT / FINE
 - rail visibility/collapse — только chrome state. Эти действия не сбрасывают, не применяют и не перечитывают design draft.
 
 Optical controls исполняются live. Draft хранится отдельно от applied preview candidate для каждого из трёх текущих directions. Collapse секции, master hide и закрытие compact drawer сохраняют draft. `По умолчанию` явно заменяет draft текущего direction утверждённым built-in recipe; только `Применить` нормализует и пишет candidate в `wallet4i7.mono.optical-preview.v1`.
+
+Shape controls также исполняются live, но не входят в optical settings или Palette Lab preset. Редактируются только две MONO-оболочки: `quick-actions` и `bottom-navigation`; ручной радиус нормализуется в `0…24px` с шагом `1px`. Built-in defaults равны `12 / 19 / 14px` для actions Ledger/Frost/Mercury и `0px` для nav shell. `По умолчанию` возвращает обе группы активного direction, а `Применить форму` записывает только этот direction в `wallet4i7.mono.shape-preview.v1`. Остальные drafts, product appearance, server presets и palette hashes не меняются; autosave отсутствует.
 
 Четыре viewport profile — реальные container widths:
 

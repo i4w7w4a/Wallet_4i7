@@ -466,7 +466,7 @@
   margin-top: 21px;
   overflow: hidden;
   border: 1px solid var(--mono-rule);
-  border-radius: var(--mono-radius);
+  border-radius: var(--mono-actions-radius, var(--mono-radius));
   background: var(--mono-surface);
 }
 
@@ -702,6 +702,7 @@
   margin-inline: auto;
   padding: 10px var(--mono-gutter) calc(env(safe-area-inset-bottom, 0px) + 9px);
   border-top: 1px solid var(--mono-rule-strong);
+  border-radius: var(--mono-nav-radius, 0) var(--mono-nav-radius, 0) 0 0;
   background: var(--mono-canvas);
   box-shadow: 0 -12px 25px var(--mono-palette-borderSubtle-88, #0008);
 }
