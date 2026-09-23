@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { gzipSync } from "node:zlib";
-import { describe, expect, it } from "vitest";
+import { randomBytes } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
 
 import { decodeMonoSharePayload, encodeMonoSharePayload, MONO_SHARE_MAX_BYTES, MONO_SHARE_MAX_TOKEN_LENGTH } from "./mono-share-transport";
 
@@ -33,5 +34,17 @@ describe("bounded MONO snapshot transport", () => {
     const token = `m1.${"0".repeat(64)}.${compressed}`;
     expect(token.length).toBeLessThan(MONO_SHARE_MAX_TOKEN_LENGTH);
     await expect(decodeMonoSharePayload(token)).rejects.toMatchObject({ kind: "too-large" });
+  });
+
+  it("refuses an incompressible snapshot that would exceed the share link budget", async () => {
+    const json = JSON.stringify({ content: randomBytes(16_000).toString("hex") });
+    expect(new TextEncoder().encode(json).length).toBeLessThan(MONO_SHARE_MAX_BYTES);
+    await expect(encodeMonoSharePayload(json)).rejects.toMatchObject({ kind: "too-large" });
+  });
+
+  it("explains unavailable browser compression instead of leaking a TypeError", async () => {
+    vi.stubGlobal("CompressionStream", undefined);
+    try { await expect(encodeMonoSharePayload("{}")).rejects.toMatchObject({ kind: "unsupported" }); }
+    finally { vi.unstubAllGlobals(); }
   });
 });
