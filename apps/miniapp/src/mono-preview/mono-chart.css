@@ -1,0 +1,16 @@
+.mono-chart-view { min-width: 0; color: var(--mono-palette-textPrimary-ff, #f4f4f4); font-family: var(--mono-font-ui, sans-serif); padding-block: 8px 4px; }
+.mono-chart-view__heading, .mono-chart-view__caption { display: flex; justify-content: space-between; gap: 12px; color: var(--mono-palette-textSecondary-ff, #bdbdbd); font-size: var(--mono-type-label-size, 12px); }
+.mono-chart-view__heading { margin-bottom: 14px; }
+.mono-chart-view__plot { height: 128px; }
+.mono-chart-view__plot svg { display: block; width: 100%; height: 100%; overflow: visible; color: var(--mono-palette-chartLine-ff, #dedede); }
+.mono-chart-view__grid { fill: none; stroke: var(--mono-palette-borderSubtle-ff, #343434); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-dasharray: 2 5; }
+.mono-chart-view__line { fill: none; stroke: currentColor; stroke-width: 1.8; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.mono-chart-view__terminal { fill: currentColor; }
+.mono-chart-view__empty { display: grid; place-items: center; height: 100%; margin: 0; color: var(--mono-palette-textSecondary-ff, #bdbdbd); font-size: var(--mono-type-label-size, 12px); border-block: 1px dashed var(--mono-palette-borderSubtle-ff, #343434); }
+.mono-chart-view__caption { margin-top: 10px; }
+.mono-chart-view__periods { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; margin-top: 12px; }
+.mono-chart-view__periods button { min-width: 44px; min-height: 44px; padding: 4px; border: 1px solid transparent; border-radius: 6px; color: var(--mono-palette-textSecondary-ff, #bdbdbd); background: transparent; cursor: pointer; font-size: var(--mono-type-button-size, 13px); font-weight: var(--mono-type-button-weight, 500); }
+.mono-chart-view__periods button[aria-pressed="true"] { background: var(--mono-palette-surfaceRaised-ff, #202020); color: var(--mono-palette-textPrimary-ff, #fff); border-color: var(--mono-palette-borderStrong-ff, #707070); }
+.mono-chart-view__periods button:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, #fff); outline-offset: 2px; }
+.mono-chart-view__periods button:active { background: var(--mono-palette-surfaceRaised-ff, #202020); }
+@media (hover: hover) and (pointer: fine) { .mono-chart-view__periods button:hover { color: var(--mono-palette-textPrimary-ff, #fff); background: var(--mono-palette-surfaceBase-ff, #101010); } }
