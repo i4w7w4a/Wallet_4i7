@@ -724,8 +724,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     const panel = document.getElementById(mobileRail === "quick" ? "mono-quick-rail" : "mono-fine-rail");
     if (!panel) return;
     const focusable = () => Array.from(panel.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    )).filter((node) => node.getClientRects().length > 0 && !node.closest("[hidden], [inert]"));
+      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
+    )).filter((node) => node.tabIndex >= 0 && node.getClientRects().length > 0 && !node.closest("[hidden], [inert]"));
     const frame = requestAnimationFrame(() => focusable()[0]?.focus());
     const trapTab = (event: KeyboardEvent) => {
       if (event.key !== "Tab") return;
