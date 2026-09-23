@@ -6,6 +6,8 @@ import { MONO_GLASS_DEFAULTS, normalizeMonoPaletteConfig } from "@wallet/ui";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { MonoScene, type MonoScenePresentation } from "./mono-scene";
+import { createMonoExtendedAppearance } from "./mono-preset-envelope";
+import { normalizeMonoBackgroundRecipe } from "./mono-background-recipes";
 
 beforeEach(() => {
   vi.stubGlobal("matchMedia", (query: string) => ({
@@ -104,4 +106,33 @@ it("leases the atmosphere surface to an adapter without retaining the legacy amb
   expect(container.querySelector("[data-custom-atmosphere]")).toBeNull();
   expect(container.querySelectorAll("[data-mono-atmosphere]")).toHaveLength(1);
   expect(container.querySelectorAll("canvas")).toHaveLength(1);
+});
+
+it("renders full appearance in the common scene, keeps chart period transient and shares privacy with assets", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const presentation = { ...appearance(), ...createMonoExtendedAppearance("frost"),
+    balance: { composition: "centered" as const, fractionSize: "small" as const, fractionTone: "secondary" as const },
+    assets: { variant: "tiles" as const, density: "compact" as const, separators: "none" as const },
+    chart: { visible: true, variant: "step" as const }, layout: { chartPosition: "bottom" as const },
+    background: normalizeMonoBackgroundRecipe({ recipe: "obsidian", calm: true }),
+  };
+  const { container, rerender } = render(<MonoScene snapshot={snapshot} appearance={presentation} />);
+  expect(container.querySelector('.mono-balance[data-composition="centered"]')).not.toBeNull();
+  expect(container.querySelector('.mono-asset-list[data-variant="tiles"][data-density="compact"]')).not.toBeNull();
+  const assets = container.querySelector(".mono-asset-list")!;
+  const chart = container.querySelector('[data-chart-variant="step"]')!;
+  expect(assets.compareDocumentPosition(chart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "За неделю" }));
+  expect(screen.getByRole("button", { name: "За неделю" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Скрыть баланс" }));
+  expect(screen.getAllByText("Значения скрыты")).toHaveLength(snapshot.assets.length);
+  expect(screen.getByText("График скрыт")).toBeVisible();
+  expect(container.querySelector('[data-mono-background-recipe="obsidian"]')).not.toBeNull();
+  expect(container.querySelector("[data-mono-atmosphere]")).toBeNull();
+  expect(container.querySelectorAll("canvas")).toHaveLength(1);
+
+  rerender(<MonoScene snapshot={snapshot} appearance={{ ...presentation, chart: { visible: false, variant: "line" } }} />);
+  expect(screen.queryByRole("region", { name: "График баланса" })).toBeNull();
+  expect(screen.queryByRole("group", { name: "Период графика" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
 });

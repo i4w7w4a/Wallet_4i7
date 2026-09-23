@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
   type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefObject } from "react";
-import type { WalletSnapshot } from "@wallet/core";
+import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
 import { MonoOpticalGlass, type MonoGlassSettings, type MonoPaletteConfigV1 } from "@wallet/ui";
 import { MonoLogo } from "./mono-logo";
 import { resolveMonoLogoColors, type MonoLogoPreview } from "./mono-logo-preview";
@@ -11,8 +11,17 @@ import { monoPaletteStyle } from "./mono-palette-tokens";
 import type { MonoShapePreset, MonoShapeSettings } from "./mono-shape-preview";
 import { MONO_QUICK_ACTION_DEFAULT, MonoQuickActionFeedback } from "./mono-quick-action-feedback";
 import { stepTideMotion, type TideMotionState } from "./mono-tide-motion";
+import { MonoBalance } from "./mono-balance";
+import { MonoChart } from "./mono-chart";
+import { MonoAssetList } from "./mono-asset-list";
+import type { MonoSceneAppearance } from "./mono-scene-lab-contract";
+import { MonoBackgroundRecipes } from "./mono-background-recipes-view";
+import type { MonoBackgroundRecipeConfig } from "./mono-background-recipes";
+import { monoTypographyStyle, type MonoTypographyConfigV1 } from "./mono-typography";
+import { useMonoTypographyPreview } from "./mono-typography-preview";
 
 import "./mono-fonts.css";
+import "./mono-font-candidates.css";
 import "./mono-preview.css";
 import "./mono-atmosphere.css";
 import "./mono-motion.css";
@@ -29,7 +38,9 @@ export type MonoScenePresentation = {
   optics: MonoGlassSettings;
   environment: { theme: "dark" | "light"; background: "iris" | "tide" | "strata" };
   logo: MonoLogoPreview;
-};
+  typography?: MonoTypographyConfigV1 | null;
+  background?: MonoBackgroundRecipeConfig | null;
+} & Partial<MonoSceneAppearance>;
 
 export type MonoSceneProps = {
   snapshot: WalletSnapshot;
@@ -77,8 +88,13 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true,
   atmosphere, surfaceRef,
 }: MonoSceneProps) {
-  const customAtmosphere = atmosphere !== undefined;
+  const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
+  const typography = useMonoTypographyPreview(appearance.typography ?? null);
+  const fullScene = Boolean(appearance.balance && appearance.chart && appearance.layout && appearance.assets);
+  const [period, setPeriod] = useState<ChartPeriod>("1D");
+  const moneyFormat = { locale: "ru-RU", currency: snapshot.balance.currency,
+    minimumFractionDigits: 2, maximumFractionDigits: 2 };
   const { theme, background } = appearance.environment;
   const paletteStyle = useMemo(() => palette.enabled
     ? monoPaletteStyle(palette.config.themes[theme]) : {}, [palette.enabled, palette.config, theme]);
@@ -259,18 +275,25 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
     } : {}),
     "--mono-actions-radius": `${shape["quick-actions"]}px`,
     "--mono-nav-radius": `${shape["bottom-navigation"]}px`,
+    ...(typography.active ? monoTypographyStyle(typography.active) : {}),
   } as CSSProperties;
+  const chart = fullScene && appearance.chart && <MonoChart values={snapshot.chart[period]} format={moneyFormat}
+    hidden={balanceHidden} period={period} onPeriodChange={setPeriod} appearance={appearance.chart} />;
   return (
         <main ref={node => { pageRef.current = node; if (surfaceRef) surfaceRef.current = node; }}
           className="mono-page" data-mono-preview data-mono-preset={preset}
           data-mono-logo-variant={logoPreview.variant} data-mono-logo-custom={logoPreview.customColor}
           data-palette-enabled={Boolean(palette.enabled)} data-palette-ready={paletteReady} style={shapeStyle}
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
+          data-mono-typography={typography.active ? "true" : "false"}
+          data-mono-font-status={typography.status}
           data-mono-atmosphere-source={customAtmosphere ? "adapter" : "legacy"}
           data-pointer-active="false" onPointerMove={customAtmosphere || !active ? undefined : moveAtmosphere}
           onPointerLeave={customAtmosphere || !active ? undefined : restAtmosphere}>
           <div ref={paletteCrossfadeRef} className="mono-palette-crossfade" data-mono-palette-crossfade aria-hidden="true" />
-          {customAtmosphere ? atmosphere : <div className="mono-atmosphere" data-mono-atmosphere aria-hidden="true">
+          {atmosphere !== undefined ? atmosphere : appearance.background ?
+            <MonoBackgroundRecipes config={appearance.background} surfaceRef={pageRef} theme={theme} active={active} /> :
+          <div className="mono-atmosphere" data-mono-atmosphere aria-hidden="true">
             <span className="mono-atmosphere__focus" />
             <span className="mono-atmosphere__ribbon" />
             <span className="mono-atmosphere__grid" />
@@ -298,7 +321,14 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
           </div>
         </header>
 
-        <section className="mono-hero" aria-labelledby="mono-balance-title">
+        {fullScene && appearance.balance ? <section className="mono-hero">
+          <div className="mono-hero__eyebrow"><span>ЛИЧНЫЙ СЧЁТ</span><span>01 / 03</span></div>
+          <div className="mono-scene-domain">
+            <MonoBalance value={snapshot.balance.amount} format={moneyFormat} change24h={snapshot.balance.change24h}
+              hidden={balanceHidden} onHiddenChange={setBalanceHidden} appearance={appearance.balance} />
+            {appearance.layout?.chartPosition === "top" && chart}
+          </div>
+        </section> : <section className="mono-hero" aria-labelledby="mono-balance-title">
           <div className="mono-hero__eyebrow">
             <span>ЛИЧНЫЙ СЧЁТ</span>
             <span>01 / 03</span>
@@ -340,7 +370,7 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
             </div>
             <span>Сейчас</span>
           </div>
-        </section>
+        </section>}
 
         <section className="mono-actions" aria-label="Действия — визуальный прототип">
           {ACTIONS.map((action) => (
@@ -364,7 +394,10 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
           </MonoOpticalGlass>
         </div>
 
-        <section className="mono-assets" aria-labelledby="mono-assets-title">
+        {fullScene && appearance.assets ? <div className="mono-assets mono-scene-domain">
+          <MonoAssetList assets={snapshot.assets} format={moneyFormat} hidden={balanceHidden} appearance={appearance.assets} />
+          <p className="mono-assets__disclaimer">Демонстрационные данные. Операции здесь недоступны.</p>
+        </div> : <section className="mono-assets" aria-labelledby="mono-assets-title">
           <div className="mono-assets__heading"><h2 id="mono-assets-title">Активы</h2><span>{snapshot.assets.length.toString().padStart(2, "0")}</span></div>
           <div className="mono-assets__list">
             {snapshot.assets.map((asset) => (
@@ -376,7 +409,8 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
             ))}
           </div>
           <p className="mono-assets__disclaimer">Демонстрационные данные. Операции здесь недоступны.</p>
-        </section>
+        </section>}
+        {fullScene && appearance.layout?.chartPosition === "bottom" && <div className="mono-scene-domain mono-scene-domain--chart">{chart}</div>}
       </div>
 
       <div className="mono-nav" aria-label="Предпросмотр нижней навигации">
