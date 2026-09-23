@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { closeCompactMonoRail, openMonoRail } from "./mono-test-helpers";
+import { closeCompactMonoRail, openMonoTool } from "./mono-test-helpers";
 
 const SHAPE_STORAGE_KEY = "wallet4i7.mono.shape-preview.v1";
 const WORKING_KEY = "wallet4i7.mono.working-presets.v2";
@@ -12,10 +12,12 @@ test.describe("desktop MONO shape lab", () => {
   });
 
   test("keeps built-in defaults and applies each direction independently", async ({ page }) => {
+    const fine = await openMonoTool(page, "shape");
     const actions = page.locator(".mono-actions");
     const nav = page.locator(".mono-nav");
-    const shape = page.getByRole("group", { name: "Настройка формы" });
+    const shape = fine.getByRole("group", { name: "Настройка формы" });
     const radius = shape.getByRole("slider", { name: "Радиус формы" });
+    const apply = fine.locator(".mono-inspector-shell__footer").getByRole("button", { name: "Применить форму" });
 
     for (const [variant, expected] of [
       ["1 · Ledger", "12px"],
@@ -47,11 +49,12 @@ test.describe("desktop MONO shape lab", () => {
     await radius.fill("20");
     await shape.getByRole("radio", { name: "Нижнее меню" }).click();
     await radius.fill("16");
-    await shape.getByRole("button", { name: "Применить форму" }).click();
+    await apply.click();
     expect(await page.evaluate((key) => localStorage.getItem(key), WORKING_KEY)).not.toBeNull();
     expect(await page.evaluate((key) => localStorage.getItem(key), SHAPE_STORAGE_KEY)).toBeNull();
 
     await page.reload();
+    await openMonoTool(page, "shape");
     await expect(actions).toHaveCSS("border-top-left-radius", "20px");
     await expect(nav).toHaveCSS("border-top-left-radius", "16px");
     await expect(page.locator("canvas")).toHaveCount(1);
@@ -64,10 +67,11 @@ test.describe("desktop MONO shape lab", () => {
 
   test("keeps the live shape stable at every real preview width", async ({ page }) => {
     test.slow(process.env.MONO_SHAPE_CAPTURE === "1", "Capturing eight full scene review artifacts");
+    const fine = await openMonoTool(page, "shape");
     const preview = page.locator("[data-mono-preview]");
     const actions = page.locator(".mono-actions");
     const nav = page.locator(".mono-nav");
-    const shape = page.getByRole("group", { name: "Настройка формы" });
+    const shape = fine.getByRole("group", { name: "Настройка формы" });
     const radius = shape.getByRole("slider", { name: "Радиус формы" });
 
     for (const width of [320, 390, 430, 480] as const) {
@@ -108,8 +112,8 @@ test.describe("compact MONO shape lab", () => {
 
   test("keeps form controls reachable, focusable and non-color-dependent", async ({ page }) => {
     await page.goto("/mono");
-    const quickRail = await openMonoRail(page, "quick");
-    const shape = quickRail.getByRole("group", { name: "Настройка формы" });
+    const fine = await openMonoTool(page, "shape");
+    const shape = fine.getByRole("group", { name: "Настройка формы" });
     await shape.scrollIntoViewIfNeeded();
 
     const quick = shape.getByRole("radio", { name: "Быстрые действия" });
@@ -117,7 +121,7 @@ test.describe("compact MONO shape lab", () => {
     const range = shape.getByRole("slider", { name: "Радиус формы" });
     const exact = shape.getByRole("spinbutton", { name: "Радиус: точное значение" });
     const reset = shape.getByRole("button", { name: "По умолчанию" });
-    const apply = shape.getByRole("button", { name: "Применить форму" });
+    const apply = fine.locator(".mono-inspector-shell__footer").getByRole("button", { name: "Применить форму" });
 
     for (const control of [quick, navGroup, range, exact, reset, apply]) {
       const box = await control.boundingBox();
@@ -158,7 +162,7 @@ test.describe("compact MONO shape lab", () => {
     if (process.env.MONO_SHAPE_CAPTURE === "1") {
       await page.screenshot({ path: test.info().outputPath("shape-compact-drawer-390.png"), animations: "disabled" });
     }
-    await closeCompactMonoRail(page, "quick");
+    await closeCompactMonoRail(page, "fine");
     await expect(page.locator(".mono-actions")).toHaveCSS("border-top-left-radius", "24px");
     await expect(page.locator(".mono-nav")).toHaveCSS("border-top-left-radius", "18px");
   });
