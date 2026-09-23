@@ -30,7 +30,7 @@ test("оптику можно настроить живьём, сбросить 
   await expect(ior).toHaveValue("1.34");
   await setRange("-0.80");
   await optics.getByRole("button", { name: "Применить" }).click();
-  const saved = await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v1"));
+  const saved = await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v2"));
   expect(JSON.parse(saved ?? "null").records[0].document.optics.ledger.ior).toBe(-0.8);
   expect(await page.evaluate(() => localStorage.getItem("wallet4i7.mono.optical-preview.v1"))).toBeNull();
 

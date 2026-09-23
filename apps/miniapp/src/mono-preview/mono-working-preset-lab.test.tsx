@@ -9,9 +9,9 @@ import { MonoPreview } from "./mono-preview";
 import { createMonoPaletteWorkspace } from "./mono-palette-workspace";
 import { MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY, saveMonoPaletteLibrary, saveMonoPaletteWorkspace } from "./mono-palette-storage";
 import { exportMonoPalettePreset, importMonoPalettePreset } from "./mono-preset-codec";
-import { createMonoWorkingDocument, saveMonoWorkingLibrary } from "./mono-working-presets";
+import { createMonoWorkingDocument, MONO_WORKING_PRESETS_KEY, saveMonoWorkingLibrary } from "./mono-working-presets";
 
-const WORKING_KEY = "wallet4i7.mono.working-presets.v1";
+const WORKING_KEY = MONO_WORKING_PRESETS_KEY;
 
 beforeEach(() => {
   localStorage.clear();
@@ -586,7 +586,7 @@ it("does not silently replace an unknown legacy shape schema during migration", 
 it("holds an unknown field in the new working schema for recovery instead of erasing it", async () => {
   const document = createMonoWorkingDocument() as unknown as Record<string, unknown>;
   document.customCss = "do-not-apply";
-  const raw = JSON.stringify({ version: 1, skinId: "mono-ledger-v1", generation: 1,
+  const raw = JSON.stringify({ version: 2, skinId: "mono-ledger-v1", generation: 1,
     activeId: "other-version", records: [{ id: "other-version", name: "Будущее", revision: 1, document }] });
   localStorage.setItem(WORKING_KEY, raw);
   render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);

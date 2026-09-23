@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const WORKING_KEY = "wallet4i7.mono.working-presets.v1";
+const WORKING_KEY = "wallet4i7.mono.working-presets.v2";
 const PALETTE_ACTIVE_KEY = "wallet4i7.mono.palette-active.v2";
 
 test.use({ hasTouch: false, isMobile: false, viewport: { width: 1440, height: 1000 } });
