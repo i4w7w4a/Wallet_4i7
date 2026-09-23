@@ -3,18 +3,35 @@ import { useEffect, useState } from "react";
 import { loadMonoTypography } from "./mono-font-loader";
 import type { MonoTypographyConfigV1 } from "./mono-typography";
 
-/** Latest request wins; failed/slow faces never replace the last ready specimen. */
+type PreviewState = {
+  key: string;
+  active: MonoTypographyConfigV1 | null;
+  status: "legacy" | "loading" | "ready" | "error";
+};
+
+/** Latest request wins; null is a displayed legacy state, not a hidden font cache. */
 export function useMonoTypographyPreview(candidate: MonoTypographyConfigV1 | null) {
-  const [ready, setReady] = useState<{ config: MonoTypographyConfigV1 | null; key: string }>({ config: candidate, key: "" });
-  const [failure, setFailure] = useState<string | null>(null);
   const key = JSON.stringify(candidate);
+  const [state, setState] = useState<PreviewState>(() => ({
+    key, active: null, status: candidate === null ? "legacy" : "loading",
+  }));
+  let shown = state;
+  if (state.key !== key) {
+    // Adjust on the input transition, before children render. An effect-only reset
+    // could expose A for a frame during A → legacy → B, or revive it after failure.
+    shown = { key, active: candidate === null ? null : state.active, status: candidate === null ? "legacy" : "loading" };
+    setState(shown);
+  }
   useEffect(() => {
-    if (!candidate) return;
+    const requested: unknown = JSON.parse(key);
+    if (requested === null) return;
     let current = true;
-    loadMonoTypography(candidate).then(config => {
-      if (current) { setReady({ config, key }); setFailure(null); }
-    }).catch(() => { if (current) setFailure(key); });
+    loadMonoTypography(requested).then(active => {
+      if (current) setState(previous => previous.key === key ? { key, active, status: "ready" } : previous);
+    }).catch(() => {
+      if (current) setState(previous => previous.key === key ? { ...previous, status: "error" } : previous);
+    });
     return () => { current = false; };
-  }, [candidate, key]);
-  return { active: candidate === null ? null : ready.config, status: candidate === null ? "legacy" : failure === key ? "error" : ready.key === key ? "ready" : "loading" } as const;
+  }, [key]);
+  return { active: shown.active, status: shown.status } as const;
 }
