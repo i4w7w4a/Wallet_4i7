@@ -1,0 +1,98 @@
+.layer {
+  --recipe-x: 0px;
+  --recipe-y: 0px;
+  --recipe-angle: 0deg;
+  --recipe-base: #0d0f14;
+  --recipe-shadow: #07090e;
+  --recipe-body: #475463;
+  --recipe-edge: #b3afb4;
+  --recipe-thread: #d0d7de;
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  contain: strict;
+  pointer-events: none;
+  background: var(--recipe-base);
+}
+.layer[data-recipe-theme="light"] {
+  --recipe-base: #e9e5dd;
+  --recipe-shadow: #d5d1c9;
+  --recipe-body: #9ca6ab;
+  --recipe-edge: #fffdf5;
+  --recipe-thread: #677681;
+}
+.layer[data-mono-background-recipe="aperture"] {
+  --recipe-base: #101112;
+  --recipe-shadow: #070a0d;
+  --recipe-body: #6b777c;
+  --recipe-edge: #d6cbb6;
+  --recipe-thread: #d5c6ac;
+}
+.layer[data-mono-background-recipe="aperture"][data-recipe-theme="light"] {
+  --recipe-base: #e7e2d9;
+  --recipe-shadow: #9b9993;
+  --recipe-body: #e6ded1;
+  --recipe-edge: #fffefa;
+  --recipe-thread: #7f817d;
+}
+.material { position: absolute; inset: 0; opacity: var(--recipe-intensity); }
+.folds, .counterfold, .aperture {
+  position: absolute;
+  inset: -22px -28px;
+  width: calc(100% + 56px);
+  height: calc(100% + 44px);
+  transition: transform var(--recipe-duration) var(--recipe-easing);
+}
+.folds { transform: translate3d(var(--recipe-x), var(--recipe-y), 0); }
+.counterfold {
+  opacity: .17;
+  transform: translate3d(calc(var(--recipe-x) * -.5), calc(var(--recipe-y) * -.35), 0);
+  transition-duration: calc(var(--recipe-duration) * 1.35);
+}
+.aperture {
+  transform-origin: 75% 0;
+  transform: translate3d(calc(var(--recipe-x) * .55), 0, 0) rotate(var(--recipe-angle));
+}
+.shutter {
+  position: absolute;
+  width: 150%;
+  height: 32%;
+  top: 54%;
+  left: -25%;
+  background: linear-gradient(180deg, transparent, var(--recipe-shadow) 2%, var(--recipe-base) 64%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--recipe-thread) 24%, transparent);
+  transform: translate3d(calc(var(--recipe-x) * -.65), calc(var(--recipe-y) * .6), 0) rotate(-24deg);
+  transition: transform calc(var(--recipe-duration) * 1.2) var(--recipe-easing);
+}
+.ruling {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 95px, color-mix(in srgb, var(--recipe-thread) 6%, transparent) 95px 96px);
+  mask-image: linear-gradient(180deg, #000, transparent 75%);
+}
+.veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--recipe-base) 25%, transparent), transparent 70%),
+    linear-gradient(180deg, transparent 3%, color-mix(in srgb, var(--recipe-base) 36%, transparent) 20%, transparent 45%, var(--recipe-base) 100%);
+}
+.layer[data-mono-background-recipe="baseline"] { background: transparent; }
+.baseline { position: absolute; width: 100%; height: 100%; }
+.baseline :global(.mono-atmosphere__ribbon) { animation: none; }
+.layer[data-pointer-active="true"] .baseline :global(.mono-atmosphere__focus) { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }
+.layer[data-pointer-active="true"] .baseline :global(.mono-atmosphere__ribbon) { opacity: .72; }
+.layer[data-pointer-active="true"] .baseline :global(.mono-atmosphere__grid) { opacity: .58; }
+.layer:not([data-motion="ready"]) *,
+.layer[data-effects-disabled="true"] * { transition: none !important; animation: none !important; }
+.layer[data-effects-disabled="true"] .material,
+.layer[data-effects-disabled="true"] .baseline { visibility: hidden; }
+@media (prefers-reduced-motion: reduce), (pointer: coarse), (hover: none) {
+  .layer * { transition: none !important; animation: none !important; }
+  .folds, .counterfold, .aperture { transform: none; }
+  .shutter { transform: rotate(-24deg); }
+}
+@media (forced-colors: active) {
+  .layer { background: Canvas; }
+  .layer > * { display: none; }
+}
