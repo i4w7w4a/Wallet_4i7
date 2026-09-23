@@ -9,7 +9,8 @@
 .mono-lab-control-icon-button:hover { background: var(--mono-lab-control-hover, #292c30); }
 .mono-lab-control-icon-button[aria-pressed="true"] { background: var(--mono-lab-control-active, #e9ecef); color: #17191b; }
 .mono-lab-control-icon-button:disabled { opacity: .45; cursor: default; }
-.mono-lab-control-tooltip { position: absolute; z-index: 30; top: 100%; right: 0; padding-top: 4px; width: max-content; max-width: min(240px, 80vw); pointer-events: auto; }
+.mono-lab-control-tooltip { position: fixed; z-index: 10000; top: 0; left: 0; visibility: hidden; padding-top: 4px; width: max-content; max-width: min(240px, calc(100vw - 16px)); pointer-events: auto; }
+.mono-lab-control-tooltip[data-placement="top"] { padding-top: 0; padding-bottom: 4px; }
 .mono-lab-control-tooltip > span { display: block; padding: 8px 11px; border: 1px solid #61656c; border-radius: 8px; background: #f0f1f2; color: #17191b; box-shadow: 0 8px 24px #0006; font: 12px/1.4 Arial, sans-serif; white-space: normal; }
 .mono-lab-control-slider-row { display: grid; gap: 1px; min-width: 0; color: inherit; }
 .mono-lab-control-slider-row > label { font-size: 12px; line-height: 1.4; }
