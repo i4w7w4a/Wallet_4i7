@@ -1,0 +1,10 @@
+.mono-font-tuner { display: grid; gap: 14px; color: #e9edf0; }
+.mono-font-field { display: grid; gap: 7px; min-width: 0; }
+.mono-font-field > span { font-size: 12px; color: #c2cad3; }
+.mono-font-field select { width: 100%; min-width: 0; min-height: 44px; background: #1d2127; border: 1px solid #5a636e; border-radius: 8px; color: #edf0f3; padding: 8px 10px; font-size: 13px; }
+.mono-font-field select:focus-visible { outline: 2px solid var(--mono-lab-control-focus, #e1e9f2); outline-offset: 3px; }
+.mono-font-pair-note { margin: -2px 0 10px; color: #e3e7eb; font-size: 12px; }
+.mono-font-pair-note span { color: #adb7c1; }
+.mono-font-file-note { display: grid; gap: 5px; font-size: 11px; color: #bbc4cd; overflow-wrap: anywhere; }
+.mono-font-file-note strong { color: #eef0f3; font-size: 13px; font-weight: 500; }
+.mono-font-file-note a { display: inline-flex; align-items: center; min-height: 44px; color: #d2e2ef; }

@@ -1,0 +1,94 @@
+.mono-font-lab {
+  --mono-lab-control-accent: #cdd6df;
+  min-height: 100dvh; background: #111317; color: #e9edf0;
+  padding: max(28px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  font: 14px/1.5 Arial, sans-serif;
+}
+.mono-font-lab-header { max-width: 1140px; margin: 0 auto 32px; display: flex; justify-content: space-between; gap: 24px; align-items: end; }
+.mono-font-back { display: inline-flex; align-items: center; min-height: 44px; color: #b8c1cb; text-decoration: none; font-size: 12px; }
+.mono-font-lab h1 { font-size: clamp(28px, 3vw, 40px); letter-spacing: -.04em; line-height: 1.2; margin: 16px 0 8px; font-weight: 500; }
+.mono-font-lab-header p { margin: 0; color: #aab3bd; }
+.mono-font-edition { display: grid; gap: 5px; color: #b7c1cb; font-size: 11px; letter-spacing: .1em; text-align: right; }
+.mono-font-edition > span { color: #dce0e5; }
+.mono-font-lab-layout { max-width: 1140px; margin: 0 auto; display: grid; grid-template-columns: 280px minmax(0, 1fr); align-items: start; gap: 48px; }
+.mono-font-lab-panel { border-top: 1px solid #636b74; min-width: 0; padding-top: 8px; }
+.mono-font-panel-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
+.mono-font-panel-title h2 { font-size: 16px; margin: 0; font-weight: 500; }
+.mono-font-tool-row { display: flex; align-items: center; gap: 1px; }
+.mono-font-small { color: #b5bec8; font-size: 12px; margin: 0; }
+.mono-font-text-button { min-height: 44px; border: 1px solid #6e7a87; border-radius: 8px; color: #edf1f5; background: #252b33; cursor: pointer; }
+.mono-font-lab textarea { box-sizing: border-box; width: 100%; border: 1px solid #545e6a; border-radius: 8px; background: #181c22; color: #cfd9e3; padding: 12px; font: 11px/1.5 monospace; resize: vertical; }
+.mono-font-stage { min-width: 0; }
+.mono-font-stage-toolbar { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; max-width: 620px; margin: 0 auto; }
+.mono-font-widths { display: flex; gap: 2px; }
+.mono-font-widths button { min-width: 44px; min-height: 44px; font-size: 11px; color: #b4bec9; background: transparent; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.mono-font-widths button[aria-pressed="true"] { color: #eef1f5; border-color: #5c6875; background: #20262d; }
+.mono-font-status { display: flex; justify-content: center; align-items: center; gap: 7px; min-height: 48px; padding: 4px 0; color: #aeb9c5; text-align: center; font-size: 11px; }
+.mono-font-status-dot { flex: 0 0 auto; height: 5px; width: 5px; border-radius: 50%; background: #bfd7cd; }
+.mono-font-status-dot--loading { background: #c5cad1; }
+.mono-font-status-dot--error { background: #ebc3a9; }
+.mono-font-canvas { width: min(100%, var(--mono-font-preview-width)); margin: 0 auto; container: mono-font-preview / inline-size; }
+.mono-font-scene {
+  --type-surface: #080a0d; --type-text: #ebeff3; --type-secondary: #aeb7c0; --type-line: #353b43; --type-control: #191e24;
+  color: var(--type-text); background: var(--type-surface); padding: 24px 22px 0; min-width: 0;
+  font-family: var(--mono-type-body-family); font-size: var(--mono-type-body-size); font-weight: var(--mono-type-body-weight);
+  line-height: var(--mono-type-body-line-height); font-synthesis: none;
+}
+.mono-font-scene[data-theme="light"] { --type-surface: #f0eee9; --type-text: #222426; --type-secondary: #565b60; --type-line: #b8bbc0; --type-control: #e1dfda; color-scheme: light; }
+.mono-font-wallet-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 28px; }
+.mono-font-scene .mono-logo { display: block; width: 90px; height: auto; fill: currentColor; }
+.mono-font-scene .mono-logo__icon-depth { fill: var(--type-secondary); }
+.mono-font-scene .mono-logo__gradient-start, .mono-font-scene .mono-logo__gradient-end { stop-color: currentColor; }
+.mono-font-wallet-demo { color: var(--type-secondary); font-family: var(--mono-type-label-family); font-size: 10px; letter-spacing: .1em; }
+.mono-font-greeting { display: flex; justify-content: space-between; gap: 10px; color: var(--type-secondary); font-size: var(--mono-type-label-size); }
+.mono-font-balance-block { margin: 25px 0 24px; }
+.mono-font-role-label { color: var(--type-secondary); font-family: var(--mono-type-label-family); font-size: var(--mono-type-label-size); font-weight: var(--mono-type-label-weight); letter-spacing: var(--mono-type-label-tracking); }
+.mono-font-balance-block > .mono-font-role-label { margin: 0 0 14px; }
+.mono-font-balance { font-family: var(--mono-font-numeric); font-weight: var(--mono-type-balance-weight); font-size: min(var(--mono-type-balance-size), calc((100cqw - 44px) / var(--mono-font-amount-units))); font-variant-numeric: var(--mono-type-numeric-variant); font-feature-settings: var(--mono-type-numeric-features); letter-spacing: -.045em; line-height: .98; margin: 0; white-space: nowrap; }
+.mono-font-change { margin: 14px 0 0; font-family: var(--mono-font-numeric); font-variant-numeric: var(--mono-type-numeric-variant); font-size: var(--mono-type-label-size); }
+.mono-font-change > span { margin-left: 5px; color: var(--type-secondary); font-family: var(--mono-type-label-family); }
+.mono-font-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--type-line); border-radius: 12px; background: var(--type-control); }
+.mono-font-actions button { display: grid; gap: 8px; justify-items: center; min-width: 0; min-height: 78px; padding: 12px 2px; color: var(--type-text); cursor: pointer; background: transparent; border: 0; font-family: var(--mono-type-button-family); font-size: min(var(--mono-type-button-size), 3.35cqw); font-weight: var(--mono-type-button-weight); }
+.mono-font-actions button + button { border-left: 1px solid var(--type-line); }
+.mono-font-actions button > span:first-child { font: 23px/1 Arial,sans-serif; }
+.mono-font-demo-feedback { min-height: 20px; margin: 8px 0 26px; text-align: center; color: var(--type-secondary); font-size: 11px; }
+.mono-font-assets h2 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; font: inherit; font-size: var(--mono-type-section-size); font-weight: var(--mono-font-weight-strong); }
+.mono-font-assets h2 > span { color: var(--type-secondary); font-size: var(--mono-type-label-size); font-weight: var(--mono-type-label-weight); }
+.mono-font-asset-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--type-line); }
+.mono-font-asset-row > div { display: grid; gap: 3px; }
+.mono-font-asset-row strong { font-weight: var(--mono-font-weight-medium); }
+.mono-font-asset-row span { color: var(--type-secondary); font-family: var(--mono-font-numeric); font-size: var(--mono-type-label-size); font-variant-numeric: var(--mono-type-numeric-variant); }
+.mono-font-asset-value { text-align: right; font-family: var(--mono-font-numeric); font-size: var(--mono-type-row-value-size); font-variant-numeric: var(--mono-type-numeric-variant); }
+.mono-font-address { display: flex; justify-content: space-between; gap: 10px; margin: 22px 0; }
+.mono-font-address > span:last-child { font-family: var(--mono-type-mono-family); font-size: var(--mono-type-mono-size); font-weight: var(--mono-type-mono-weight); }
+.mono-font-navigation { display: flex; border-top: 1px solid var(--type-line); margin: 0 -22px; padding: 0 10px max(10px, env(safe-area-inset-bottom)); }
+.mono-font-navigation button { flex: 1; min-width: 44px; min-height: 54px; border: 0; border-top: 2px solid transparent; background: transparent; color: var(--type-secondary); font-family: var(--mono-type-menu-family); font-size: var(--mono-type-menu-size); font-weight: var(--mono-type-menu-weight); cursor: pointer; }
+.mono-font-navigation button[aria-current] { color: var(--type-text); border-top-color: var(--type-text); }
+.mono-font-proof { max-width: 620px; margin: 32px auto 0; padding-top: 16px; border-top: 1px solid #454e58; }
+.mono-font-proof-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: #b4bec9; font: 11px/1.5 Arial,sans-serif; }
+.mono-font-proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 22px 0 8px; font-family: var(--mono-type-body-family); font-size: var(--mono-type-body-size); font-weight: var(--mono-type-body-weight); }
+.mono-font-proof-grid p { margin: 0 0 5px; }
+.mono-font-proof-letters { font-size: 36px; line-height: 1.2; letter-spacing: -.03em; }
+.mono-font-proof-numbers { font-family: var(--mono-font-numeric); font-variant-numeric: var(--mono-type-numeric-variant); font-feature-settings: var(--mono-type-numeric-features); text-align: right; }
+.mono-font-proof-numbers p { font-size: 20px; }
+.mono-font-proof-numbers span { font-size: 13px; }
+.mono-font-proof-distinction { border-top: 1px solid #303843; padding-top: 14px; color: #b6c0cb; font: 17px/1.5 var(--mono-type-body-family); }
+.mono-font-lab :is(button,select,a,textarea):focus-visible { outline: 2px solid #dce9f6; outline-offset: 3px; }
+.mono-font-scene :is(button,a):focus-visible { outline-color: var(--type-text); }
+.mono-font-actions button:hover, .mono-font-navigation button:hover { background: color-mix(in srgb, var(--type-text) 6%, transparent); }
+@media (max-width: 850px) {
+  .mono-font-lab-layout { gap: 24px; grid-template-columns: 246px minmax(0, 1fr); }
+  .mono-font-lab { padding-inline: 16px; }
+}
+@media (max-width: 680px) {
+  .mono-font-lab-layout { display: flex; flex-direction: column; gap: 28px; }
+  .mono-font-lab-panel, .mono-font-stage { width: 100%; }
+  .mono-font-lab-panel { max-width: 480px; margin-inline: auto; }
+  .mono-font-lab-header { margin-bottom: 24px; }
+  .mono-font-edition { display: none; }
+  .mono-font-lab { padding-inline: 12px; }
+  .mono-font-stage-toolbar { justify-content: center; gap: 4px; }
+  .mono-font-proof-grid { gap: 12px; }
+  .mono-font-proof-grid > div { min-width: 0; }
+  .mono-font-proof-grid p { overflow-wrap: anywhere; }
+}

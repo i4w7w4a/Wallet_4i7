@@ -2,7 +2,7 @@
 
 These are self-hosted assets for MONO and the isolated `/design-lab/type` Font Lab. No font is fetched from a CDN at runtime. The finite registry and shaped-glyph audit live in `src/mono-preview/mono-font-registry.ts` and `mono-font-audit.json`.
 
-All three families are licensed under the SIL Open Font License 1.1; the complete license notices are kept beside the binaries. IBM Plex reserves the font name **“Plex”**. Its WOFF2 files below are unmodified binaries from IBM's own repository. Golos Text files are also unmodified upstream WOFF2 binaries. Onest has no Reserved Font Name in its OFL notice; its WOFF2 here was compressed from the Google Fonts source TTF without subsetting or outline changes.
+All six families are licensed under the SIL Open Font License 1.1; the complete license notices are kept beside the binaries. IBM Plex reserves the font name **“Plex”**. Its WOFF2 files below are unmodified binaries from IBM's own repository. Golos Text files are also unmodified upstream WOFF2 binaries. Onest has no Reserved Font Name in its OFL notice; its WOFF2 here was compressed from the Google Fonts source TTF without subsetting or outline changes.
 
 | Local file | Upstream source at pinned commit | Internal version | SHA-256 |
 |---|---|---|---|
