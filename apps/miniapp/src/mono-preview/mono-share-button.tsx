@@ -4,6 +4,10 @@ import { useState } from "react";
 import "./mono-share-button.css";
 
 export type MonoShareButtonProps = { createLink: () => Promise<string>; disabled?: boolean };
+function localLink(link: string): boolean {
+  const host = new URL(link).hostname;
+  return host === "localhost" || host.endsWith(".localhost") || host === "[::1]" || host.startsWith("127.");
+}
 export function MonoShareButton({ createLink, disabled = false }: MonoShareButtonProps) {
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState("");
@@ -29,6 +33,7 @@ export function MonoShareButton({ createLink, disabled = false }: MonoShareButto
       {busy ? "Готовим ссылку…" : "Получить ссылку"}
     </button>
     {link && <>
+      {localLink(link) && <p>Локальная ссылка · на этом компьютере</p>}
       <p>Ссылка сохраняет этот вид. Последующие изменения в неё не попадут.</p>
       <input aria-label="Ссылка на оформление" readOnly value={link} onFocus={event => event.currentTarget.select()} />
       <div className="mono-share__actions">

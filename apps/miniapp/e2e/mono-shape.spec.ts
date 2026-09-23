@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { closeCompactMonoRail, openMonoRail } from "./mono-test-helpers";
 
 const SHAPE_STORAGE_KEY = "wallet4i7.mono.shape-preview.v1";
-const WORKING_KEY = "wallet4i7.mono.working-presets.v1";
+const WORKING_KEY = "wallet4i7.mono.working-presets.v2";
 
 test.describe("desktop MONO shape lab", () => {
   test.use({ hasTouch: false, isMobile: false, viewport: { width: 1440, height: 1000 } });

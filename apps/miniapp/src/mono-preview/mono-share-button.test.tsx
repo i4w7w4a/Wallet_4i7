@@ -27,3 +27,9 @@ it("allows the editor to disable sharing while accepted data is unavailable", ()
   render(<MonoShareButton disabled createLink={async () => "https://wallet.example/mono/view"} />);
   expect(screen.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
 });
+
+it("labels a loopback preview honestly instead of promising access from another phone", async () => {
+  render(<MonoShareButton createLink={async () => "http://127.0.0.1:3126/mono/view#mono=snapshot"} />);
+  fireEvent.click(screen.getByRole("button", { name: "Получить ссылку" }));
+  expect(await screen.findByText("Локальная ссылка · на этом компьютере")).toBeVisible();
+});
