@@ -25,7 +25,7 @@ import { MonoColorLab, MonoColorInspector, useMonoColorLab } from "./mono-color-
 import { createMonoPaletteWorkspace, enableMonoPalette, switchMonoPaletteTheme } from "./mono-palette-workspace";
 import { MonoPresetLibrary } from "./mono-preset-library";
 import { MonoShapeTuner } from "./mono-shape-tuner";
-import { MonoQuickActionFeedback } from "./mono-quick-action-feedback";
+import { MONO_QUICK_ACTION_DEFAULT, MonoQuickActionFeedback } from "./mono-quick-action-feedback";
 import { MonoWorkingPresetBar } from "./mono-working-preset-bar";
 import { saveMonoPalettePrepaint } from "./mono-palette-prepaint";
 import { MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY, loadMonoPaletteLibrary,
@@ -550,13 +550,14 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const [fineTab, setFineTab] = useState<"optics" | "color">("optics");
   const [balanceHidden, setBalanceHidden] = useState(snapshot.balance.hidden);
   const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
-  const [quickActionMotionStatus, setQuickActionMotionStatus] = useState("Эффект ещё не применён.");
+  const [quickActionMotionStatus, setQuickActionMotionStatus] = useState("Стандартный отклик: Материал · 2,7 px / 270 мс.");
   const [quickActionPreview, setQuickActionPreview] = useState<{
     preset: ControlFeedbackPreset;
     workingPresetId: string | null;
   } | null>(null);
-  const quickActionPreset = quickActionPreview?.workingPresetId === (workingLibrary?.activeId ?? null)
+  const quickActionOverride = quickActionPreview?.workingPresetId === (workingLibrary?.activeId ?? null)
     ? quickActionPreview?.preset ?? null : null;
+  const quickActionPreset = quickActionOverride ?? MONO_QUICK_ACTION_DEFAULT;
   const theme = colorLab.shown.mode;
   const [background, setBackground] = useState<MonoBackground>("iris");
   const [viewport, setViewport] = useState<MonoViewport>(480);
@@ -620,7 +621,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             : "applied";
       if (outcome === "applied") {
         setQuickActionPreview({ preset: request.preset, workingPresetId: request.workingPresetId });
-        setQuickActionMotionStatus("Применено к четырём действиям. Проба исчезнет после перезагрузки.");
+        setQuickActionMotionStatus("Примерка применена к четырём действиям. После перезагрузки вернётся стандартный отклик.");
       }
       reply(outcome);
     };
@@ -1169,8 +1170,9 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           <MonoShapeTuner values={draftShapes[preset]} dirty={shapeDirty} status={shapeStatus}
             onChange={updateShape} onDefault={resetShape} onCancel={cancelShape} onApply={applyShape}
             onOpenMotionLab={process.env.NODE_ENV === "development" && workingReady ? openQuickActionMotionLab : undefined}
-            motionLabStatus={quickActionPreview && !quickActionPreset
-              ? "Для этого рабочего пресета отклик не применён." : quickActionMotionStatus} />
+            motionLabStatus={quickActionPreview && !quickActionOverride
+              ? "Здесь действует стандартный Material; отдельная проба относится к другому пресету."
+              : quickActionMotionStatus} />
         </MonoRailSection>
         <MonoColorLab lab={colorLab} />
         {colorLab.variantsOpen && <>

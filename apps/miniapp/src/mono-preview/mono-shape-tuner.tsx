@@ -89,7 +89,7 @@ export function MonoShapeTuner({
       {group === "quick-actions" && onOpenMotionLab && (
         <div className="mono-shape-tuner__motion">
           <strong>Отклик быстрых действий</strong>
-          <p>Настройте четыре действия в отдельной вкладке. Применение видно здесь, но исчезает после перезагрузки.</p>
+          <p>Настройте четыре действия в отдельной вкладке. После перезагрузки вернётся стандартный отклик.</p>
           <a href="/design-lab" target="_blank" rel="noopener noreferrer"
             onClick={(event) => onOpenMotionLab(event.currentTarget)}>Открыть Motion Lab <span aria-hidden="true">↗</span></a>
           <p role="status" aria-label="Состояние Motion Lab">{motionLabStatus}</p>

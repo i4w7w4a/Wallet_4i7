@@ -77,15 +77,15 @@ test("temporary quick action feedback does not follow a newly created working pr
   const opened = context.waitForEvent("page");
   await page.getByRole("link", { name: /Открыть Motion Lab/ }).click();
   const lab = await opened;
-  await lab.getByRole("button", { name: "Материал" }).click();
+  await lab.getByRole("button", { name: "Магнит" }).click();
   await lab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
-  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "magnetic");
 
   await page.getByRole("button", { name: /Пресет оформления/ }).click();
   await page.getByRole("button", { name: "Создать пресет" }).click();
   await page.getByRole("textbox", { name: "Название пресета" }).fill("Другой образец");
   await page.getByRole("button", { name: "Сохранить пресет" }).click();
-  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "baseline");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
 });
 
 test("an older Lab tab cannot apply after another session opens", async ({ page, context }) => {
@@ -99,14 +99,15 @@ test("an older Lab tab cannot apply after another session opens", async ({ page,
   await page.getByRole("link", { name: /Открыть Motion Lab/ }).click();
   const newerLab = await newerOpened;
 
-  await olderLab.getByRole("button", { name: "Материал" }).click();
+  await olderLab.getByRole("button", { name: "Магнит" }).click();
   await olderLab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
   await expect(olderLab.locator('p[role="status"]')).toContainText("Сеанс MONO устарел");
-  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "baseline");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
 
-  await newerLab.getByRole("button", { name: "Материал" }).click();
+  await newerLab.getByRole("button", { name: "Магнит" }).click();
   await newerLab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
   await expect(newerLab.locator('p[role="status"]')).toContainText("MONO подтвердил применение");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "magnetic");
 });
 
 test("another MONO tab cannot answer for the originating MONO session", async ({ context }) => {
@@ -119,11 +120,11 @@ test("another MONO tab cannot answer for the originating MONO session", async ({
   const opened = context.waitForEvent("page");
   await originatingMono.getByRole("link", { name: /Открыть Motion Lab/ }).click();
   const lab = await opened;
-  await lab.getByRole("button", { name: "Материал" }).click();
+  await lab.getByRole("button", { name: "Магнит" }).click();
   await lab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
   await expect(lab.locator('p[role="status"]')).toContainText("MONO подтвердил применение");
-  await expect(originatingMono.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
-  await expect(otherMono.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "baseline");
+  await expect(originatingMono.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "magnetic");
+  await expect(otherMono.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
 });
 
 test("MONO rejects a Lab opened for a previous working preset", async ({ page, context }) => {
@@ -137,10 +138,10 @@ test("MONO rejects a Lab opened for a previous working preset", async ({ page, c
   await page.getByRole("button", { name: "Создать пресет" }).click();
   await page.getByRole("textbox", { name: "Название пресета" }).fill("Свежий образец");
   await page.getByRole("button", { name: "Сохранить пресет" }).click();
-  await lab.getByRole("button", { name: "Материал" }).click();
+  await lab.getByRole("button", { name: "Магнит" }).click();
   await lab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
   await expect(lab.locator('p[role="status"]')).toContainText("Активный рабочий пресет изменился");
-  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "baseline");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
 });
 
 test("MONO rejects an Apply addressed to another control", async ({ page, context }) => {
@@ -153,10 +154,10 @@ test("MONO rejects an Apply addressed to another control", async ({ page, contex
   wrongUrl.searchParams.set("target", "mono.other-control");
   const wrongLab = await context.newPage();
   await wrongLab.goto(wrongUrl.toString());
-  await wrongLab.getByRole("button", { name: "Материал" }).click();
+  await wrongLab.getByRole("button", { name: "Магнит" }).click();
   await wrongLab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
   await expect(wrongLab.locator('p[role="status"]')).toContainText("MONO отклонил цель");
-  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "baseline");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
 });
 
 test("cancel discards the Lab draft without changing MONO", async ({ page, context }) => {
@@ -170,7 +171,7 @@ test("cancel discards the Lab draft without changing MONO", async ({ page, conte
   await lab.getByRole("button", { name: "Отменить изменения" }).click();
   await expect(lab.getByRole("button", { name: "Материал" })).toHaveAttribute("aria-pressed", "true");
   await expect(lab.getByRole("spinbutton", { name: "Глубина нажатия" })).toHaveValue("1.6");
-  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "baseline");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
 });
 
 test("MONO rejects a bounded request whose preset is outside the schema", async ({ page, context }) => {
@@ -205,7 +206,7 @@ test("MONO rejects a bounded request whose preset is outside the schema", async 
     } finally { channel.close(); }
   });
   expect(outcome).toBe("invalid-preset");
-  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "baseline");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
 });
 
 test("keyboard Space and Enter show material press and only a demo result", async ({ page, context }) => {
@@ -236,7 +237,7 @@ test("keyboard Space and Enter show material press and only a demo result", asyn
   await expect(send).toHaveCSS("outline-style", "solid");
 });
 
-test("Lab Save stays separate and temporary Apply disappears after MONO reload", async ({ page, context }) => {
+test("Lab Save stays separate and temporary Apply returns to the approved default after MONO reload", async ({ page, context }) => {
   await page.goto("/mono");
   await expect(page.getByRole("button", { name: /Пресет оформления/ })).toBeEnabled();
   const workingBefore = await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v1"));
@@ -246,14 +247,14 @@ test("Lab Save stays separate and temporary Apply disappears after MONO reload",
   await lab.getByRole("button", { name: "Магнит" }).click();
   await lab.getByRole("button", { name: "Сохранить пробу" }).click();
   await expect(lab.locator('p[role="status"]')).toContainText("Проба сохранена только в локальном Motion Lab");
-  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "baseline");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
   expect(await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v1"))).toBe(workingBefore);
 
   await lab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
   await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "magnetic");
   expect(await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v1"))).toBe(workingBefore);
   await page.reload();
-  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "baseline");
+  await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
 });
 
 test("applied quick actions keep their target size at canonical widths and a narrow host", async ({ page, context }) => {

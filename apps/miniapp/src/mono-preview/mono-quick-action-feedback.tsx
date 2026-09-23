@@ -4,18 +4,25 @@ import { useEffect, useState, type CSSProperties, type KeyboardEvent, type Point
 
 import { magneticOffset, type ControlFeedbackPreset } from "../design-lab/control-feedback-model";
 
+type QuickActionFeedback = Pick<ControlFeedbackPreset, "effectId" | "config">;
+
+export const MONO_QUICK_ACTION_DEFAULT: QuickActionFeedback = {
+  effectId: "material",
+  config: { pressDepth: 2.7, magneticTravel: 5, settleMs: 270 },
+};
+
 type Props = {
   label: string;
   path: string;
-  preset: ControlFeedbackPreset | null;
+  preset: QuickActionFeedback;
   onActivate: () => void;
 };
 
 export function MonoQuickActionFeedback({ label, path, preset, onActivate }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [keyboardPressed, setKeyboardPressed] = useState(false);
-  const effectId = preset?.effectId ?? "baseline";
-  const config = preset?.config;
+  const effectId = preset.effectId;
+  const config = preset.config;
 
   useEffect(() => {
     if (effectId !== "magnetic") return;
@@ -46,16 +53,16 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate }: Pro
         !window.matchMedia("(hover: hover) and (pointer: fine)").matches ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    setOffset(magneticOffset({ x: event.clientX, y: event.clientY }, rect, config?.magneticTravel ?? 0));
+    setOffset(magneticOffset({ x: event.clientX, y: event.clientY }, rect, config.magneticTravel));
   };
   const style = {
-    "--press-depth": `${config?.pressDepth ?? 0}px`,
-    "--settle-ms": `${config?.settleMs ?? 190}ms`,
+    "--press-depth": `${config.pressDepth}px`,
+    "--settle-ms": `${config.settleMs}ms`,
   } as CSSProperties;
   const labelStyle: CSSProperties | undefined = effectId === "magnetic"
     ? {
       transform: `translate3d(${offset.x}px, ${offset.y}px, 0)`,
-      transition: `transform ${config?.settleMs ?? 190}ms cubic-bezier(0.2, 0, 0, 1)`,
+      transition: `transform ${config.settleMs}ms cubic-bezier(0.2, 0, 0, 1)`,
     }
     : undefined;
 

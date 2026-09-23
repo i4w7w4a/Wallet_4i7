@@ -34,3 +34,14 @@ it("lets a user try each quick action's feedback while keeping operations unavai
       .toHaveTextContent(`${name} — операция недоступна в демо.`);
   }
 });
+
+it("starts all four quick actions with the approved material response", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  render(<MonoPreview snapshot={snapshot} />);
+
+  for (const name of ["Отправить", "Получить", "Обмен", "Купить"]) {
+    const control = screen.getByRole("button", { name: new RegExp(`^${name}.*операция недоступна`) });
+    expect(control).toHaveAttribute("data-control-effect", "material");
+    expect(control).toHaveStyle({ "--press-depth": "2.7px", "--settle-ms": "270ms" });
+  }
+});
