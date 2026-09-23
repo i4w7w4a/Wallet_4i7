@@ -36,6 +36,8 @@ describe("full working preset migration", () => {
     expect(result.records[0].document).toMatchObject({ version: 2, ...before.records[0].document });
     expect(result.records[0].document).toHaveProperty("appearance.frost.logo", logo);
     expect(result.records[0].document).toHaveProperty("appearance.frost.background", null);
+    expect(result.records[0].document).toHaveProperty("appearance.frost.typography", null);
+    expect(result.records[0].document).toHaveProperty("appearance.frost.balance", { composition: "ledger", fractionSize: "large", fractionTone: "primary" });
     expect(result.records[1].document.background).toBe("strata");
     expect(result.records.map(item => [item.id, item.name, item.revision])).toEqual([["kept", "Мой вид", 4], ["other", "Другой вид", 2]]);
     expect(storage.values.size).toBe(2);
