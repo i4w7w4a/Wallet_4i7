@@ -57,6 +57,12 @@ limit. Nothing is truncated. Missing browser APIs produce a readable error;
 clipboard failure leaves a selectable URL. The recipient needs the entire link.
 As a self-contained snapshot it remains unchanged and cannot be centrally revoked.
 
+WebKit introduced Compression Streams in [Safari 16.4](https://webkit.org/blog/13966/webkit-features-in-safari-16-4/).
+The implementation checks the actual APIs instead of inferring support from a
+browser or Telegram user agent. This does not claim that every messenger accepts
+the maximum-length URL as a single message; normal and dense fixtures are measured
+separately, and oversize content gets an explicit JSON-export fallback.
+
 The production route integration is a client host around `MonoViewer` and the
 common `MonoScene`. The server supplies the existing mock wallet snapshot; that
 data never comes from the URL. The route is a visual prototype, not a connected
