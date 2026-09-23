@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { writeFileSync } from "node:fs";
+import { normalizeMonoPaletteConfig, resolveMonoPalette } from "../../../packages/ui/src/mono/mono-palette";
 
 test("three recipes, finite pointer response, invariant content and no extra canvas", async ({ page }) => {
   const errors: string[] = [];
@@ -107,10 +109,15 @@ test("real MONO context keeps one Promo, four Material actions and readable DOM 
   await page.getByRole("button", { name: "Показать в MONO", exact: true }).click({ timeout: 5000 });
   const scene = page.locator("[data-mono-preview]");
   await expect(scene).toHaveCount(1);
+  expect(Math.round((await scene.boundingBox())!.width)).toBe(390);
   await expect(scene.locator("[data-mono-background-recipe]")).toHaveCount(1);
   await expect(scene.locator("[data-mono-atmosphere]")).toHaveCount(0);
   await expect(scene.locator("canvas")).toHaveCount(1);
   await expect(scene.locator('[data-control-effect="material"]')).toHaveCount(4);
+  for (const action of await scene.locator('[data-control-effect="material"]').all()) {
+    expect((await action.boundingBox())!.height).toBeGreaterThanOrEqual(74);
+    await expect(action.locator(".mono-actions__label")).toBeVisible();
+  }
   const canvas = await scene.locator("canvas").elementHandle();
   await page.getByRole("button", { name: "Скрыть баланс", exact: true }).click();
   for (const label of ["Световой разрез", "Обсидиан"]) {
@@ -134,4 +141,68 @@ test("real MONO context keeps one Promo, four Material actions and readable DOM 
   await expect(page.getByRole("status", { name: "Статус быстрых действий" })).toContainText("операция недоступна");
   await page.getByRole("button", { name: "Показать отдельно", exact: true }).click();
   await expect(page.locator("canvas")).toHaveCount(0);
+});
+
+test("resolved palette canvas and both atmosphere roles reach the actual background", async ({ page }) => {
+  await page.goto("/design-lab/atmosphere");
+  await page.getByRole("button", { name: "Показать в MONO", exact: true }).click();
+  await page.getByRole("checkbox", { name: "Спокойный режим", exact: true }).check();
+  const layer = page.locator("[data-mono-background-recipe]");
+  // The same normalized palette resolver used by MonoScene, at its CSS boundary.
+  const palettes = [45, 255].map(hue => resolveMonoPalette(normalizeMonoPaletteConfig({
+    themes: { dark: { recipe: { anchorHue: hue, anchorChroma: .16, harmony: "mineral" },
+      roles: { canvas: { mode: "manual", value: { l: .24, c: .02, h: hue, alpha: 1 } } } } },
+  }).themes.dark).srgb);
+  const rgb = (color: { r: number; g: number; b: number; alpha: number }, opacity = 1) =>
+    `rgb(${Math.round(color.r * 255)} ${Math.round(color.g * 255)} ${Math.round(color.b * 255)} / ${color.alpha * opacity})`;
+  const canvasColor = `rgb(${Math.round(palettes[0].canvas.r * 255)}, ${Math.round(palettes[0].canvas.g * 255)}, ${Math.round(palettes[0].canvas.b * 255)})`;
+  await page.locator("[data-mono-preview]").evaluate((scene, tokens) => {
+    for (const [name, value] of Object.entries(tokens)) scene.style.setProperty(name, value);
+  }, { "--mono-palette-canvas-ff": rgb(palettes[0].canvas),
+    "--mono-palette-atmosphereCool-ff": rgb(palettes[0].atmosphereCool),
+    "--mono-palette-atmosphereWarm-8a": rgb(palettes[0].atmosphereWarm, 138 / 255) });
+  await expect.poll(() => layer.evaluate(el => getComputedStyle(el).backgroundColor)).toBe(canvasColor);
+  const cool = await layer.screenshot();
+  await page.locator("[data-mono-preview]").evaluate((scene, color) => {
+    scene.style.setProperty("--mono-palette-atmosphereCool-ff", color);
+  }, rgb(palettes[1].atmosphereCool));
+  const violet = await layer.screenshot();
+  expect(violet.equals(cool)).toBe(false);
+  await page.locator("[data-mono-preview]").evaluate((scene, color) => {
+    scene.style.setProperty("--mono-palette-atmosphereWarm-8a", color);
+  }, rgb(palettes[1].atmosphereWarm, 138 / 255));
+  expect((await layer.screenshot()).equals(violet)).toBe(false);
+});
+
+test("captures contrast backgrounds at maximum intensity for visual audit", async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 1600, height: 1050 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/design-lab/atmosphere");
+  await page.getByRole("button", { name: "Показать в MONO", exact: true }).click();
+  const selectors = [".mono-hero__heading-row h1", ".mono-hero__amount", ".mono-hero__change",
+    ".mono-assets__heading h2", ".mono-assets__name", ".mono-assets__value", ".mono-assets__disclaimer"];
+  for (const width of [320, 390, 430, 480]) {
+    await page.getByRole("button", { name: String(width), exact: true }).click();
+    for (const [themeLabel, theme] of [["Тёмная", "dark"], ["Светлая", "light"]]) {
+    await page.getByRole("button", { name: themeLabel, exact: true }).click();
+    for (const [label, recipe] of [["Обсидиан", "obsidian"], ["Световой разрез", "aperture"]]) {
+      await page.getByRole("button", { name: label, exact: true }).click();
+      await page.getByRole("slider", { name: "Интенсивность", exact: true }).fill("100");
+      const records = await page.locator(selectors.join(",")).evaluateAll(elements => elements.flatMap(element => {
+        const targets = element.children.length ? [...element.children] : [element];
+        return targets.filter(target => target.getAttribute("aria-hidden") !== "true").map(target => {
+          const rect = target.getBoundingClientRect(), style = getComputedStyle(target);
+          return { text: target.textContent, x: rect.x, y: rect.y + scrollY, w: rect.width, h: rect.height,
+            color: style.color, size: style.fontSize, weight: style.fontWeight };
+        });
+      }));
+      const hidden = await page.addStyleTag({ content: `${selectors.flatMap(selector => [selector, `${selector} *`]).join(",")} { color: transparent !important; text-shadow: none !important; }` });
+      const name = `${width}-${theme}-${recipe}`;
+      await page.screenshot({ path: testInfo.outputPath(`${name}.png`), fullPage: true });
+      writeFileSync(testInfo.outputPath(`${name}.json`), JSON.stringify(records));
+      await hidden.evaluate(element => element.parentNode?.removeChild(element));
+    }
+  }
+  }
 });

@@ -2,8 +2,8 @@
   --recipe-x: 0px;
   --recipe-y: 0px;
   --recipe-angle: 0deg;
-  --recipe-base: #0d0f14;
-  --recipe-shadow: #07090e;
+  --recipe-base: var(--mono-palette-canvas-ff, #0d0f14);
+  --recipe-shadow: var(--mono-palette-canvas-ff, #07090e);
   --recipe-body: #475463;
   --recipe-edge: #b3afb4;
   --recipe-thread: #d0d7de;
@@ -13,25 +13,27 @@
   overflow: hidden;
   contain: strict;
   pointer-events: none;
+  isolation: isolate;
   background: var(--recipe-base);
 }
 .layer[data-recipe-theme="light"] {
-  --recipe-base: #e9e5dd;
-  --recipe-shadow: #d5d1c9;
+  --recipe-reading-opacity: 95%;
+  --recipe-base: var(--mono-palette-canvas-ff, #e9e5dd);
+  --recipe-shadow: var(--mono-palette-surfaceOverlay-ff, #d5d1c9);
   --recipe-body: #9ca6ab;
   --recipe-edge: #fffdf5;
   --recipe-thread: #677681;
 }
 .layer[data-mono-background-recipe="aperture"] {
-  --recipe-base: #101112;
-  --recipe-shadow: #070a0d;
+  --recipe-base: var(--mono-palette-canvas-ff, #101112);
+  --recipe-shadow: var(--mono-palette-canvas-ff, #070a0d);
   --recipe-body: #6b777c;
   --recipe-edge: #d6cbb6;
   --recipe-thread: #d5c6ac;
 }
 .layer[data-mono-background-recipe="aperture"][data-recipe-theme="light"] {
-  --recipe-base: #e7e2d9;
-  --recipe-shadow: #9b9993;
+  --recipe-base: var(--mono-palette-canvas-ff, #e7e2d9);
+  --recipe-shadow: var(--mono-palette-borderStrong-ff, #9b9993);
   --recipe-body: #e6ded1;
   --recipe-edge: #fffefa;
   --recipe-thread: #7f817d;
@@ -45,6 +47,7 @@
   transition: transform var(--recipe-duration) var(--recipe-easing);
 }
 .folds { transform: translate3d(var(--recipe-x), var(--recipe-y), 0); }
+.folds path[stroke], .aperture path[stroke] { opacity: .18; }
 .counterfold {
   opacity: .17;
   transform: translate3d(calc(var(--recipe-x) * -.5), calc(var(--recipe-y) * -.35), 0);
@@ -71,11 +74,22 @@
   background: repeating-linear-gradient(90deg, transparent 0 95px, color-mix(in srgb, var(--recipe-thread) 6%, transparent) 95px 96px);
   mask-image: linear-gradient(180deg, #000, transparent 75%);
 }
+/* Palette tints retain their resolved alpha. Color blending preserves the
+   material's luminance, so stronger hue does not wash out the DOM content. */
+.paletteTint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, var(--mono-palette-atmosphereCool-ff, transparent), transparent 74%),
+    linear-gradient(325deg, var(--mono-palette-atmosphereWarm-ff, var(--mono-palette-atmosphereWarm-8a, transparent)), transparent 78%);
+  mix-blend-mode: color;
+  opacity: var(--recipe-intensity);
+}
 .veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--recipe-base) 25%, transparent), transparent 70%),
-    linear-gradient(180deg, transparent 3%, color-mix(in srgb, var(--recipe-base) 36%, transparent) 20%, transparent 45%, var(--recipe-base) 100%);
+  background: radial-gradient(ellipse 88% 21% at 47% 21%, color-mix(in srgb, var(--recipe-base) var(--recipe-reading-opacity, 72%), transparent), transparent 78%),
+    linear-gradient(90deg, color-mix(in srgb, var(--recipe-base) 25%, transparent), transparent 70%),
+    linear-gradient(180deg, transparent 3%, color-mix(in srgb, var(--recipe-base) 36%, transparent) 20%, transparent 45%, var(--recipe-base) 87%);
 }
 .layer[data-mono-background-recipe="baseline"] { background: transparent; }
 .baseline { position: absolute; width: 100%; height: 100%; }
@@ -86,6 +100,7 @@
 .layer:not([data-motion="ready"]) *,
 .layer[data-effects-disabled="true"] * { transition: none !important; animation: none !important; }
 .layer[data-effects-disabled="true"] .material,
+.layer[data-effects-disabled="true"] .paletteTint,
 .layer[data-effects-disabled="true"] .baseline { visibility: hidden; }
 @media (prefers-reduced-motion: reduce), (pointer: coarse), (hover: none) {
   .layer * { transition: none !important; animation: none !important; }
