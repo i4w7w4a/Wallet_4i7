@@ -1,20 +1,54 @@
 "use client";
 
-import { useId, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import "./mono-lab-controls.css";
 
-export type MonoLabIconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> & { label: string };
+export type MonoLabIconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> & { label: string; tooltipPlacement?: "top" | "bottom" };
 
 /** The visual icon stays small; the semantic button remains 44 × 44. */
-export function MonoLabIconButton({ label, children, className = "", ...props }: MonoLabIconButtonProps) {
+export function MonoLabIconButton({ label, children, className = "", tooltipPlacement = "bottom", ...props }: MonoLabIconButtonProps) {
   const id = useId();
+  const anchor = useRef<HTMLSpanElement>(null);
+  const tooltip = useRef<HTMLSpanElement>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const open = (hovered || focused) && !dismissed;
-  return <span className="mono-lab-control-tooltip-anchor"
-    onPointerEnter={event => { if (event.pointerType !== "touch") { setHovered(true); setDismissed(false); } }}
-    onPointerLeave={() => setHovered(false)}
+  const enter = () => { clearTimeout(hideTimer.current); setHovered(true); setDismissed(false); };
+  const leave = () => { hideTimer.current = setTimeout(() => setHovered(false), 100); };
+  useEffect(() => () => clearTimeout(hideTimer.current), []);
+  useLayoutEffect(() => {
+    if (!open) return;
+    function position() {
+      if (!anchor.current || !tooltip.current) return;
+      const trigger = anchor.current.getBoundingClientRect();
+      const box = tooltip.current.getBoundingClientRect();
+      const viewportWidth = document.documentElement.clientWidth;
+      const viewportHeight = document.documentElement.clientHeight;
+      const above = tooltipPlacement === "top" ? trigger.top >= box.height + 8 : trigger.bottom + box.height > viewportHeight - 8;
+      tooltip.current.style.left = `${Math.max(8, Math.min(viewportWidth - box.width - 8, trigger.left + (trigger.width - box.width) / 2))}px`;
+      tooltip.current.style.top = `${Math.max(8, Math.min(viewportHeight - box.height - 8, above ? trigger.top - box.height : trigger.bottom))}px`;
+      tooltip.current.dataset.placement = above ? "top" : "bottom";
+      tooltip.current.style.visibility = "visible";
+    }
+    function dismiss(event: KeyboardEvent) {
+      if (event.key === "Escape") { setDismissed(true); event.stopPropagation(); }
+    }
+    position();
+    window.addEventListener("resize", position);
+    window.addEventListener("scroll", position, true);
+    document.addEventListener("keydown", dismiss, true);
+    return () => {
+      window.removeEventListener("resize", position);
+      window.removeEventListener("scroll", position, true);
+      document.removeEventListener("keydown", dismiss, true);
+    };
+  }, [open, label, tooltipPlacement]);
+  return <span ref={anchor} className="mono-lab-control-tooltip-anchor"
+    onPointerEnter={event => { if (event.pointerType !== "touch") enter(); }}
+    onPointerLeave={leave}
     onFocus={() => { setFocused(true); setDismissed(false); }}
     onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
     onKeyDown={event => { if (event.key === "Escape" && open) { setDismissed(true); event.stopPropagation(); } }}>
@@ -23,7 +57,8 @@ export function MonoLabIconButton({ label, children, className = "", ...props }:
       className={`mono-lab-control-icon-button ${className}`}>
       <span aria-hidden="true" className="mono-lab-control-icon">{children}</span>
     </button>
-    {open && <span id={id} role="tooltip" className="mono-lab-control-tooltip"><span>{label}</span></span>}
+    {open && createPortal(<span ref={tooltip} id={id} role="tooltip" className="mono-lab-control-tooltip"
+      onPointerEnter={enter} onPointerLeave={leave}><span>{label}</span></span>, document.body)}
   </span>;
 }
 
