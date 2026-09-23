@@ -38,7 +38,8 @@ function MonoShareSnapshot({ createLink, disabled = false }: Omit<MonoShareButto
     </button>
     {link && <>
       {localLink(link) && <p>Локальная ссылка · на этом компьютере</p>}
-      <p>Ссылка сохраняет этот вид. Последующие изменения в неё не попадут.</p>
+      <p>Снимок сохранённого оформления. Изменения после создания в ссылку не попадут.</p>
+      {link.length > 4000 && <p>Длинная ссылка: мессенджер может её обрезать. Сохраните JSON из меню пресета.</p>}
       <input aria-label="Ссылка на оформление" readOnly value={link} onFocus={event => event.currentTarget.select()} />
       <div className="mono-share__actions">
         <button type="button" onClick={() => { void copy(); }}>Скопировать</button>

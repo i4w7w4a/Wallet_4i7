@@ -5,7 +5,7 @@ import { MONO_PALETTE_WORKSPACE_KEY, readMonoPaletteWorkspace, saveMonoPaletteWo
 import { importMonoPalettePreset } from "./mono-preset-codec";
 import { createMonoShapeDefaults, normalizeMonoShapeMap, type MonoShapeMap, type MonoShapePreset } from "./mono-shape-preview";
 import { createMonoExtendedAppearance, normalizeMonoExtendedAppearance, type MonoExtendedAppearance } from "./mono-preset-envelope";
-import { loadMonoLogoPreview, type MonoLogoPreview } from "./mono-logo-preview";
+import { loadMonoLogoPreview, MONO_LOGO_PREVIEW_DEFAULTS, type MonoLogoPreview } from "./mono-logo-preview";
 
 export const MONO_WORKING_PRESETS_KEY = "wallet4i7.mono.working-presets.v2";
 export const MONO_WORKING_PRESETS_LEGACY_KEY = "wallet4i7.mono.working-presets.v1";
@@ -76,9 +76,9 @@ export function createRecoveredMonoWorkingLibrary(document: MonoWorkingDocument)
     records: [{ id, name: "Восстановленный вариант", revision: 1, document }] };
 }
 
-export function createLegacyPaletteWorkingRecords(entries: MonoPaletteLibraryEntry[]): MonoWorkingRecord[] {
+export function createLegacyPaletteWorkingRecords(entries: MonoPaletteLibraryEntry[], legacyLogo?: MonoLogoPreview): MonoWorkingRecord[] {
   return entries.map((entry, index) => {
-    const document = createMonoWorkingDocument();
+    const document = createMonoWorkingDocument(legacyLogo ?? MONO_LOGO_PREVIEW_DEFAULTS);
     document.palette = createMonoPaletteWorkspace(entry.preset.config);
     for (const slot of document.palette.slots) slot.present.paletteEnabled = true;
     return {
