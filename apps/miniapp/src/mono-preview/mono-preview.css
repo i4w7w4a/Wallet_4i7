@@ -251,6 +251,13 @@
 .mono-app-header__mark .mono-logo__gradient-start { stop-color: var(--mono-logo-gradient-start); }
 .mono-app-header__mark .mono-logo__gradient-end { stop-color: var(--mono-logo-gradient-end); }
 
+.mono-page[data-mono-logo-custom="true"] .mono-app-header__mark {
+  --mono-logo-primary: var(--mono-logo-custom-dark-primary);
+  --mono-logo-depth: var(--mono-logo-custom-dark-depth);
+  --mono-logo-gradient-start: var(--mono-logo-custom-dark-gradient-start);
+  --mono-logo-gradient-end: var(--mono-logo-custom-dark-gradient-end);
+}
+
 .mono-page[data-mono-logo-variant="plaque"] .mono-app-header__mark {
   border-color: #57566d;
   background: #252633;

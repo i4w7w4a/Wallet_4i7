@@ -156,6 +156,12 @@
   --mono-logo-gradient-start: #130d3c;
   --mono-logo-gradient-end: #360d88;
 }
+:is(.mono-page[data-mono-theme="light"][data-mono-logo-custom="true"], html[data-mono-prepaint-theme="light"] .mono-page[data-mono-logo-custom="true"]) .mono-app-header__mark {
+  --mono-logo-primary: var(--mono-logo-custom-light-primary);
+  --mono-logo-depth: var(--mono-logo-custom-light-depth);
+  --mono-logo-gradient-start: var(--mono-logo-custom-light-gradient-start);
+  --mono-logo-gradient-end: var(--mono-logo-custom-light-gradient-end);
+}
 :is(.mono-page[data-mono-theme="light"][data-mono-logo-variant="plaque"], html[data-mono-prepaint-theme="light"] .mono-page[data-mono-logo-variant="plaque"]) .mono-app-header__mark {
   border-color: #aeb0b8;
   background: #f7f5f9;

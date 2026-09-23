@@ -120,6 +120,41 @@ test("надпись и материал логотипа следуют тём�
   expect(contrast(lightBare.icon, lightBare.canvas)).toBeGreaterThanOrEqual(3);
 });
 
+test("свой тон эмблемы включается отдельно от надписи и восстанавливается после reload", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 844 });
+  await page.goto("/mono");
+  const custom = page.getByRole("checkbox", { name: "Свой цвет эмблемы" });
+  const icon = page.locator(".mono-logo__icon-primary").first();
+  const wordmark = page.locator(".mono-logo__wordmark").first();
+  const initialIcon = await icon.evaluate(node => getComputedStyle(node).fill);
+  const initialWordmark = await wordmark.evaluate(node => getComputedStyle(node).fill);
+
+  await expect(custom).not.toBeChecked();
+  await expect(page.getByRole("slider", { name: "Тон знака Novex" })).toHaveCount(0);
+  await custom.check();
+  const hue = page.getByRole("slider", { name: "Тон знака Novex" });
+  await expect(hue).toBeVisible();
+  await hue.press("Home");
+  await expect(hue).toHaveValue("0");
+  await expect.poll(() => icon.evaluate(node => getComputedStyle(node).fill)).not.toBe(initialIcon);
+  expect(await wordmark.evaluate(node => getComputedStyle(node).fill)).toBe(initialWordmark);
+  await page.getByRole("button", { name: "Логотип с плашкой" }).click();
+
+  const saved = await page.evaluate(() => localStorage.getItem("wallet4i7.mono.logo-preview.v1"));
+  expect(JSON.parse(saved!)).toEqual({ version: 1, variant: "plaque", customColor: true, hue: 0 });
+  await page.reload();
+  await expect(custom).toBeChecked();
+  await expect(hue).toHaveValue("0");
+  await expect(page.locator(".mono-page")).toHaveAttribute("data-mono-logo-variant", "plaque");
+
+  await page.getByRole("button", { name: "Светлая тема" }).click();
+  await expect.poll(() => icon.evaluate(node => getComputedStyle(node).fill)).not.toBe(initialIcon);
+  await expect.poll(() => wordmark.evaluate(node => getComputedStyle(node).fill)).not.toBe(initialWordmark);
+  await custom.uncheck();
+  await expect(hue).toHaveCount(0);
+  await expect(page.locator(".mono-page")).toHaveAttribute("data-mono-logo-custom", "false");
+});
+
 test("MONO LEDGER открывается отдельно от V1 и переключает три визуальных варианта", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/mono");
@@ -184,11 +219,17 @@ test("рабочие элементы прототипа имеют мобиль
     quick.getByRole("button", { name: "2 · Frost" }),
     quick.getByRole("button", { name: "3 · Mercury" }),
     quick.getByRole("button", { name: "Экран 390 пикселей" }),
+    quick.getByRole("button", { name: "Логотип без плашки" }),
+    quick.getByRole("button", { name: "Логотип с плашкой" }),
   ]) {
     const box = await control.boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
+  const logoColor = quick.getByRole("checkbox", { name: "Свой цвет эмблемы" });
+  expect((await logoColor.locator("xpath=..").boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  await logoColor.check();
+  expect((await quick.getByRole("slider", { name: "Тон знака Novex" }).boundingBox())?.height).toBeGreaterThanOrEqual(44);
   await closeCompactMonoRail(page, "quick");
   for (const control of [
     page.getByRole("button", { name: "Скрыть баланс" }),

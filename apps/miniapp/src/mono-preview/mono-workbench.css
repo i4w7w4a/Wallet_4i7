@@ -385,14 +385,14 @@
   font-weight: 590;
 }
 
-.mono-logo-options > div {
+.mono-logo-options__variants {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   margin-top: 8px;
 }
 
-.mono-logo-options button {
+.mono-logo-options__variants button {
   min-height: 44px;
   padding: 6px;
   border: 1px solid var(--mono-chrome-rule);
@@ -404,14 +404,122 @@
   font-weight: 590;
 }
 
-.mono-logo-options button[aria-pressed="true"] {
+.mono-logo-options__variants button[aria-pressed="true"] {
   border-color: #c7cdd3;
   background: #1c2128;
   color: #f3f5f7;
 }
 
-.mono-logo-options button:hover { border-color: var(--mono-chrome-rule-strong); }
-.mono-logo-options button:active { transform: translateY(1px); }
+.mono-logo-options__variants button:hover { border-color: var(--mono-chrome-rule-strong); }
+.mono-logo-options__variants button:active { transform: translateY(1px); }
+
+.mono-logo-options__custom {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--mono-chrome-rule);
+  border-radius: 9px;
+  background: var(--mono-chrome-surface);
+  color: #d5dae1;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 590;
+}
+
+.mono-logo-options__custom:has(input:checked) {
+  border-color: #aeb5bd;
+  background: var(--mono-chrome-surface-high);
+}
+
+.mono-logo-options__custom input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: #a99dff;
+}
+
+.mono-logo-options__swatch {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  border: 1px solid #ffffff77;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #0004;
+}
+
+.mono-logo-options__tone {
+  padding: 9px 2px 0;
+}
+
+.mono-logo-options__tone > div {
+  display: flex;
+  justify-content: space-between;
+  color: #c8cdd5;
+  font-size: 11px;
+}
+
+.mono-logo-options__tone output {
+  color: #f2f4f7;
+  font-family: var(--mono-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.mono-logo-options__tone input {
+  width: 100%;
+  height: 44px;
+  margin: 2px 0 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.mono-logo-options__tone input::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #d16969, #c5af5b, #67ad75, #60aabb, #7375cc, #b375be, #d16969);
+}
+
+.mono-logo-options__tone input::-webkit-slider-thumb {
+  width: 22px;
+  height: 22px;
+  margin-top: -7px;
+  appearance: none;
+  border: 3px solid #eef0f5;
+  border-radius: 50%;
+  background: #262833;
+  box-shadow: 0 1px 5px #0009;
+}
+
+.mono-logo-options__tone input::-moz-range-track {
+  height: 8px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #d16969, #c5af5b, #67ad75, #60aabb, #7375cc, #b375be, #d16969);
+}
+
+.mono-logo-options__tone input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #eef0f5;
+  border-radius: 50%;
+  background: #262833;
+  box-shadow: 0 1px 5px #0009;
+}
+
+.mono-logo-options input:focus-visible {
+  outline: 2px solid #d5deef;
+  outline-offset: 2px;
+}
+
+.mono-logo-options > p {
+  margin: 6px 0 0;
+  color: #9ca4ae;
+  font-size: 10px;
+  line-height: 1.4;
+}
 
 .mono-rail .mono-environment {
   display: grid;

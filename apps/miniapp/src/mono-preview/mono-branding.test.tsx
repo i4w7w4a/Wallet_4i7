@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockWalletRepository } from "@wallet/core";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
@@ -48,4 +48,34 @@ it("switches between a bare logo and a plaque without changing the account heade
 
   fireEvent.click(bare);
   expect(preview).toHaveAttribute("data-mono-logo-variant", "bare");
+});
+
+it("keeps the brand colors until a separate emblem hue is enabled and remembers the choice", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const first = render(<MonoPreview snapshot={snapshot} />);
+  const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
+  const custom = screen.getByRole("checkbox", { name: "Свой цвет эмблемы" });
+
+  expect(custom).not.toBeChecked();
+  expect(screen.queryByRole("slider", { name: "Тон знака Novex" })).not.toBeInTheDocument();
+  fireEvent.click(custom);
+  const hue = screen.getByRole("slider", { name: "Тон знака Novex" });
+  fireEvent.change(hue, { target: { value: "330" } });
+
+  expect(preview).toHaveAttribute("data-mono-logo-custom", "true");
+  expect(hue).toHaveValue("330");
+  expect(preview.style.getPropertyValue("--mono-logo-custom-dark-primary")).toMatch(/^#[0-9a-f]{6}$/);
+  expect(preview.style.getPropertyValue("--mono-logo-custom-light-primary")).toMatch(/^#[0-9a-f]{6}$/);
+  expect(localStorage.getItem("wallet4i7.mono.logo-preview.v1")).toContain('"hue":330');
+
+  fireEvent.click(custom);
+  expect(preview).toHaveAttribute("data-mono-logo-custom", "false");
+  expect(screen.queryByRole("slider", { name: "Тон знака Novex" })).not.toBeInTheDocument();
+  fireEvent.click(custom);
+  expect(screen.getByRole("slider", { name: "Тон знака Novex" })).toHaveValue("330");
+
+  first.unmount();
+  render(<MonoPreview snapshot={snapshot} />);
+  await waitFor(() => expect(screen.getByRole("checkbox", { name: "Свой цвет эмблемы" })).toBeChecked());
+  expect(screen.getByRole("slider", { name: "Тон знака Novex" })).toHaveValue("330");
 });

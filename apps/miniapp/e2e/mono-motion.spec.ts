@@ -1,6 +1,23 @@
 import { expect, test } from "@playwright/test";
-
 import { openMonoRail } from "./mono-test-helpers";
+
+test("логотип появляется один раз и остаётся статичным при reduced motion", async ({ page }) => {
+  await page.goto("/mono");
+  const icon = page.locator(".mono-logo__icon-primary").first();
+  const wordmark = page.locator(".mono-logo__wordmark").first();
+  await expect(icon).toBeVisible();
+  const motion = await icon.evaluate((node) => {
+    const style = getComputedStyle(node);
+    return { name: style.animationName, count: style.animationIterationCount };
+  });
+  expect(motion.name).toBe("mono-logo-icon-arrive");
+  expect(motion.count).toBe("1");
+  await expect.poll(() => wordmark.evaluate((node) => getComputedStyle(node).opacity)).toBe("1");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(() => icon.evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
+  await expect.poll(() => wordmark.evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
+});
 
 test("смена направления запускает отдельную завершённую композицию без сдвига разметки", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

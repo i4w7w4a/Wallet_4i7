@@ -36,6 +36,27 @@
   --mono-motion-silver: mono-mercury-silver;
 }
 
+/* The emblem arrives first; the wordmark settles in place. Both end once. */
+.mono-page .mono-logo__icon-primary,
+.mono-page .mono-logo__icon-depth,
+.mono-page .mono-logo__icon-gradient {
+  animation: mono-logo-icon-arrive 200ms var(--mono-motion-ease) both;
+}
+
+.mono-page .mono-logo__wordmark {
+  animation: mono-logo-wordmark-arrive 220ms var(--mono-motion-ease) 60ms both;
+}
+
+@keyframes mono-logo-icon-arrive {
+  from { opacity: 0; transform: translate3d(-2px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes mono-logo-wordmark-arrive {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* The amount leads; the chart and controls answer it in a compact cascade. */
 .mono-page .mono-hero__eyebrow,
 .mono-page .mono-hero__amount,
@@ -157,6 +178,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mono-page .mono-logo__icon-primary,
+  .mono-page .mono-logo__icon-depth,
+  .mono-page .mono-logo__icon-gradient,
+  .mono-page .mono-logo__wordmark,
   .mono-page .mono-hero__eyebrow,
   .mono-page .mono-hero__amount,
   .mono-page .mono-hero__change,
