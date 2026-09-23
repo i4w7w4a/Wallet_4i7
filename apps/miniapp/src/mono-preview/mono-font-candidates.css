@@ -1,0 +1,16 @@
+/* Lab-only additions; original faces remain in mono-fonts.css. No preloads. */
+@font-face {
+  font-family: "Mono Manrope";
+  src: url("/fonts/mono/manrope-variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mono Source Sans 3";
+  src: url("/fonts/mono/source-sans-3-variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+}
