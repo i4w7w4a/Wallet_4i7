@@ -1,0 +1,386 @@
+{
+  "golos-text-medium.woff2": {
+    "sha256": "21cd58f9c4a0101753b52fa2e687a39119c9d6a19523a77c26bacf546a2c721c",
+    "bytes": 34408,
+    "version": "Version 2.004; ttfautohint (v1.8.4.7-5d5b)",
+    "axes": {},
+    "scripts": [
+      "latin",
+      "russian",
+      "belarusian"
+    ],
+    "missingCurrencies": "₿",
+    "tabular": false,
+    "digitAdvances": {
+      "500": [
+        630,
+        630,
+        590,
+        595,
+        630,
+        590,
+        615,
+        630,
+        620,
+        615
+      ]
+    },
+    "metrics": {
+      "unitsPerEm": 1000,
+      "ascent": 980,
+      "descent": -220,
+      "lineGap": 0
+    }
+  },
+  "golos-text-regular.woff2": {
+    "sha256": "f2152554816111e3a9f6d628ea8c04ec621ca01f0a9688d98845fae75cf5c44a",
+    "bytes": 33572,
+    "version": "Version 2.004; ttfautohint (v1.8.4.7-5d5b)",
+    "axes": {},
+    "scripts": [
+      "latin",
+      "russian",
+      "belarusian"
+    ],
+    "missingCurrencies": "₿",
+    "tabular": false,
+    "digitAdvances": {
+      "400": [
+        620,
+        620,
+        580,
+        585,
+        620,
+        580,
+        605,
+        620,
+        610,
+        605
+      ]
+    },
+    "metrics": {
+      "unitsPerEm": 1000,
+      "ascent": 980,
+      "descent": -220,
+      "lineGap": 0
+    }
+  },
+  "golos-text-semibold.woff2": {
+    "sha256": "32005098e00d1f0da853e533b3ac9c3fd775fd734f40951a81c6ab069ac4cae9",
+    "bytes": 34628,
+    "version": "Version 2.004; ttfautohint (v1.8.4.7-5d5b)",
+    "axes": {},
+    "scripts": [
+      "latin",
+      "russian",
+      "belarusian"
+    ],
+    "missingCurrencies": "₿",
+    "tabular": false,
+    "digitAdvances": {
+      "600": [
+        640,
+        640,
+        600,
+        605,
+        640,
+        600,
+        625,
+        640,
+        630,
+        625
+      ]
+    },
+    "metrics": {
+      "unitsPerEm": 1000,
+      "ascent": 980,
+      "descent": -220,
+      "lineGap": 0
+    }
+  },
+  "manrope-variable.woff2": {
+    "sha256": "ec48a797c0f2b33917ce9b7751021719ea1fbd46fb5c584c59c1ea1064678de7",
+    "bytes": 53736,
+    "version": "Version 4.505",
+    "axes": {
+      "wght": [
+        200.0,
+        800.0
+      ]
+    },
+    "scripts": [
+      "latin",
+      "russian",
+      "belarusian"
+    ],
+    "missingCurrencies": "₸",
+    "tabular": true,
+    "digitAdvances": {
+      "200.0": [
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240
+      ],
+      "500.0": [
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240
+      ],
+      "800.0": [
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240,
+        1240
+      ]
+    },
+    "metrics": {
+      "unitsPerEm": 2000,
+      "ascent": 2132,
+      "descent": -600,
+      "lineGap": 0
+    }
+  },
+  "onest-variable.woff2": {
+    "sha256": "cb4d777c1b146887a2902ef01ba91cb3fb0c85e9804e95794eb289a1966c0782",
+    "bytes": 83980,
+    "version": "Version 2.001",
+    "axes": {
+      "wght": [
+        100.0,
+        900.0
+      ]
+    },
+    "scripts": [
+      "latin",
+      "russian",
+      "belarusian"
+    ],
+    "missingCurrencies": "₿",
+    "tabular": true,
+    "digitAdvances": {
+      "100.0": [
+        664,
+        664,
+        664,
+        664,
+        664,
+        664,
+        664,
+        664,
+        664,
+        664
+      ],
+      "500.0": [
+        672,
+        672,
+        672,
+        672,
+        672,
+        672,
+        672,
+        672,
+        672,
+        672
+      ],
+      "900.0": [
+        674,
+        674,
+        674,
+        674,
+        674,
+        674,
+        674,
+        674,
+        674,
+        674
+      ]
+    },
+    "metrics": {
+      "unitsPerEm": 1000,
+      "ascent": 970,
+      "descent": -305,
+      "lineGap": 0
+    }
+  },
+  "plex-mono-regular.woff2": {
+    "sha256": "ba204497f16b6d334cee9d1e963a831b73e3a56e1d6300a8489d18df7214b350",
+    "bytes": 49248,
+    "version": "Version 2.005",
+    "axes": {},
+    "scripts": [
+      "latin",
+      "russian",
+      "belarusian"
+    ],
+    "missingCurrencies": "",
+    "tabular": true,
+    "digitAdvances": {
+      "400": [
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600
+      ]
+    },
+    "metrics": {
+      "unitsPerEm": 1000,
+      "ascent": 1025,
+      "descent": -275,
+      "lineGap": 0
+    }
+  },
+  "plex-sans-var-roman.woff2": {
+    "sha256": "e978248b6b56da9e372975322a98dd9a51135d1b375e32ed6d5ca69f3aab792d",
+    "bytes": 230368,
+    "version": "Version 3.000",
+    "axes": {
+      "wght": [
+        100.0,
+        700.0
+      ],
+      "wdth": [
+        85.0,
+        100.0
+      ]
+    },
+    "scripts": [
+      "latin",
+      "russian",
+      "belarusian"
+    ],
+    "missingCurrencies": "",
+    "tabular": true,
+    "digitAdvances": {
+      "100.0": [
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600
+      ],
+      "400.0": [
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600
+      ],
+      "700.0": [
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600,
+        600
+      ]
+    },
+    "metrics": {
+      "unitsPerEm": 1000,
+      "ascent": 1025,
+      "descent": -275,
+      "lineGap": 0
+    }
+  },
+  "source-sans-3-variable.woff2": {
+    "sha256": "5f16566f7a40d39b339ad26be151fa5a1ab1f0c2574c7a2e619765584a1acbd8",
+    "bytes": 170188,
+    "version": "Version 3.052;hotconv 1.1.0;makeotfexe 2.6.0",
+    "axes": {
+      "wght": [
+        200.0,
+        900.0
+      ]
+    },
+    "scripts": [
+      "latin",
+      "russian",
+      "belarusian"
+    ],
+    "missingCurrencies": "₿",
+    "tabular": true,
+    "digitAdvances": {
+      "200.0": [
+        472,
+        472,
+        472,
+        472,
+        472,
+        472,
+        472,
+        472,
+        472,
+        472
+      ],
+      "550.0": [
+        509,
+        509,
+        509,
+        509,
+        509,
+        509,
+        509,
+        509,
+        509,
+        509
+      ],
+      "900.0": [
+        540,
+        540,
+        540,
+        540,
+        540,
+        540,
+        540,
+        540,
+        540,
+        540
+      ]
+    },
+    "metrics": {
+      "unitsPerEm": 1000,
+      "ascent": 1000,
+      "descent": -326,
+      "lineGap": 0
+    }
+  }
+}
