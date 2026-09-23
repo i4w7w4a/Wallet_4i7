@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MonoPreview } from "./mono-preview";
 
 const SHAPE_STORAGE_KEY = "wallet4i7.mono.shape-preview.v1";
-const WORKING_KEY = "wallet4i7.mono.working-presets.v1";
+const WORKING_KEY = "wallet4i7.mono.working-presets.v2";
 const waitWorkingReady = () => waitFor(() => expect(screen.getByRole("button", { name: "Действия с пресетом" })).toBeEnabled());
 
 beforeEach(() => {

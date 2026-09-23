@@ -240,7 +240,7 @@ test("keyboard Space and Enter show material press and only a demo result", asyn
 test("Lab Save stays separate and temporary Apply returns to the approved default after MONO reload", async ({ page, context }) => {
   await page.goto("/mono");
   await expect(page.getByRole("button", { name: /Пресет оформления/ })).toBeEnabled();
-  const workingBefore = await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v1"));
+  const workingBefore = await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v2"));
   const opened = context.waitForEvent("page");
   await page.getByRole("link", { name: /Открыть Motion Lab/ }).click();
   const lab = await opened;
@@ -248,11 +248,11 @@ test("Lab Save stays separate and temporary Apply returns to the approved defaul
   await lab.getByRole("button", { name: "Сохранить пробу" }).click();
   await expect(lab.locator('p[role="status"]')).toContainText("Проба сохранена только в локальном Motion Lab");
   await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
-  expect(await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v1"))).toBe(workingBefore);
+  expect(await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v2"))).toBe(workingBefore);
 
   await lab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
   await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "magnetic");
-  expect(await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v1"))).toBe(workingBefore);
+  expect(await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v2"))).toBe(workingBefore);
   await page.reload();
   await expect(page.locator(".mono-actions__item").first()).toHaveAttribute("data-control-effect", "material");
 });
