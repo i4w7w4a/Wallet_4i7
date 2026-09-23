@@ -25,6 +25,59 @@
   font-family: var(--mono-font-ui);
 }
 
+/* One selected inspector; appearance state is owned by the host, not the chrome. */
+.mono-workbench__dock-label { margin: 16px 18px 0; color: #aab5c4; font-size: 10px; letter-spacing: .08em; }
+.mono-workbench__directions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 12px 12px 0; }
+.mono-workbench__directions button, .mono-workbench__widths button {
+  min-width: 44px; min-height: 44px; padding: 5px; border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: #adb8c6; font: 11px/1.3 var(--mono-font-ui); cursor: pointer;
+}
+.mono-workbench__directions button { display: grid; justify-items: center; gap: 3px; }
+.mono-workbench__directions button span { color: #eef3f8; font-size: 14px; }
+.mono-workbench__directions button[aria-pressed="true"], .mono-workbench__widths button[aria-pressed="true"] {
+  border-color: #657286; background: #222c38; color: #f0f4f8;
+}
+.mono-workbench__widths { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; margin: 4px 12px 12px; border-top: 1px solid var(--mono-chrome-rule); padding-top: 10px; }
+.mono-workbench__extras { padding: 0 14px 14px; border-top: 1px solid var(--mono-chrome-rule); }
+.mono-workbench__extras > summary { min-height: 44px; display: flex; align-items: center; color: #d4deea; font-size: 12px; cursor: pointer; }
+.mono-workbench__extras p, .mono-workbench__note { color: #b2bdcb; font-size: 11px; line-height: 1.55; }
+.mono-workbench__extras [data-share-pending="true"] :is(.mono-share input, .mono-share__actions) { display: none; }
+.mono-inspector-shell__body .mono-color-lab { margin: 0; padding: 0; border: 0; }
+.mono-inspector-shell__body .mono-color-lab > header,
+.mono-workbench__shape .mono-shape-tuner > p:first-child,
+.mono-workbench__shape .mono-shape-tuner__actions > button:not(:first-child),
+.mono-workbench__optics .mono-tuner__head,
+.mono-workbench__optics .mono-tuner__intro,
+.mono-workbench__optics .mono-tuner__footnote,
+.mono-workbench__optics .mono-tuner__cancel,
+.mono-workbench__optics .mono-tuner__apply { display: none; }
+.mono-workbench__optics .mono-tuner { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.mono-workbench__optics .mono-tuner__scroll { max-height: none; padding-inline: 0; }
+.mono-workbench__optics .mono-tuner__footer { position: static; background: transparent; padding-inline: 0; }
+.mono-workbench__optics .mono-tuner__buttons { display: block; }
+.mono-workbench__shape .mono-shape-tuner__actions { display: block; }
+.mono-workbench__shape .mono-shape-tuner__actions > button:first-child,
+.mono-workbench__optics .mono-tuner__reset { width: 100%; min-height: 44px; }
+.mono-inspector-shell__body .mono-logo-options { border: 0; margin: 0; padding: 0; }
+.mono-inspector-shell__body .mono-environment { padding: 4px 0; }
+.mono-workbench :is(.mono-workbench__directions button,.mono-workbench__widths button,.mono-workbench__extras summary):focus-visible { outline: 2px solid #cfdef5; outline-offset: 2px; }
+.mono-trial-guard {
+  width: min(420px, calc(100vw - 32px)); padding: 24px; border: 1px solid #617084; border-radius: 16px;
+  background: #151d27; color: #eef3f9; box-shadow: 0 24px 100px #0009; font-family: var(--mono-font-ui);
+}
+.mono-trial-guard::backdrop { background: #02060cb8; }
+.mono-trial-guard h2 { margin: 0 0 10px; font-size: 20px; }
+.mono-trial-guard p { color: #bcc8d7; font-size: 13px; line-height: 1.5; }
+.mono-trial-guard > div { display: grid; gap: 8px; margin-top: 20px; }
+.mono-trial-guard button { min-height: 44px; padding: 9px 12px; border: 1px solid #627187; border-radius: 8px; background: #202d3d; color: #f4f7fa; font: inherit; font-size: 12px; cursor: pointer; }
+.mono-trial-guard button:last-child { background: #d4deeb; color: #17202b; }
+.mono-trial-guard button:disabled { opacity: .4; cursor: default; }
+.mono-trial-guard button:focus-visible { outline: 2px solid #d3e3fa; outline-offset: 2px; }
+@media (min-width: 1200px) {
+  .mono-workbench .mono-rail--quick { width: 236px; bottom: auto; max-height: calc(100dvh - 32px); }
+  .mono-workbench .mono-rail--fine { width: 312px; }
+}
+
 .mono-workbench *,
 .mono-workbench *::before,
 .mono-workbench *::after { box-sizing: border-box; }
