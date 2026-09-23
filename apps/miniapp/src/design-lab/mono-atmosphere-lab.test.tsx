@@ -50,3 +50,13 @@ it("commits the shared numeric control once and lets undo restore its previous v
   fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("81");
 });
+
+it("reports the selected recipe's state instead of an old editing message", () => {
+  render(<MonoAtmosphereLab />);
+  fireEvent.change(screen.getByRole("slider", { name: "Интенсивность" }), { target: { value: 81 } });
+  fireEvent.click(screen.getByRole("button", { name: "Световой разрез" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Исходный вариант");
+  expect(screen.getByRole("status")).not.toHaveTextContent("изменена");
+  fireEvent.click(screen.getByRole("button", { name: "Обсидиан" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Проба изменена");
+});

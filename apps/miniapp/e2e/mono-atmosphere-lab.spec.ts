@@ -206,3 +206,20 @@ test("captures contrast backgrounds at maximum intensity for visual audit", asyn
   }
   }
 });
+
+test("compact icon tooltip stays inside a narrow viewport and dismisses with Escape", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/design-lab/atmosphere");
+  const reset = page.getByRole("button", { name: "По умолчанию", exact: true });
+  await reset.focus();
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  const box = (await tooltip.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(320);
+  const hit = (await reset.boundingBox())!;
+  expect(hit.width).toBeGreaterThanOrEqual(44);
+  expect(hit.height).toBeGreaterThanOrEqual(44);
+  await reset.press("Escape");
+  await expect(tooltip).toHaveCount(0);
+});
