@@ -10,14 +10,14 @@ ID: `mono-ledger-v1`
 - IBM Plex Sans, Golos Text, Onest и IBM Plex Mono подключены локальными WOFF2-файлами. Каждый вариант использует свой UI font set; общий Font Registry и Font Lab ещё не сделаны.
 - Promo содержит один OGL/WebGL canvas с нейтральным procedural relief, signed refraction, edge darkening, reflection, caustic, flow, мягким pointer response и статическим fallback. Текст поверх него остаётся DOM.
 - Built-in default первого окна `1 · Ledger` уже заменён утверждённым владельцем optical JSON; его `ior: 1.34` положителен намеренно.
-- Локальный Material Lab встроен в правую rail и даёт live controls, нормализацию диапазонов, Default, Apply и JSON handoff. Collapse/hide оболочки сохраняет draft; это настройка кандидата прототипа, не общий production Skin Lab.
+- Локальный Material Lab встроен в правую rail и даёт live controls, нормализацию диапазонов, Default, Apply/Cancel. Collapse/hide сохраняет пробу; Apply обновляет оптику активного локального рабочего пресета. Это не production Skin Lab.
 - Смена трёх направлений запускает отдельные короткие motion-композиции без overshoot; `prefers-reduced-motion` отключает spatial choreography и WebGL flow.
 - Fine-pointer atmosphere использует CSS variables, конечные DOM-волны и смещение редких узлов без собственного постоянного RAF/timer; coarse pointer и reduced-motion получают статическую сцену.
-- Тема `dark/light` и фон `iris/tide/strata` выбираются независимо от оптического preset и сохраняются только как локальный preview. Светлая тема — тёплый pearl/ceramic материал с графитовым текстом и тёмной оптической Promo.
+- Тема `dark/light` и фон `iris/tide/strata` выбираются независимо от оптического direction и сохраняются в выбранном локальном рабочем пресете. Светлая тема — тёплый pearl/ceramic материал с графитовым текстом и тёмной оптической Promo.
 - `tide` мягко набирает энергию по сглаженной скорости жеста и оставляет до шести конечных DOM/CSS-импульсов, `strata` локально отталкивает редкие элементы, `iris` даёт тонкий холодно-тёплый перелив. Это background motion, не настоящая рефракция пикселей: shader glass остаётся только на Promo.
 - Все design controls находятся в двух fixed sibling rails вне телефона. Секции сворачиваются независимо, master control скрывает весь chrome без смещения preview, а compact layout показывает rails как dismissible drawers.
 - Кнопки `320 / 390 / 430 / 480` задают реальную ширину container, а не визуальный scale. Внутренняя композиция реагирует через container queries/`cqw`, fixed nav следует той же ширине, а узкий host clamp-ит profile без overflow.
-- Секция `Форма` live-редактирует радиус оболочки быстрых действий и верхних углов нижнего меню, не дробя их на V1-style карточки. Drafts независимы для Ledger/Frost/Mercury; Reset возвращает обе группы активного направления, Apply пишет только локальный `shape-preview` candidate без autosave и без нового product appearance envelope.
+- Секция `Форма` live-редактирует радиус оболочки быстрых действий и верхних углов нижнего меню. Пробы независимы для Ledger/Frost/Mercury; Reset возвращает обе группы активного направления, Apply обновляет выбранный рабочий пресет, Cancel возвращает принятую форму. Product appearance не меняется.
 - Повторявшаяся правая полоса Promo на снимке была светлой CSS-рамкой `#cacaca` поверх inset-рамки; hover теперь оставляет border прозрачным. Отдельно WebGL resize берёт `clientWidth/clientHeight` вместо временно масштабированного DOMRect, чтобы предотвратить возможный укороченный canvas.
 - Fine-pointer controls имеют раздельные monochrome hover/press responses без layout shift: `90 ms enter / 190 ms settle / 80 ms press`.
 - Переключатель видимости баланса работает локально в прототипе. Быстрые действия, периоды графика и нижняя навигация пока визуальные элементы, а не продуктовые команды.
@@ -32,7 +32,7 @@ ID: `mono-ledger-v1`
 
 Выбранный viewport хранится как allowlisted union `320 | 390 | 430 | 480` и передаётся только в CSS custom property `--mono-preview-width`. Frame применяет `width: min(100%, var(--mono-preview-width))` и `container: mono-preview / inline-size`. Значимые responsive изменения задаются container queries; например, сумма использует `cqw`, а узкий 320-profile уменьшает gutters и Promo независимо от физической ширины browser window. Fake device frame и transform-scale запрещены.
 
-Workbench state и appearance state разделены. `panelsVisible`, active drawer и expanded sections не вызывают handlers оптики или формы. Поэтому несохранённые sliders переживают collapse/hide и продолжают управлять live preview. Optical `Apply` отдельно переносит нормализованный optical draft текущего direction в свой preview map/storage; approved Ledger JSON ниже остаётся неизменным built-in Default. Shape Lab хранит отдельные in-memory drafts для трёх directions, показывает только group-shell radius `quick-actions / bottom-navigation`, нормализует ручной ввод в `0…24px` и только по `Применить форму` пишет prototype candidate `wallet4i7.mono.shape-preview.v1`. Этот candidate не входит в active appearance, Palette Lab hashes, server presets или optical JSON.
+Workbench state и appearance state разделены. `panelsVisible`, active drawer и expanded sections не вызывают Apply. Непринятые optical/shape sliders переживают collapse/hide и управляют live preview, но не входят в сохранённый рабочий пресет до Apply. Approved Ledger JSON остаётся встроенным Default. Shape Lab показывает group-shell radius `quick-actions / bottom-navigation` и нормализует его в `0…24px`; принятая форма и оптика сохраняются в `working-presets.v1`, не в product active appearance, Palette Lab hashes или server presets. `shape-preview.v1` и `optical-preview.v1` только читаются при миграции старого локального состояния.
 
 ## 1. Идея
 
@@ -300,7 +300,7 @@ Resolved optical recipes ниже разделяют рабочие runtime cont
 | `temperature/tint` | `0` | `0` | `0` |
 | `gamma` | `1` | `1` | `1` |
 
-`pixelRatio` не входит в preset: renderer прототипа ограничивает mobile DPR до `1.5`. Текущий источник Promo — процедурно созданный neutral luminance relief с контурными нитями, по изгибу которых глаз видит рефракцию; текст и данные кошелька в source не запекаются. Material Lab обновляет uniforms без замены renderer, `Default` возвращает built-in recipe, а `Apply` сохраняет отдельный versioned preview JSON. Это ещё не общий effect adapter и не production appearance envelope.
+`pixelRatio` не входит в preset: renderer прототипа ограничивает mobile DPR до `1.5`. Текущий источник Promo — процедурно созданный neutral luminance relief с контурными нитями, по изгибу которых глаз видит рефракцию; текст и данные кошелька в source не запекаются. Material Lab обновляет uniforms без замены renderer, `Default` возвращает built-in recipe, а `Apply` сохраняет принятую оптику в локальном рабочем пресете. Это ещё не общий effect adapter и не production appearance envelope.
 
 Optical pipeline:
 

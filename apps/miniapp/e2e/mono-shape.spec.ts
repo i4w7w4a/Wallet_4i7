@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { closeCompactMonoRail, openMonoRail } from "./mono-test-helpers";
 
 const SHAPE_STORAGE_KEY = "wallet4i7.mono.shape-preview.v1";
+const WORKING_KEY = "wallet4i7.mono.working-presets.v1";
 
 test.describe("desktop MONO shape lab", () => {
   test.use({ hasTouch: false, isMobile: false, viewport: { width: 1440, height: 1000 } });
@@ -47,7 +48,8 @@ test.describe("desktop MONO shape lab", () => {
     await shape.getByRole("radio", { name: "Нижнее меню" }).click();
     await radius.fill("16");
     await shape.getByRole("button", { name: "Применить форму" }).click();
-    expect(await page.evaluate((key) => localStorage.getItem(key), SHAPE_STORAGE_KEY)).not.toBeNull();
+    expect(await page.evaluate((key) => localStorage.getItem(key), WORKING_KEY)).not.toBeNull();
+    expect(await page.evaluate((key) => localStorage.getItem(key), SHAPE_STORAGE_KEY)).toBeNull();
 
     await page.reload();
     await expect(actions).toHaveCSS("border-top-left-radius", "20px");

@@ -42,7 +42,8 @@ test("foreign link previews a diff and forks the edited draft without revision r
   });
 
   await page.goto(`/mono?preset=${sourceSlug}`);
-  await page.getByRole("button", { name: "Варианты", exact: true }).click();
+  await page.getByRole("button", { name: "Действия с пресетом" }).click();
+  await page.getByRole("button", { name: "Архив палитр и сервер" }).click();
   const card = page.getByRole("article", { name: "Чужой свет" });
   await expect(card).toBeVisible();
   if (process.env.MONO_PALETTE_CAPTURE === "1") {
