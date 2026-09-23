@@ -21,6 +21,7 @@ import {
 } from "@wallet/ui";
 
 import { MonoGlassTuner } from "./mono-glass-tuner";
+import { MonoLogo } from "./mono-logo";
 import { MonoColorLab, MonoColorInspector, useMonoColorLab } from "./mono-color-lab";
 import { createMonoPaletteWorkspace, enableMonoPalette, switchMonoPaletteTheme } from "./mono-palette-workspace";
 import { MonoPresetLibrary } from "./mono-preset-library";
@@ -68,6 +69,7 @@ type MonoSettingsMap = Record<MonoPreset, MonoGlassSettings>;
 type MonoTheme = "dark" | "light";
 type MonoBackground = "iris" | "tide" | "strata";
 type MonoViewport = 320 | 390 | 430 | 480;
+type MonoLogoVariant = "bare" | "plaque";
 type MonoRail = "quick" | "fine";
 type MonoSection = "variants" | "viewport" | "shape" | "environment" | "optics";
 
@@ -561,6 +563,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const theme = colorLab.shown.mode;
   const [background, setBackground] = useState<MonoBackground>("iris");
   const [viewport, setViewport] = useState<MonoViewport>(480);
+  const [logoVariant, setLogoVariant] = useState<MonoLogoVariant>("bare");
   const [panelsVisible, setPanelsVisible] = useState(true);
   const [compactChrome, setCompactChrome] = useState(false);
   const [mobileRail, setMobileRail] = useState<MonoRail | null>(null);
@@ -1114,7 +1117,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         role={compactChrome && mobileRail === "quick" ? "dialog" : undefined}
         aria-modal={compactChrome && mobileRail === "quick" ? true : undefined}>
         <div className="mono-rail__head">
-          <div><span>W / 02</span><strong>MONO LAB</strong></div>
+          <div><span>V2 / 02</span><strong>MONO LAB</strong></div>
           <a href="/">V1 <span aria-hidden="true">↗</span></a>
         </div>
         <MonoWorkingPresetBar
@@ -1163,6 +1166,15 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
                 <strong>{item.width}</strong><span>{item.label}</span><small>{item.note}</small>
               </button>
             ))}
+          </div>
+          <div className="mono-logo-options" role="group" aria-label="Варианты логотипа" data-mono-control>
+            <span>Логотип · проба без сохранения</span>
+            <div>
+              <button type="button" aria-label="Логотип без плашки" aria-pressed={logoVariant === "bare"}
+                onClick={() => setLogoVariant("bare")}>1 · Без плашки</button>
+              <button type="button" aria-label="Логотип с плашкой" aria-pressed={logoVariant === "plaque"}
+                onClick={() => setLogoVariant("plaque")}>2 · Плашка</button>
+            </div>
           </div>
         </MonoRailSection>
         <MonoRailSection id="shape" index="03" title="Форма" expanded={sections.shape}
@@ -1236,6 +1248,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
 
       <div className="mono-preview-frame" inert={compactChrome && panelsVisible && mobileRail !== null}>
         <main ref={pageRef} className="mono-page" data-mono-preview data-mono-preset={preset}
+          data-mono-logo-variant={logoVariant}
           data-palette-enabled={Boolean(colorLab.shown.paletteEnabled)} data-palette-ready={colorLab.ready} style={shapeStyle}
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
           data-pointer-active="false" onPointerMove={moveAtmosphere} onPointerLeave={restAtmosphere}>
@@ -1256,9 +1269,10 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
 
       <div className="mono-scene">
         <header className="mono-app-header">
-          <div className="mono-app-header__mark" aria-hidden="true"><span>W</span><i /></div>
+          <div className="mono-app-header__mark">
+            <MonoLogo />
+          </div>
           <div className="mono-app-header__person">
-            <span>WALLET_4I7</span>
             <strong>{snapshot.profile.name}</strong>
           </div>
           <div className="mono-app-header__signal" aria-label="Визуальный прототип, демо-данные">
@@ -1325,11 +1339,11 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         <div className="mono-promo-frame">
           <MonoOpticalGlass preset={preset} settings={draftOptics[preset]} active className="mono-promo">
             <div className="mono-promo__content">
-              <span className="mono-promo__overline">WALLET_4I7 / PRIVATE</span>
+              <span className="mono-promo__overline">NOVEX WALLET / PRIVATE</span>
               <strong>Контроль<br />без шума.</strong>
               <span className="mono-promo__foot">МАТЕРИАЛ / 001 <span aria-hidden="true">↗</span></span>
             </div>
-            <div className="mono-promo__seal" aria-hidden="true"><span>4i7</span></div>
+            <div className="mono-promo__seal" aria-hidden="true" />
           </MonoOpticalGlass>
         </div>
 

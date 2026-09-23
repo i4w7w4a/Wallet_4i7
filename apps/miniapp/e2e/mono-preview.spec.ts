@@ -1,6 +1,125 @@
 import { expect, test } from "@playwright/test";
 import { closeCompactMonoRail, openMonoRail } from "./mono-test-helpers";
 
+test("логотип Novex остаётся читаемым на всех ширинах MONO", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto("/mono");
+
+  await expect(page).toHaveTitle("MONO LEDGER — Novex Wallet");
+  const logo = page.getByRole("img", { name: "Novex Wallet" });
+  await expect(logo).toBeVisible();
+  const cornerAlphas = await page.evaluate(async () => {
+    const svg = new Image();
+    svg.src = "/brand/novex-logo.svg";
+    await svg.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = svg.naturalWidth;
+    canvas.height = svg.naturalHeight;
+    const context = canvas.getContext("2d")!;
+    context.drawImage(svg, 0, 0);
+    return [[0, 0], [canvas.width - 1, 0], [0, canvas.height - 1], [canvas.width - 1, canvas.height - 1]]
+      .map(([x, y]) => context.getImageData(x, y, 1, 1).data[3]);
+  });
+  expect(cornerAlphas, "SVG сохраняет прозрачное поле").toEqual([0, 0, 0, 0]);
+  await expect(page.locator(".mono-app-header__person strong")).toHaveText("Демо пользователь");
+  await expect(page.locator(".mono-app-header__signal")).toContainText("DEMO");
+  await expect(page.locator(".mono-promo__overline")).toHaveText("NOVEX WALLET / PRIVATE");
+  await expect(page.locator(".mono-promo__seal")).toBeEmpty();
+
+  for (const variant of ["bare", "plaque"] as const) {
+    if (variant === "plaque") {
+      await page.setViewportSize({ width: 320, height: 844 });
+      const quick = await openMonoRail(page, "quick");
+      await quick.getByRole("button", { name: "Логотип с плашкой" }).click();
+      await closeCompactMonoRail(page, "quick");
+    }
+    for (const width of [320, 390, 430, 480, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      const geometry = await page.evaluate(() => {
+        const logo = document.querySelector<SVGSVGElement>(".mono-app-header__mark svg")!;
+        const mark = document.querySelector<HTMLElement>(".mono-app-header__mark")!;
+        const name = document.querySelector<HTMLElement>(".mono-app-header__person strong")!;
+        const signal = document.querySelector<HTMLElement>(".mono-app-header__signal")!;
+        const markBox = mark.getBoundingClientRect();
+        const nameBox = name.getBoundingClientRect();
+        const signalBox = signal.getBoundingClientRect();
+        return {
+          paths: logo.querySelectorAll("path").length,
+          variant: document.querySelector<HTMLElement>(".mono-page")!.dataset.monoLogoVariant,
+          markRight: markBox.right,
+          nameLeft: nameBox.left,
+          nameRight: nameBox.right,
+          signalLeft: signalBox.left,
+          nameContentWidth: name.scrollWidth,
+          nameBoxWidth: name.clientWidth,
+          previewWidth: document.querySelector<HTMLElement>(".mono-page")!.clientWidth,
+          scrollWidth: document.documentElement.scrollWidth,
+          viewportWidth: document.documentElement.clientWidth,
+        };
+      });
+      expect(geometry.paths, `${width}px: контуры логотипа видны`).toBe(11);
+      expect(geometry.variant).toBe(variant);
+      expect(geometry.markRight).toBeLessThanOrEqual(geometry.nameLeft);
+      expect(geometry.nameRight).toBeLessThanOrEqual(geometry.signalLeft);
+      expect(geometry.nameContentWidth, `${width}px: имя не обрезано`).toBeLessThanOrEqual(geometry.nameBoxWidth);
+      expect(geometry.previewWidth).toBe(width === 1280 ? 480 : width);
+      expect(geometry.scrollWidth, `${width}px: нет горизонтального переполнения`).toBeLessThanOrEqual(geometry.viewportWidth);
+    }
+  }
+});
+
+test("надпись и материал логотипа следуют тёмной и светлой теме", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/mono");
+  const preview = page.locator("main[data-mono-preview]");
+  const appearance = () => page.evaluate(() => ({
+    ink: getComputedStyle(document.querySelector(".mono-logo__wordmark")!).fill,
+    icon: getComputedStyle(document.querySelector(".mono-logo__icon-primary")!).fill,
+    mark: getComputedStyle(document.querySelector(".mono-app-header__mark")!).backgroundColor,
+    canvas: getComputedStyle(document.querySelector(".mono-page")!).backgroundColor,
+  }));
+  const luminance = (color: string) => {
+    const rgb = color.match(/[\d.]+/g)!.slice(0, 3).map(value => Number(value) / 255);
+    const linear = rgb.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+  };
+  const contrast = (a: string, b: string) => {
+    const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (high + 0.05) / (low + 0.05);
+  };
+
+  const darkBare = await appearance();
+  await expect(preview).toHaveAttribute("data-mono-logo-variant", "bare");
+  expect(darkBare.mark).toBe("rgba(0, 0, 0, 0)");
+  expect(contrast(darkBare.ink, darkBare.canvas)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(darkBare.icon, darkBare.canvas)).toBeGreaterThanOrEqual(3);
+
+  const quick = await openMonoRail(page, "quick");
+  await quick.getByRole("button", { name: "Логотип с плашкой" }).click();
+  await closeCompactMonoRail(page, "quick");
+  const darkPlaque = await appearance();
+  expect(luminance(darkPlaque.mark)).toBeLessThan(0.2);
+  expect(contrast(darkPlaque.ink, darkPlaque.mark)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(darkPlaque.icon, darkPlaque.mark)).toBeGreaterThanOrEqual(3);
+
+  const fine = await openMonoRail(page, "fine");
+  await fine.getByRole("button", { name: "Светлая тема" }).click();
+  await closeCompactMonoRail(page, "fine");
+  await expect(preview).toHaveAttribute("data-mono-theme", "light");
+  const lightPlaque = await appearance();
+  expect(luminance(lightPlaque.mark)).toBeGreaterThan(0.7);
+  expect(contrast(lightPlaque.ink, lightPlaque.mark)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(lightPlaque.icon, lightPlaque.mark)).toBeGreaterThanOrEqual(3);
+
+  await openMonoRail(page, "quick");
+  await quick.getByRole("button", { name: "Логотип без плашки" }).click();
+  await closeCompactMonoRail(page, "quick");
+  const lightBare = await appearance();
+  expect(lightBare.mark).toBe("rgba(0, 0, 0, 0)");
+  expect(contrast(lightBare.ink, lightBare.canvas)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(lightBare.icon, lightBare.canvas)).toBeGreaterThanOrEqual(3);
+});
+
 test("MONO LEDGER открывается отдельно от V1 и переключает три визуальных варианта", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/mono");

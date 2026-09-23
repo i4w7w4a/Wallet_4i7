@@ -251,7 +251,7 @@
     transition-duration: var(--mono-interaction-enter);
   }
 
-  .mono-page .mono-app-header:hover .mono-app-header__mark {
+  .mono-page[data-mono-logo-variant="plaque"] .mono-app-header:hover .mono-app-header__mark {
     border-color: var(--mono-palette-borderSubtle-ff, #eee);
     box-shadow: inset 0 1px var(--mono-palette-borderSubtle-ff, #fff), 0 6px 18px var(--mono-palette-borderSubtle-99, #0009);
     transition-duration: var(--mono-interaction-enter);

@@ -372,6 +372,47 @@
 .mono-viewport-options button:hover { border-color: var(--mono-chrome-rule-strong); }
 .mono-viewport-options button:active { transform: translateY(1px) scale(0.985); }
 
+.mono-logo-options {
+  margin-top: 15px;
+  padding-top: 13px;
+  border-top: 1px solid var(--mono-chrome-rule);
+}
+
+.mono-logo-options > span {
+  display: block;
+  color: #bfc5ce;
+  font-size: 11px;
+  font-weight: 590;
+}
+
+.mono-logo-options > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.mono-logo-options button {
+  min-height: 44px;
+  padding: 6px;
+  border: 1px solid var(--mono-chrome-rule);
+  border-radius: 9px;
+  background: var(--mono-chrome-surface);
+  color: #bfc5ce;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 590;
+}
+
+.mono-logo-options button[aria-pressed="true"] {
+  border-color: #c7cdd3;
+  background: #1c2128;
+  color: #f3f5f7;
+}
+
+.mono-logo-options button:hover { border-color: var(--mono-chrome-rule-strong); }
+.mono-logo-options button:active { transform: translateY(1px); }
+
 .mono-rail .mono-environment {
   display: grid;
   gap: 7px;
@@ -504,12 +545,13 @@
 
 @container mono-preview (max-width: 359px) {
   .mono-page { --mono-gutter: 12px; }
+  .mono-app-header__person strong { font-size: 12px; }
   .mono-assets { margin-top: 20px; }
   .mono-hero { margin-top: 19px; }
   .mono-actions__item { min-height: 74px; font-size: 9px; }
   .mono-promo-frame { height: 145px; }
   .mono-promo__content strong { font-size: 24px; }
-  .mono-promo__seal { right: 19px; width: 81px; height: 81px; font-size: 23px; }
+  .mono-promo__seal { right: 19px; width: 81px; height: 81px; }
   .mono-assets__row { gap: 7px; }
   .mono-assets__symbol { width: 29px; height: 29px; }
   .mono-page[data-mono-preset="frost"] .mono-hero { padding-inline: 14px; }

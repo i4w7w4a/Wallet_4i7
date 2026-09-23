@@ -223,31 +223,38 @@
 }
 
 .mono-app-header__mark {
-  position: relative;
+  --mono-logo-ink: #f4f2f8;
+  --mono-logo-primary: #9a90ff;
+  --mono-logo-depth: #7867d9;
+  --mono-logo-gradient-start: #6c58cc;
+  --mono-logo-gradient-end: #9a86f5;
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 108px;
+  height: 42px;
   flex: 0 0 auto;
   place-items: center;
-  overflow: hidden;
-  border: 1px solid var(--mono-palette-borderSubtle-ff, #b8b8b8);
-  border-radius: 9px;
-  background: linear-gradient(150deg, var(--mono-palette-textPrimary-ff, #dedede) 0%, var(--mono-palette-borderStrong-ff, #747474) 35%, var(--mono-palette-surfaceOverlay-ff, #242424) 78%);
-  color: var(--mono-palette-textDisabled-ff, #080808);
-  font-family: var(--mono-font-display);
-  font-size: 24px;
-  font-weight: 650;
-  letter-spacing: -0.12em;
-  line-height: 1;
-  text-shadow: 0 1px 1px var(--mono-palette-borderSubtle-ff, #eee);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
 }
 
-.mono-app-header__mark i {
-  position: absolute;
-  inset: 0;
-  border-top: 1px solid var(--mono-palette-borderSubtle-99, #fff9);
-  border-radius: inherit;
-  pointer-events: none;
+.mono-app-header__mark svg {
+  display: block;
+  width: 102px;
+  height: 38px;
+}
+
+.mono-app-header__mark .mono-logo__wordmark { fill: var(--mono-logo-ink); }
+.mono-app-header__mark .mono-logo__icon-primary { fill: var(--mono-logo-primary); }
+.mono-app-header__mark .mono-logo__icon-depth { fill: var(--mono-logo-depth); }
+.mono-app-header__mark .mono-logo__gradient-start { stop-color: var(--mono-logo-gradient-start); }
+.mono-app-header__mark .mono-logo__gradient-end { stop-color: var(--mono-logo-gradient-end); }
+
+.mono-page[data-mono-logo-variant="plaque"] .mono-app-header__mark {
+  border-color: #57566d;
+  background: #252633;
+  box-shadow: inset 0 1px #ffffff24, 0 3px 10px #0005;
 }
 
 .mono-app-header__person {
@@ -255,14 +262,7 @@
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
-}
-
-.mono-app-header__person span {
-  color: var(--mono-text-muted);
-  font-family: var(--mono-font-mono);
-  font-size: 9px;
-  letter-spacing: 0.1em;
+  justify-content: center;
 }
 
 .mono-app-header__person strong {
@@ -616,12 +616,6 @@
   border-radius: 50%;
   background: radial-gradient(circle at 31% 25%, var(--mono-optical-ffffff41, #ffffff41), var(--mono-optical-55555516, #55555516) 35%, var(--mono-optical-05050577, #05050577) 70%);
   box-shadow: inset 0 0 0 8px var(--mono-optical-ffffff0b, #ffffff0b), inset 0 0 0 9px var(--mono-optical-ffffff50, #ffffff50), 0 0 32px var(--mono-optical-ffffff1b, #ffffff1b);
-  color: var(--mono-optical-f3f3f3, #f3f3f3);
-  font-family: var(--mono-font-display);
-  font-size: 28px;
-  font-weight: var(--mono-font-weight-strong);
-  letter-spacing: -0.1em;
-  text-shadow: 0 1px 8px var(--mono-optical-000000, #000);
 }
 
 .mono-assets {
@@ -848,7 +842,7 @@
   .mono-actions__item { min-height: 74px; font-size: 9px; }
   .mono-promo-frame { height: 145px; }
   .mono-promo__content strong { font-size: 24px; }
-  .mono-promo__seal { right: 19px; width: 81px; height: 81px; font-size: 23px; }
+  .mono-promo__seal { right: 19px; width: 81px; height: 81px; }
   .mono-assets__row { gap: 7px; }
   .mono-assets__symbol { width: 29px; height: 29px; }
   .mono-page[data-mono-preset="frost"] .mono-hero { padding-inline: 14px; }

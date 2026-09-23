@@ -143,7 +143,6 @@
   box-shadow: 0 0 0 1px var(--mono-palette-borderSubtle-b3, #f8f7ecb3);
 }
 
-:is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header__person span { color: var(--mono-palette-textSecondary-ff, #586369); }
 :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header__signal {
   border-color: var(--mono-palette-borderSubtle-ff, #aeb6b7);
   background: var(--mono-palette-surfaceBase-87, #f8f7f187);
@@ -151,13 +150,17 @@
 }
 :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header__signal-dot { background: var(--mono-palette-surfaceBase-ff, #43585d); }
 :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header__mark {
-  border-color: var(--mono-palette-borderSubtle-ff, #8c9898);
-  background: linear-gradient(151deg, var(--mono-palette-surfaceRaised-ff, #fffaf0) 0%, var(--mono-palette-borderStrong-ff, #c0c9c6) 41%, var(--mono-palette-textPrimary-ff, #697276) 100%);
-  box-shadow: inset 0 1px var(--mono-palette-borderSubtle-ff, #fff), 0 3px 9px var(--mono-palette-borderSubtle-2d, #4b53552d);
-  color: var(--mono-palette-textPrimary-ff, #212629);
-  text-shadow: 0 1px var(--mono-palette-borderSubtle-8a, #ffffff8a);
+  --mono-logo-ink: #1e1b4b;
+  --mono-logo-primary: #4338ca;
+  --mono-logo-depth: #370e8d;
+  --mono-logo-gradient-start: #130d3c;
+  --mono-logo-gradient-end: #360d88;
 }
-:is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header__mark i { border-top-color: var(--mono-palette-borderSubtle-ff, #fff); }
+:is(.mono-page[data-mono-theme="light"][data-mono-logo-variant="plaque"], html[data-mono-prepaint-theme="light"] .mono-page[data-mono-logo-variant="plaque"]) .mono-app-header__mark {
+  border-color: #aeb0b8;
+  background: #f7f5f9;
+  box-shadow: inset 0 1px #fff, 0 3px 9px #4b53552d;
+}
 
 :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-hero__eyebrow { border-top-color: var(--mono-palette-borderSubtle-ff, #7d898a); }
 :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-hero__privacy { color: var(--mono-palette-textSecondary-ff, #424d52); }
@@ -300,7 +303,7 @@
   }
   :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-nav__item:hover { color: var(--mono-palette-textSecondary-ff, #25383e); }
   :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header:hover { color: var(--mono-palette-textSecondary-ff, #263238); }
-  :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header:hover .mono-app-header__mark {
+  :is(.mono-page[data-mono-theme="light"][data-mono-logo-variant="plaque"], html[data-mono-prepaint-theme="light"] .mono-page[data-mono-logo-variant="plaque"]) .mono-app-header:hover .mono-app-header__mark {
     border-color: var(--mono-palette-borderSubtle-ff, #657a7e);
     box-shadow: inset 0 1px var(--mono-palette-borderSubtle-ff, #fff), 0 7px 17px var(--mono-palette-borderSubtle-3a, #5d70783a);
   }
