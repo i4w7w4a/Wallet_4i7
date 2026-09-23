@@ -29,6 +29,27 @@ Dev-only адрес: `http://127.0.0.1:3118/design-lab` при `pnpm --dir apps/
 
 Следующий шаг: владелец выбирает одну работающую кнопку и нужный характер baseline/material/magnetic или просит доработку. Сохранённый Lab JSON станет точным handoff выбранных параметров. Массового применения ко всем кнопкам это решение не означает.
 
+### Переданный черновик · 2026-09-23
+
+Владелец передал следующий валидный Lab snapshot и уточнил, к какой именно кнопке относится будущий `Apply`. Это кандидат для обсуждения, его `status: draft` не означает утверждения production preset или выбора product target. При `effectId: material` поле `magneticTravel` хранится для полноты snapshot, но на этот эффект не влияет.
+
+```json
+{
+  "schemaVersion": 1,
+  "sceneId": "control-feedback-01",
+  "implementationVersion": 1,
+  "effectId": "material",
+  "view": "isolated",
+  "previewWidth": 390,
+  "status": "draft",
+  "config": {
+    "pressDepth": 2.7,
+    "magneticTravel": 5,
+    "settleMs": 270
+  }
+}
+```
+
 ## Связь с отдельным окном MONO · подготовка
 
 Владелец запросил путь «из настроек кнопки открыть отдельную лабораторию → настроить → применить в локальной сцене». Для первой связи выбрана **временная локальная примерка**, а не запись в текущий `MonoWorkingDocument` v1: его строгая схема сейчас допускает только `palette/shapes/optics/background`. Подмешивание движения без новой versioned migration нарушило бы импорт и старые рабочие пресеты.
