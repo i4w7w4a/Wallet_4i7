@@ -25,6 +25,7 @@ async function open() {
 const hue = () => screen.getByRole("slider", { name: "Тон" });
 const editHue = (value: string) => fireEvent.change(hue(), { target: { value } });
 const openExact = () => fireEvent.click(screen.getByRole("button", { name: "Точная настройка" }));
+const openColorDetails = () => fireEvent.click(screen.getByText("Точная настройка цвета"));
 const openVariants = () => {
   fireEvent.click(screen.getByRole("button", { name: "Действия с пресетом" }));
   fireEvent.click(screen.getByRole("button", { name: "Архив палитр и сервер" }));
@@ -115,7 +116,7 @@ describe("Color Lab interactions", () => {
   it("explains in plain language when every visual zone is protected", async () => {
     await open();
     openExact();
-    fireEvent.click(screen.getByRole("tab", { name: "Цвет · детали" }));
+    openColorDetails();
     fireEvent.change(screen.getByRole("combobox", { name: "Смысловая роль" }), { target: { value: "textPrimary" } });
     fireEvent.click(screen.getByRole("button", { name: "Не менять: Содержание" }));
     for (const zone of ["Основа", "Акценты", "Стекло"])
@@ -144,7 +145,7 @@ describe("Color Lab interactions", () => {
   it("announces an inherited exact lock as protected in the quick view", async () => {
     await open();
     openExact();
-    fireEvent.click(screen.getByRole("tab", { name: "Цвет · детали" }));
+    openColorDetails();
     fireEvent.change(screen.getByRole("combobox", { name: "Смысловая роль" }), { target: { value: "canvas" } });
     fireEvent.click(screen.getByRole("button", { name: "Не менять: Поверхности" }));
     const foundation = screen.getByRole("button", { name: "Не менять Основа" });
@@ -195,7 +196,7 @@ describe("Color Lab interactions", () => {
   it("freezes manual and locked roles, and replays deterministic randomize through Undo", async () => {
     await open();
     openExact();
-    fireEvent.click(screen.getByRole("tab", { name: "Цвет · детали" }));
+    openColorDetails();
     const role = screen.getByRole("combobox", { name: "Смысловая роль" });
     fireEvent.change(role, { target: { value: "edgeCool" } });
     const hex = () => screen.getByLabelText("HEX");
@@ -278,7 +279,7 @@ describe("Color Lab interactions", () => {
   it("does not allow hidden inspector edits while A/B shows the baseline", async () => {
     await open();
     openExact();
-    fireEvent.click(screen.getByRole("tab", { name: "Цвет · детали" }));
+    openColorDetails();
     fireEvent.click(screen.getByRole("button", { name: "Сравнить A/B" }));
     expect(screen.getByRole("button", { name: "Не менять «Основной акцент»" })).toBeDisabled();
     expect(screen.getByRole("combobox", { name: "Режим роли" })).toBeDisabled();
