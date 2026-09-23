@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openMonoTool } from "./mono-test-helpers";
 
 test.describe("desktop skin workbench", () => {
   test.use({ hasTouch: false, isMobile: false, viewport: { width: 1440, height: 1000 } });
@@ -37,21 +38,23 @@ test.describe("desktop skin workbench", () => {
     }
   });
 
-  test("collapses sections independently and preserves an unsaved optical draft", async ({ page }) => {
+  test("switches one inspector while preserving its unsaved optical draft", async ({ page }) => {
+    await openMonoTool(page, "optics");
     const refraction = page.getByRole("slider", { name: "Преломление" });
     await refraction.fill("1.2");
 
-    await page.getByRole("button", { name: "Свернуть Оптика" }).click();
-    await expect(refraction).toBeHidden();
-    await expect(page.locator('[data-mono-section="environment"]')).toBeVisible();
+    await openMonoTool(page, "logo");
+    await expect(refraction).toHaveCount(0);
+    await expect(page.locator('[data-mono-inspector="logo"]')).toBeVisible();
+    await expect(page.locator("[data-mono-inspector]")).toHaveCount(1);
 
-    await page.getByRole("button", { name: "Развернуть Оптика" }).click();
+    await openMonoTool(page, "optics");
     await expect(refraction).toHaveValue("1.2");
   });
 
   test("one master control hides both rails without moving the preview", async ({ page }) => {
     const preview = page.locator("[data-mono-preview]");
-    await page.getByRole("button", { name: "Свернуть Экран" }).click();
+    await openMonoTool(page, "shape");
     const centerBefore = await preview.evaluate((node) => {
       const rect = node.getBoundingClientRect();
       return rect.left + rect.width / 2;
@@ -68,7 +71,7 @@ test.describe("desktop skin workbench", () => {
 
     await page.getByRole("button", { name: "Показать панели" }).click();
     await expect(page.locator("[data-mono-rail]").first()).toHaveAttribute("aria-hidden", "false");
-    await expect(page.getByRole("button", { name: "Развернуть Экран" })).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator('[data-mono-inspector="shape"]')).toBeVisible();
   });
 
   test("master switch does not cover the color action while the rail scrolls", async ({ page }) => {
@@ -117,7 +120,7 @@ test.describe("compact skin workbench", () => {
     await page.getByRole("button", { name: "Открыть быстрые настройки" }).click();
     const quick = page.locator('[data-mono-rail="quick"]');
     const first = quick.getByRole("link", { name: /V1/i });
-    const last = quick.getByRole("button", { name: "Точная настройка" });
+    const last = quick.locator(".mono-workbench__extras > summary");
     await expect(quick).toHaveAttribute("role", "dialog");
     await expect(quick).toHaveAttribute("aria-modal", "true");
     await expect(page.locator(".mono-preview-frame")).toHaveAttribute("inert", "");
