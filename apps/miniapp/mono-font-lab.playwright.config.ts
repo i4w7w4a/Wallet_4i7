@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "mono-font-lab.spec.ts",
+  testMatch: /mono-(font-lab|typography-scene)\.spec\.ts$/,
   outputDir: "./test-results/mono-font-lab",
   fullyParallel: false,
   workers: 1,
