@@ -101,3 +101,37 @@ test("coarse pointer keeps material static", async ({ browser }) => {
   await expect(page.locator("[data-mono-background-recipe]")).toHaveAttribute("data-motion", "coarse");
   await context.close();
 });
+
+test("real MONO context keeps one Promo, four Material actions and readable DOM content", async ({ page }, testInfo) => {
+  await page.goto("/design-lab/atmosphere");
+  await page.getByRole("button", { name: "Показать в MONO", exact: true }).click({ timeout: 5000 });
+  const scene = page.locator("[data-mono-preview]");
+  await expect(scene).toHaveCount(1);
+  await expect(scene.locator("[data-mono-background-recipe]")).toHaveCount(1);
+  await expect(scene.locator("[data-mono-atmosphere]")).toHaveCount(0);
+  await expect(scene.locator("canvas")).toHaveCount(1);
+  await expect(scene.locator('[data-control-effect="material"]')).toHaveCount(4);
+  const canvas = await scene.locator("canvas").elementHandle();
+  await page.getByRole("button", { name: "Скрыть баланс", exact: true }).click();
+  for (const label of ["Световой разрез", "Обсидиан"]) {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await expect(page.getByRole("button", { name: "Показать баланс", exact: true })).toBeVisible();
+    expect(await canvas!.evaluate(el => el.isConnected)).toBe(true);
+    await expect(scene.locator('[data-control-effect="material"]')).toHaveCount(4);
+    await expect(scene.locator(".mono-logo")).toHaveCount(1);
+  }
+  await page.getByRole("button", { name: "Показать баланс", exact: true }).click();
+  for (const theme of ["Тёмная", "Светлая"]) {
+    await page.getByRole("button", { name: theme, exact: true }).click();
+    for (const label of ["Обсидиан", "Световой разрез"]) {
+      await page.getByRole("button", { name: label, exact: true }).click();
+      await page.getByRole("slider", { name: "Интенсивность", exact: true }).fill("100");
+      await page.mouse.move(5, 5);
+      await page.screenshot({ path: testInfo.outputPath(`context-${theme}-${label}.png`), fullPage: true });
+    }
+  }
+  await page.getByRole("button", { name: "Отправить — демо, операция недоступна", exact: true }).click();
+  await expect(page.getByRole("status", { name: "Статус быстрых действий" })).toContainText("операция недоступна");
+  await page.getByRole("button", { name: "Показать отдельно", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveCount(0);
+});

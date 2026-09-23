@@ -76,7 +76,7 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
     setDrafts(current => ({ ...current, [recipe]: next }));
   };
 
-  return <main className={styles.lab} data-atmosphere-lab>
+  return <div className={styles.lab} data-atmosphere-lab>
     <header className={styles.header}>
       <a href="/design-lab">← Motion Lab</a><span>MONO / ATMOSPHERE 01</span><a href="/mono">Открыть MONO ↗</a>
     </header>
@@ -155,5 +155,5 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
         </MonoLabSection></div>
       </aside>
     </div>
-  </main>;
+  </div>;
 }
