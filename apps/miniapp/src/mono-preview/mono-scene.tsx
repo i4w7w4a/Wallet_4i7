@@ -29,6 +29,7 @@ import "./mono-interactions.css";
 import "./mono-environment.css";
 import "./mono-theme.css";
 import "./mono-scene-layout.css";
+import "./mono-typography-scene.css";
 
 /** Normalized presentation only. Storage envelopes and editor history stay at the host. */
 export type MonoScenePresentation = {
