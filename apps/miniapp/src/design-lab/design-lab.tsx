@@ -150,6 +150,12 @@ export function DesignLab({ launch = null }: { launch?: ApplyLaunch | null }) {
       setStatus("Не удалось сохранить пробу. Экспорт JSON остаётся доступен.");
     }
   };
+  const cancelDraft = () => {
+    setDraft(null);
+    setComparing(false);
+    setPendingImport(null);
+    setStatus("Несохранённые изменения отменены. MONO не изменён.");
+  };
   const exportJson = () => {
     setExported(createPresetJson(preset));
     setStatus("JSON готов: выделите текст и скопируйте его.");
@@ -323,6 +329,7 @@ export function DesignLab({ launch = null }: { launch?: ApplyLaunch | null }) {
         <div className={styles.actions}>
           <button type="button" onClick={save}>Сохранить пробу</button>
           <button type="button" onClick={exportJson}>Экспорт JSON</button>
+          <button type="button" disabled={!draft || applyPending} onClick={cancelDraft}>Отменить изменения</button>
         </div>
         {launch && (
           <div className={styles.applyPanel}>

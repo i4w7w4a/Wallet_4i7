@@ -11,6 +11,8 @@ import {
   type ReactNode,
 } from "react";
 import type { WalletSnapshot } from "@wallet/core";
+import { CHANNEL_NAME, parseApplyRequest, parseApplyRequestEnvelope, type ApplyAck, type ApplyLaunch } from "../design-lab/control-feedback-handoff";
+import type { ControlFeedbackPreset } from "../design-lab/control-feedback-model";
 import {
   MONO_GLASS_DEFAULTS,
   MonoOpticalGlass,
@@ -23,6 +25,7 @@ import { MonoColorLab, MonoColorInspector, useMonoColorLab } from "./mono-color-
 import { createMonoPaletteWorkspace, enableMonoPalette, switchMonoPaletteTheme } from "./mono-palette-workspace";
 import { MonoPresetLibrary } from "./mono-preset-library";
 import { MonoShapeTuner } from "./mono-shape-tuner";
+import { MonoQuickActionFeedback } from "./mono-quick-action-feedback";
 import { MonoWorkingPresetBar } from "./mono-working-preset-bar";
 import { saveMonoPalettePrepaint } from "./mono-palette-prepaint";
 import { MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY, loadMonoPaletteLibrary,
@@ -244,6 +247,8 @@ function MonoRailSection({
 }
 
 export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
+  const quickActionLaunchRef = useRef<ApplyLaunch | null>(null);
+  const quickActionKnownSessionsRef = useRef<string[]>([]);
   const workingLibraryRef = useRef<MonoWorkingLibrary | null>(null);
   const workingDocumentRef = useRef<MonoWorkingDocument>(createMonoWorkingDocument());
   const savedGenerationRef = useRef(0);
@@ -544,6 +549,14 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   };
   const [fineTab, setFineTab] = useState<"optics" | "color">("optics");
   const [balanceHidden, setBalanceHidden] = useState(snapshot.balance.hidden);
+  const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
+  const [quickActionMotionStatus, setQuickActionMotionStatus] = useState("Эффект ещё не применён.");
+  const [quickActionPreview, setQuickActionPreview] = useState<{
+    preset: ControlFeedbackPreset;
+    workingPresetId: string | null;
+  } | null>(null);
+  const quickActionPreset = quickActionPreview?.workingPresetId === (workingLibrary?.activeId ?? null)
+    ? quickActionPreview?.preset ?? null : null;
   const theme = colorLab.shown.mode;
   const [background, setBackground] = useState<MonoBackground>("iris");
   const [viewport, setViewport] = useState<MonoViewport>(480);
@@ -577,6 +590,42 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const chartPoints = values
     .map((value, index) => `${(index / Math.max(1, values.length - 1)) * 100},${74 - ((value - low) / span) * 54}`)
     .join(" ");
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || typeof BroadcastChannel === "undefined") return;
+    let channel: BroadcastChannel;
+    try { channel = new BroadcastChannel(CHANNEL_NAME); }
+    catch { return; }
+    channel.onmessage = (event: MessageEvent<unknown>) => {
+      let envelope: ReturnType<typeof parseApplyRequestEnvelope>;
+      try { envelope = parseApplyRequestEnvelope(event.data); }
+      catch { return; }
+      if (!quickActionKnownSessionsRef.current.includes(envelope.sessionId)) return;
+      const reply = (outcome: ApplyAck["outcome"]) => channel.postMessage({
+        version: 1, kind: "apply-ack", requestId: envelope.requestId,
+        sessionId: envelope.sessionId, targetId: envelope.targetId,
+        workingPresetId: envelope.workingPresetId, outcome,
+      } satisfies ApplyAck);
+      let request: ReturnType<typeof parseApplyRequest>;
+      try { request = parseApplyRequest(event.data); }
+      catch { reply("invalid-preset"); return; }
+      const launch = quickActionLaunchRef.current;
+      const outcome: ApplyAck["outcome"] = request.targetId !== "mono.quick-actions"
+        ? "target-mismatch"
+        : !launch || request.sessionId !== launch.sessionId
+          ? "stale-session"
+          : request.workingPresetId !== launch.workingPresetId ||
+              request.workingPresetId !== (workingLibraryRef.current?.activeId ?? null)
+            ? "preset-changed"
+            : "applied";
+      if (outcome === "applied") {
+        setQuickActionPreview({ preset: request.preset, workingPresetId: request.workingPresetId });
+        setQuickActionMotionStatus("Применено к четырём действиям. Проба исчезнет после перезагрузки.");
+      }
+      reply(outcome);
+    };
+    return () => channel.close();
+  }, []);
 
   const stopAtmosphere = useCallback((clearRipples: boolean) => {
     const host = pageRef.current;
@@ -1010,6 +1059,21 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     "--mono-nav-radius": `${draftShapes[preset]["bottom-navigation"]}px`,
   } as CSSProperties;
   const shapeDirty = JSON.stringify(draftShapes[preset]) !== JSON.stringify(appliedShapes[preset]);
+  const openQuickActionMotionLab = (anchor: HTMLAnchorElement) => {
+    const launch: ApplyLaunch = {
+      sessionId: crypto.randomUUID(),
+      targetId: "mono.quick-actions",
+      workingPresetId: workingLibraryRef.current?.activeId ?? null,
+    };
+    quickActionLaunchRef.current = launch;
+    quickActionKnownSessionsRef.current = [...quickActionKnownSessionsRef.current.slice(-7), launch.sessionId];
+    const url = new URL("/design-lab", window.location.href);
+    url.searchParams.set("session", launch.sessionId);
+    url.searchParams.set("target", launch.targetId);
+    if (launch.workingPresetId) url.searchParams.set("working", launch.workingPresetId);
+    anchor.href = url.toString();
+    setQuickActionMotionStatus("Лаборатория открыта. Применение останется временной примеркой.");
+  };
   const quickRailHidden = !panelsVisible || (compactChrome && mobileRail !== "quick");
   const fineRailHidden = !panelsVisible || (compactChrome && mobileRail !== "fine");
 
@@ -1103,7 +1167,10 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         <MonoRailSection id="shape" index="03" title="Форма" expanded={sections.shape}
           onToggle={() => toggleSection("shape")}>
           <MonoShapeTuner values={draftShapes[preset]} dirty={shapeDirty} status={shapeStatus}
-            onChange={updateShape} onDefault={resetShape} onCancel={cancelShape} onApply={applyShape} />
+            onChange={updateShape} onDefault={resetShape} onCancel={cancelShape} onApply={applyShape}
+            onOpenMotionLab={process.env.NODE_ENV === "development" && workingReady ? openQuickActionMotionLab : undefined}
+            motionLabStatus={quickActionPreview && !quickActionPreset
+              ? "Для этого рабочего пресета отклик не применён." : quickActionMotionStatus} />
         </MonoRailSection>
         <MonoColorLab lab={colorLab} />
         {colorLab.variantsOpen && <>
@@ -1244,13 +1311,13 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
 
         <section className="mono-actions" aria-label="Действия — визуальный прототип">
           {ACTIONS.map((action) => (
-            <div className="mono-actions__item" key={action.label}>
-              <span className="mono-actions__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d={action.path} /></svg>
-              </span>
-              <span>{action.label}</span>
-            </div>
+            <MonoQuickActionFeedback
+              key={`${action.label}:${quickActionPreset?.effectId ?? "baseline"}:${quickActionPreset?.config.magneticTravel ?? 0}`}
+              label={action.label} path={action.path} preset={quickActionPreset}
+              onActivate={() => setQuickActionStatus(`${action.label} — операция недоступна в демо.`)} />
           ))}
+          <p id="mono-actions-status" className="mono-actions__status" role="status"
+            aria-label="Статус быстрых действий" aria-live="polite">{quickActionStatus}</p>
         </section>
 
         <div className="mono-promo-frame">

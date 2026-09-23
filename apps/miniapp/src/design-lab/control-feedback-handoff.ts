@@ -18,6 +18,7 @@ export type ApplyRequest = ApplyLaunch & {
   requestId: string;
   preset: ControlFeedbackPreset;
 };
+export type ApplyRequestEnvelope = Omit<ApplyRequest, "preset"> & { preset: unknown };
 
 export type ApplyOutcome = "applied" | "stale-session" | "target-mismatch" | "preset-changed" | "invalid-preset";
 export type ApplyAck = ApplyLaunch & {
@@ -57,7 +58,7 @@ export function parseApplyLaunch(value: unknown): ApplyLaunch | null {
   };
 }
 
-export function parseApplyRequest(value: unknown): ApplyRequest {
+export function parseApplyRequestEnvelope(value: unknown): ApplyRequestEnvelope {
   if (!smallMessage(value) || !isRecord(value) || !exactKeys(value, [
     "version", "kind", "requestId", "sessionId", "targetId", "workingPresetId", "preset",
   ]) || value.version !== 1 || value.kind !== "apply-request" ||
@@ -75,8 +76,13 @@ export function parseApplyRequest(value: unknown): ApplyRequest {
     kind: "apply-request",
     requestId: value.requestId,
     ...launch,
-    preset: validateControlFeedbackPreset(value.preset),
+    preset: value.preset,
   };
+}
+
+export function parseApplyRequest(value: unknown): ApplyRequest {
+  const envelope = parseApplyRequestEnvelope(value);
+  return { ...envelope, preset: validateControlFeedbackPreset(envelope.preset) };
 }
 
 export function createApplyRequest(launch: ApplyLaunch, requestId: string, preset: ControlFeedbackPreset): ApplyRequest {
