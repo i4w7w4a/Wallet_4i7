@@ -44,27 +44,18 @@ const GROUPS: ReadonlyArray<{ id: string; label: string; controls: readonly Cont
 const NAMES: Record<MonoOpticalPreset, string> = { ledger: "Ledger", frost: "Frost", mercury: "Mercury" };
 
 export function MonoGlassTuner({
-  preset, settings, onChange, onDefault, onApply,
+  preset, settings, onChange, onDefault, onCancel, onApply,
 }: {
   preset: MonoOpticalPreset;
   settings: MonoGlassSettings;
   onChange: (next: Partial<MonoGlassSettings>) => void;
   onDefault: () => void;
+  onCancel: () => void;
   onApply: () => void;
 }) {
   const [group, setGroup] = useState("optics");
   const currentGroup = GROUPS.find((item) => item.id === group) ?? GROUPS[0]!;
   const materialDisabled = !settings.fieldEnabled;
-  const json = JSON.stringify({ version: 1, preset, settings }, null, 2);
-
-  async function copyJson() {
-    try {
-      await navigator.clipboard.writeText(json);
-    } catch {
-      // JSON remains available through the saved preview candidate.
-    }
-  }
-
   return (
     <div className="mono-tuner" role="group" aria-labelledby="mono-tuner-title" data-mono-control>
       <div className="mono-tuner__head">
@@ -132,11 +123,12 @@ export function MonoGlassTuner({
         })}
       </div>
       <div className="mono-tuner__footer">
-        <div className="mono-tuner__footnote">Локальный кандидат · JSON для передачи в пресет</div>
+        <div className="mono-tuner__footnote">Проба материала · примени её к рабочему пресету</div>
         <div className="mono-tuner__buttons">
           <button type="button" className="mono-tuner__reset" onClick={onDefault}>По умолчанию</button>
-          <button type="button" className="mono-tuner__copy" onClick={copyJson}>Копировать JSON</button>
-          <button type="button" className="mono-tuner__apply" onClick={() => { void copyJson(); onApply(); }}>Применить</button>
+          <button type="button" className="mono-tuner__cancel" aria-label="Отменить пробу оптики"
+            onClick={onCancel}>Отмена</button>
+          <button type="button" className="mono-tuner__apply" onClick={onApply}>Применить</button>
         </div>
       </div>
     </div>

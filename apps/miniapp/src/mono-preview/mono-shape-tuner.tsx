@@ -16,6 +16,7 @@ export function MonoShapeTuner({
   status,
   onChange,
   onDefault,
+  onCancel,
   onApply,
 }: {
   values: Record<MonoShapeGroup, number>;
@@ -23,6 +24,7 @@ export function MonoShapeTuner({
   status: string;
   onChange: (group: MonoShapeGroup, radius: number) => void;
   onDefault: () => void;
+  onCancel: () => void;
   onApply: () => void;
 }) {
   const [group, setGroup] = useState<MonoShapeGroup>("quick-actions");
@@ -77,6 +79,7 @@ export function MonoShapeTuner({
       </div>
       <div className="mono-shape-tuner__actions">
         <button type="button" onClick={onDefault}>По умолчанию</button>
+        <button type="button" aria-disabled={!dirty} onClick={() => { if (dirty) onCancel(); }}>Отменить пробу формы</button>
         <button type="button" aria-disabled={!dirty} onClick={() => { if (dirty) onApply(); }}>Применить форму</button>
       </div>
       <p className="mono-shape-tuner__status" role="status" aria-label="Состояние формы"

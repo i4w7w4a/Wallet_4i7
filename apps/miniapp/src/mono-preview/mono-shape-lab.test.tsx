@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MonoPreview } from "./mono-preview";
 
 const SHAPE_STORAGE_KEY = "wallet4i7.mono.shape-preview.v1";
+const WORKING_KEY = "wallet4i7.mono.working-presets.v1";
+const waitWorkingReady = () => waitFor(() => expect(screen.getByRole("button", { name: "Действия с пресетом" })).toBeEnabled());
 
 beforeEach(() => {
   localStorage.clear();
@@ -84,6 +86,7 @@ describe("MONO shape lab", () => {
     first.unmount();
 
     const second = render(<MonoPreview snapshot={snapshot} />);
+    await waitWorkingReady();
     let preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
     expect(preview.style.getPropertyValue("--mono-actions-radius")).toBe("12px");
 
@@ -94,7 +97,7 @@ describe("MONO shape lab", () => {
     fireEvent.change(radius, { target: { value: "16" } });
     fireEvent.click(lab.getByRole("button", { name: "Применить форму" }));
 
-    expect(localStorage.getItem(SHAPE_STORAGE_KEY)).not.toBeNull();
+    expect(localStorage.getItem(WORKING_KEY)).not.toBeNull();
     second.unmount();
     render(<MonoPreview snapshot={snapshot} />);
     preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
@@ -150,6 +153,7 @@ describe("MONO shape lab", () => {
 
   it("applies only the active direction and leaves other direction drafts unapplied", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    await waitWorkingReady();
 
     const lab = within(screen.getByRole("group", { name: "Настройка формы" }));
     const radius = lab.getByRole("slider", { name: "Радиус формы" });
@@ -163,11 +167,11 @@ describe("MONO shape lab", () => {
     fireEvent.change(radius, { target: { value: "21" } });
     fireEvent.click(apply);
 
-    const stored = JSON.parse(localStorage.getItem(SHAPE_STORAGE_KEY)!) as {
-      presets: Record<string, Record<string, number>>;
+    const stored = JSON.parse(localStorage.getItem(WORKING_KEY)!) as {
+      records: Array<{ document: { shapes: Record<string, Record<string, number>> } }>;
     };
-    expect(stored.presets.ledger?.["quick-actions"]).toBe(12);
-    expect(stored.presets.frost?.["quick-actions"]).toBe(21);
+    expect(stored.records[0].document.shapes.ledger?.["quick-actions"]).toBe(12);
+    expect(stored.records[0].document.shapes.frost?.["quick-actions"]).toBe(21);
 
     fireEvent.click(screen.getByRole("button", { name: "1 · Ledger" }));
     expect(radius).toHaveValue("20");
@@ -176,10 +180,11 @@ describe("MONO shape lab", () => {
   it("keeps the live draft dirty when candidate storage is unavailable", async () => {
     const nativeSetItem = Storage.prototype.setItem;
     const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
-      if (key === SHAPE_STORAGE_KEY) throw new Error("storage blocked");
+      if (key === WORKING_KEY) throw new Error("storage blocked");
       return nativeSetItem.call(this, key, value);
     });
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    await waitWorkingReady();
 
     const lab = within(screen.getByRole("group", { name: "Настройка формы" }));
     const radius = lab.getByRole("slider", { name: "Радиус формы" });
@@ -192,12 +197,13 @@ describe("MONO shape lab", () => {
     expect(apply).toBeEnabled();
     expect(apply).toHaveAttribute("aria-disabled", "false");
     expect(lab.getByRole("status", { name: "Состояние формы" })).toHaveTextContent("Не удалось сохранить форму");
-    expect(localStorage.getItem(SHAPE_STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(WORKING_KEY)).toBeNull();
     write.mockRestore();
   });
 
   it("announces Apply without removing the focused action from the tab order", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    await waitWorkingReady();
 
     const lab = within(screen.getByRole("group", { name: "Настройка формы" }));
     fireEvent.change(lab.getByRole("slider", { name: "Радиус формы" }), { target: { value: "20" } });

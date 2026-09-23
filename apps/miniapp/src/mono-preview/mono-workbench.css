@@ -125,6 +125,15 @@
 
 .mono-rail--quick .mono-rail__head { padding-left: 64px; }
 
+.mono-rail__archive-close {
+  min-height: 44px;
+  margin: 8px 12px 14px;
+  border: 1px solid var(--mono-chrome-rule-strong);
+  border-radius: 8px;
+  background: var(--mono-chrome-surface-high);
+  color: var(--mono-chrome-text);
+}
+
 .mono-rail__head > div {
   display: flex;
   min-width: 0;
@@ -170,6 +179,27 @@
 }
 
 .mono-rail__head > a:active { transform: translateY(1px) scale(0.98); }
+
+.mono-rail__bulk {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--mono-chrome-rule);
+}
+
+.mono-rail__bulk button {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: #c3c9cc;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.mono-rail__bulk button:hover { color: #fff; }
+.mono-rail__bulk button:focus-visible { outline: 2px solid #dbe8ff; outline-offset: -2px; }
 
 .mono-rail__status {
   display: inline-flex;

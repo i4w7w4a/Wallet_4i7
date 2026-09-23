@@ -127,6 +127,8 @@
   opacity: 0.45;
 }
 
+.mono-shape-tuner__actions button:last-child { grid-column: 1 / -1; }
+
 .mono-shape-tuner .mono-shape-tuner__status {
   min-height: 16px;
   color: #c9cdcf;

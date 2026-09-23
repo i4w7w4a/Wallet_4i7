@@ -44,7 +44,9 @@ const roleLabels: Record<MonoPaletteRole, string> = {
 const cssColor = (color: { r: number; g: number; b: number }): string =>
   `rgb(${Math.round(color.r * 255)} ${Math.round(color.g * 255)} ${Math.round(color.b * 255)})`;
 
-export function useMonoColorLab() {
+export function useMonoColorLab(binding?: { onWorkspaceChange: (workspace: MonoPaletteWorkspace) => void }) {
+  const managed = binding !== undefined;
+  const onWorkspaceChange = binding?.onWorkspaceChange;
   const [workspace, setWorkspace] = useState(createMonoPaletteWorkspace);
   const current = useRef(workspace);
   const [ready, setReady] = useState(false);
@@ -68,14 +70,21 @@ export function useMonoColorLab() {
       const next = edit(current.current);
       current.current = next;
       setWorkspace(next);
+      onWorkspaceChange?.(next);
       setPending(null);
       setPendingOrigin(null);
       setStatus("");
     } catch (error) { setStatus(error instanceof Error ? error.message : "Изменение отклонено"); }
-  }, []);
+  }, [onWorkspaceChange]);
 
   useEffect(() => {
     let alive = true;
+    if (managed) {
+      try { void loadMonoPaletteLibrary(localStorage).then(entries => { if (alive) setLibrary(entries); })
+        .catch(() => { if (alive) setStatus("Старая библиотека палитр недоступна."); }); }
+      catch { queueMicrotask(() => { if (alive) setStatus("Старая библиотека палитр недоступна."); }); }
+      return () => { alive = false; };
+    }
     queueMicrotask(() => {
       if (!alive) return;
       try {
@@ -93,16 +102,24 @@ export function useMonoColorLab() {
       setReady(true);
     });
     return () => { alive = false; if (frame.current !== null) cancelAnimationFrame(frame.current); };
-  }, []);
+  }, [managed]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || managed) return;
     try {
       saveMonoPaletteWorkspace(localStorage, current.current);
       saveMonoPalettePrepaint(localStorage, current.current);
     }
     catch { queueMicrotask(() => setStatus("Не удалось сохранить рабочее место; черновик остаётся в памяти.")); }
-  }, [workspace.slots, workspace.activeSlotId, ready]);
+  }, [workspace.slots, workspace.activeSlotId, ready, managed]);
+
+  const loadManagedWorkspace = useCallback((next: MonoPaletteWorkspace) => {
+    current.current = next;
+    setWorkspace(next);
+    setPending(null);
+    setPendingOrigin(null);
+    setReady(true);
+  }, []);
 
   const flush = useCallback(() => {
     if (frame.current !== null) cancelAnimationFrame(frame.current);
@@ -203,7 +220,7 @@ export function useMonoColorLab() {
     const url = URL.createObjectURL(new Blob([value], { type: "application/json" }));
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = "mono-palette.json"; anchor.click(); URL.revokeObjectURL(url);
   });
-  return { workspace, present, shown, theme, resolved, style, issues, ready, status, setStatus, expert, setExpert,
+  return { workspace, present, shown, theme, resolved, style, issues, ready, status, setStatus, loadManagedWorkspace, managed, expert, setExpert,
     variantsOpen, setVariantsOpen, role, setRole,
     library, name, setName, json, setJson, pending, setPending, linkDiff, setLinkDiff, busy, commit, begin, end, editRecipe,
     randomize, newVariant, save, remove, previewFragment, previewRemotePreset, activeRemoteSource: remoteSources[workspace.activeSlotId] ?? null,
@@ -316,9 +333,9 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
           aria-pressed={workspace.compare === "baseline"} onClick={() => commit(toggleMonoPaletteCompare)}>
           {workspace.compare === "baseline" ? "A · Исходный" : "B · Черновик"}
         </button>
-        <button type="button" aria-label="Дополнительные действия" title="Дополнительные действия"
+        {!lab.managed && <button type="button" aria-label="Дополнительные действия" title="Дополнительные действия"
           aria-controls="mono-palette-extras" aria-expanded={extrasOpen}
-          onClick={() => setExtrasOpen(!extrasOpen)}><span aria-hidden="true">⋯</span></button>
+          onClick={() => setExtrasOpen(!extrasOpen)}><span aria-hidden="true">⋯</span></button>}
       </div>
       <button type="button" className="mono-color-lab__secondary" disabled={!enabled || workspace.compare === "baseline"}
         onClick={() => lab.randomize({ kind: "global" })}>Другая палитра</button>
@@ -329,18 +346,18 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
         }}>Применить палитру</button>
       {lab.issues.length > 0 && <div role="note" aria-label="Ограничения Apply">{lab.issues.map((issue, index) => <p key={index}>{issue.message}</p>)}</div>}
       {workspace.compare === "baseline" && <p role="note">Сейчас показан A · исходный материал. Вернитесь к B, чтобы сохранить или применить черновик.</p>}
-      <div className="mono-color-lab__action-row">
+      {!lab.managed && <div className="mono-color-lab__action-row">
         <button type="button" aria-controls="mono-palette-save" aria-expanded={saveOpen} onClick={() => setSaveOpen(!saveOpen)}>Сохранить вариант</button>
         <button type="button" aria-controls="mono-palette-local-variants mono-palette-server-variants"
           aria-expanded={lab.variantsOpen} onClick={() => lab.setVariantsOpen(!lab.variantsOpen)}>Варианты</button>
-      </div>
-      <fieldset id="mono-palette-save" hidden={!saveOpen} disabled={!enabled || lab.busy || workspace.compare === "baseline"}
+      </div>}
+      {!lab.managed && <fieldset id="mono-palette-save" hidden={!saveOpen} disabled={!enabled || lab.busy || workspace.compare === "baseline"}
         className="mono-color-lab__save-form">
         <legend>Сохранить локально</legend>
         <label>Имя пресета<input maxLength={80} value={lab.name} onChange={event => lab.setName(event.target.value)} /></label>
         <button type="button" onClick={() => void lab.save()}>Сохранить новый</button>
-      </fieldset>
-      <div id="mono-palette-extras" hidden={!extrasOpen} className="mono-color-lab__extras">
+      </fieldset>}
+      {!lab.managed && <div id="mono-palette-extras" hidden={!extrasOpen} className="mono-color-lab__extras">
         <div className="mono-color-lab__row">
           <button type="button" onClick={() => void lab.output()}>Копировать JSON</button>
           <button type="button" onClick={() => void lab.download()}>Скачать JSON</button>
@@ -351,7 +368,7 @@ export function MonoColorLab({ lab }: { lab: MonoColorLabState }) {
           <label>JSON пресета<textarea value={lab.json} maxLength={131072} onChange={event => lab.setJson(event.target.value)} /></label>
           <button type="button" onClick={() => void lab.importPreview()}>Предпросмотр импорта</button>
         </div>
-      </div>
+      </div>}
     </div>
     <button type="button" className="mono-color-lab__exact-toggle" aria-controls="mono-color-exact" aria-expanded={lab.expert}
       onClick={() => lab.setExpert(!lab.expert)}>Точная настройка <span aria-hidden="true">{lab.expert ? "−" : "+"}</span></button>
