@@ -34,8 +34,9 @@ deployment package. An always-latest link belongs to that future package.
 The v2 key is `wallet4i7.mono.working-presets.v2`. A missing v2 may read v1;
 an existing invalid v2 fails explicitly. Loading is read-only, and saving v2
 does not rewrite or delete old bytes. Generation checks continue across the
-migration boundary. The separate logo preview joins only the active legacy
-record because no historical per-record logo data exists.
+migration boundary. The separate logo preview is copied into every legacy
+record/direction: v1 displayed that same global logo when switching records.
+After migration these values are independent and the old logo key stays intact.
 
 The full editor JSON export is still distinct from a share URL. Import supports
 the previous v1 working envelope and palette-only exports. Applying or cancelling
