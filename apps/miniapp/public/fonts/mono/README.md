@@ -1,6 +1,6 @@
 # MONO LEDGER preview fonts
 
-These are self-hosted assets for the three **visual preview** directions. No font is fetched from a CDN at runtime. This is not yet the full Font Lab registry or atomic font-switch loader.
+These are self-hosted assets for MONO and the isolated `/design-lab/type` Font Lab. No font is fetched from a CDN at runtime. The finite registry and shaped-glyph audit live in `src/mono-preview/mono-font-registry.ts` and `mono-font-audit.json`.
 
 All three families are licensed under the SIL Open Font License 1.1; the complete license notices are kept beside the binaries. IBM Plex reserves the font name **“Plex”**. Its WOFF2 files below are unmodified binaries from IBM's own repository. Golos Text files are also unmodified upstream WOFF2 binaries. Onest has no Reserved Font Name in its OFL notice; its WOFF2 here was compressed from the Google Fonts source TTF without subsetting or outline changes.
 
@@ -17,6 +17,19 @@ Onest source TTF SHA-256: `966C5C29B4755DA84B6854D5C21DD4EAA2420225D0E9874DE602D
 
 ## Glyph and numeric audit
 
-Audited with FontTools 4.65.0 against the specimen in `docs/skins/font-lab.md`: Russian Cyrillic, Latin, arrows, minus, ellipsis, digits and `₽ $ € £ ¥ ₸` are present in all six assets. `₿` is present in IBM Plex Sans and IBM Plex Mono, but **not** Golos Text or Onest. Their CSS stacks deliberately fall back to our local Plex Mono for that one sign; do not claim that Golos/Onest have complete native specimen coverage. Prefer `BTC` in live wallet labels. Golos and Onest expose `tnum`; IBM Plex Sans has equal default digit advance widths, and Plex Mono is fixed width.
+Re-audited with FontTools 4.65.0 and HarfBuzz (uharfbuzz 0.52.0) on 2026-09-24: Latin, Russian, Belarusian **Ўў Іі**, arrows, minus, ellipsis and digits are present in every asset. Native currency gaps: Golos, Onest and Source Sans 3 lack `₿`; Manrope lacks `₸`. Plex Sans and Plex Mono cover all `₽ $ € £ ¥ ₸ ₿`. Font Lab pairs only families whose combined coverage is complete; its details identify the companion for missing symbols. No system glyph is silently counted as native coverage.
+
+**Correction to the original audit:** Golos 2.004 exposes `tnum`, but its substituted `.tf` glyphs have unequal advances (regular: 580–620 units). The feature tag alone is not proof of tabular numbers. In Font Lab, Golos is a text-only face paired with Plex Sans for balance/financial rows. All other faces pass shaped equal-advance checks at minimum, midpoint and maximum weight. The existing `/mono` CSS defaults are not rewritten by this isolated lab; the host must adopt the normalized role adapter to receive this correction.
+
+## Added Font Lab assets
+
+| Local file | Exact source | Internal version / axes | SHA-256 |
+|---|---|---|---|
+| `source-sans-3-variable.woff2` | [Adobe Source Sans commit 87b37a2](https://github.com/adobe-fonts/source-sans/blob/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e/WOFF2/VF/SourceSans3VF-Upright.ttf.woff2) | 3.052, wght 200–900 | `5f16566f7a40d39b339ad26be151fa5a1ab1f0c2574c7a2e619765584a1acbd8` |
+| `manrope-variable.woff2` | [Google Fonts commit b5efa9c](https://github.com/google/fonts/blob/b5efa9c32e8f9b63005f5cdb1ad5527a77d2cd04/ofl/manrope/Manrope%5Bwght%5D.ttf) | 4.505, wght 200–800 | `ec48a797c0f2b33917ce9b7751021719ea1fbd46fb5c584c59c1ea1064678de7` |
+
+Source Sans 3: Copyright 2010–2024 Adobe, Reserved Font Name **Source**, OFL 1.1. Unmodified upstream WOFF2; [exact license](https://github.com/adobe-fonts/source-sans/blob/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e/LICENSE.md) stored as `OFL-Source-Sans-3.txt`. Manrope: Copyright 2018 The Manrope Project Authors, no Reserved Font Name in the pinned [OFL notice](https://github.com/google/fonts/blob/b5efa9c32e8f9b63005f5cdb1ad5527a77d2cd04/ofl/manrope/OFL.txt). Source TTF SHA-256 `3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6`; compressed with FontTools 4.65.0 / Brotli 1.2.0, no subsetting or outline changes. This is the pinned OFL 4.505, not a claim about another Manrope release's license.
+
+Run `python scripts/mono-font-audit.py` from repository root with the pinned audit tools installed. It verifies required glyphs and shaped numeric advances, and writes hashes, byte counts, real axes and metrics to `mono-font-audit.json`. Audit tooling is not an application dependency.
 
 CSS API: import `apps/miniapp/src/mono-preview/mono-fonts.css`; set `data-mono-preset="ledger|frost|mercury"` on the preview root. The root exposes `--mono-font-ui`, `--mono-font-display`, `--mono-font-numeric`, `--mono-font-mono` and four weight variables. Use `font-variant-numeric: tabular-nums lining-nums` on amounts and account figures. `@font-face` declarations alone do not load inactive preset files; no preload links are added.

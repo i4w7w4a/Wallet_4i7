@@ -20,6 +20,11 @@ export type MonoSceneAppearance = {
 export const MONO_BALANCE_DEFAULT: Readonly<MonoBalanceAppearance> = Object.freeze({
   composition: "ledger", fractionSize: "medium", fractionTone: "secondary",
 });
+// Migration of existing owner presets preserves their unsplit numeral treatment.
+// New design candidates use MONO_BALANCE_DEFAULT; migrations opt into this explicitly.
+export const MONO_BALANCE_LEGACY: Readonly<MonoBalanceAppearance> = Object.freeze({
+  composition: "ledger", fractionSize: "large", fractionTone: "primary",
+});
 export const MONO_CHART_DEFAULT: Readonly<MonoChartAppearance> = Object.freeze({ visible: true, variant: "line" });
 export const MONO_LAYOUT_DEFAULT: Readonly<MonoLayoutAppearance> = Object.freeze({ chartPosition: "top" });
 export const MONO_ASSET_LIST_DEFAULT: Readonly<MonoAssetListAppearance> = Object.freeze({
