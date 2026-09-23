@@ -3,12 +3,16 @@
 import { useState } from "react";
 import "./mono-share-button.css";
 
-export type MonoShareButtonProps = { createLink: () => Promise<string>; disabled?: boolean };
+export type MonoShareButtonProps = { sourceKey: string; createLink: () => Promise<string>; disabled?: boolean };
 function localLink(link: string): boolean {
   const host = new URL(link).hostname;
   return host === "localhost" || host.endsWith(".localhost") || host === "[::1]" || host.startsWith("127.");
 }
-export function MonoShareButton({ createLink, disabled = false }: MonoShareButtonProps) {
+export function MonoShareButton({ sourceKey, ...props }: MonoShareButtonProps) {
+  return <MonoShareSnapshot key={sourceKey} {...props} />;
+}
+
+function MonoShareSnapshot({ createLink, disabled = false }: Omit<MonoShareButtonProps, "sourceKey">) {
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState("");
   const [error, setError] = useState("");
@@ -29,7 +33,7 @@ export function MonoShareButton({ createLink, disabled = false }: MonoShareButto
   }
 
   return <section className="mono-share" aria-label="Поделиться оформлением">
-    <button type="button" disabled={disabled || busy} onClick={() => { void generate(); }}>
+    <button type="button" data-mono-share-create disabled={disabled || busy} onClick={() => { void generate(); }}>
       {busy ? "Готовим ссылку…" : "Получить ссылку"}
     </button>
     {link && <>
