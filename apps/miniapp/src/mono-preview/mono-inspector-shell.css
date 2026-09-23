@@ -18,5 +18,5 @@
   background: #1a222d; color: #eef2f7; font: inherit; font-size: 12px; cursor: pointer;
 }
 .mono-inspector-shell__footer .mono-inspector-shell__apply { background: #d4deeb; color: #18212c; }
-.mono-inspector-shell__footer button:disabled { cursor: default; opacity: .4; }
+.mono-inspector-shell__footer button[aria-disabled="true"] { cursor: default; opacity: .4; }
 .mono-inspector-shell__footer button:focus-visible { outline: 2px solid #c2d8fa; outline-offset: 2px; }

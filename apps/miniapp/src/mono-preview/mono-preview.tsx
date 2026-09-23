@@ -193,6 +193,10 @@ function applyDocumentEnvironment(theme: MonoTheme, background: MonoBackground) 
   document.documentElement.dataset.monoPrepaintBackground = background;
 }
 
+function focusWorkingSelector() {
+  requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".mono-working-preset__selector")?.focus());
+}
+
 export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const hostActive = useMonoSceneActivity();
   const [initialDocument] = useState(() => createMonoWorkingDocument(MONO_LOGO_PREVIEW_DEFAULTS));
@@ -328,6 +332,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           JSON.stringify({ version: 1, theme: mode, background: selected.document.background }));
       } catch { /* Derived first-paint cache is secondary. */ }
       setWorkingStatus("Сохранено в этом браузере");
+      focusWorkingSelector();
       return true;
     } catch (error) {
       setWorkingStatus(workingSaveError(error));
@@ -355,6 +360,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       setWorkingLibrary(next);
       colorLab.loadManagedWorkspace(document.palette);
       setWorkingStatus("Сохранено в этом браузере");
+      focusWorkingSelector();
       return true;
     } catch (error) {
       setWorkingStatus(workingSaveError(error));
@@ -378,6 +384,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       workingLibraryRef.current = next;
       setWorkingLibrary(next);
       setWorkingStatus("Сохранено в этом браузере");
+      focusWorkingSelector();
       return true;
     } catch (error) {
       setWorkingStatus(workingSaveError(error));
@@ -418,6 +425,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       }
       catch { /* Derived first-paint cache is secondary. */ }
       setWorkingStatus("Сохранено в этом браузере");
+      focusWorkingSelector();
       return true;
     } catch (error) {
       setWorkingStatus(workingSaveError(error));
@@ -457,6 +465,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           JSON.stringify({ version: 1, theme: mode, background: document.background }));
       } catch { /* Derived first-paint cache is secondary. */ }
       setWorkingStatus("Сохранено в этом браузере");
+      focusWorkingSelector();
       return true;
     } catch (error) {
       setWorkingStatus(workingSaveError(error));
@@ -494,7 +503,12 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const preset = PRESETS[colorLab.workspace.activeSlotId - 1].id;
   const [shapeStatus, setShapeStatus] = useState("");
   const setPreset = (next: MonoPreset) => {
-    if (next === preset || !trialsSettled(() => setPreset(next))) return;
+    if (next === preset) return;
+    if (fontCandidate || colorLab.pending) {
+      setWorkingStatus(fontCandidate ? "Сначала завершите или отмените пробу шрифтов." : "Сначала примените или отмените импорт палитры.");
+      selectTool(fontCandidate ? "typography" : "color");
+      return;
+    }
     setShapeStatus("");
     colorLab.switchSlot((PRESETS.findIndex(item => item.id === next) + 1) as 1 | 2 | 3);
   };
@@ -1006,6 +1020,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           }}
           onSelect={selectWorking} onCreate={createWorking} onCopy={copyWorking} onRename={renameWorking}
           onRetry={() => workingLibraryRef.current ? persistWorking(workingLibraryRef.current.activeId) : false} />
+        {hasPendingTrials() && <p className="mono-workbench__pending" role="status">Есть неприменённые пробы</p>}
 
         <div className="mono-workbench__directions" role="group" aria-label="Варианты дизайна">
           {PRESETS.map(item => <button key={item.id} type="button" aria-label={item.key + " · " + item.label}

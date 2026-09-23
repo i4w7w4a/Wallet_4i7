@@ -27,6 +27,7 @@
 
 /* One selected inspector; appearance state is owned by the host, not the chrome. */
 .mono-workbench__dock-label { margin: 16px 18px 0; color: #aab5c4; font-size: 10px; letter-spacing: .08em; }
+.mono-workbench__pending { margin: 0; padding: 8px 12px; color: #efd4a7; font-size: 11px; line-height: 1.4; border-bottom: 1px solid var(--mono-chrome-rule); }
 .mono-workbench__directions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 12px 12px 0; }
 .mono-workbench__directions button, .mono-workbench__widths button {
   min-width: 44px; min-height: 44px; padding: 5px; border: 1px solid transparent; border-radius: 8px;

@@ -27,10 +27,10 @@ export function MonoInspectorShell({ tool, children, dirty = false, busy = false
     {(note || onApply || onCancel) && <footer className="mono-inspector-shell__footer">
       <p role="status">{note ?? (busy ? "Подготовка…" : dirty ? "Проба · ещё не применена" : "Применено к пресету")}</p>
       {onApply && onCancel && <div>
-        <button type="button" disabled={!dirty} aria-label={CANCEL_LABELS[tool] ?? "Отменить пробу"}
-          onClick={onCancel}>Отменить</button>
-        <button type="button" disabled={!dirty || busy} aria-label={APPLY_LABELS[tool] ?? "Применить настройку"}
-          className="mono-inspector-shell__apply" onClick={onApply}>Применить</button>
+        <button type="button" aria-disabled={!dirty} aria-label={CANCEL_LABELS[tool] ?? "Отменить пробу"}
+          onClick={() => { if (dirty) onCancel(); }}>Отменить</button>
+        <button type="button" aria-disabled={!dirty || busy} aria-label={APPLY_LABELS[tool] ?? "Применить настройку"}
+          className="mono-inspector-shell__apply" onClick={() => { if (dirty && !busy) onApply(); }}>Применить</button>
       </div>}
     </footer>}
   </section>;

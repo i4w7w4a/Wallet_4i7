@@ -34,7 +34,7 @@ it("only commits a dirty slice through explicit Apply and keeps Cancel separate"
   const { rerender } = render(<MonoInspectorShell tool="shape" dirty={false} onApply={apply} onCancel={cancel}>
     <label>Радиус<input defaultValue="12" /></label>
   </MonoInspectorShell>);
-  expect(screen.getByRole("button", { name: "Применить форму" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Применить форму" })).toHaveAttribute("aria-disabled", "true");
   rerender(<MonoInspectorShell tool="shape" dirty onApply={apply} onCancel={cancel}>
     <label>Радиус<input defaultValue="12" /></label>
   </MonoInspectorShell>);
@@ -43,6 +43,21 @@ it("only commits a dirty slice through explicit Apply and keeps Cancel separate"
   expect(cancel).toHaveBeenCalledOnce();
   expect(apply).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Применить форму" }));
+  expect(apply).toHaveBeenCalledOnce();
+});
+
+it("retains Apply focus and its tab stop after acceptance while ignoring repeated activation", () => {
+  const apply = vi.fn();
+  const props = { tool: "shape" as const, onApply: apply, onCancel: vi.fn(), children: <p>Форма</p> };
+  const { rerender } = render(<MonoInspectorShell {...props} dirty />);
+  const button = screen.getByRole("button", { name: "Применить форму" });
+  button.focus();
+  fireEvent.click(button);
+  rerender(<MonoInspectorShell {...props} dirty={false} />);
+  expect(button).toHaveFocus();
+  expect(button).toBeEnabled();
+  expect(button).toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(button);
   expect(apply).toHaveBeenCalledOnce();
 });
 

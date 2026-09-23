@@ -23,3 +23,4 @@
   background: #edc98c;
 }
 .mono-tool-dock .mono-lab-control-icon-button:disabled { opacity: .35; }
+.mono-tool-dock__description { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
