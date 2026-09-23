@@ -1,0 +1,25 @@
+.mono-tool-dock {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  justify-content: space-between;
+  gap: 12px 8px;
+  padding: 16px 18px;
+}
+.mono-tool-dock .mono-lab-control-icon-button { position: relative; border-color: transparent; }
+.mono-tool-dock .mono-lab-control-icon-button[aria-pressed="true"] {
+  border-color: #c8d0dc;
+  background: #d4deeb;
+  color: #18212c;
+}
+.mono-tool-dock .mono-lab-control-icon-button[data-dirty="true"]::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid #11151c;
+  border-radius: 50%;
+  background: #edc98c;
+}
+.mono-tool-dock .mono-lab-control-icon-button:disabled { opacity: .35; }
