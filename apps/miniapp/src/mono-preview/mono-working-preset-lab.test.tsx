@@ -103,6 +103,19 @@ it("migrates all legacy palette slots and accepted shape, optics and background 
   await waitFor(() => expect(JSON.parse(localStorage.getItem(WORKING_KEY)!).activeId).toBe(activeId));
 });
 
+it("migrates a standalone legacy light environment into the active working slot", async () => {
+  const key = "wallet4i7.mono.environment-preview.v1";
+  const raw = JSON.stringify({ version: 1, theme: "light", background: "tide" });
+  localStorage.setItem(key, raw);
+  render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+  await waitFor(() => expect(document.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "light"));
+  const library = JSON.parse(localStorage.getItem(WORKING_KEY)!) as { records: Array<{ document: {
+    palette: { slots: Array<{ present: { mode: string } }> }; background: string } }> };
+  expect(library.records[0].document.palette.slots[0].present.mode).toBe("light");
+  expect(library.records[0].document.background).toBe("tide");
+  expect(localStorage.getItem(key)).toBe(raw);
+});
+
 it("opens a named palette-only legacy record as an explicitly marked full working copy", async () => {
   const config = normalizeMonoPaletteConfig({ seed: "legacy-stone" });
   config.themes.dark.recipe.anchorHue = 77;

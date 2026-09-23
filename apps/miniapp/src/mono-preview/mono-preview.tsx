@@ -20,7 +20,7 @@ import {
 
 import { MonoGlassTuner } from "./mono-glass-tuner";
 import { MonoColorLab, MonoColorInspector, useMonoColorLab } from "./mono-color-lab";
-import { createMonoPaletteWorkspace, enableMonoPalette } from "./mono-palette-workspace";
+import { createMonoPaletteWorkspace, enableMonoPalette, switchMonoPaletteTheme } from "./mono-palette-workspace";
 import { MonoPresetLibrary } from "./mono-preset-library";
 import { MonoShapeTuner } from "./mono-shape-tuner";
 import { MonoWorkingPresetBar } from "./mono-working-preset-bar";
@@ -614,7 +614,9 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             const palette = readMonoPaletteWorkspace(localStorage);
             if (workspaceKeys.some(key => localStorage.getItem(key) !== null) && !palette)
               throw new Error("Старое рабочее место повреждено.");
-            document = { ...document, palette: palette ?? document.palette };
+            const environment = loadEnvironmentCandidate();
+            document = { ...document, palette: palette ?? (environment.theme === "light"
+              ? switchMonoPaletteTheme(document.palette, "light") : document.palette) };
           }
           const hasLegacyPresets = localStorage.getItem(MONO_PALETTE_PRESETS_KEY) !== null ||
             localStorage.getItem("wallet4i7.mono.palette-presets.v1") !== null;
@@ -820,6 +822,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         scheduleWorkingSave(id);
       }
     }
+    if (workingReadyRef.current && !workingBlockedRef.current) flushWorking();
   }
 
   useEffect(() => {
