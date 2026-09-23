@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
-  type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+  type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent,
+  type ReactNode, type RefObject } from "react";
 import type { WalletSnapshot } from "@wallet/core";
 import { MonoOpticalGlass, type MonoGlassSettings, type MonoPaletteConfigV1 } from "@wallet/ui";
 import { MonoLogo } from "./mono-logo";
@@ -38,6 +39,9 @@ export type MonoSceneProps = {
   paletteTransitionEnabled?: boolean;
   quickActionPreset?: ComponentProps<typeof MonoQuickActionFeedback>["preset"];
   active?: boolean;
+  /** Host-owned adapter replaces the legacy ambient layer and its pointer reactions. */
+  atmosphere?: ReactNode;
+  surfaceRef?: RefObject<HTMLElement | null>;
 };
 
 const FIELD_NODES = [
@@ -71,7 +75,9 @@ const assetFormatter = new Intl.NumberFormat("ru-RU", {
 
 export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady = true,
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true,
+  atmosphere, surfaceRef,
 }: MonoSceneProps) {
+  const customAtmosphere = atmosphere !== undefined;
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
   const { theme, background } = appearance.environment;
   const paletteStyle = useMemo(() => palette.enabled
@@ -140,6 +146,10 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
   useEffect(() => () => paletteAnimationRef.current?.cancel(), []);
 
   useEffect(() => {
+    if (customAtmosphere || !active) {
+      stopAtmosphere(true);
+      return;
+    }
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     const onCapabilityChange = () => {
@@ -152,7 +162,7 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
       reducedMotion.removeEventListener("change", onCapabilityChange);
       finePointer.removeEventListener("change", onCapabilityChange);
     };
-  }, [stopAtmosphere]);
+  }, [stopAtmosphere, customAtmosphere, active]);
 
   useEffect(() => {
     if (background !== "tide") {
@@ -251,13 +261,16 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
     "--mono-nav-radius": `${shape["bottom-navigation"]}px`,
   } as CSSProperties;
   return (
-        <main ref={pageRef} className="mono-page" data-mono-preview data-mono-preset={preset}
+        <main ref={node => { pageRef.current = node; if (surfaceRef) surfaceRef.current = node; }}
+          className="mono-page" data-mono-preview data-mono-preset={preset}
           data-mono-logo-variant={logoPreview.variant} data-mono-logo-custom={logoPreview.customColor}
           data-palette-enabled={Boolean(palette.enabled)} data-palette-ready={paletteReady} style={shapeStyle}
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
-          data-pointer-active="false" onPointerMove={moveAtmosphere} onPointerLeave={restAtmosphere}>
+          data-mono-atmosphere-source={customAtmosphere ? "adapter" : "legacy"}
+          data-pointer-active="false" onPointerMove={customAtmosphere || !active ? undefined : moveAtmosphere}
+          onPointerLeave={customAtmosphere || !active ? undefined : restAtmosphere}>
           <div ref={paletteCrossfadeRef} className="mono-palette-crossfade" data-mono-palette-crossfade aria-hidden="true" />
-          <div className="mono-atmosphere" data-mono-atmosphere aria-hidden="true">
+          {customAtmosphere ? atmosphere : <div className="mono-atmosphere" data-mono-atmosphere aria-hidden="true">
             <span className="mono-atmosphere__focus" />
             <span className="mono-atmosphere__ribbon" />
             <span className="mono-atmosphere__grid" />
@@ -269,7 +282,7 @@ export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady =
                   style={{ left: `${x}%`, top: `${y}%` }} />
               ))}
             </div>
-          </div>
+          </div>}
 
       <div className="mono-scene">
         <header className="mono-app-header">

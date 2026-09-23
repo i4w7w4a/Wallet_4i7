@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { createRef } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MockWalletRepository } from "@wallet/core";
 import { MONO_GLASS_DEFAULTS, normalizeMonoPaletteConfig } from "@wallet/ui";
@@ -84,4 +85,23 @@ it("updates presentation in place while preserving transient privacy and a singl
   expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
   expect(container.querySelectorAll("canvas")).toHaveLength(1);
   expect(container.querySelector("canvas")).toBe(canvas);
+});
+
+it("leases the atmosphere surface to an adapter without retaining the legacy ambient renderer", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const surfaceRef = createRef<HTMLElement>();
+  const { container, rerender } = render(<MonoScene snapshot={snapshot} appearance={appearance()}
+    atmosphere={<div data-custom-atmosphere />} surfaceRef={surfaceRef} />);
+  const scene = container.querySelector("[data-mono-preview]");
+  expect(container.querySelector("[data-custom-atmosphere]")).not.toBeNull();
+  expect(container.querySelector("[data-mono-atmosphere]")).toBeNull();
+  expect(container.querySelectorAll("canvas")).toHaveLength(1);
+  expect(surfaceRef.current).toBe(scene);
+  fireEvent.pointerMove(scene!, { clientX: 40, clientY: 80, pointerType: "mouse" });
+  expect(scene).toHaveAttribute("data-pointer-active", "false");
+
+  rerender(<MonoScene snapshot={snapshot} appearance={appearance()} />);
+  expect(container.querySelector("[data-custom-atmosphere]")).toBeNull();
+  expect(container.querySelectorAll("[data-mono-atmosphere]")).toHaveLength(1);
+  expect(container.querySelectorAll("canvas")).toHaveLength(1);
 });
