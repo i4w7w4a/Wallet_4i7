@@ -57,6 +57,20 @@ describe("full working preset migration", () => {
     expect(loadMonoWorkingLibrary(storage)?.records[0].document).toEqual(migrated.records[0].document);
   });
 
+  it("preserves the formerly global logo for every legacy record and makes their v2 copies independent", () => {
+    const storage = memoryStorage([[legacyKey, JSON.stringify(legacyFixture())], [logoKey, JSON.stringify(logo)]]);
+    const migrated = loadMonoWorkingLibrary(storage)!;
+    for (const item of migrated.records) for (const preset of ["ledger", "frost", "mercury"] as const)
+      expect(item.document.appearance[preset].logo).toEqual(logo);
+    migrated.records[0].document.appearance.ledger.logo.hue = 41;
+    saveMonoWorkingLibrary(storage, { ...migrated, generation: 9 }, 8);
+    const reloaded = loadMonoWorkingLibrary(storage)!;
+    expect(reloaded.records[0].document.appearance.ledger.logo.hue).toBe(41);
+    expect(reloaded.records[0].document.appearance.frost.logo.hue).toBe(157);
+    expect(reloaded.records[1].document.appearance.ledger.logo.hue).toBe(157);
+    expect(storage.getItem(logoKey)).toBe(JSON.stringify(logo));
+  });
+
   it("refuses to overwrite a corrupt or unknown v2 even when a valid v1 exists", () => {
     for (const invalid of ["{broken", JSON.stringify({ version: 99 })]) {
       const storage = memoryStorage([[legacyKey, JSON.stringify(legacyFixture())], [currentKey, invalid]]);

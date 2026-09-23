@@ -219,6 +219,8 @@ export function loadMonoWorkingLibrary(storage: Pick<Storage, "getItem">): MonoW
     source.records.length < 1 || source.records.length > MAX_RECORDS)
     throw new MonoWorkingStoreError("Версия рабочей библиотеки неизвестна.", "invalid");
   exactKeys(source, ["version", "skinId", "generation", "activeId", "records"], "Рабочая библиотека");
+  // The v1 logo was global, so it affected every record, not just the active one.
+  const legacyLogo = currentRaw === null ? loadMonoLogoPreview(storage) : undefined;
   const ids = new Set<string>();
   const records = source.records.map(value => {
     const item = record(value);
@@ -235,7 +237,6 @@ export function loadMonoWorkingLibrary(storage: Pick<Storage, "getItem">): MonoW
       typeof origin.contentHash === "string"
       ? { source: { kind: "legacy-palette" as const, id: origin.id, contentHash: origin.contentHash } }
       : {};
-    const legacyLogo = currentRaw === null && item.id === source.activeId ? loadMonoLogoPreview(storage) : undefined;
     if (currentRaw !== null && record(item.document)?.version !== 2)
       throw new MonoWorkingStoreError("Версия рабочего документа неизвестна.", "invalid");
     return { id: item.id, name: item.name, revision: Number(item.revision),
