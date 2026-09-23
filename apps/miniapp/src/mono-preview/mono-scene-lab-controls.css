@@ -1,0 +1,9 @@
+.mono-scene-controls { display: grid; gap: 10px; font-family: var(--mono-font-ui, sans-serif); color: #d6dce5; }
+.mono-scene-controls__field { display: grid; gap: 4px; min-width: 0; }
+.mono-scene-controls label { font-size: 12px; line-height: 1.4; }
+.mono-scene-controls select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #505864; border-radius: 7px; background: #161b22; color: #eceff3; padding: 8px 10px; font-size: 13px; cursor: pointer; }
+.mono-scene-controls .mono-scene-controls__check { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.mono-scene-controls__check input { width: 20px; height: 20px; accent-color: #d2dae7; }
+.mono-scene-controls select:disabled { color: #a0a8b4; border-color: #3c434d; cursor: default; }
+.mono-scene-controls p { color: #b5becb; font-size: 12px; line-height: 1.5; margin: 2px 0 0; }
+.mono-scene-controls :is(select, input):focus-visible { outline: 2px solid var(--mono-lab-control-focus, #e1e9f2); outline-offset: 3px; }

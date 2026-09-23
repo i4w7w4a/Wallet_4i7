@@ -35,7 +35,7 @@
 .mono-asset-list__empty { color: var(--mono-palette-textSecondary-ff, #bdbdbd); font-size: var(--mono-type-body-size, 15px); }
 @media (hover: hover) and (pointer: fine) {
   .mono-asset-list .mono-asset-list__row:hover {
-    background: color-mix(in srgb, var(--mono-palette-surfaceRaised-ff, #202020) 94%, var(--mono-palette-textPrimary-ff, #f4f4f4) 6%);
+    background: color-mix(in srgb, var(--mono-palette-surfaceBase-ff, #131518) 96%, var(--mono-palette-textPrimary-ff, #f4f4f4) 4%);
     transition-duration: 90ms;
   }
 }

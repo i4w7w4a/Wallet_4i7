@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
 import { MONO_GLASS_DEFAULTS, MonoOpticalGlass } from "@wallet/ui";
 import { MonoBalance } from "./mono-balance";
 import { MonoChart } from "./mono-chart";
 import { MonoAssetList } from "./mono-asset-list";
 import { MonoLogo } from "./mono-logo";
+import { MonoLabIconButton } from "./mono-lab-controls";
 import { MonoAssetListControls, MonoBalanceControls, MonoChartControls } from "./mono-scene-lab-controls";
 import { MONO_SCENE_DEFAULT, normalizeMonoSceneAppearance, type MonoSceneAppearance } from "./mono-scene-lab-contract";
 import "./mono-fonts.css";
@@ -20,7 +21,7 @@ const ACTIONS = [
 ] as const;
 
 // Dev-only composition host. Product state stays above the appearance-only modules.
-export function MonoSceneLab({ snapshot }: { snapshot: WalletSnapshot }) {
+export function MonoSceneLab({ snapshot, formatProbe = false }: { snapshot: WalletSnapshot; formatProbe?: boolean }) {
   const [appearance, setAppearance] = useState<MonoSceneAppearance>(() => normalizeMonoSceneAppearance(MONO_SCENE_DEFAULT));
   const [hidden, setHidden] = useState(snapshot.balance.hidden);
   const [period, setPeriod] = useState<ChartPeriod>("1D");
@@ -32,16 +33,35 @@ export function MonoSceneLab({ snapshot }: { snapshot: WalletSnapshot }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const launchRef = useRef<HTMLButtonElement | null>(null);
   const format = { locale, currency: snapshot.balance.currency };
-
-  useEffect(() => {
-    if (panel && dialogRef.current && !dialogRef.current.open) dialogRef.current.showModal();
-  }, [panel]);
-
-  function closePanel() {
+  const closePanel = useCallback(() => {
     dialogRef.current?.close();
     setPanel(null);
     launchRef.current?.focus();
-  }
+  }, []);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!panel || !dialog) return;
+    const compact = window.matchMedia("(max-width: 1199px)");
+    const show = () => {
+      const modal = String(compact.matches);
+      if (dialog.open && dialog.dataset.modal === modal) return;
+      const focused = dialog.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
+      if (dialog.open) dialog.close();
+      dialog.dataset.modal = modal;
+      if (compact.matches) dialog.showModal(); else dialog.show();
+      (focused ?? dialog.querySelector<HTMLElement>("input, select"))?.focus();
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (!compact.matches && event.key === "Escape" && !event.defaultPrevented) {
+        event.preventDefault(); closePanel();
+      }
+    };
+    show();
+    compact.addEventListener("change", show);
+    window.addEventListener("keydown", escape);
+    return () => { compact.removeEventListener("change", show); window.removeEventListener("keydown", escape); };
+  }, [panel, closePanel]);
 
   const chart = <MonoChart values={snapshot.chart[period]} period={period} onPeriodChange={setPeriod}
     format={format} hidden={hidden} appearance={appearance.chart} />;
@@ -64,8 +84,8 @@ export function MonoSceneLab({ snapshot }: { snapshot: WalletSnapshot }) {
       </div>
       <div className="mono-scene-lab__environment"><span>Размер сцены</span>
         <div className="mono-scene-lab__widths">{([320, 390, 430, 480] as const).map((size) => <button type="button" key={size} aria-label={`Ширина ${size}`} aria-pressed={width === size} onClick={() => setWidth(size)}>{size}</button>)}</div>
-        <label>Тема<select value={theme} onChange={(event) => setTheme(event.target.value as "dark" | "light")}><option value="dark">Графит</option><option value="light">Фарфор</option></select></label>
-        <label>Формат чисел<select value={locale} onChange={(event) => setLocale(event.target.value)}><option value="ru-RU">Русский · 12 840,75 $</option><option value="en-US">English · $12,840.75</option><option value="de-DE">Deutsch · 12.840,75 $</option></select></label>
+        <div className="mono-scene-lab__environment-field"><label htmlFor="scene-lab-theme">Тема</label><select id="scene-lab-theme" value={theme} onChange={(event) => setTheme(event.target.value as "dark" | "light")}><option value="dark">Графит</option><option value="light">Фарфор</option></select></div>
+        <div className="mono-scene-lab__environment-field"><label htmlFor="scene-lab-locale">Формат чисел</label><select id="scene-lab-locale" value={locale} onChange={(event) => setLocale(event.target.value)}><option value="ru-RU">Русский</option><option value="en-US">English</option><option value="de-DE">Deutsch</option></select></div>
       </div>
       <button type="button" className="mono-scene-lab__reset" onClick={() => setAppearance(normalizeMonoSceneAppearance(MONO_SCENE_DEFAULT))}>Вернуть начальную сцену</button>
       <p className="mono-scene-lab__note">Локальная примерка. Настройки этой страницы не сохраняются.</p>
@@ -102,9 +122,16 @@ export function MonoSceneLab({ snapshot }: { snapshot: WalletSnapshot }) {
       <div className="mono-scene-lab__nav" aria-label="Предпросмотр нижней навигации"><span data-active>Обзор</span><span>Активы</span><span>История</span><span>Профиль</span></div>
     </div>
 
+    {formatProbe && <section className="mono-scene-lab__format-probe" aria-label="Типографические образцы">
+      <h2>Типографические образцы</h2><p>Искусственные числа для проверки ширины. Баланс кошелька не меняется.</p>
+      <div><MonoBalance label="Длинная сумма · образец" value={1234567.89} format={{ locale: "ru-RU", currency: "RUB" }} appearance={appearance.balance} hidden={false} /></div>
+      <div><MonoBalance label="Высокая точность · образец" value={-0.00001234} format={{ locale: "en-US", currency: "USD", minimumFractionDigits: 8, maximumFractionDigits: 8 }} appearance={appearance.balance} hidden={false} /></div>
+    </section>}
+
     <dialog ref={dialogRef} className="mono-scene-lab__dialog" aria-labelledby="scene-panel-title"
       onKeyDown={(event) => {
-        if (event.key !== "Tab") return;
+        if (event.key === "Escape") { event.preventDefault(); closePanel(); return; }
+        if (event.key !== "Tab" || event.currentTarget.dataset.modal !== "true") return;
         const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("button:not(:disabled), select:not(:disabled), input:not(:disabled), [tabindex='0']"));
         const first = controls[0];
         const last = controls[controls.length - 1];
@@ -113,7 +140,7 @@ export function MonoSceneLab({ snapshot }: { snapshot: WalletSnapshot }) {
       }}
       onCancel={(event) => { event.preventDefault(); closePanel(); }} onClick={(event) => { if (event.target === event.currentTarget) closePanel(); }}>
       <div className="mono-scene-lab__dialog-body">
-        <header><div><span>НАСТРОЙКА СЦЕНЫ</span><h2 id="scene-panel-title">{panel ? PANEL_TITLES[panel] : "Настройки"}</h2></div><button type="button" aria-label="Закрыть настройки" onClick={closePanel}>×</button></header>
+        <header><div><span>НАСТРОЙКА СЦЕНЫ</span><h2 id="scene-panel-title">{panel ? PANEL_TITLES[panel] : "Настройки"}</h2></div><MonoLabIconButton label="Закрыть настройки" onClick={closePanel}>×</MonoLabIconButton></header>
         {panel === "balance" && <MonoBalanceControls value={appearance.balance} onChange={(balance) => setAppearance({ ...appearance, balance })} />}
         {panel === "chart" && <MonoChartControls value={appearance.chart} layout={appearance.layout} onChange={(chart) => setAppearance({ ...appearance, chart })} onLayoutChange={(layout) => setAppearance({ ...appearance, layout })} />}
         {panel === "assets" && <MonoAssetListControls value={appearance.assets} onChange={(assets) => setAppearance({ ...appearance, assets })} />}

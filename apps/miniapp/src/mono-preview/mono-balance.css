@@ -36,14 +36,14 @@
 .mono-balance__amount bdi { display: block; }
 .mono-balance__amount [data-number-part="decimal"],
 .mono-balance__amount [data-number-part="fraction"] {
-  font-size: calc(1em * var(--mono-balance-fraction-scale));
+  font-size: max(12px, calc(1em * var(--mono-balance-fraction-scale)));
   letter-spacing: -0.02em;
   color: var(--mono-palette-textSecondary-ff, #bdbdbd);
 }
 .mono-balance[data-fraction-tone="primary"] [data-number-part="decimal"],
 .mono-balance[data-fraction-tone="primary"] [data-number-part="fraction"] { color: inherit; }
 .mono-balance__amount [data-number-part="currency"] {
-  font-size: 0.42em; letter-spacing: 0;
+  font-size: max(12px, 0.42em); letter-spacing: 0;
   font-weight: var(--mono-font-weight-medium, 500);
   color: var(--mono-palette-textSecondary-ff, #bdbdbd);
 }

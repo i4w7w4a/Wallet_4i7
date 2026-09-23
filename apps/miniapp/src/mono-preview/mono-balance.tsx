@@ -12,11 +12,12 @@ export type MonoBalanceProps = {
   hidden: boolean;
   onHiddenChange?: (hidden: boolean) => void;
   appearance: Readonly<MonoBalanceAppearance>;
+  label?: string;
 };
 
 const FRACTION_SCALE = { small: 0.42, medium: 0.56, large: 1 } as const;
 
-export function MonoBalance({ value, format, change24h, hidden, onHiddenChange, appearance }: MonoBalanceProps) {
+export function MonoBalance({ value, format, change24h, hidden, onHiddenChange, appearance, label = "Общий баланс" }: MonoBalanceProps) {
   const titleId = useId();
   const money = hidden ? null : formatMonoMoney(value, format);
   const fractionScale = FRACTION_SCALE[appearance.fractionSize];
@@ -30,7 +31,7 @@ export function MonoBalance({ value, format, change24h, hidden, onHiddenChange, 
     data-composition={appearance.composition} data-fraction-tone={appearance.fractionTone}
     style={{ "--mono-balance-fraction-scale": fractionScale, "--mono-balance-fit": fit } as CSSProperties}>
     <div className="mono-balance__heading">
-      <h1 id={titleId}>Общий баланс</h1>
+      <h1 id={titleId}>{label}</h1>
       {onHiddenChange && <button type="button" className="mono-balance__privacy"
         aria-label={hidden ? "Показать баланс" : "Скрыть баланс"} aria-pressed={hidden}
         onClick={() => onHiddenChange(!hidden)}>

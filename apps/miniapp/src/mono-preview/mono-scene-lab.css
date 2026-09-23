@@ -45,13 +45,17 @@
 .mono-scene-lab__widths { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
 .mono-scene-lab__widths button { min-width: 44px; min-height: 44px; padding: 4px; border: 1px solid #383e48; border-radius: 6px; font-size: 12px; color: #c1c9d4; background: #14181d; cursor: pointer; }
 .mono-scene-lab__widths button[aria-pressed="true"] { border-color: #98a2b1; background: #2e3642; color: #fff; }
-.mono-scene-lab__environment label { display: grid; gap: 7px; font-size: 12px; color: #b6bec9; }
-.mono-scene-lab__environment select, .mono-scene-lab__fields select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #505864; border-radius: 7px; background: #161b22; color: #eceff3; padding: 8px 10px; font-size: 13px; cursor: pointer; }
+.mono-scene-lab__environment-field { display: grid; gap: 7px; font-size: 12px; color: #b6bec9; }
+.mono-scene-lab__environment select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #505864; border-radius: 7px; background: #161b22; color: #eceff3; padding: 8px 10px; font-size: 13px; cursor: pointer; }
 .mono-scene-lab__reset { width: 100%; text-align: center; background: transparent; }
 .mono-scene-lab__note { color: #aeb4be; font-size: 11px; line-height: 1.6; margin: 14px 0; }
 .mono-scene-lab__references { color: #b6bec9; font-size: 12px; line-height: 1.6; }
 .mono-scene-lab__references summary { min-height: 44px; padding-block: 12px; cursor: pointer; }
 .mono-scene-lab__references a { color: #d9e2ee; text-decoration: underline; text-underline-offset: 3px; }
+.mono-scene-lab__format-probe { position: fixed; top: 34px; right: max(24px, calc(50% - 630px)); width: 320px; color: var(--mono-palette-textPrimary-ff); font-size: 12px; }
+.mono-scene-lab__format-probe > h2 { margin: 0 0 10px; font-size: 18px; }
+.mono-scene-lab__format-probe > p { color: var(--mono-palette-textSecondary-ff); line-height: 1.5; }
+.mono-scene-lab__format-probe > div { margin-top: 16px; padding: 16px; background: var(--mono-palette-canvas-ff); }
 .mono-scene-lab__rail button:hover { background: #252c36; }
 .mono-scene-lab__rail :is(button, select, summary):focus-visible,
 .mono-scene-lab__dialog :is(button, select, input):focus-visible { outline: 2px solid #e9eff8; outline-offset: 3px; }
@@ -85,22 +89,17 @@
 .mono-scene-lab__nav span { display: grid; place-items: center; min-height: 44px; font-size: 11px; color: var(--mono-palette-textSecondary-ff); }
 .mono-scene-lab__nav span[data-active] { border-radius: 6px; color: var(--mono-palette-textPrimary-ff); background: var(--mono-palette-surfaceRaised-ff); }
 
-.mono-scene-lab__dialog { position: fixed; width: min(350px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); padding: 0; margin: auto; border: 1px solid #596270; border-radius: 16px; background: #1b2028; color: #f1f3f6; color-scheme: dark; box-shadow: 0 24px 100px #0008; font-family: var(--mono-font-ui, sans-serif); }
+.mono-scene-lab__dialog { position: fixed; inset: 0; z-index: 6; width: min(320px, calc(100vw - 24px)); height: fit-content; max-height: calc(100dvh - 32px); padding: 0; margin: auto; border: 1px solid #596270; border-radius: 14px; background: #1b2028; color: #f1f3f6; color-scheme: dark; box-shadow: 0 24px 100px #0008; font-family: var(--mono-font-ui, sans-serif); }
 .mono-scene-lab__dialog::backdrop { background: #04070b55; }
-.mono-scene-lab__dialog-body { padding: 22px; }
-.mono-scene-lab__dialog-body > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
-.mono-scene-lab__dialog-body > header span { color: #b4bcc8; font: 9px var(--mono-font-mono, monospace); letter-spacing: .08em; }
+.mono-scene-lab__dialog-body { padding: 18px; }
+.mono-scene-lab__dialog-body > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.mono-scene-lab__dialog-body > header > div > span { color: #b4bcc8; font: 9px var(--mono-font-mono, monospace); letter-spacing: .08em; }
 .mono-scene-lab__dialog h2 { margin: 6px 0 0; font-size: 25px; font-weight: 500; letter-spacing: -.03em; }
-.mono-scene-lab__dialog header button { align-self: start; flex: 0 0 44px; width: 44px; height: 44px; margin: -6px -8px 0 0; border: 0; background: transparent; color: #c4ccd7; font-size: 26px; cursor: pointer; border-radius: 8px; }
-.mono-scene-lab__fields { display: grid; gap: 17px; }
-.mono-scene-lab__fields label { display: grid; gap: 8px; font-size: 13px; color: #d6dce5; }
-.mono-scene-lab__fields .mono-scene-lab__check { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
-.mono-scene-lab__check input { width: 20px; height: 20px; accent-color: #d2dae7; }
-.mono-scene-lab__fields select:disabled { color: #a0a8b4; border-color: #3c434d; cursor: default; }
-.mono-scene-lab__fields p { color: #b5becb; font-size: 12px; line-height: 1.6; margin: 0; }
-.mono-scene-lab__done { width: 100%; min-height: 44px; margin-top: 24px; border-radius: 7px; border: 1px solid #8b96a7; background: #d2d9e2; color: #18202b; font-size: 13px; font-weight: 500; cursor: pointer; }
-@media (min-width: 1100px) { .mono-scene-lab__dialog { margin-left: max(24px, calc(50% - 630px)); margin-top: 100px; margin-right: auto; } }
-@media (max-width: 1099px) {
+.mono-scene-lab__dialog header > .mono-lab-control-tooltip-anchor { align-self: start; margin: -6px -8px 0 0; color: #c4ccd7; }
+.mono-scene-lab__done { width: 100%; min-height: 44px; margin-top: 14px; border-radius: 7px; border: 1px solid #8b96a7; background: #d2d9e2; color: #18202b; font-size: 13px; font-weight: 500; cursor: pointer; }
+@media (min-width: 1200px) { .mono-scene-lab__dialog { inset: 100px auto auto max(24px, calc(50% - 630px)); margin: 0; } }
+@media (max-width: 1199px) {
+  .mono-scene-lab__format-probe { position: relative; top: auto; right: auto; width: min(100%, 320px); margin: 24px auto 100px; }
   .mono-scene-lab__rail { position: relative; top: auto; bottom: auto; left: auto; width: min(100%, 600px); margin: 0 auto; padding: 20px 16px; overflow: visible; }
   .mono-scene-lab__intro h1 { font-size: 22px; }
   .mono-scene-lab__intro p { margin-bottom: 18px; }
