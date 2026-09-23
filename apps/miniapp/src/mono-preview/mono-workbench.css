@@ -617,6 +617,63 @@
 
 @keyframes mono-scrim-in { from { opacity: 0; } }
 
+.mono-rail .mono-shape-tuner__motion {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #535a61;
+  border-radius: 9px;
+  background: #191c20;
+}
+
+.mono-rail .mono-shape-tuner__motion > strong {
+  color: #e7ebee;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.mono-rail .mono-shape-tuner__motion > p {
+  margin: 0;
+  color: #b9c0c5;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.mono-rail .mono-shape-tuner__motion > a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #858d95;
+  border-radius: 8px;
+  background: #292f34;
+  color: #f1f4f6;
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.mono-rail .mono-shape-tuner__motion > a:hover {
+  border-color: #d5dce1;
+  background: #343b41;
+}
+
+.mono-rail .mono-shape-tuner__motion > a:focus-visible {
+  outline: 2px solid #f1f4f6;
+  outline-offset: 2px;
+}
+
+.mono-rail .mono-shape-tuner__motion > p[role="status"] {
+  color: #c5cdd2;
+  font-size: 10px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mono-rail,
   .mono-rail-section__body,

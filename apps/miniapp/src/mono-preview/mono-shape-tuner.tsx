@@ -18,6 +18,8 @@ export function MonoShapeTuner({
   onDefault,
   onCancel,
   onApply,
+  onOpenMotionLab,
+  motionLabStatus,
 }: {
   values: Record<MonoShapeGroup, number>;
   dirty: boolean;
@@ -26,6 +28,8 @@ export function MonoShapeTuner({
   onDefault: () => void;
   onCancel: () => void;
   onApply: () => void;
+  onOpenMotionLab?: (anchor: HTMLAnchorElement) => void;
+  motionLabStatus?: string;
 }) {
   const [group, setGroup] = useState<MonoShapeGroup>("quick-actions");
   const radius = values[group];
@@ -82,6 +86,15 @@ export function MonoShapeTuner({
         <button type="button" aria-disabled={!dirty} onClick={() => { if (dirty) onCancel(); }}>Отменить пробу формы</button>
         <button type="button" aria-disabled={!dirty} onClick={() => { if (dirty) onApply(); }}>Применить форму</button>
       </div>
+      {group === "quick-actions" && onOpenMotionLab && (
+        <div className="mono-shape-tuner__motion">
+          <strong>Отклик быстрых действий</strong>
+          <p>Настройте четыре действия в отдельной вкладке. После перезагрузки вернётся стандартный отклик.</p>
+          <a href="/design-lab" target="_blank" rel="noopener noreferrer"
+            onClick={(event) => onOpenMotionLab(event.currentTarget)}>Открыть Motion Lab <span aria-hidden="true">↗</span></a>
+          <p role="status" aria-label="Состояние Motion Lab">{motionLabStatus}</p>
+        </div>
+      )}
       <p className="mono-shape-tuner__status" role="status" aria-label="Состояние формы"
         aria-live="polite">{status}</p>
     </div>
