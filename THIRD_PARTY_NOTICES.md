@@ -14,7 +14,7 @@
 - Зафиксированный commit: `3a1c7f2f9f94ed833934ab5c2635760b9e644583`
 - Copyright (c) 2026 David Haz
 - Лицензия: MIT + Commons Clause License Condition v1.0
-- Условие: компоненты используются внутри Wallet_4i7 и не распространяются как отдельная библиотека.
+- Условие: компоненты используются внутри Novex Wallet и не распространяются как отдельная библиотека.
 
 Используемые upstream-файлы:
 
@@ -26,7 +26,7 @@
 - `src/ts-default/Animations/ClickSpark/ClickSpark.tsx`;
 - `src/ts-default/Components/GooeyNav/GooeyNav.tsx` и `GooeyNav.css`.
 
-Содержательные изменения Wallet_4i7: controlled callbacks, русская локализация,
+Содержательные изменения Novex Wallet: controlled callbacks, русская локализация,
 доступность, lifecycle/fallback, единая тема и ограничения мобильных ресурсов.
 Сырые React Bits-компоненты не экспортируются как самостоятельная библиотека.
 

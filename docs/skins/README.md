@@ -1,4 +1,4 @@
-# Wallet_4i7 Skin System
+# Novex Wallet — Skin System
 
 Статус: направление V2, изолированный design workbench и Color Lab; общий SkinHost и Font Lab ещё не реализованы
 Дата актуализации сценария `/mono`: 2026-09-23 (кандидат до visual review владельца)
