@@ -8,6 +8,8 @@ import { MonoPreview } from "./mono-preview";
 const SHAPE_STORAGE_KEY = "wallet4i7.mono.shape-preview.v1";
 const WORKING_KEY = "wallet4i7.mono.working-presets.v2";
 const waitWorkingReady = () => waitFor(() => expect(screen.getByRole("button", { name: "Действия с пресетом" })).toBeEnabled());
+const openShape = () => fireEvent.click(screen.getByRole("button", { name: "Форма и кнопки" }));
+const shapeActions = () => within(screen.getByRole("region", { name: "Форма и кнопки" }).querySelector("footer")!);
 
 beforeEach(() => {
   localStorage.clear();
@@ -28,6 +30,7 @@ afterEach(() => {
 describe("MONO shape lab", () => {
   it("live-edits only the selected control group without writing before Apply", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    openShape();
 
     const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
     const quickActions = screen.getByRole("radio", { name: "Быстрые действия" });
@@ -55,11 +58,12 @@ describe("MONO shape lab", () => {
     expect(preview.style.getPropertyValue("--mono-nav-radius")).toBe("18px");
     expect(localStorage.getItem(SHAPE_STORAGE_KEY)).toBeNull();
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Применить форму" })).toBeEnabled());
+    await waitFor(() => expect(shapeActions().getByRole("button", { name: "Применить форму" })).toBeEnabled());
   });
 
   it("resets both groups of the active direction without applying them", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    openShape();
 
     const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
     const lab = within(screen.getByRole("group", { name: "Настройка формы" }));
@@ -78,6 +82,7 @@ describe("MONO shape lab", () => {
   it("restores only an explicitly applied candidate after remount", async () => {
     const snapshot = await new MockWalletRepository().getSnapshot();
     const first = render(<MonoPreview snapshot={snapshot} />);
+    openShape();
     let lab = within(screen.getByRole("group", { name: "Настройка формы" }));
     let radius = lab.getByRole("slider", { name: "Радиус формы" });
 
@@ -87,6 +92,7 @@ describe("MONO shape lab", () => {
 
     const second = render(<MonoPreview snapshot={snapshot} />);
     await waitWorkingReady();
+    openShape();
     let preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
     expect(preview.style.getPropertyValue("--mono-actions-radius")).toBe("12px");
 
@@ -95,7 +101,7 @@ describe("MONO shape lab", () => {
     fireEvent.change(radius, { target: { value: "20" } });
     fireEvent.click(lab.getByRole("radio", { name: "Нижнее меню" }));
     fireEvent.change(radius, { target: { value: "16" } });
-    fireEvent.click(lab.getByRole("button", { name: "Применить форму" }));
+    fireEvent.click(shapeActions().getByRole("button", { name: "Применить форму" }));
 
     expect(localStorage.getItem(WORKING_KEY)).not.toBeNull();
     second.unmount();
@@ -119,6 +125,7 @@ describe("MONO shape lab", () => {
       },
     }));
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    openShape();
 
     const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
     const radius = screen.getByRole("slider", { name: "Радиус формы" });
@@ -133,6 +140,7 @@ describe("MONO shape lab", () => {
 
   it("keeps the last valid draft while exact input is incomplete or out of bounds", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    openShape();
 
     const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
     const exact = screen.getByRole("spinbutton", { name: "Радиус: точное значение" });
@@ -154,10 +162,11 @@ describe("MONO shape lab", () => {
   it("applies only the active direction and leaves other direction drafts unapplied", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
     await waitWorkingReady();
+    openShape();
 
     const lab = within(screen.getByRole("group", { name: "Настройка формы" }));
     const radius = lab.getByRole("slider", { name: "Радиус формы" });
-    const apply = lab.getByRole("button", { name: "Применить форму" });
+    const apply = shapeActions().getByRole("button", { name: "Применить форму" });
 
     fireEvent.change(radius, { target: { value: "20" } });
     fireEvent.click(screen.getByRole("button", { name: "2 · Frost" }));
@@ -185,10 +194,11 @@ describe("MONO shape lab", () => {
     });
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
     await waitWorkingReady();
+    openShape();
 
     const lab = within(screen.getByRole("group", { name: "Настройка формы" }));
     const radius = lab.getByRole("slider", { name: "Радиус формы" });
-    const apply = lab.getByRole("button", { name: "Применить форму" });
+    const apply = shapeActions().getByRole("button", { name: "Применить форму" });
     fireEvent.change(radius, { target: { value: "20" } });
     fireEvent.click(apply);
 
@@ -204,10 +214,11 @@ describe("MONO shape lab", () => {
   it("announces Apply without removing the focused action from the tab order", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
     await waitWorkingReady();
+    openShape();
 
     const lab = within(screen.getByRole("group", { name: "Настройка формы" }));
     fireEvent.change(lab.getByRole("slider", { name: "Радиус формы" }), { target: { value: "20" } });
-    const apply = lab.getByRole("button", { name: "Применить форму" });
+    const apply = shapeActions().getByRole("button", { name: "Применить форму" });
     apply.focus();
     fireEvent.click(apply);
 
@@ -219,6 +230,7 @@ describe("MONO shape lab", () => {
 
   it("associates the range and exact value with independent labels", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    openShape();
 
     const range = screen.getByRole("slider", { name: "Радиус формы" });
     const exact = screen.getByRole("spinbutton", { name: "Радиус: точное значение" });

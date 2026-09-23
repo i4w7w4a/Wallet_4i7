@@ -12,6 +12,12 @@ import { exportMonoPalettePreset, importMonoPalettePreset } from "./mono-preset-
 import { createMonoWorkingDocument, MONO_WORKING_PRESETS_KEY, saveMonoWorkingLibrary } from "./mono-working-presets";
 
 const WORKING_KEY = MONO_WORKING_PRESETS_KEY;
+const selectTool = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
+const inspectorActions = (name: string) => within(screen.getByRole("region", { name }).querySelector("footer")!);
+const openEnvironment = () => {
+  selectTool("Среда");
+  fireEvent.click(screen.getByText("Исходная среда и тема"));
+};
 
 beforeEach(() => {
   localStorage.clear();
@@ -233,15 +239,16 @@ it("keeps shape trials separate from the saved B preset until Apply and lets Can
   fireEvent.change(screen.getByRole("textbox", { name: "Название пресета" }), { target: { value: "B" } });
   fireEvent.click(screen.getByRole("button", { name: "Сохранить копию" }));
 
+  selectTool("Форма и кнопки");
   const shape = screen.getByRole("group", { name: "Настройка формы" });
   const radius = within(shape).getByRole("slider", { name: "Радиус формы" });
   fireEvent.change(radius, { target: { value: "20" } });
   expect(radius).toHaveValue("20");
-  fireEvent.click(within(shape).getByRole("button", { name: "Отменить пробу формы" }));
+  fireEvent.click(inspectorActions("Форма и кнопки").getByRole("button", { name: "Отменить пробу формы" }));
   expect(radius).toHaveValue("12");
 
   fireEvent.change(radius, { target: { value: "22" } });
-  fireEvent.click(within(shape).getByRole("button", { name: "Применить форму" }));
+  fireEvent.click(inspectorActions("Форма и кнопки").getByRole("button", { name: "Применить форму" }));
   await waitFor(() => {
     const library = JSON.parse(localStorage.getItem(WORKING_KEY)!) as { records: Array<{
       name: string; document: { shapes: { ledger: Record<string, number> } } }> };
@@ -256,6 +263,7 @@ it("keeps shape trials separate from the saved B preset until Apply and lets Can
 
   first.unmount();
   render(<MonoPreview snapshot={snapshot} />);
+  selectTool("Форма и кнопки");
   await waitFor(() => expect(screen.getByRole("slider", { name: "Радиус формы" })).toHaveValue("22"));
 });
 
@@ -263,17 +271,18 @@ it("keeps optical trial out of the working preset until Apply and restores accep
   const snapshot = await new MockWalletRepository().getSnapshot();
   const first = render(<MonoPreview snapshot={snapshot} />);
   await waitFor(() => expect(screen.getByRole("button", { name: "Действия с пресетом" })).toBeEnabled());
+  selectTool("Оптика");
   await waitFor(() => expect(screen.getByRole("slider", { name: "Преломление" })).toHaveValue("1.34"));
   const glass = within(screen.getByRole("group", { name: "Настройка стекла" }));
   const ior = glass.getByRole("slider", { name: "Преломление" });
   fireEvent.change(ior, { target: { value: "0.75" } });
   expect(ior).toHaveValue("0.75");
   expect(localStorage.getItem(WORKING_KEY)).toBeNull();
-  fireEvent.click(glass.getByRole("button", { name: "Отменить пробу оптики" }));
+  fireEvent.click(inspectorActions("Оптика").getByRole("button", { name: "Отменить пробу оптики" }));
   expect(ior).toHaveValue("1.34");
 
   fireEvent.change(ior, { target: { value: "0.75" } });
-  fireEvent.click(glass.getByRole("button", { name: "Применить" }));
+  fireEvent.click(inspectorActions("Оптика").getByRole("button", { name: "Применить оптику" }));
   await waitFor(() => {
     const library = JSON.parse(localStorage.getItem(WORKING_KEY)!) as { records: Array<{
       document: { optics: { ledger: { ior: number } } } }> };
@@ -281,16 +290,21 @@ it("keeps optical trial out of the working preset until Apply and restores accep
   });
   first.unmount();
   render(<MonoPreview snapshot={snapshot} />);
+  selectTool("Оптика");
   await waitFor(() => expect(screen.getByRole("slider", { name: "Преломление" })).toHaveValue("0.75"));
 });
 
-it("saves a direct background selection in the active working preset", async () => {
+it("saves an applied background selection in the active working preset", async () => {
   const snapshot = await new MockWalletRepository().getSnapshot();
   const first = render(<MonoPreview snapshot={snapshot} />);
   await waitFor(() => expect(screen.getByRole("button", { name: "Включить палитру" })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Включить палитру" }));
   await waitFor(() => expect(screen.getByText("Сохранено в этом браузере")).toBeVisible());
+  openEnvironment();
+  const accepted = localStorage.getItem(WORKING_KEY);
   fireEvent.click(within(screen.getByRole("group", { name: "Фон" })).getByRole("button", { name: "Волна" }));
+  expect(localStorage.getItem(WORKING_KEY)).toBe(accepted);
+  fireEvent.click(inspectorActions("Среда").getByRole("button", { name: "Применить настройку" }));
   await waitFor(() => {
     const library = JSON.parse(localStorage.getItem(WORKING_KEY)!) as { records: Array<{
       document: { background: string } }> };
@@ -298,6 +312,7 @@ it("saves a direct background selection in the active working preset", async () 
   });
   first.unmount();
   render(<MonoPreview snapshot={snapshot} />);
+  openEnvironment();
   await waitFor(() => expect(within(screen.getByRole("group", { name: "Фон" })).getByRole("button", { name: "Волна" }))
     .toHaveAttribute("aria-pressed", "true"));
 });
@@ -363,21 +378,34 @@ it("does not treat an unreadable legacy palette library as an empty library", as
   expect(localStorage.getItem(WORKING_KEY)).toBeNull();
 });
 
-it("collapses and expands only the three left rail sections without changing the right rail", async () => {
+it("collapses and expands exact settings without hiding the tool or changing the saved preset", async () => {
   render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
-  fireEvent.click(screen.getByRole("button", { name: "Свернуть всё" }));
-  for (const name of ["Варианты", "Экран", "Форма"])
-    expect(screen.getByRole("button", { name: `Развернуть ${name}` })).toHaveAttribute("aria-expanded", "false");
-  for (const name of ["Среда", "Оптика"])
-    expect(screen.getByRole("button", { name: `Свернуть ${name}` })).toHaveAttribute("aria-expanded", "true");
+  await waitFor(() => expect(screen.getByRole("button", { name: "Включить палитру" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "Включить палитру" }));
+  await waitFor(() => expect(screen.getByText("Сохранено в этом браузере")).toBeVisible());
+  const saved = localStorage.getItem(WORKING_KEY);
+  const summary = screen.getByText("Точная настройка цвета");
+  const section = summary.closest("details")!;
+  expect(section).not.toHaveAttribute("open");
+  expect(screen.getByRole("button", { name: "Цвет" })).toHaveAttribute("aria-pressed", "true");
+  for (const name of ["Форма и кнопки", "Среда", "Оптика"])
+    expect(screen.getByRole("button", { name })).toHaveAttribute("aria-pressed", "false");
   expect(screen.getByRole("button", { name: "Скрыть панели" })).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("region", { name: "Color Lab" })).toBeVisible();
 
-  fireEvent.click(screen.getByRole("button", { name: "Развернуть Варианты" }));
-  expect(screen.getByRole("button", { name: "Развернуть всё" })).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "Развернуть всё" }));
-  for (const name of ["Варианты", "Экран", "Форма"])
-    expect(screen.getByRole("button", { name: `Свернуть ${name}` })).toHaveAttribute("aria-expanded", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Точная настройка" }));
+  fireEvent.click(summary);
+  expect(section).toHaveAttribute("open");
+  const role = screen.getByRole("combobox", { name: "Смысловая роль" });
+  expect(role).toBeVisible();
+  expect(screen.getByRole("region", { name: "Color Lab" })).toBeVisible();
+  expect(localStorage.getItem(WORKING_KEY)).toBe(saved);
+  fireEvent.click(summary);
+  expect(section).not.toHaveAttribute("open");
+  expect(role).not.toBeVisible();
+  expect(screen.getByRole("region", { name: "Color Lab" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Скрыть панели" })).toHaveAttribute("aria-expanded", "true");
+  expect(localStorage.getItem(WORKING_KEY)).toBe(saved);
 });
 
 it("renames a working preset without changing its stable ID or color", async () => {
@@ -430,6 +458,7 @@ it("does not silently discard an unaccepted shape trial when switching presets",
   fireEvent.click(screen.getByRole("button", { name: "Создать копию" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Название пресета" }), { target: { value: "B" } });
   fireEvent.click(screen.getByRole("button", { name: "Сохранить копию" }));
+  selectTool("Форма и кнопки");
   const radius = screen.getByRole("slider", { name: "Радиус формы" });
   fireEvent.change(radius, { target: { value: "20" } });
 
@@ -437,8 +466,11 @@ it("does not silently discard an unaccepted shape trial when switching presets",
   fireEvent.click(screen.getByRole("button", { name: "Выбрать Мой пресет" }));
   expect(screen.getByRole("button", { name: /Пресет оформления: B/ })).toBeVisible();
   expect(radius).toHaveValue("20");
-  expect(screen.getByText(/Сначала примените или отмените пробу формы/)).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "Отменить пробу формы" }));
+  const guard = screen.getByRole("dialog", { name: "Неприменённые пробы" });
+  expect(guard).toBeVisible();
+  fireEvent.click(within(guard).getByRole("button", { name: "Назад" }));
+  expect(radius).toHaveValue("20");
+  fireEvent.click(inspectorActions("Форма и кнопки").getByRole("button", { name: "Отменить пробу формы" }));
   expect(screen.getByText("Сохранено в этом браузере")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Выбрать Мой пресет" }));
   expect(screen.getByRole("button", { name: /Пресет оформления: Мой пресет/ })).toBeVisible();
@@ -536,9 +568,10 @@ it("keeps an unreadable legacy library recoverable instead of masking it after A
   localStorage.setItem(MONO_PALETTE_PRESETS_KEY, raw);
   render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
   await waitFor(() => expect(screen.getByText(/Старую библиотеку палитр нельзя перенести/)).toBeVisible());
+  selectTool("Форма и кнопки");
   const shape = within(screen.getByRole("group", { name: "Настройка формы" }));
   fireEvent.change(shape.getByRole("slider", { name: "Радиус формы" }), { target: { value: "20" } });
-  fireEvent.click(shape.getByRole("button", { name: "Применить форму" }));
+  fireEvent.click(inspectorActions("Форма и кнопки").getByRole("button", { name: "Применить форму" }));
   fireEvent.click(screen.getByRole("button", { name: /Пресет оформления: Исходный образец/ }));
   fireEvent.click(screen.getByRole("button", { name: "Создать пресет" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Название пресета" }), { target: { value: "Новый" } });
