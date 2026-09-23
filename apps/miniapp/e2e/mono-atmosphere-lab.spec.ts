@@ -33,7 +33,7 @@ test("isolated save/reload, compare, undo and import preview keep product settin
   await page.goto("/design-lab/atmosphere");
   await page.getByRole("button", { name: "Световой разрез", exact: true }).click();
   const intensity = page.getByRole("slider", { name: "Интенсивность", exact: true });
-  await intensity.fill("0.87");
+  await intensity.fill("87");
   await page.getByRole("button", { name: "Сохранить пробу", exact: true }).click();
   const saved = await page.evaluate(() => ({ ...localStorage }));
   expect(Object.keys(saved)).toEqual(["wallet4i7.mono.atmosphere-lab.v1"]);
@@ -43,9 +43,9 @@ test("isolated save/reload, compare, undo and import preview keep product settin
   await page.getByRole("button", { name: "Вернуться к пробе", exact: true }).click();
   await page.getByRole("button", { name: "По умолчанию", exact: true }).click();
   await page.getByRole("button", { name: "Отменить", exact: true }).click();
-  await expect(intensity).toHaveValue("0.87");
+  await expect(intensity).toHaveValue("87");
   await page.reload();
-  await expect(intensity).toHaveValue("0.87");
+  await expect(intensity).toHaveValue("87");
   await expect(page.getByRole("button", { name: "Световой разрез", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 

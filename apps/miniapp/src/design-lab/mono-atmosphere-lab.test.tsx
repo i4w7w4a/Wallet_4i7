@@ -12,12 +12,12 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it("compares with iris without losing a draft or writing product storage", async () => {
   render(<MonoAtmosphereLab />);
-  fireEvent.change(screen.getByRole("slider", { name: "Интенсивность" }), { target: { value: .83 } });
+  fireEvent.change(screen.getByRole("slider", { name: "Интенсивность" }), { target: { value: 83 } });
   fireEvent.click(screen.getByRole("button", { name: "Сравнить с базой" }));
   expect(document.querySelectorAll("[data-mono-background-recipe]")).toHaveLength(1);
   expect(document.querySelector("[data-mono-background-recipe]")).toHaveAttribute("data-mono-background-recipe", "baseline");
   fireEvent.click(screen.getByRole("button", { name: "Вернуться к пробе" }));
-  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("0.83");
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("83");
   expect(localStorage.length).toBe(0);
   expect(document.querySelector("canvas")).toBeNull();
 });
@@ -35,4 +35,18 @@ it("saves only an explicit local atmosphere trial and validates import before pr
   fireEvent.click(screen.getByRole("button", { name: "Проверить JSON" }));
   expect(screen.queryByRole("button", { name: "Открыть импорт в примерке" })).toBeNull();
   expect(screen.getByRole("button", { name: "Световой разрез" })).toHaveAttribute("aria-pressed", "true");
+});
+
+it("commits the shared numeric control once and lets undo restore its previous value", () => {
+  render(<MonoAtmosphereLab />);
+  const number = screen.getByRole("spinbutton", { name: "Интенсивность — значение" });
+  fireEvent.focus(number);
+  fireEvent.change(number, { target: { value: "81" } });
+  fireEvent.keyDown(number, { key: "Enter" });
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("81");
+  fireEvent.click(screen.getByRole("button", { name: "Отменить" }));
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("60");
+  expect(screen.getByRole("button", { name: "Отменить" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("81");
 });

@@ -5,6 +5,7 @@ import { MonoBackgroundRecipes } from "../mono-preview/mono-background-recipes-v
 import { MONO_BACKGROUND_CONTROLS, MONO_BACKGROUND_DEFAULTS, parseMonoBackgroundRecipe,
   type MonoBackgroundRecipeConfig, type MonoBackgroundRecipeId } from "../mono-preview/mono-background-recipes";
 import { MonoLogo } from "../mono-preview/mono-logo";
+import { MonoLabIconButton, MonoLabSection, MonoLabSliderRow } from "../mono-preview/mono-lab-controls";
 import "../mono-preview/mono-fonts.css";
 import "../mono-preview/mono-preview.css";
 import "../mono-preview/mono-theme.css";
@@ -61,9 +62,9 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
     setStatus("Проба изменена.");
   };
   const beginGesture = () => { gesture.current ??= config; };
-  const endGesture = () => {
+  const endGesture = (next: MonoBackgroundRecipeConfig) => {
     const before = gesture.current; gesture.current = null;
-    if (before && JSON.stringify(before) !== JSON.stringify(config)) remember(before);
+    if (before && JSON.stringify(before) !== JSON.stringify(next)) remember(before);
   };
   const undo = (redo = false) => {
     const stack = redo ? currentHistory.future : currentHistory.past;
@@ -95,7 +96,6 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
           <button type="button" aria-pressed={comparing} disabled={recipe === "baseline"}
             onClick={() => setComparing(value => !value)}>{comparing ? "Вернуться к пробе" : "Сравнить с базой"}</button>
         </div>
-        <p className={styles.note}>Локальная примерка. Сохранение пробы не меняет рабочее оформление MONO.</p>
       </section>
 
       <section className={styles.previewColumn} aria-label="Живая примерка">
@@ -112,7 +112,7 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
               </div>
             </div>}
         </div>
-        <p className={styles.previewHint}>Векторный свет и CSS. Без физической рефракции фона.</p>
+        <p className={styles.previewHint}>Локальная проба · оформление MONO не изменено</p>
       </section>
 
       <aside className={styles.tuner} aria-label="Настройка атмосферы">
@@ -122,43 +122,46 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
           <button type="button" aria-pressed={theme === "light"} onClick={() => setTheme("light")}>Светлая</button>
         </div>
         <div className={styles.widths} role="group" aria-label="Ширина примерки">{WIDTHS.map(value => <button key={value} type="button" aria-pressed={width === value} onClick={() => setWidth(value)}>{value}</button>)}</div>
-        <fieldset className={styles.controls} disabled={recipe === "baseline" || comparing}
-          onPointerDownCapture={event => { if ((event.target as HTMLElement).tagName === "INPUT") beginGesture(); }}
-          onPointerUpCapture={endGesture} onPointerCancelCapture={endGesture}
-          onKeyDownCapture={event => { if (event.key.startsWith("Arrow")) beginGesture(); }}
-          onKeyUpCapture={endGesture} onBlurCapture={endGesture}>
+        <fieldset className={styles.controls} disabled={recipe === "baseline" || comparing}>
           <legend className={styles.srOnly}>Параметры материала</legend>
-          {MONO_BACKGROUND_CONTROLS.map(control => <label key={control.key} className={styles.control}>
-            <span>{control.label}<output>{Math.round(config[control.key] * 100)}%</output></span>
-            <input type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step} value={config[control.key]}
-              onChange={event => update({ ...config, [control.key]: Number(event.currentTarget.value) })} />
-          </label>)}
+          {MONO_BACKGROUND_CONTROLS.map(control => <MonoLabSliderRow key={control.key} label={control.label}
+            min={control.min * 100} max={control.max * 100} step={control.step * 100} unit="%"
+            value={Math.round(config[control.key] * 100)} disabled={recipe === "baseline" || comparing}
+            onStart={beginGesture} onCommit={value => endGesture({ ...config, [control.key]: value / 100 })}
+            onChange={value => update({ ...config, [control.key]: value / 100 })} />)}
           <div className={styles.segment} role="group" aria-label="Характер отклика">
             <button type="button" aria-pressed={config.character === "fluid"} onClick={() => update({ ...config, character: "fluid" })}>Текучий</button>
             <button type="button" aria-pressed={config.character === "precise"} onClick={() => update({ ...config, character: "precise" })}>Собранный</button>
           </div>
         </fieldset>
         <label className={styles.calm}><input type="checkbox" checked={config.calm} onChange={event => update({ ...config, calm: event.currentTarget.checked })} /><span>Спокойный режим</span><span aria-hidden="true">Ⅱ</span></label>
-        <p className={styles.note}>«Отклик» меняет время успокоения. На сенсорном экране и при ограничении движения материал статичен.</p>
-        <div className={styles.history}><button type="button" disabled={!currentHistory.past.length} onClick={() => undo()}>Отменить</button><button type="button" disabled={!currentHistory.future.length} onClick={() => undo(true)}>Повторить</button></div>
+        <div className={styles.history}>
+          <MonoLabIconButton label="Отменить" disabled={!currentHistory.past.length} onClick={() => undo()}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 5 3 10l5 5M3 10h10a7 7 0 0 1 0 14" /></svg></MonoLabIconButton>
+          <MonoLabIconButton label="Повторить" disabled={!currentHistory.future.length} onClick={() => undo(true)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m16 5 5 5-5 5m5-5H11a7 7 0 0 0 0 14" /></svg></MonoLabIconButton>
+          <MonoLabIconButton label="По умолчанию" onClick={() => update({ ...MONO_BACKGROUND_DEFAULTS[recipe] })}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 4v6h6M4 10a8 8 0 1 1 .5 7" /></svg></MonoLabIconButton>
+        </div>
         <div className={styles.commands}>
           <button type="button" className={styles.primary} onClick={() => {
             try { localStorage.setItem(MONO_ATMOSPHERE_LAB_STORAGE_KEY, JSON.stringify(config)); window.dispatchEvent(new Event(SAVED_EVENT)); setStatus("Проба сохранена в этом браузере."); }
             catch { setStatus("Сохранение недоступно. Используйте JSON пробы."); }
           }}>Сохранить пробу</button>
-          <button type="button" onClick={() => update({ ...MONO_BACKGROUND_DEFAULTS[recipe] })}>По умолчанию</button>
         </div>
         <p className={styles.status} role="status">{status || (storedRaw ? saved ? "Сохранённая проба восстановлена." : "Проба повреждена; открыт исходный вариант." : "Проба ещё не сохранена.")}</p>
-        <details className={styles.details}><summary>JSON пробы</summary>
+        <div className={styles.details}><MonoLabSection title="JSON пробы">
           <button type="button" onClick={() => setExported(JSON.stringify(config, null, 2))}>Экспорт JSON</button>
           {exported && <textarea aria-label="Экспорт пробы" readOnly value={exported} rows={8} />}
           <textarea aria-label="Импорт пробы" value={imported} maxLength={4097} rows={4} placeholder="Вставьте JSON атмосферы" onChange={event => { setImported(event.target.value); setPendingImport(null); }} />
           <button type="button" onClick={() => { try { setPendingImport(parseMonoBackgroundRecipe(imported)); setStatus("JSON проверен. Откройте его в примерке."); } catch (error) { setPendingImport(null); setStatus((error as Error).message); } }}>Проверить JSON</button>
           {pendingImport && <div role="region" aria-label="Предпросмотр импорта"><p>{RECIPES.find(item => item.id === pendingImport.recipe)?.label} · {Math.round(pendingImport.intensity * 100)}% · {pendingImport.calm ? "покой" : "отклик"}</p><button type="button" onClick={() => {
-            setSelected(pendingImport.recipe); setDrafts(current => ({ ...current, [pendingImport.recipe]: pendingImport }));
+            const target = pendingImport.recipe;
+            const before = drafts[target] ?? (saved?.recipe === target ? saved : MONO_BACKGROUND_DEFAULTS[target]);
+            setHistory(current => ({ ...current, [target]: { past: [...(current[target]?.past ?? []), before].slice(-30), future: [] } }));
+            setSelected(target); setDrafts(current => ({ ...current, [target]: pendingImport }));
             setComparing(false); setPendingImport(null); setStatus("Импорт открыт как несохранённая проба.");
           }}>Открыть импорт в примерке</button></div>}
-        </details>
+          <p className={styles.note}>«Отклик» меняет время успокоения. На сенсорном экране и при ограничении движения материал статичен. Сохранение пробы не применяет её к MONO.</p>
+          <p className={styles.note}>Собственная SVG/CSS-композиция. Без физической рефракции фона. Референсы: <a href="https://github.com/DavidHDev/react-bits/blob/3a1c7f2f9f94ed833934ab5c2635760b9e644583/src/ts-default/Backgrounds/Silk/Silk.tsx">Silk</a> и <a href="https://github.com/magicuidesign/magicui/blob/d7207e5692d14c00dceafa8488d6d01f197fa0e4/apps/www/registry/magicui/light-rays.tsx">Light Rays</a>.</p>
+        </MonoLabSection></div>
       </aside>
     </div>
   </main>;
