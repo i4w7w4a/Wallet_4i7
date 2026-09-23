@@ -4,8 +4,8 @@ import { MockWalletRepository } from "@wallet/core";
 import { MonoPreview } from "../../src/mono-preview/mono-preview";
 
 export const metadata: Metadata = {
-  title: "MONO LEDGER — Wallet_4i7",
-  description: "Чёрно-белый визуальный прототип Wallet_4i7",
+  title: "MONO LEDGER — Novex Wallet",
+  description: "Визуальный прототип Novex Wallet",
 };
 
 export default async function MonoPage() {

@@ -4,8 +4,10 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -21,6 +23,9 @@ import {
 } from "@wallet/ui";
 
 import { MonoGlassTuner } from "./mono-glass-tuner";
+import { MonoLogo } from "./mono-logo";
+import { loadMonoLogoPreview, normalizeMonoLogoHue,
+  MONO_LOGO_PREVIEW_KEY, resolveMonoLogoColors, saveMonoLogoPreview, type MonoLogoPreview } from "./mono-logo-preview";
 import { MonoColorLab, MonoColorInspector, useMonoColorLab } from "./mono-color-lab";
 import { createMonoPaletteWorkspace, enableMonoPalette, switchMonoPaletteTheme } from "./mono-palette-workspace";
 import { MonoPresetLibrary } from "./mono-preset-library";
@@ -79,6 +84,26 @@ function workingSaveError(error: unknown): string {
 
 const OPTICAL_STORAGE_KEY = "wallet4i7.mono.optical-preview.v1";
 const ENVIRONMENT_STORAGE_KEY = "wallet4i7.mono.environment-preview.v1";
+const LOGO_PREVIEW_CHANGE_EVENT = "mono-logo-preview-change";
+
+function subscribeLogoPreview(onChange: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === MONO_LOGO_PREVIEW_KEY) onChange();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(LOGO_PREVIEW_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(LOGO_PREVIEW_CHANGE_EVENT, onChange);
+  };
+}
+
+function getLogoPreviewSnapshot(): string | null {
+  try { return window.localStorage.getItem(MONO_LOGO_PREVIEW_KEY); }
+  catch { return null; }
+}
+
+const getServerLogoPreviewSnapshot = () => null;
 
 const PRESETS: ReadonlyArray<{ id: MonoPreset; key: string; label: string }> = [
   { id: "ledger", key: "1", label: "Ledger" },
@@ -561,6 +586,12 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const theme = colorLab.shown.mode;
   const [background, setBackground] = useState<MonoBackground>("iris");
   const [viewport, setViewport] = useState<MonoViewport>(480);
+  const logoPreviewRaw = useSyncExternalStore(subscribeLogoPreview, getLogoPreviewSnapshot, getServerLogoPreviewSnapshot);
+  const savedLogoPreview = useMemo(() => loadMonoLogoPreview({ getItem: () => logoPreviewRaw }), [logoPreviewRaw]);
+  const [logoOverride, setLogoOverride] = useState<MonoLogoPreview | null>(null);
+  const logoPreview = logoOverride ?? savedLogoPreview;
+  const [logoSaveStatus, setLogoSaveStatus] = useState("");
+  const logoColors = useMemo(() => resolveMonoLogoColors(logoPreview.hue), [logoPreview.hue]);
   const [panelsVisible, setPanelsVisible] = useState(true);
   const [compactChrome, setCompactChrome] = useState(false);
   const [mobileRail, setMobileRail] = useState<MonoRail | null>(null);
@@ -997,6 +1028,22 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     setSections((current) => ({ ...current, [section]: !current[section] }));
   }
 
+  function updateLogoPreview(next: MonoLogoPreview) {
+    try {
+      if (saveMonoLogoPreview(window.localStorage, next)) {
+        window.dispatchEvent(new Event(LOGO_PREVIEW_CHANGE_EVENT));
+        setLogoOverride(null);
+        setLogoSaveStatus("Сохранено в этом браузере");
+      } else {
+        setLogoOverride(next);
+        setLogoSaveStatus("Проба видна, но сохранить её не удалось");
+      }
+    } catch {
+      setLogoOverride(next);
+      setLogoSaveStatus("Проба видна, но сохранить её не удалось");
+    }
+  }
+
   function toggleQuickSections() {
     setSections((current) => {
       const expand = !(current.variants && current.viewport && current.shape);
@@ -1056,6 +1103,16 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const workbenchStyle = { "--mono-preview-width": `${viewport}px` } as CSSProperties;
   const shapeStyle = {
     ...colorLab.style,
+    ...(logoPreview.customColor ? {
+      "--mono-logo-custom-dark-primary": logoColors.dark.primary,
+      "--mono-logo-custom-dark-depth": logoColors.dark.depth,
+      "--mono-logo-custom-dark-gradient-start": logoColors.dark.gradientStart,
+      "--mono-logo-custom-dark-gradient-end": logoColors.dark.gradientEnd,
+      "--mono-logo-custom-light-primary": logoColors.light.primary,
+      "--mono-logo-custom-light-depth": logoColors.light.depth,
+      "--mono-logo-custom-light-gradient-start": logoColors.light.gradientStart,
+      "--mono-logo-custom-light-gradient-end": logoColors.light.gradientEnd,
+    } : {}),
     "--mono-actions-radius": `${draftShapes[preset]["quick-actions"]}px`,
     "--mono-nav-radius": `${draftShapes[preset]["bottom-navigation"]}px`,
   } as CSSProperties;
@@ -1114,7 +1171,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         role={compactChrome && mobileRail === "quick" ? "dialog" : undefined}
         aria-modal={compactChrome && mobileRail === "quick" ? true : undefined}>
         <div className="mono-rail__head">
-          <div><span>W / 02</span><strong>MONO LAB</strong></div>
+          <div><span>V2 / 02</span><strong>MONO LAB</strong></div>
           <a href="/">V1 <span aria-hidden="true">↗</span></a>
         </div>
         <MonoWorkingPresetBar
@@ -1163,6 +1220,28 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
                 <strong>{item.width}</strong><span>{item.label}</span><small>{item.note}</small>
               </button>
             ))}
+          </div>
+          <div className="mono-logo-options" role="group" aria-label="Настройка логотипа" data-mono-control>
+            <span>Логотип</span>
+            <div className="mono-logo-options__variants">
+              <button type="button" aria-label="Логотип без плашки" aria-pressed={logoPreview.variant === "bare"}
+                onClick={() => updateLogoPreview({ ...logoPreview, variant: "bare" })}>1 · Без плашки</button>
+              <button type="button" aria-label="Логотип с плашкой" aria-pressed={logoPreview.variant === "plaque"}
+                onClick={() => updateLogoPreview({ ...logoPreview, variant: "plaque" })}>2 · Плашка</button>
+            </div>
+            <label className="mono-logo-options__custom">
+              <input type="checkbox" checked={logoPreview.customColor}
+                onChange={event => updateLogoPreview({ ...logoPreview, customColor: event.currentTarget.checked })} />
+              <span className="mono-logo-options__swatch" aria-hidden="true"
+                style={{ backgroundColor: logoPreview.customColor ? logoColors[theme].primary : theme === "dark" ? "#9a90ff" : "#4338ca" }} />
+              <span>Свой цвет эмблемы</span>
+            </label>
+            {logoPreview.customColor && <div className="mono-logo-options__tone">
+              <div><span>Тон знака</span><output>{logoPreview.hue}°</output></div>
+              <input type="range" aria-label="Тон знака Novex" min="0" max="359" step="1" value={logoPreview.hue}
+                onChange={event => updateLogoPreview({ ...logoPreview, hue: normalizeMonoLogoHue(Number(event.currentTarget.value)) })} />
+            </div>}
+            <p aria-live="polite">{logoSaveStatus || "Локальная проба · отдельно от рабочего пресета"}</p>
           </div>
         </MonoRailSection>
         <MonoRailSection id="shape" index="03" title="Форма" expanded={sections.shape}
@@ -1236,6 +1315,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
 
       <div className="mono-preview-frame" inert={compactChrome && panelsVisible && mobileRail !== null}>
         <main ref={pageRef} className="mono-page" data-mono-preview data-mono-preset={preset}
+          data-mono-logo-variant={logoPreview.variant} data-mono-logo-custom={logoPreview.customColor}
           data-palette-enabled={Boolean(colorLab.shown.paletteEnabled)} data-palette-ready={colorLab.ready} style={shapeStyle}
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
           data-pointer-active="false" onPointerMove={moveAtmosphere} onPointerLeave={restAtmosphere}>
@@ -1256,9 +1336,10 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
 
       <div className="mono-scene">
         <header className="mono-app-header">
-          <div className="mono-app-header__mark" aria-hidden="true"><span>W</span><i /></div>
+          <div className="mono-app-header__mark">
+            <MonoLogo />
+          </div>
           <div className="mono-app-header__person">
-            <span>WALLET_4I7</span>
             <strong>{snapshot.profile.name}</strong>
           </div>
           <div className="mono-app-header__signal" aria-label="Визуальный прототип, демо-данные">
@@ -1325,11 +1406,11 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         <div className="mono-promo-frame">
           <MonoOpticalGlass preset={preset} settings={draftOptics[preset]} active className="mono-promo">
             <div className="mono-promo__content">
-              <span className="mono-promo__overline">WALLET_4I7 / PRIVATE</span>
+              <span className="mono-promo__overline">NOVEX WALLET / PRIVATE</span>
               <strong>Контроль<br />без шума.</strong>
               <span className="mono-promo__foot">МАТЕРИАЛ / 001 <span aria-hidden="true">↗</span></span>
             </div>
-            <div className="mono-promo__seal" aria-hidden="true"><span>4i7</span></div>
+            <div className="mono-promo__seal" aria-hidden="true" />
           </MonoOpticalGlass>
         </div>
 
