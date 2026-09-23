@@ -41,7 +41,7 @@ function within(value: unknown, min: number, max: number): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
 }
 
-function validatePreset(value: unknown): ControlFeedbackPreset {
+export function validateControlFeedbackPreset(value: unknown): ControlFeedbackPreset {
   if (!isRecord(value) || !exactKeys(value, [
     "schemaVersion", "sceneId", "implementationVersion", "effectId", "view",
     "previewWidth", "status", "config",
@@ -68,11 +68,11 @@ export function parsePresetJson(json: string): ControlFeedbackPreset {
   if (json.length > MAX_IMPORT_LENGTH) {
     throw new Error("Файл пробы слишком велик.");
   }
-  return validatePreset(JSON.parse(json) as unknown);
+  return validateControlFeedbackPreset(JSON.parse(json) as unknown);
 }
 
 export function createPresetJson(preset: ControlFeedbackPreset): string {
-  return JSON.stringify(validatePreset(preset), null, 2);
+  return JSON.stringify(validateControlFeedbackPreset(preset), null, 2);
 }
 
 export function magneticOffset(

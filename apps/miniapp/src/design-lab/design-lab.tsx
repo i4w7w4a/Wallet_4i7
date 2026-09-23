@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 
 import { ControlFeedbackButton } from "./control-feedback-button";
+import { CHANNEL_NAME, createApplyRequest, matchesApplyAck, type ApplyLaunch, type ApplyOutcome } from "./control-feedback-handoff";
 import {
   createPresetJson,
   DEFAULT_CONFIG,
@@ -101,7 +102,7 @@ function readSaved() {
 
 function emptyServerSnapshot() { return null; }
 
-export function DesignLab() {
+export function DesignLab({ launch = null }: { launch?: ApplyLaunch | null }) {
   const storedRaw = useSyncExternalStore(subscribeToSaved, readSaved, emptyServerSnapshot);
   const storedPreset = useMemo(() => {
     try { return storedRaw ? parsePresetJson(storedRaw) : null; } catch { return null; }
@@ -114,6 +115,16 @@ export function DesignLab() {
   const [exported, setExported] = useState("");
   const [importText, setImportText] = useState("");
   const [pendingImport, setPendingImport] = useState<ControlFeedbackPreset | null>(null);
+  const [applyPending, setApplyPending] = useState(false);
+  const applyResourceRef = useRef<{ channel: BroadcastChannel; timer: ReturnType<typeof setTimeout> } | null>(null);
+  useEffect(() => () => {
+    const resource = applyResourceRef.current;
+    if (resource) {
+      clearTimeout(resource.timer);
+      resource.channel.close();
+      applyResourceRef.current = null;
+    }
+  }, []);
   const statusMessage = status || (storedRaw
     ? (storedPreset ? "Сохранённая проба восстановлена." : "Сохранённая проба повреждена; открыт исходный черновик.")
     : "Локальная проба ещё не сохранена.");
@@ -159,6 +170,53 @@ export function DesignLab() {
     setComparing(false);
     setPendingImport(null);
     setStatus("Проверенный импорт применён к черновику. Для записи нажмите «Сохранить пробу».");
+  };
+  const applyToMono = () => {
+    if (!launch || applyPending) return;
+    if (typeof BroadcastChannel === "undefined") {
+      setStatus("Передача между вкладками недоступна. Используйте экспорт JSON.");
+      return;
+    }
+    let request: ReturnType<typeof createApplyRequest>;
+    try { request = createApplyRequest(launch, crypto.randomUUID(), preset); }
+    catch {
+      setStatus("Проба не прошла проверку перед применением.");
+      return;
+    }
+    let channel: BroadcastChannel;
+    try { channel = new BroadcastChannel(CHANNEL_NAME); }
+    catch {
+      setStatus("Не удалось открыть связь с MONO. Используйте экспорт JSON.");
+      return;
+    }
+    const finish = () => {
+      const resource = applyResourceRef.current;
+      if (resource?.channel !== channel) return false;
+      clearTimeout(resource.timer);
+      channel.close();
+      applyResourceRef.current = null;
+      setApplyPending(false);
+      return true;
+    };
+    channel.onmessage = (event: MessageEvent<unknown>) => {
+      if (!matchesApplyAck(request, event.data) || !finish()) return;
+      const outcome = (event.data as { outcome: ApplyOutcome }).outcome;
+      const messages: Record<ApplyOutcome, string> = {
+        applied: "MONO подтвердил применение в локальной примерке. Рабочий пресет не сохранён.",
+        "stale-session": "Сеанс MONO устарел. Откройте лабораторию снова из настроек.",
+        "target-mismatch": "MONO отклонил цель. Откройте лабораторию из нужной кнопки.",
+        "preset-changed": "Активный рабочий пресет изменился. Откройте лабораторию снова.",
+        "invalid-preset": "MONO отклонил параметры пробы.",
+      };
+      setStatus(messages[outcome]);
+    };
+    const timer = setTimeout(() => {
+      if (finish()) setStatus("MONO не ответил. Проверьте исходную вкладку и попробуйте снова.");
+    }, 2400);
+    applyResourceRef.current = { channel, timer };
+    setApplyPending(true);
+    setStatus("Ожидаем подтверждения от MONO…");
+    channel.postMessage(request);
   };
   const activeEffect = comparing ? "baseline" : preset.effectId;
   const previewStyle: PreviewStyle = { "--preview-width": `${preset.previewWidth}px` };
@@ -266,6 +324,12 @@ export function DesignLab() {
           <button type="button" onClick={save}>Сохранить пробу</button>
           <button type="button" onClick={exportJson}>Экспорт JSON</button>
         </div>
+        {launch && (
+          <div className={styles.applyPanel}>
+            <p>Эта вкладка открыта из MONO. Apply меняет только живую локальную примерку; сохранение пробы остаётся отдельным действием.</p>
+            <button type="button" disabled={applyPending} onClick={applyToMono}>Применить к локальной примерке MONO</button>
+          </div>
+        )}
         <p className={styles.status} role="status">{statusMessage}</p>
         <div className={styles.jsonGrid}>
           <label>Экспортированная проба<textarea aria-label="Экспортированная проба" value={exported} readOnly placeholder="Нажмите «Экспорт JSON»" /></label>

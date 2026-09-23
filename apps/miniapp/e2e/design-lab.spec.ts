@@ -115,3 +115,71 @@ test("hidden tab clears a transient magnetic offset", async ({ page }) => {
   });
   await expect.poll(async () => Math.abs(await innerX(page))).toBeLessThan(0.2);
 });
+
+test("a launched Lab applies only after a matching MONO acknowledgement", async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    const host = await context.newPage();
+    await host.goto(labUrl);
+    await host.evaluate(() => {
+      const received: unknown[] = [];
+      (window as Window & { motionRequests?: unknown[] }).motionRequests = received;
+      const channel = new BroadcastChannel("novex.motion-lab.control-feedback-01.v1");
+      channel.onmessage = (event) => {
+        const request = event.data as Record<string, unknown>;
+        received.push(request);
+        channel.postMessage({
+          version: 1, kind: "apply-ack", requestId: request.requestId,
+          sessionId: request.sessionId, targetId: request.targetId,
+          workingPresetId: request.workingPresetId, outcome: "applied",
+        });
+      };
+    });
+
+    const lab = await context.newPage();
+    await lab.goto(`${labUrl}?session=c470be42-a482-4eac-b61b-bcfa3aa42110&target=mono.quick-settings-launcher`);
+    const storageBefore = await lab.evaluate(() => Object.keys(localStorage).sort());
+    await lab.getByRole("button", { name: "Магнит" }).click();
+    await lab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
+    await expect(lab.locator('p[role="status"]')).toContainText("MONO подтвердил применение");
+    const requests = await host.evaluate(() => (window as Window & { motionRequests?: unknown[] }).motionRequests);
+    expect(requests).toHaveLength(1);
+    expect(requests![0]).toMatchObject({ kind: "apply-request", targetId: "mono.quick-settings-launcher", preset: { effectId: "magnetic" } });
+    expect(await lab.evaluate(() => Object.keys(localStorage).sort())).toEqual(storageBefore);
+  } finally {
+    await context.close();
+  }
+});
+
+test("Lab keeps Apply unavailable without a valid launch and reports a missing host", async ({ page }) => {
+  await page.goto(`${labUrl}?session=c470be42-a482-4eac-b61b-bcfa3aa42110&target=wallet.transfer`);
+  await expect(page.getByRole("button", { name: "Применить к локальной примерке MONO" })).toHaveCount(0);
+  await page.goto(`${labUrl}?session=c470be42-a482-4eac-b61b-bcfa3aa42110&target=mono.quick-settings-launcher`);
+  await page.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
+  await expect(page.locator('p[role="status"]')).toContainText("MONO не ответил");
+});
+
+test("an acknowledgement from another target cannot claim Apply success", async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    const other = await context.newPage();
+    await other.goto(labUrl);
+    await other.evaluate(() => {
+      const channel = new BroadcastChannel("novex.motion-lab.control-feedback-01.v1");
+      channel.onmessage = (event) => {
+        const request = event.data as Record<string, unknown>;
+        channel.postMessage({
+          version: 1, kind: "apply-ack", requestId: request.requestId,
+          sessionId: request.sessionId, targetId: "mono.other",
+          workingPresetId: request.workingPresetId, outcome: "applied",
+        });
+      };
+    });
+    const lab = await context.newPage();
+    await lab.goto(`${labUrl}?session=c470be42-a482-4eac-b61b-bcfa3aa42110&target=mono.quick-settings-launcher`);
+    await lab.getByRole("button", { name: "Применить к локальной примерке MONO" }).click();
+    await expect(lab.locator('p[role="status"]')).toContainText("MONO не ответил");
+  } finally {
+    await context.close();
+  }
+});
