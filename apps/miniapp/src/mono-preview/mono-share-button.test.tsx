@@ -54,3 +54,13 @@ it("cannot display a late result from the previous accepted source", async () =>
   expect(screen.queryByRole("textbox")).toBeNull();
   expect(screen.getByRole("button", { name: "Получить ссылку" })).toBeEnabled();
 });
+
+it("warns for a long link without turning successful creation into an error", async () => {
+  const link = "https://wallet.example/mono/view#mono=" + "a".repeat(4100);
+  render(<MonoShareButton sourceKey="A:1" createLink={async () => link} />);
+  fireEvent.click(screen.getByRole("button", { name: "Получить ссылку" }));
+  expect(await screen.findByText(/мессенджер может её обрезать/)).toBeVisible();
+  expect(screen.getByRole("textbox")).toHaveValue(link);
+  expect(screen.getByRole("button", { name: "Скопировать" })).toBeEnabled();
+  expect(screen.queryByRole("alert")).toBeNull();
+});

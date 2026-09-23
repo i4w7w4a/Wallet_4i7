@@ -1,13 +1,15 @@
 import { MONO_GLASS_DEFAULTS } from "@wallet/ui";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { createMonoPaletteWorkspace } from "./mono-palette-workspace";
 import { createMonoShapeDefaults } from "./mono-shape-preview";
-import { loadMonoWorkingLibrary, previewMonoWorkingImport, exportMonoWorkingPreset, saveMonoWorkingLibrary } from "./mono-working-presets";
+import { createLegacyPaletteWorkingRecords, loadMonoWorkingLibrary, previewMonoWorkingImport, exportMonoWorkingPreset, saveMonoWorkingLibrary } from "./mono-working-presets";
+import { exportMonoPalettePreset, importMonoPalettePreset } from "./mono-preset-codec";
 
 const legacyKey = "wallet4i7.mono.working-presets.v1";
 const currentKey = "wallet4i7.mono.working-presets.v2";
 const logoKey = "wallet4i7.mono.logo-preview.v1";
-const logo = { version: 1, variant: "plaque", customColor: true, hue: 157 };
+const logo = { version: 1, variant: "plaque", customColor: true, hue: 157 } as const;
 
 function legacyFixture() {
   const palette = createMonoPaletteWorkspace();
@@ -69,6 +71,15 @@ describe("full working preset migration", () => {
     expect(reloaded.records[0].document.appearance.frost.logo.hue).toBe(157);
     expect(reloaded.records[1].document.appearance.ledger.logo.hue).toBe(157);
     expect(storage.getItem(logoKey)).toBe(JSON.stringify(logo));
+  });
+
+  it("also carries the global logo and original balance treatment into older palette library records", async () => {
+    const sha = async (bytes: Uint8Array) => new Uint8Array(createHash("sha256").update(bytes).digest());
+    const config = legacyFixture().records[0].document.palette.slots[0].present.config;
+    const preset = await importMonoPalettePreset(await exportMonoPalettePreset(config, sha), sha);
+    const records = createLegacyPaletteWorkingRecords([{ id: "archive", name: "Архив", revision: 1, preset }], logo);
+    expect(records[0].document.appearance.mercury.logo).toEqual(logo);
+    expect(records[0].document.appearance.mercury.balance).toEqual({ composition: "ledger", fractionSize: "large", fractionTone: "primary" });
   });
 
   it("refuses to overwrite a corrupt or unknown v2 even when a valid v1 exists", () => {
