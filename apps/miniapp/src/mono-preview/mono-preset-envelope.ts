@@ -2,15 +2,15 @@ import { MONO_GLASS_DEFAULTS, normalizeMonoGlassSettings, normalizeMonoPaletteCo
   type MonoGlassSettings, type MonoPaletteConfigV1 } from "@wallet/ui";
 import { loadMonoLogoPreview, MONO_LOGO_PREVIEW_DEFAULTS, type MonoLogoPreview } from "./mono-logo-preview";
 import { createMonoShapeDefaults, normalizeMonoShapeMap, type MonoShapePreset, type MonoShapeSettings } from "./mono-shape-preview";
-import { MONO_SCENE_DEFAULT, parseMonoSceneAppearance, type MonoSceneAppearance } from "./mono-scene-lab-contract";
-import { createMonoTypographyDefaults, normalizeMonoTypography, validateMonoTypography, type MonoTypographyConfigV1 } from "./mono-typography";
+import { MONO_BALANCE_LEGACY, MONO_SCENE_DEFAULT, parseMonoSceneAppearance, type MonoSceneAppearance } from "./mono-scene-lab-contract";
+import { normalizeMonoTypography, validateMonoTypography, type MonoTypographyConfigV1 } from "./mono-typography";
 import { parseMonoBackgroundRecipe, type MonoBackgroundRecipeConfig } from "./mono-background-recipes";
 import type { MonoWorkingDocument } from "./mono-working-presets";
 import { MonoShareError } from "./mono-share-transport";
 
 export type MonoExtendedAppearance = MonoSceneAppearance & {
   logo: MonoLogoPreview;
-  typography: MonoTypographyConfigV1;
+  typography: MonoTypographyConfigV1 | null;
   background: MonoBackgroundRecipeConfig | null;
 };
 export type MonoAppearance = MonoExtendedAppearance & {
@@ -41,21 +41,22 @@ export function canonicalMonoAppearance(value: unknown, depth = 0): string {
   return JSON.stringify(value);
 }
 
-export function createMonoExtendedAppearance(preset: MonoShapePreset, logo = MONO_LOGO_PREVIEW_DEFAULTS): MonoExtendedAppearance {
-  return { ...structuredClone(MONO_SCENE_DEFAULT), logo: { ...logo },
-    typography: createMonoTypographyDefaults(preset), background: null };
+export function createMonoExtendedAppearance(preset: MonoShapePreset, logo = MONO_LOGO_PREVIEW_DEFAULTS, legacy = false): MonoExtendedAppearance {
+  if (preset !== "ledger" && preset !== "frost" && preset !== "mercury") throw invalid();
+  return { ...structuredClone(MONO_SCENE_DEFAULT), ...(legacy ? { balance: { ...MONO_BALANCE_LEGACY } } : {}),
+    logo: { ...logo }, typography: null, background: null };
 }
 
 /** Strict import boundary: recovery normalizers never silently repair a shared snapshot. */
 export function normalizeMonoExtendedAppearance(value: unknown): MonoExtendedAppearance {
   const input = record(value);
   const scene = parseMonoSceneAppearance({ balance: input.balance, chart: input.chart, layout: input.layout, assets: input.assets });
-  if (!scene || !validateMonoTypography(input.typography)) throw invalid();
+  if (!scene || (input.typography !== null && !validateMonoTypography(input.typography))) throw invalid();
   const logo = loadMonoLogoPreview({ getItem: () => JSON.stringify(input.logo) });
   let background: MonoBackgroundRecipeConfig | null;
   try { background = input.background === null ? null : parseMonoBackgroundRecipe(JSON.stringify(input.background)); }
   catch { throw invalid(); }
-  const result = { ...scene, logo, typography: normalizeMonoTypography(input.typography), background };
+  const result = { ...scene, logo, typography: input.typography === null ? null : normalizeMonoTypography(input.typography), background };
   if (canonicalMonoAppearance(value) !== canonicalMonoAppearance(result)) throw invalid();
   return result;
 }

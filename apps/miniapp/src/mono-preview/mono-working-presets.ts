@@ -51,7 +51,7 @@ export class MonoWorkingStoreError extends Error {
   }
 }
 
-export function createMonoWorkingDocument(): MonoWorkingDocument {
+export function createMonoWorkingDocument(legacyLogo?: MonoLogoPreview): MonoWorkingDocument {
   return {
     version: 2,
     palette: createMonoPaletteWorkspace(),
@@ -63,9 +63,9 @@ export function createMonoWorkingDocument(): MonoWorkingDocument {
     },
     background: "iris",
     appearance: {
-      ledger: createMonoExtendedAppearance("ledger"),
-      frost: createMonoExtendedAppearance("frost"),
-      mercury: createMonoExtendedAppearance("mercury"),
+      ledger: createMonoExtendedAppearance("ledger", legacyLogo, legacyLogo !== undefined),
+      frost: createMonoExtendedAppearance("frost", legacyLogo, legacyLogo !== undefined),
+      mercury: createMonoExtendedAppearance("mercury", legacyLogo, legacyLogo !== undefined),
     },
   };
 }
@@ -142,8 +142,8 @@ export function normalizeMonoWorkingDocument(value: unknown, legacyLogo?: MonoLo
     throw new MonoWorkingStoreError("Фон рабочего пресета неизвестен.", "invalid");
   let appearance: MonoWorkingDocument["appearance"];
   if (legacy) {
-    appearance = { ledger: createMonoExtendedAppearance("ledger", legacyLogo),
-      frost: createMonoExtendedAppearance("frost", legacyLogo), mercury: createMonoExtendedAppearance("mercury", legacyLogo) };
+    appearance = { ledger: createMonoExtendedAppearance("ledger", legacyLogo, true),
+      frost: createMonoExtendedAppearance("frost", legacyLogo, true), mercury: createMonoExtendedAppearance("mercury", legacyLogo, true) };
   } else {
     exactKeys(input.appearance, ["ledger", "frost", "mercury"], "Оформление");
     try { appearance = { ledger: normalizeMonoExtendedAppearance(input.appearance.ledger),

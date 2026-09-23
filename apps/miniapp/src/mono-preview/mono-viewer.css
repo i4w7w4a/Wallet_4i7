@@ -1,0 +1,6 @@
+.mono-viewer { display: grid; justify-items: center; min-height: 100dvh; width: 100%; background: #111216; color: #f0f1f3; }
+.mono-viewer > .mono-preview-frame { --mono-preview-width: 480px; width: min(100%, var(--mono-preview-width)); min-width: 0; container: mono-preview / inline-size; }
+.mono-viewer__message { align-self: center; width: min(100%, 480px); padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); font: 16px/1.5 Arial, sans-serif; }
+.mono-viewer__message h1 { margin: 0 0 12px; font-size: 24px; line-height: 1.25; }
+.mono-viewer__message a { display: inline-flex; align-items: center; min-height: 44px; color: #fff; text-underline-offset: 4px; }
+.mono-viewer__message a:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
