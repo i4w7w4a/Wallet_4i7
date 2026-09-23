@@ -43,6 +43,12 @@ a tool draft remains an editor action. Sharing must first resolve pending tool
 drafts, then extract the accepted working document; the codec cannot authorize
 or silently apply a pending draft.
 
+`MonoShareButton` requires `sourceKey`, an identity that changes whenever the
+accepted source changes (including preset selection, selected direction/theme,
+and a saved revision). Its inner state is keyed by that identity. Old copy/open
+controls disappear immediately and late async results cannot reappear under a
+different source. Previously copied immutable URLs still work independently.
+
 ## Transport and limits
 
 The transport is `m1.<SHA-256 of canonical JSON>.<gzip as base64url>`. SHA-256 detects
@@ -62,6 +68,12 @@ The implementation checks the actual APIs instead of inferring support from a
 browser or Telegram user agent. This does not claim that every messenger accepts
 the maximum-length URL as a single message; normal and dense fixtures are measured
 separately, and oversize content gets an explicit JSON-export fallback.
+
+Measured on the isolated preview: a real light/strata/palette/custom-logo/shape
+snapshot is 1,392 URL characters. A stress fixture with distinct high-precision
+values in every palette override, a full typography config, and an atmosphere
+recipe is 18,855 raw UTF-8 bytes / 8,907 URL characters. The latter is a transport
+stress case, not a claim that it fits every messenger's message field.
 
 The production route integration is a client host around `MonoViewer` and the
 common `MonoScene`. The server supplies the existing mock wallet snapshot; that
