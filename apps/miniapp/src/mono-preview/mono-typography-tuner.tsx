@@ -72,7 +72,7 @@ export function MonoTypographyTuner({ value: candidate, onChange, onStart, onCom
           onChange={event => updateRole(role, { weight: Number(event.target.value) })}>
           {face.weights.map(weight => <option key={weight} value={weight}>{weight}</option>)}
         </select></label>}
-      <MonoLabSliderRow label={role === "balance" ? "Макс. размер роли" : "Размер роли"} value={value.roles[role].size} {...MONO_TYPOGRAPHY_BOUNDS[role]} unit="px"
+      <MonoLabSliderRow label={role === "balance" || role === "button" ? "Макс. размер роли" : "Размер роли"} value={value.roles[role].size} {...MONO_TYPOGRAPHY_BOUNDS[role]} unit="px"
         onChange={size => updateRole(role, { size })} {...gesture} />
     </MonoLabSection>
     <MonoLabSection title="Ритм и второй шрифт">
