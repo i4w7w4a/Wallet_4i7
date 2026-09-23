@@ -10,11 +10,11 @@
 .intro h1 { margin: 22px 0 18px; font-size: clamp(32px, 3vw, 45px); line-height: 1; letter-spacing: -.055em; font-weight: 400; }
 .intro p { color: #b3b4b5; font-size: 13px; line-height: 1.7; }
 .recipes { display: grid; gap: 5px; margin-top: 24px; }
-.lab button { min-height: 44px; border: 1px solid #45474a; border-radius: 7px; color: inherit; background: transparent; cursor: pointer; font: inherit; font-size: 12px; padding: 0 12px; }
-.lab button:hover { background: #292b2d; }
-.lab button[aria-pressed="true"] { color: #fff; background: #36393c; border-color: #a5a8ac; }
-.lab button:disabled { opacity: .4; cursor: default; }
-.lab :is(button, input, textarea, summary, a):focus-visible { outline: 2px solid #d5def0; outline-offset: 3px; }
+:is(.intro, .tuner) button { min-height: 44px; border: 1px solid #45474a; border-radius: 7px; color: inherit; background: transparent; cursor: pointer; font: inherit; font-size: 12px; padding: 0 12px; }
+:is(.intro, .tuner) button:hover { background: #292b2d; }
+:is(.intro, .tuner) button[aria-pressed="true"] { color: #fff; background: #36393c; border-color: #a5a8ac; }
+:is(.intro, .tuner) button:disabled { opacity: .4; cursor: default; }
+:is(.intro, .tuner, .header) :is(button, input, textarea, summary, a):focus-visible { outline: 2px solid #d5def0; outline-offset: 3px; }
 .recipes button { display: grid; grid-template-columns: 25px 1fr 15px; align-items: center; gap: 10px; text-align: left; min-height: 44px; }
 .recipeIndex { color: #a7a9ab; font-variant-numeric: tabular-nums; font-size: 10px; }
 .description { min-height: 52px; }

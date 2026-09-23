@@ -55,12 +55,16 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
   const shown = comparing ? { ...MONO_BACKGROUND_DEFAULTS.baseline, calm: config.calm } : config;
   const entry = RECIPES.find(item => item.id === shown.recipe)!;
   const dirty = JSON.stringify(config) !== JSON.stringify(saved?.recipe === recipe ? saved : MONO_BACKGROUND_DEFAULTS[recipe]);
+  const savedSelection = saved?.recipe === recipe && !dirty;
+  const statusMessage = status || (storedRaw && !saved ? "Проба повреждена; открыт исходный вариант."
+    : savedSelection ? "Сохранённая проба восстановлена."
+    : dirty ? "Проба изменена. Ещё не сохранена." : "Исходный вариант. Проба ещё не сохранена.");
   const remember = (before: MonoBackgroundRecipeConfig) => setHistory(current => ({ ...current,
     [recipe]: { past: [...(current[recipe]?.past ?? []), before].slice(-30), future: [] } }));
   const update = (next: MonoBackgroundRecipeConfig) => {
     if (!gesture.current && JSON.stringify(next) !== JSON.stringify(config)) remember(config);
     setDrafts(current => ({ ...current, [next.recipe]: next }));
-    setStatus("Проба изменена.");
+    setStatus("");
   };
   const beginGesture = () => { gesture.current ??= config; };
   const endGesture = (next: MonoBackgroundRecipeConfig) => {
@@ -74,9 +78,10 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
       ? { past: [...currentHistory.past, config], future: stack.slice(0, -1) }
       : { past: stack.slice(0, -1), future: [...currentHistory.future, config] } }));
     setDrafts(current => ({ ...current, [recipe]: next }));
+    setStatus("");
   };
 
-  return <main className={styles.lab} data-atmosphere-lab>
+  return <div className={styles.lab} data-atmosphere-lab>
     <header className={styles.header}>
       <a href="/design-lab">← Motion Lab</a><span>MONO / ATMOSPHERE 01</span><a href="/mono">Открыть MONO ↗</a>
     </header>
@@ -87,7 +92,7 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
         <p>Двигайте мышь внутри сцены.<br />Материал откликается и замирает.</p>
         <div className={styles.recipes} role="group" aria-label="Варианты атмосферы">
           {RECIPES.map(item => <button key={item.id} type="button" aria-label={item.label} aria-pressed={recipe === item.id}
-            onClick={() => { setSelected(item.id); setComparing(false); }}>
+            onClick={() => { endGesture(config); setSelected(item.id); setComparing(false); setStatus(""); }}>
             <span className={styles.recipeIndex}>{item.index}</span><span>{item.label}</span><span aria-hidden="true">↗</span>
           </button>)}
         </div>
@@ -117,7 +122,7 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
       </section>
 
       <aside className={styles.tuner} aria-label="Настройка атмосферы">
-        <div className={styles.tunerHeading}><strong>Характер</strong><span>{dirty ? "ПРОБА" : "ИСХОДНЫЙ"}</span></div>
+        <div className={styles.tunerHeading}><strong>Характер</strong><span>{dirty ? "ПРОБА" : savedSelection ? "СОХРАНЕНО" : "ИСХОДНЫЙ"}</span></div>
         <div className={styles.segment} role="group" aria-label="Тема">
           <button type="button" aria-pressed={theme === "dark"} onClick={() => setTheme("dark")}>Тёмная</button>
           <button type="button" aria-pressed={theme === "light"} onClick={() => setTheme("light")}>Светлая</button>
@@ -137,7 +142,7 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
             catch { setStatus("Сохранение недоступно. Используйте JSON пробы."); }
           }}>Сохранить пробу</button>
         </div>
-        <p className={styles.status} role="status">{status || (storedRaw ? saved ? "Сохранённая проба восстановлена." : "Проба повреждена; открыт исходный вариант." : "Проба ещё не сохранена.")}</p>
+        <p className={styles.status} role="status">{statusMessage}</p>
         <div className={styles.details}><MonoLabSection title="JSON пробы">
           <button type="button" onClick={() => setExported(JSON.stringify(config, null, 2))}>Экспорт JSON</button>
           {exported && <textarea aria-label="Экспорт пробы" readOnly value={exported} rows={8} />}
@@ -155,5 +160,5 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
         </MonoLabSection></div>
       </aside>
     </div>
-  </main>;
+  </div>;
 }

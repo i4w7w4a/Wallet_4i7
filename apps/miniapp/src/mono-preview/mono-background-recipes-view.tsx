@@ -90,6 +90,6 @@ export function MonoBackgroundRecipes({ config: input, surfaceRef, theme, active
       <div className={styles.shutter} />
       <div className={styles.ruling} />
     </div>}
-    {config.recipe !== "baseline" && <div className={styles.veil} />}
+    {config.recipe !== "baseline" && <><div className={styles.paletteTint} /><div className={styles.veil} /></>}
   </div>;
 }
