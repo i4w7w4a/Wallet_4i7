@@ -2,10 +2,11 @@
 
 import { useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { MonoBackgroundRecipes } from "../mono-preview/mono-background-recipes-view";
-import { MONO_BACKGROUND_CONTROLS, MONO_BACKGROUND_DEFAULTS, parseMonoBackgroundRecipe,
+import { MONO_BACKGROUND_DEFAULTS, parseMonoBackgroundRecipe,
   type MonoBackgroundRecipeConfig, type MonoBackgroundRecipeId } from "../mono-preview/mono-background-recipes";
 import { MonoLogo } from "../mono-preview/mono-logo";
-import { MonoLabIconButton, MonoLabSection, MonoLabSliderRow } from "../mono-preview/mono-lab-controls";
+import { MonoLabIconButton, MonoLabSection } from "../mono-preview/mono-lab-controls";
+import { MonoBackgroundRecipeControls } from "../mono-preview/mono-background-recipes-controls";
 import "../mono-preview/mono-fonts.css";
 import "../mono-preview/mono-preview.css";
 import "../mono-preview/mono-theme.css";
@@ -122,19 +123,9 @@ export function MonoAtmosphereLab({ renderScene }: { renderScene?: (input: MonoA
           <button type="button" aria-pressed={theme === "light"} onClick={() => setTheme("light")}>Светлая</button>
         </div>
         <div className={styles.widths} role="group" aria-label="Ширина примерки">{WIDTHS.map(value => <button key={value} type="button" aria-pressed={width === value} onClick={() => setWidth(value)}>{value}</button>)}</div>
-        <fieldset className={styles.controls} disabled={recipe === "baseline" || comparing}>
-          <legend className={styles.srOnly}>Параметры материала</legend>
-          {MONO_BACKGROUND_CONTROLS.map(control => <MonoLabSliderRow key={control.key} label={control.label}
-            min={control.min * 100} max={control.max * 100} step={control.step * 100} unit="%"
-            value={Math.round(config[control.key] * 100)} disabled={recipe === "baseline" || comparing}
-            onStart={beginGesture} onCommit={value => endGesture({ ...config, [control.key]: value / 100 })}
-            onChange={value => update({ ...config, [control.key]: value / 100 })} />)}
-          <div className={styles.segment} role="group" aria-label="Характер отклика">
-            <button type="button" aria-pressed={config.character === "fluid"} onClick={() => update({ ...config, character: "fluid" })}>Текучий</button>
-            <button type="button" aria-pressed={config.character === "precise"} onClick={() => update({ ...config, character: "precise" })}>Собранный</button>
-          </div>
-        </fieldset>
-        <label className={styles.calm}><input type="checkbox" checked={config.calm} onChange={event => update({ ...config, calm: event.currentTarget.checked })} /><span>Спокойный режим</span><span aria-hidden="true">Ⅱ</span></label>
+        <div className={styles.controls}><MonoBackgroundRecipeControls value={config} disabled={comparing}
+          showRecipeSelector={false} onGestureStart={beginGesture} onGestureCommit={endGesture}
+          onChange={next => { if (next) update(next); }} /></div>
         <div className={styles.history}>
           <MonoLabIconButton label="Отменить" disabled={!currentHistory.past.length} onClick={() => undo()}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 5 3 10l5 5M3 10h10a7 7 0 0 1 0 14" /></svg></MonoLabIconButton>
           <MonoLabIconButton label="Повторить" disabled={!currentHistory.future.length} onClick={() => undo(true)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m16 5 5 5-5 5m5-5H11a7 7 0 0 0 0 14" /></svg></MonoLabIconButton>

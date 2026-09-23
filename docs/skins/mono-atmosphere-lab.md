@@ -67,6 +67,13 @@ bounds, normalization and strict import. `MonoBackgroundRecipeConfig` contains:
   Render content in a higher sibling layer. Pass real runtime activity from the
   host; runtime gates are not stored in a preset.
 - Mount this layer **instead of**, never together with, the legacy atmosphere.
+- `MonoBackgroundRecipeControls` in `mono-background-recipes-controls.tsx` is a
+  controlled compact inspector: `{value: MonoBackgroundRecipeConfig | null,
+  onChange, onGestureStart?, onGestureCommit?, disabled?, showRecipeSelector?}`.
+  It uses the shared `MonoLabSliderRow`, emits full values (or `null` for the
+  original environment), and owns no storage or Apply/Cancel/Save footer.
+  `onGestureCommit` receives the final full config, including a numeric edit
+  committed in the same React event. The standalone Lab uses the same inspector.
 - Shared envelope `appearance.background: MonoBackgroundRecipeConfig | null`:
   `null` means render the unchanged `environment.background=iris|tide|strata`.
   Migration must preserve all three legacy values. Baseline does not map them.
@@ -94,7 +101,7 @@ Lab Save writes only `wallet4i7.mono.atmosphere-lab.v1` on explicit action. It
 does not write product appearance, working presets, the legacy environment,
 optics, logo or palette. A/B renders one layer and does not save. Import is
 validated, described, then opened explicitly as a draft. Local drafts are
-independent per recipe. Reset and controls support per-recipe undo/redo.
+independent per recipe. Reset, import and controls support per-recipe undo/redo.
 
 ## Validation commands
 
