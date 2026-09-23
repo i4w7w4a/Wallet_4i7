@@ -51,6 +51,7 @@ import {
   type MonoShapeMap,
 } from "./mono-shape-preview";
 import { MonoScene } from "./mono-scene";
+import { useMonoSceneActivity } from "./mono-scene-activity";
 import { MonoToolDock, MONO_TOOL_LABELS, type MonoToolId } from "./mono-tool-dock";
 import { MonoInspectorShell } from "./mono-inspector-shell";
 import { MonoLabSection } from "./mono-lab-controls";
@@ -193,6 +194,7 @@ function applyDocumentEnvironment(theme: MonoTheme, background: MonoBackground) 
 }
 
 export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
+  const hostActive = useMonoSceneActivity();
   const [initialDocument] = useState(() => createMonoWorkingDocument(MONO_LOGO_PREVIEW_DEFAULTS));
   const quickActionLaunchRef = useRef<ApplyLaunch | null>(null);
   const quickActionKnownSessionsRef = useRef<string[]>([]);
@@ -1122,6 +1124,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           preset, palette: { enabled: Boolean(colorLab.shown.paletteEnabled), config: colorLab.shown.config },
           shape: draftShapes[preset], optics: draftOptics[preset], environment: { theme, background: shownBackground },
         }} viewport={viewport} paletteReady={colorLab.ready}
+          active={hostActive}
           paletteTransitionEnabled={colorLab.workspace.compare === null} quickActionPreset={quickActionPreset} />
       </div>
       <dialog ref={trialDialogRef} className="mono-trial-guard" aria-label="Неприменённые пробы"
