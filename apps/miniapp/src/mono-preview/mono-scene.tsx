@@ -47,6 +47,8 @@ export type MonoSceneProps = {
   snapshot: WalletSnapshot;
   appearance: Readonly<MonoScenePresentation>;
   viewport?: 320 | 390 | 430 | 480;
+  /** Initial host document restore; the scene never reads editor storage itself. */
+  ready?: boolean;
   paletteReady?: boolean;
   paletteTransitionEnabled?: boolean;
   quickActionPreset?: ComponentProps<typeof MonoQuickActionFeedback>["preset"];
@@ -85,13 +87,22 @@ const assetFormatter = new Intl.NumberFormat("ru-RU", {
   maximumFractionDigits: 2,
 });
 
-export function MonoScene({ snapshot, appearance, viewport = 480, paletteReady = true,
+export function MonoScene(props: MonoSceneProps) {
+  const ready = props.ready ?? true;
+  const typography = useMonoTypographyPreview(ready ? props.appearance.typography ?? null : null);
+  const [hasPresented, setHasPresented] = useState(false);
+  const canPresent = ready && (hasPresented || typography.status !== "loading");
+  if (canPresent && !hasPresented) setHasPresented(true);
+  if (!canPresent) return <div className="mono-scene-loading" role="status">Загрузка оформления…</div>;
+  return <MonoSceneContent {...props} typography={typography} />;
+}
+
+function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady = true,
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true,
-  atmosphere, surfaceRef,
-}: MonoSceneProps) {
+  atmosphere, surfaceRef, typography,
+}: MonoSceneProps & { typography: ReturnType<typeof useMonoTypographyPreview> }) {
   const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
-  const typography = useMonoTypographyPreview(appearance.typography ?? null);
   const fullScene = Boolean(appearance.balance && appearance.chart && appearance.layout && appearance.assets);
   const [period, setPeriod] = useState<ChartPeriod>("1D");
   const moneyFormat = { locale: "ru-RU", currency: snapshot.balance.currency,

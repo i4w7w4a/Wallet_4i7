@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { createRef } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MockWalletRepository } from "@wallet/core";
 import { MONO_GLASS_DEFAULTS, normalizeMonoPaletteConfig } from "@wallet/ui";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -8,6 +8,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoScene, type MonoScenePresentation } from "./mono-scene";
 import { createMonoExtendedAppearance } from "./mono-preset-envelope";
 import { normalizeMonoBackgroundRecipe } from "./mono-background-recipes";
+import * as fontLoader from "./mono-font-loader";
+import { createMonoTypographyDefaults, type MonoTypographyConfigV1 } from "./mono-typography";
 
 beforeEach(() => {
   vi.stubGlobal("matchMedia", (query: string) => ({
@@ -30,6 +32,33 @@ const appearance = (): MonoScenePresentation => ({
   optics: { ...MONO_GLASS_DEFAULTS.frost },
   environment: { theme: "light", background: "tide" },
   logo: { version: 1, variant: "plaque", customColor: true, hue: 330 },
+});
+
+it("waits for the initial document and fonts, falls back on failure, and keeps later trials visible", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const typography = createMonoTypographyDefaults("ledger");
+  let rejectInitial!: (reason: Error) => void;
+  let resolveTrial!: (value: MonoTypographyConfigV1) => void;
+  const load = vi.spyOn(fontLoader, "loadMonoTypography")
+    .mockImplementationOnce(() => new Promise((_, reject) => { rejectInitial = reject; }))
+    .mockImplementationOnce(() => new Promise(resolve => { resolveTrial = resolve; }));
+  const presentation = { ...appearance(), typography };
+  const { container, rerender } = render(<MonoScene snapshot={snapshot} appearance={presentation} ready={false} />);
+  expect(container.querySelector("[data-mono-preview]")).toBeNull();
+  expect(screen.getByRole("status")).toHaveTextContent("Загрузка оформления");
+  expect(load).not.toHaveBeenCalled();
+
+  rerender(<MonoScene snapshot={snapshot} appearance={presentation} ready />);
+  expect(container.querySelector("[data-mono-preview]")).toBeNull();
+  await act(async () => rejectInitial(new Error("offline")));
+  await waitFor(() => expect(container.querySelector("[data-mono-preview]")).toBeVisible());
+  expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-font-status", "error");
+
+  const trial = createMonoTypographyDefaults("mercury");
+  rerender(<MonoScene snapshot={snapshot} appearance={{ ...presentation, typography: trial }} ready />);
+  expect(container.querySelector("[data-mono-preview]")).toBeVisible();
+  await act(async () => resolveTrial(trial));
+  await waitFor(() => expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-font-status", "ready"));
 });
 
 it("renders supplied appearance and trusted account data without editor or storage dependencies", async () => {

@@ -1138,7 +1138,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         <MonoScene snapshot={snapshot} appearance={{ ...draftAppearance[preset],
           preset, palette: { enabled: Boolean(colorLab.shown.paletteEnabled), config: colorLab.shown.config },
           shape: draftShapes[preset], optics: draftOptics[preset], environment: { theme, background: shownBackground },
-        }} viewport={viewport} paletteReady={colorLab.ready}
+        }} viewport={viewport} ready={workingReady} paletteReady={colorLab.ready}
           active={hostActive}
           paletteTransitionEnabled={colorLab.workspace.compare === null} quickActionPreset={quickActionPreset} />
       </div>

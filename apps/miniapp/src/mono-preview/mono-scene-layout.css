@@ -12,6 +12,17 @@
   margin-inline: 0;
 }
 
+.mono-scene-loading {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: inherit;
+  padding: 24px;
+  background: #111216;
+  color: #b2bdcb;
+  font: 14px/1.5 Arial, sans-serif;
+}
+
 .mono-page { --mono-gutter: 20px; }
 
 /* The existing scene resolves its own theme and palette. New domains inherit that resolved paint. */

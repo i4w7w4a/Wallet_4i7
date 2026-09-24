@@ -39,9 +39,13 @@ test.describe("desktop skin workbench", () => {
   });
 
   test("switches one inspector while preserving its unsaved optical draft", async ({ page }) => {
+    const dock = page.getByRole("toolbar", { name: "Инструменты оформления" });
+    expect(await dock.ariaSnapshot()).not.toContain("Есть неприменённая проба");
     await openMonoTool(page, "optics");
     const refraction = page.getByRole("slider", { name: "Преломление" });
     await refraction.fill("1.2");
+    await expect(dock.getByRole("button", { name: "Оптика", exact: true }))
+      .toHaveAccessibleDescription("Есть неприменённая проба");
 
     await openMonoTool(page, "logo");
     await expect(refraction).toHaveCount(0);
@@ -50,6 +54,9 @@ test.describe("desktop skin workbench", () => {
 
     await openMonoTool(page, "optics");
     await expect(refraction).toHaveValue("1.2");
+    await page.getByRole("button", { name: "Отменить пробу оптики" }).click();
+    await expect(refraction).toHaveValue("1.34");
+    expect(await dock.ariaSnapshot()).not.toContain("Есть неприменённая проба");
   });
 
   test("one master control hides both rails without moving the preview", async ({ page }) => {
