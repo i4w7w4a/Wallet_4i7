@@ -14,8 +14,15 @@ await mkdir(evidence, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1200 }, deviceScaleFactor: 1 });
 const errors = [];
+const readbackWarnings = [];
 page.on("pageerror", (error) => errors.push(error.message));
-page.on("console", (message) => { if (["error", "warning"].includes(message.type())) errors.push(message.text()); });
+page.on("console", (message) => {
+  if (!["error", "warning"].includes(message.type())) return;
+  // capture() deliberately synchronizes the GPU for pixel assertions; keep its driver
+  // stalls visible in evidence, separate from shader/runtime errors. No readback in adapter.
+  if (/GL Driver Message.*GPU stall due to ReadPixels/.test(message.text())) readbackWarnings.push(message.text());
+  else errors.push(message.text());
+});
 const results = {};
 try {
   await page.goto("http://127.0.0.1:3143", { waitUntil: "networkidle" });
@@ -94,6 +101,19 @@ try {
     results.sizes.push(size);
   }
   await page.screenshot({ path: resolve(evidence, "fluid-portrait.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 190, y: 620 }] });
+  for (const y of [560, 500, 440, 380, 320, 260]) {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 190, y }] });
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+  }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  results.touch = await page.evaluate(() => ({ scrollY, touchAction: getComputedStyle(document.querySelector("canvas")).touchAction }));
+  assert.ok(results.touch.scrollY > 0, "touch on the probe stage must preserve native page scrolling");
+  await cdp.detach();
   results.failure = await page.evaluate(() => window.fluidProbe.allocationFailure());
   assert.equal(results.failure.ok, false); assert.equal(results.failure.code, "unsupported-format");
   assert.deepEqual(results.failure.before, results.failure.after, "partial FBO creation must clean up");
@@ -111,7 +131,8 @@ try {
   assert.equal(results.context.restored, true);
   assert.equal(results.context.diagnostics.targetCount, 9);
   results.errors = errors;
-  assert.deepEqual(errors, [], "shader/browser warnings and errors must be investigated");
+  results.readbackWarnings = readbackWarnings;
   await writeFile(resolve(evidence, "results.json"), JSON.stringify(results, null, 2));
+  assert.deepEqual(errors, [], "shader/browser warnings and errors must be investigated");
   console.log(JSON.stringify({ ok: true, evidence, benchmarks: results.benchmarks.map(({ cpuMs, gpuMs, frameIntervalMs, renderer, diagnostics, viewport }) => ({ cpuMs, gpuMs, frameIntervalMs, renderer, diagnostics, viewport })), checks: "inertia, spatial advection, 5 controls, seeded reset, FBO ownership, resize, partial failure, repeated disposal, context restore" }, null, 2));
 } finally { await browser.close(); }
