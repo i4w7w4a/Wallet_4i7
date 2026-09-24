@@ -723,9 +723,13 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     if (!compactChrome || !panelsVisible || !mobileRail || pendingTransition) return;
     const panel = document.getElementById(mobileRail === "quick" ? "mono-quick-rail" : "mono-fine-rail");
     if (!panel) return;
-    const focusable = () => Array.from(panel.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
-    )).filter((node) => node.tabIndex >= 0 && node.getClientRects().length > 0 && !node.closest("[hidden], [inert]"));
+    const focusable = () => {
+      const closedSections = Array.from(panel.querySelectorAll("details:not([open])"));
+      return Array.from(panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
+      )).filter((node) => node.tabIndex >= 0 && node.getClientRects().length > 0 && !node.closest("[hidden], [inert]") &&
+        closedSections.every(section => !section.contains(node) || section.querySelector(":scope > summary")?.contains(node)));
+    };
     const frame = requestAnimationFrame(() => focusable()[0]?.focus());
     const trapTab = (event: KeyboardEvent) => {
       if (event.key !== "Tab") return;
