@@ -1,10 +1,26 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { closeCompactMonoRail, openMonoRail } from "./mono-test-helpers";
+import { closeCompactMonoRail, openMonoEnvironment, openMonoTool } from "./mono-test-helpers";
 
 test.use({ hasTouch: false, isMobile: false, viewport: { width: 390, height: 844 } });
 
-async function wakeTide(page: Parameters<typeof openMonoRail>[0]) {
+async function applyEnvironment(fine: Locator) {
+  const apply = fine.getByRole("button", { name: "Применить настройку", exact: true });
+  await expect(apply).toHaveAttribute("aria-disabled", "false");
+  await apply.click();
+  await expect(apply).toHaveAttribute("aria-disabled", "true");
+}
+
+async function storedBackground(page: Page) {
+  return page.evaluate(() => {
+    const raw = localStorage.getItem("wallet4i7.mono.working-presets.v2");
+    if (raw === null) return null;
+    const library = JSON.parse(raw) as { activeId: string; records: Array<{ id: string; document: { background: string } }> };
+    return library.records.find(record => record.id === library.activeId)?.document.background;
+  });
+}
+
+async function wakeTide(page: Page) {
   await page.mouse.move(72, 250);
   for (const [x, y] of [[128, 286], [196, 332], [272, 378], [338, 424]] as const) {
     await page.waitForTimeout(55);
@@ -19,25 +35,32 @@ test("фон и световая тема выбираются отдельно 
   await expect(preview).toHaveAttribute("data-mono-background", "iris");
   await expect(preview).toHaveAttribute("data-mono-theme", "dark");
 
-  const fine = await openMonoRail(page, "fine");
+  const fine = await openMonoEnvironment(page);
   await fine.getByRole("button", { name: "Волна" }).click();
   await fine.getByRole("button", { name: "Светлая тема" }).click();
   await expect(preview).toHaveAttribute("data-mono-background", "tide");
   await expect(preview).toHaveAttribute("data-mono-theme", "light");
   await expect(preview).toHaveAttribute("data-mono-preset", "ledger");
 
+  // The theme saves immediately; the live background trial must still be absent from storage.
+  await expect.poll(() => storedBackground(page)).toBe("iris");
+  await applyEnvironment(fine);
+  await expect.poll(() => storedBackground(page)).toBe("tide");
+
   await page.reload();
   await expect(preview).toHaveAttribute("data-mono-background", "tide");
   await expect(preview).toHaveAttribute("data-mono-theme", "light");
   await expect(preview).toHaveAttribute("data-mono-preset", "ledger");
-  const reloadedFine = await openMonoRail(page, "fine");
+  const reloadedFine = await openMonoEnvironment(page);
   await expect(reloadedFine.getByRole("button", { name: "Волна" })).toHaveAttribute("aria-pressed", "true");
+  await expect(reloadedFine.getByRole("button", { name: "Применить настройку", exact: true })).toHaveAttribute("aria-disabled", "true");
 });
 
 test("волна оставляет конечный след от движения мыши без второго canvas", async ({ page }) => {
   await page.goto("/mono");
-  const fine = await openMonoRail(page, "fine");
+  const fine = await openMonoEnvironment(page);
   await fine.getByRole("button", { name: "Волна" }).click();
+  await applyEnvironment(fine);
   await closeCompactMonoRail(page, "fine");
   await wakeTide(page);
 
@@ -49,8 +72,9 @@ test("волна оставляет конечный след от движен�
 
 test("магнитное поле отступает от указателя и возвращается в покой", async ({ page }) => {
   await page.goto("/mono");
-  const fine = await openMonoRail(page, "fine");
+  const fine = await openMonoEnvironment(page);
   await fine.getByRole("button", { name: "Слои" }).click();
+  await applyEnvironment(fine);
   await closeCompactMonoRail(page, "fine");
   const node = page.locator(".mono-atmosphere__node").first();
   await expect(node).toBeVisible();
@@ -69,8 +93,9 @@ test("магнитное поле отступает от указателя и 
 
 test("включение reduced motion гасит уже активную атмосферу", async ({ page }) => {
   await page.goto("/mono");
-  const fine = await openMonoRail(page, "fine");
+  const fine = await openMonoEnvironment(page);
   await fine.getByRole("button", { name: "Волна" }).click();
+  await applyEnvironment(fine);
   await closeCompactMonoRail(page, "fine");
   await wakeTide(page);
   const preview = page.locator("[data-mono-preview]");
@@ -90,13 +115,16 @@ test("включение reduced motion гасит уже активную ат�
 
 test("боковая Material Lab не передаёт движение бегунка в фон телефона", async ({ page }) => {
   await page.goto("/mono");
-  let fine = await openMonoRail(page, "fine");
+  let fine = await openMonoEnvironment(page);
   await fine.getByRole("button", { name: "Волна" }).click();
+  await applyEnvironment(fine);
   await closeCompactMonoRail(page, "fine");
   await page.mouse.move(120, 320);
   await expect(page.locator("[data-mono-preview]")).toHaveAttribute("data-pointer-active", "true");
 
-  fine = await openMonoRail(page, "fine");
+  fine = await openMonoTool(page, "optics");
+  await expect(fine.locator('[data-mono-inspector="optics"]')).toBeVisible();
+  await expect(fine.locator('[data-mono-inspector="environment"]')).toHaveCount(0);
   await expect(fine.locator(".mono-tuner")).toBeVisible();
   await expect(fine).toHaveAttribute("role", "dialog");
   await expect(fine.getByRole("dialog")).toHaveCount(0);
@@ -118,14 +146,16 @@ test("боковая Material Lab не передаёт движение бег�
 test("reduced motion не создаёт волну и не отталкивает элементы", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/mono");
-  let fine = await openMonoRail(page, "fine");
+  let fine = await openMonoEnvironment(page);
   await fine.getByRole("button", { name: "Волна" }).click();
+  await applyEnvironment(fine);
   await closeCompactMonoRail(page, "fine");
   await wakeTide(page);
   await expect(page.locator("[data-mono-ripple]")).toHaveCount(0);
 
-  fine = await openMonoRail(page, "fine");
+  fine = await openMonoEnvironment(page);
   await fine.getByRole("button", { name: "Слои" }).click();
+  await applyEnvironment(fine);
   await closeCompactMonoRail(page, "fine");
   const node = page.locator(".mono-atmosphere__node").first();
   await node.waitFor();

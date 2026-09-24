@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { closeCompactMonoRail, openMonoRail } from "./mono-test-helpers";
+import { closeCompactMonoRail, openMonoEnvironment, openMonoRail } from "./mono-test-helpers";
 
 function channels(color: string): [number, number, number] {
   const values = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
@@ -22,9 +22,11 @@ function contrast(foreground: string, background: string): number {
 
 async function lightPage(page: Page) {
   await page.goto("/mono");
-  await page.locator("main[data-mono-preview]").evaluate((node) => {
-    node.setAttribute("data-mono-theme", "light");
-  });
+  await expect(page.locator("[data-mono-preview]")).toHaveAttribute("data-palette-ready", "true");
+  const fine = await openMonoEnvironment(page);
+  await fine.getByRole("button", { name: "Светлая тема", exact: true }).click();
+  await expect(page.locator("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "light");
+  await closeCompactMonoRail(page, "fine");
 }
 
 test("светлая тема имеет тёплую керамическую основу и читаемую графитовую иерархию", async ({ page }) => {
@@ -33,9 +35,9 @@ test("светлая тема имеет тёплую керамическую �
   const palette = await page.evaluate(() => {
     const style = (selector: string) => getComputedStyle(document.querySelector(selector)!);
     const canvas = style(".mono-page");
-    const amount = style(".mono-hero__amount");
-    const secondary = style(".mono-hero__heading-row h1");
-    const selected = style('.mono-labbar__variants button[aria-pressed="true"]');
+    const amount = style(".mono-balance__amount");
+    const secondary = style(".mono-balance__heading h1");
+    const selected = style('.mono-workbench__directions button[aria-pressed="true"]');
     const promo = style(".mono-promo-frame");
     const promoText = style(".mono-promo__content strong");
     return {
@@ -61,7 +63,7 @@ test("светлая тема имеет тёплую керамическую �
   expect(contrast(palette.amount, palette.canvas)).toBeGreaterThanOrEqual(7);
   expect(contrast(palette.secondary, palette.canvas)).toBeGreaterThanOrEqual(4.5);
   // The tooling lives outside the light phone scene and retains its own neutral dark chrome.
-  expect(luminance(palette.selectedBackground)).toBeGreaterThan(0.68);
+  expect(luminance(palette.selectedBackground)).toBeLessThan(0.08);
   expect(contrast(palette.selectedText, palette.selectedBackground)).toBeGreaterThanOrEqual(4.5);
   expect(luminance(palette.promo)).toBeLessThan(0.08);
   expect(contrast(palette.promoText, palette.promo)).toBeGreaterThanOrEqual(7);
@@ -75,6 +77,10 @@ test("светлая тема сохраняет читабельность Fros
   for (const preset of ["Frost", "Mercury"]) {
     await quick.getByRole("button", { name: new RegExp(preset) }).click();
     await closeCompactMonoRail(page, "quick");
+    const environment = await openMonoEnvironment(page);
+    await environment.getByRole("button", { name: "Светлая тема", exact: true }).click();
+    await expect(page.locator("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "light");
+    await closeCompactMonoRail(page, "fine");
     const geometry = await page.evaluate(() => {
       const main = document.querySelector(".mono-page")!;
       const hero = document.querySelector(".mono-hero")!;
@@ -87,7 +93,7 @@ test("светлая тема сохраняет читабельность Fros
         heroBackdrop: heroStyle.backgroundColor === "rgba(0, 0, 0, 0)"
           ? mainStyle.backgroundColor
           : heroStyle.backgroundColor,
-        heroText: getComputedStyle(document.querySelector(".mono-hero__amount")!).color,
+        heroText: getComputedStyle(document.querySelector(".mono-balance__amount")!).color,
       };
     });
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewport);
@@ -99,13 +105,20 @@ test("светлая тема сохраняет читабельность Fros
 
 test("в светлой теме три фона дают разную фактуру, а переключатели остаются контрастными", async ({ page }) => {
   await page.goto("/mono");
-  const fine = await openMonoRail(page, "fine");
+  const fine = await openMonoEnvironment(page);
   await fine.getByRole("button", { name: "Светлая тема" }).click();
 
-  const choices = ["Ирис", "Волна", "Слои"];
+  const choices = [["Ирис", "iris"], ["Волна", "tide"], ["Слои", "strata"]] as const;
   const artworks: string[] = [];
-  for (const choice of choices) {
+  for (const [choice, background] of choices) {
     await fine.getByRole("button", { name: choice }).click();
+    await expect(page.locator("[data-mono-preview]")).toHaveAttribute("data-mono-background", background);
+    if (background !== "iris") {
+      const apply = fine.getByRole("button", { name: "Применить настройку", exact: true });
+      await expect(apply).toHaveAttribute("aria-disabled", "false");
+      await apply.click();
+      await expect(apply).toHaveAttribute("aria-disabled", "true");
+    }
     artworks.push(await page.locator(".mono-page").evaluate((node) => getComputedStyle(node).backgroundImage));
   }
   expect(new Set(artworks).size).toBe(3);
@@ -124,30 +137,29 @@ test("в светлой теме три фона дают разную факт�
   expect(contrast(controls.idleText, controls.idleBackground)).toBeGreaterThanOrEqual(4.5);
 });
 
-test("жемчужное световое поле отвечает fine pointer и не перекрывает интерфейс", async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 1024, height: 900 }, hasTouch: false, isMobile: false });
-  const page = await context.newPage();
-  await page.goto("http://127.0.0.1:3000/mono");
-  await page.locator("main[data-mono-preview]").evaluate((node) => node.setAttribute("data-mono-theme", "light"));
-  const focus = page.locator(".mono-atmosphere__focus");
-  const idleOpacity = Number(await focus.evaluate((node) => getComputedStyle(node).opacity));
-  await page.mouse.move(512, 480);
-  await expect(page.locator(".mono-page")).toHaveAttribute("data-pointer-active", "true");
-  await page.waitForTimeout(240);
-  const activeOpacity = Number(await focus.evaluate((node) => getComputedStyle(node).opacity));
-  expect(activeOpacity).toBeGreaterThan(idleOpacity + 0.2);
-  expect(await focus.evaluate((node) => getComputedStyle(node).pointerEvents)).toBe("none");
-  await context.close();
-});
-
-test("светлая Promo сохраняет заметную серебряную кромку при наведении", async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: false, isMobile: false });
+test("жемчужное световое поле отвечает fine pointer и не перекрывает интерфейс", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ baseURL, viewport: { width: 1024, height: 900 }, hasTouch: false, isMobile: false });
   const page = await context.newPage();
   try {
-    await page.goto("http://127.0.0.1:3000/mono");
-    const fine = await openMonoRail(page, "fine");
-    await fine.getByRole("button", { name: "Светлая тема" }).click();
-    await closeCompactMonoRail(page, "fine");
+    await lightPage(page);
+    const focus = page.locator(".mono-atmosphere__focus");
+    const idleOpacity = Number(await focus.evaluate((node) => getComputedStyle(node).opacity));
+    await page.mouse.move(512, 480);
+    await expect(page.locator(".mono-page")).toHaveAttribute("data-pointer-active", "true");
+    await page.waitForTimeout(240);
+    const activeOpacity = Number(await focus.evaluate((node) => getComputedStyle(node).opacity));
+    expect(activeOpacity).toBeGreaterThan(idleOpacity + 0.2);
+    expect(await focus.evaluate((node) => getComputedStyle(node).pointerEvents)).toBe("none");
+  } finally {
+    await context.close();
+  }
+});
+
+test("светлая Promo сохраняет заметную серебряную кромку при наведении", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, hasTouch: false, isMobile: false });
+  const page = await context.newPage();
+  try {
+    await lightPage(page);
     const promo = page.locator(".mono-promo-frame");
     const idleShadow = await promo.evaluate((element) => getComputedStyle(element).boxShadow);
     await promo.hover();
