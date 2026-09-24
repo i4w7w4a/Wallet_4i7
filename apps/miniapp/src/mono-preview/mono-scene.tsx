@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
   type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefObject } from "react";
 import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
-import { MonoOpticalGlass, type MonoGlassSettings, type MonoPaletteConfigV1 } from "@wallet/ui";
+import { MonoOpticalGlass, type MonoGlassSettings, type MonoPaletteConfigV1, type MonoSharedOpticalHost } from "@wallet/ui";
 import { MonoLogo } from "./mono-logo";
 import { resolveMonoLogoColors, type MonoLogoPreview } from "./mono-logo-preview";
 import { monoPaletteStyle } from "./mono-palette-tokens";
@@ -56,6 +56,8 @@ export type MonoSceneProps = {
   /** Host-owned adapter replaces the legacy ambient layer and its pointer reactions. */
   atmosphere?: ReactNode;
   surfaceRef?: RefObject<HTMLElement | null>;
+  /** Optional lab composition; absence preserves the standard private optical runtime. */
+  opticalHost?: MonoSharedOpticalHost;
 };
 
 const FIELD_NODES = [
@@ -100,7 +102,7 @@ export function MonoScene(props: MonoSceneProps) {
 
 function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady = true,
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true,
-  atmosphere, surfaceRef, typography,
+  atmosphere, surfaceRef, typography, opticalHost,
 }: MonoSceneProps & { typography: ReturnType<typeof useMonoTypographyPreview> }) {
   const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
@@ -397,7 +399,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         </section>
 
         <div className="mono-promo-frame">
-          <MonoOpticalGlass preset={preset} settings={optics} active={active} className="mono-promo">
+          <MonoOpticalGlass preset={preset} settings={optics} active={active} className="mono-promo" sharedHost={opticalHost}>
             <div className="mono-promo__content">
               <span className="mono-promo__overline">NOVEX WALLET / PRIVATE</span>
               <strong>Контроль<br />без шума.</strong>

@@ -39,6 +39,36 @@ function setup(initialReduced = false) {
 }
 
 describe("surface capability lifecycle", () => {
+  it("releases the actual backend on effects-off without rewriting the supplied recipe", () => {
+    const f = setup();
+    const original = JSON.stringify(f.input.recipe);
+    const host = mountSurface(f.root, f.input, f.factory, value => f.statuses.push(value));
+    host.update({ ...f.input, effectsDisabled: true });
+    expect(f.resources()).toBe(0);
+    expect(f.statuses.at(-1)?.message).toContain("Эффекты выключены");
+    expect(JSON.stringify(f.input.recipe)).toBe(original);
+    host.update(f.input);
+    expect(f.resources()).toBe(1);
+    host.dispose();
+  });
+
+  it("releases an asynchronously failed render/context and retries only after an explicit restart", async () => {
+    const f = setup(); let report!: (status: BackgroundRuntimeStatus) => void;
+    const host = mountSurface(f.root, f.input, (...args) => {
+      report = args[2]; return f.factory(...args);
+    }, value => f.statuses.push(value));
+    expect(f.resources()).toBe(1);
+    report({ phase: "fallback", message: "Promo allocation failed" });
+    await Promise.resolve();
+    expect(f.resources()).toBe(0);
+    host.update(f.input);
+    expect(f.resources()).toBe(0);
+    expect(f.statuses.at(-1)?.message).toBe("Promo allocation failed");
+    host.update({ ...f.input, restartKey: 1 });
+    expect(f.resources()).toBe(1);
+    host.dispose();
+  });
+
   it("does not acquire GPU in reduced motion and releases it before entering fallback", () => {
     const f = setup(true);
     const host = mountSurface(f.root, f.input, f.factory, value => f.statuses.push(value));

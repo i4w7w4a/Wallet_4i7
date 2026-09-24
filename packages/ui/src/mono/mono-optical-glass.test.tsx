@@ -117,6 +117,31 @@ afterEach(() => {
 });
 
 describe("MonoOpticalGlass", () => {
+  it("registers approved optics with a shared host without acquiring a private canvas or context", () => {
+    const acquire = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+    const registrations: Array<{ element: HTMLElement; settings: { ior: number }; disposed: boolean }> = [];
+    const sharedHost = {
+      subscribe: () => () => undefined,
+      getSnapshot: () => true,
+      register(element: HTMLElement, settings: { ior: number }) {
+        const registration = { element, settings, disposed: false };
+        registrations.push(registration);
+        return { update(next: { ior: number }) { registration.settings = next; }, dispose() { registration.disposed = true; } };
+      },
+    };
+    const view = render(<MonoOpticalGlass preset="ledger" {...{ sharedHost }}><button>Read account</button></MonoOpticalGlass>);
+    expect(acquire).not.toHaveBeenCalled();
+    expect(view.container.querySelector("canvas")).toBeNull();
+    expect(registrations[0]?.element).toBe(screen.getByTestId("mono-optical-glass"));
+    expect(registrations[0]?.settings.ior).toBe(1.34);
+    expect(screen.getByRole("button", { name: "Read account" })).toBeInTheDocument();
+    view.rerender(<MonoOpticalGlass preset="ledger" settings={{ ior: 0 }} {...{ sharedHost }}><button>Read account</button></MonoOpticalGlass>);
+    expect(registrations).toHaveLength(1);
+    expect(registrations[0]?.settings.ior).toBe(0);
+    view.unmount();
+    expect(registrations[0]?.disposed).toBe(true);
+  });
+
   it("keeps live DOM content and a neutral static fallback when WebGL2 is unavailable", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
 

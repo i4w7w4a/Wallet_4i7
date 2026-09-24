@@ -1,4 +1,4 @@
-import type { BackgroundRecipe, CreateResult, Effect, EffectId, FrameTexture, PointerSample, Viewport } from "./contracts";
+import type { BackgroundRecipe, CreateResult, Effect, EffectId, Frame, FrameTexture, PointerSample, Viewport } from "./contracts";
 import type { BackgroundRuntimeStatus } from "./host-contract";
 import { ActiveClock, PointerInput } from "./host-input";
 
@@ -9,7 +9,7 @@ export type PreparedMaterial = Readonly<{
 export type SessionDriver = Readonly<{
   requestFrame(callback: FrameRequestCallback): number;
   cancelFrame(id: number): void;
-  present(frame: FrameTexture): void;
+  present(texture: FrameTexture, frame: Frame): void;
   onStatus(status: BackgroundRuntimeStatus): void;
 }>;
 
@@ -119,6 +119,12 @@ export class EffectSession {
     if (this.paused) this.draw();
   }
 
+  /** A DOM composition change may need one frozen paint; it never owns another RAF. */
+  invalidate() {
+    if (this.paused) this.draw();
+    else this.schedule();
+  }
+
   private canDraw() { return !this.disposed && this.active && !this.loading && !this.ready && this.instance !== null; }
 
   private draw(now?: number) {
@@ -128,7 +134,9 @@ export class EffectSession {
       if (this.pendingUpdate) { this.instance.update(this.recipe); this.pendingUpdate = false; }
       if (this.pendingReset) { this.instance.reset(this.recipe.seed); this.pendingReset = false; }
       const timing = now === undefined ? { time: this.clock.time, dt: 0 } : this.clock.advance(now);
-      this.driver.present(this.instance.render({ ...timing, pointer: this.input.drain() }));
+      const frame: Frame = { ...timing, pointer: this.input.drain() };
+      this.driver.present(this.instance.render(frame), frame);
+      this.report(this.status.phase, this.status.message);
     } catch (error) { this.fail(error); }
   }
 

@@ -94,7 +94,41 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Pavel WebGL Fluid Simulation
+
+- Источник: https://github.com/PavelDoGreat/WebGL-Fluid-Simulation
+- Зафиксированный commit: `a2d292931f19d9b3b9f564e23e6c32729d2121c3`
+- Адаптация: `packages/ui/src/background-sandbox/effects/fluid/`, OGL passes на контексте host.
+- Сохранены velocity/dye/advection/curl/divergence/pressure/gradient subtraction; удалены demo GUI, ads, bloom, sunrays и внешние assets. Dithering процедурный.
+- Seeded reset даёт шесть начальных всплесков, затем цвет затухает без новых drag. Control «Затухание течения» меняет velocity; dye decay фиксирован.
+
+```text
+MIT License
+
+Copyright (c) 2017 Pavel Dobryakov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## Liquid_Prnc_Glass
+
+- Оптический kernel и нейтральный источник выделены без изменения формул в `packages/ui/src/mono/mono-optical-kernel.ts`; lab-only pass использует тот же источник и uniforms в общем OGL context.
 
 - Источник: https://github.com/i4w7w4a/Liquid_Prnc_Glass
 - Зафиксированный commit: `97175e083782eab2d55b85abafc6a426c269e20a`

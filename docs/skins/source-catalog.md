@@ -4,6 +4,9 @@
 и [изолированная песочница](background-sandbox.md). Radiant Silk имеет собственный
 локальный OGL adapter в `packages/ui/src/background-sandbox/effects/silk/`;
 его source/license, изменения и границы доказательств перечислены рядом с кодом.
+Pavel Fluid адаптирован в `packages/ui/src/background-sandbox/effects/fluid/`.
+Это рисование жидкостью с затухающим следом и разовыми seeded всплесками при reset,
+без постоянного источника красителя. Отчёт SwiftShader не подтверждает mobile/hardware FPS.
 
 Статус: curated discovery catalog, не dependency allowlist
 Дата проверки основных первичных ссылок: 2026-09-16

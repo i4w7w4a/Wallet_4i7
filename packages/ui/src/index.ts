@@ -61,4 +61,6 @@ export type {
   BackgroundStageRequest, BackgroundStageRenderer, BackgroundSandboxBindings,
 } from "./background-sandbox/host-contract";
 export { BackgroundGpuSurface } from "./background-sandbox/background-gpu-surface";
+export { createMonoOpticalHost, type MonoSharedOpticalHost } from "./mono/mono-optical-host";
+export { createMonoOpticalOverlay } from "./mono/mono-optical-overlay";
 export { backgroundMaterials, backgroundMaterialDescriptors, parseBackgroundRecipe } from "./background-sandbox/registry";

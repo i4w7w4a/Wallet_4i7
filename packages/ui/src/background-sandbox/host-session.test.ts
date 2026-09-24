@@ -54,6 +54,31 @@ function fixture() {
 }
 
 describe("single host effect session", () => {
+  it("shares the exact active frame with composition and repaints a paused DOM-region change once", async () => {
+    const frames: Frame[] = [];
+    const callbacks = new Map<number, FrameRequestCallback>();
+    const renders: Frame[] = [];
+    const session = new EffectSession({
+      requestFrame(callback) { callbacks.set(1, callback); return 1; },
+      cancelFrame(id) { callbacks.delete(id); },
+      present(_texture, frame) { frames.push(frame); }, onStatus() {},
+    }, viewport);
+    await session.select(Promise.resolve({ id: "silk", mount: () => ({ ok: true, value: {
+      update() {}, resize() {}, reset() {}, dispose() {},
+      render(frame) { renders.push(frame); return { texture: {} as Texture, width: 585, height: 750 }; },
+    } }) }), recipe("silk"));
+    callbacks.get(1)?.(100);
+    session.setPaused(true);
+    session.invalidate();
+    expect(frames.at(-1)).toBe(renders.at(-1));
+    expect(frames.at(-1)?.dt).toBe(0);
+    expect(callbacks.size).toBe(0);
+    const count = frames.length;
+    session.setActive(false); session.invalidate();
+    expect(frames).toHaveLength(count);
+    session.dispose();
+  });
+
   it("disposes the previous effect before creating its replacement and keeps one RAF", async () => {
     const f = fixture();
     await f.session.select(Promise.resolve(f.material("silk")), recipe("silk"));

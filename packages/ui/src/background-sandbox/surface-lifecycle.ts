@@ -1,6 +1,7 @@
 import type { BackgroundRecipe, PointerSample } from "./contracts";
 import type { BackgroundRuntimeStatus } from "./host-contract";
 import type { MaterialBinding } from "./material-binding";
+import type { BackgroundOverlay } from "./overlay";
 
 export type SurfaceInput = Readonly<{
   material: MaterialBinding;
@@ -9,6 +10,7 @@ export type SurfaceInput = Readonly<{
   restartKey: number;
   hostActive: boolean;
   effectsDisabled: boolean;
+  overlay?: BackgroundOverlay;
 }>;
 
 export interface SurfaceBackend {
@@ -39,6 +41,7 @@ export function mountSurface(
   let lastStatus = "";
   let intersecting = typeof IntersectionObserver === "undefined";
   let recovered = false;
+  let runtimeFailed = false;
   const motion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
   const contrast = window.matchMedia?.("(forced-colors: active)");
   const fine = window.matchMedia?.("(hover: hover) and (pointer: fine)");
@@ -55,6 +58,7 @@ export function mountSurface(
     if (key !== lastStatus) { lastStatus = key; onStatus(next); }
   };
   const drop = () => {
+    setTracking(false);
     epoch++;
     const previous = backend;
     backend = null;
@@ -93,7 +97,7 @@ export function mountSurface(
     const blocked = input.effectsDisabled || motion?.matches || contrast?.matches || connection?.saveData;
     const active = input.hostActive && document.visibilityState !== "hidden" && intersecting &&
       root.clientWidth > 0 && root.clientHeight > 0;
-    setTracking(Boolean(!blocked && active && !input.paused && fine?.matches));
+    setTracking(Boolean(backend && !runtimeFailed && !blocked && active && !input.paused && fine?.matches));
     if (blocked) {
       drop(); attemptKey = "";
       const message = input.effectsDisabled ? "Эффекты выключены · статический фон."
@@ -107,8 +111,20 @@ export function mountSurface(
       if (key !== attemptKey) {
         attemptKey = key;
         const mine = ++epoch;
+        runtimeFailed = false;
         try {
-          backend = factory(root, input, status => { if (mine === epoch) report(status); }, () => {
+          backend = factory(root, input, status => {
+            if (mine !== epoch) return;
+            if (status.phase === "fallback" || status.phase === "lost") {
+              runtimeFailed = true; setTracking(false);
+            }
+            report(status);
+            // A failed pass can leave partially created resources inside the context.
+            // Drop that whole owned context once the constructor/render stack unwinds.
+            if (status.phase === "fallback") queueMicrotask(() => {
+              if (!disposed && mine === epoch) drop();
+            });
+          }, () => {
             if (disposed || mine !== epoch) return;
             recovered = true; drop(); attemptKey = ""; sync();
           });
@@ -119,9 +135,16 @@ export function mountSurface(
       }
     }
     if (backend) {
-      backend.setActive(active);
-      backend.update(input);
-      if (active) backend.resize();
+      try {
+        backend.setActive(active);
+        backend.update(input);
+        if (active) backend.resize();
+      } catch (error) {
+        drop(); runtimeFailed = true;
+        report({ phase: "fallback", effectId: input.recipe.effectId,
+          message: error instanceof Error ? error.message : "GPU-материал недоступен." });
+      }
+      setTracking(Boolean(backend && !runtimeFailed && active && !input.paused && fine?.matches));
     } else if (!active) report({ phase: "paused", message: "Сцена вне активной области.", effectId: input.recipe.effectId });
   }
 
@@ -141,6 +164,7 @@ export function mountSurface(
     update(next) {
       if (disposed) return;
       if (next.restartKey !== input.restartKey || next.recipe.effectId !== input.recipe.effectId) recovered = false;
+      if (next.overlay !== input.overlay) attemptKey = "";
       input = next; sync();
     },
     dispose() {

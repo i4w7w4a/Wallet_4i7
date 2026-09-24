@@ -2,3 +2,6 @@
 /* Lab context scrolls with the document. Keep the unchanged navigation inside
    this preview's bounds instead of attaching it to the lab's browser viewport. */
 .frame :global(.mono-nav) { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; transform: none; }
+.gpuFrame.gpuFrame { outline: none; }
+.gpuFrame.gpuFrame :global(.mono-page[data-mono-theme][data-mono-background]) { background: transparent; }
+.gpuFrame :global(.mono-promo-frame:has([data-optics="shared-webgl"])) { background: transparent; }

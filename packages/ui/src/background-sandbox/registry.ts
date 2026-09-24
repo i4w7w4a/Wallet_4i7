@@ -2,10 +2,11 @@ import type { BackgroundRecipe, ParseResult } from "./contracts";
 import { bindMaterial, type MaterialBinding } from "./material-binding";
 import { silkDefinition } from "./effects/silk/definition";
 import type { SilkParams } from "./effects/silk/schema";
+import { fluidDefinition, type FluidParams } from "./effects/fluid";
 
 /** This union grows only when the real adapter and its schema have been integrated. */
-export type RegisteredBackgroundRecipe = BackgroundRecipe<"silk", SilkParams>;
-export const backgroundMaterials: readonly MaterialBinding[] = [bindMaterial(silkDefinition)];
+export type RegisteredBackgroundRecipe = BackgroundRecipe<"silk", SilkParams> | BackgroundRecipe<"fluid", FluidParams>;
+export const backgroundMaterials: readonly MaterialBinding[] = [bindMaterial(silkDefinition), bindMaterial(fluidDefinition)];
 export const backgroundMaterialDescriptors = backgroundMaterials.map(material => material.descriptor);
 
 export function parseBackgroundRecipe(input: unknown): ParseResult<BackgroundRecipe> {
