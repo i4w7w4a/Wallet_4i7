@@ -72,7 +72,7 @@ export function MonoWorkingPresetBar({ activeName, activeId, choices, ready, sta
     </div>
     <p className="mono-working-preset__status" data-working-status={statusError ? "error" : "normal"}
       role={statusError ? "alert" : undefined}>{status}</p>
-    {status.includes("Не удалось") && activeId && <button type="button" className="mono-working-preset__retry"
+    {status.endsWith(" · Повторить") && activeId && <button type="button" className="mono-working-preset__retry"
       onClick={onRetry}>Повторить сохранение</button>}
     <div id="mono-working-preset-choices" className="mono-working-preset__panel" hidden={!pickerOpen}
       role="group" aria-label="Пресеты">

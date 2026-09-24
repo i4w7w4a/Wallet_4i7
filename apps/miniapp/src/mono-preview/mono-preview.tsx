@@ -85,6 +85,13 @@ function workingSaveError(error: unknown): string {
     : "Не удалось сохранить · Повторить";
 }
 
+function workingApplyError(error: unknown, tool: MonoToolId | "all"): string {
+  if (error instanceof MonoWorkingStoreError && error.kind === "conflict") return workingSaveError(error);
+  return tool === "all"
+    ? "Не удалось применить пробы. Повторите «Применить пробы и продолжить» в открытом диалоге."
+    : `Не удалось применить. Повторите «Применить» в инструменте «${MONO_TOOL_LABELS[tool]}».`;
+}
+
 const OPTICAL_STORAGE_KEY = "wallet4i7.mono.optical-preview.v1";
 const ENVIRONMENT_STORAGE_KEY = "wallet4i7.mono.environment-preview.v1";
 const PRESETS: ReadonlyArray<{ id: MonoPreset; key: string; label: string }> = [
@@ -295,7 +302,9 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     return false;
   };
 
-  const clearTrialWarning = () => setWorkingStatus(current => current.startsWith("Сначала примените")
+  const clearTrialWarning = () => setWorkingStatus(current => current.startsWith("Не удалось применить")
+    ? "Принятые настройки не изменены."
+    : current.startsWith("Сначала примените")
     ? workingTimerRef.current !== null ? "Сохраняется…"
       : workingLibraryRef.current ? "Сохранено в этом браузере" : "Исходный образец · первое изменение создаст копию"
     : current);
@@ -473,13 +482,17 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
   };
 
-  const acceptWorkingDocument = (document: MonoWorkingDocument) => {
+  const acceptWorkingDocument = (document: MonoWorkingDocument, tool: MonoToolId | "all") => {
     if (!workingReadyRef.current) return false;
     if (workingBlockedRef.current) {
       setWorkingStatus(workingBlockReasonRef.current);
       return false;
     }
-    if (!flushWorking()) return false;
+    if (!flushWorking()) {
+      setWorkingStatus(current => current.startsWith("Изменён в другой вкладке")
+        ? current : workingApplyError(undefined, tool));
+      return false;
+    }
     const current = workingLibraryRef.current;
     const id = current?.activeId ?? crypto.randomUUID();
     const records = current ? current.records.map(record => record.id === id
@@ -496,7 +509,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       setWorkingStatus("Сохранено в этом браузере");
       return true;
     } catch (error) {
-      setWorkingStatus(workingSaveError(error));
+      setWorkingStatus(workingApplyError(error, tool));
       return false;
     }
   };
@@ -793,7 +806,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   function applyDraft() {
     const next = { ...appliedOptics, [preset]: { ...draftOptics[preset] } };
     colorLab.end();
-    if (acceptWorkingDocument({ ...workingDocumentRef.current, optics: next })) setAppliedOptics(next);
+    if (acceptWorkingDocument({ ...workingDocumentRef.current, optics: next }, "optics")) setAppliedOptics(next);
   }
 
   function updateShape(group: MonoShapeGroup, radius: number) {
@@ -819,7 +832,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   function applyShape() {
     const candidate = { ...appliedShapes, [preset]: { ...draftShapes[preset] } };
     colorLab.end();
-    if (acceptWorkingDocument({ ...workingDocumentRef.current, shapes: candidate })) {
+    if (acceptWorkingDocument({ ...workingDocumentRef.current, shapes: candidate }, "shape")) {
       setAppliedShapes(candidate);
       setDraftShapes((current) => ({ ...current, [preset]: { ...candidate[preset] } }));
       setShapeStatus("Форма применена.");
@@ -906,7 +919,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     const next = { ...accepted, appearance: nextAppearance,
       background: tool === "environment" ? shownBackground : accepted.background };
     colorLab.end();
-    if (acceptWorkingDocument(next)) {
+    if (acceptWorkingDocument(next, tool)) {
       setAppliedAppearance(next.appearance);
       if (tool === "environment") { setBackground(next.background); setBackgroundDraft(null); }
       clearTrialWarning();
@@ -936,7 +949,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       colorLab.end();
       const document = { ...workingDocumentRef.current, shapes: structuredClone(draftShapes), optics: structuredClone(draftOptics),
         appearance: structuredClone(draftAppearance), background: shownBackground };
-      if (!acceptWorkingDocument(document)) return;
+      if (!acceptWorkingDocument(document, "all")) return;
       setAppliedShapes(document.shapes); setAppliedOptics(document.optics); setAppliedAppearance(document.appearance);
       setBackground(document.background); setBackgroundDraft(null);
     } else {

@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { MockWalletRepository } from "@wallet/core";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoPreview } from "./mono-preview";
-import { createMonoWorkingDocument, MONO_WORKING_PRESETS_KEY, saveMonoWorkingLibrary } from "./mono-working-presets";
+import { createMonoWorkingDocument, MONO_WORKING_PRESETS_KEY, saveMonoWorkingLibrary, type MonoWorkingLibrary } from "./mono-working-presets";
 
 beforeEach(() => {
   localStorage.clear();
@@ -23,6 +23,78 @@ async function start() {
   return result;
 }
 const tool = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
+const storedLibrary = () => JSON.parse(localStorage.getItem(MONO_WORKING_PRESETS_KEY)!) as MonoWorkingLibrary;
+
+function seedHiddenChart() {
+  const library = storedLibrary();
+  library.records[0].document.appearance.ledger.chart = { visible: false, variant: "line" };
+  localStorage.setItem(MONO_WORKING_PRESETS_KEY, JSON.stringify(library));
+}
+
+function blockWorkingWrites() {
+  const nativeSetItem = Storage.prototype.setItem;
+  return vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+    if (key === MONO_WORKING_PRESETS_KEY) throw new DOMException("quota", "QuotaExceededError");
+    return nativeSetItem.call(this, key, value);
+  });
+}
+
+it("recovers a failed Apply only through its inspector without accepting other trials or overwriting later saves", async () => {
+  seedHiddenChart();
+  await start();
+  const before = localStorage.getItem(MONO_WORKING_PRESETS_KEY);
+  const write = blockWorkingWrites();
+  tool("Активы");
+  fireEvent.change(screen.getByLabelText("Оформление активов"), { target: { value: "tiles" } });
+  tool("График");
+  fireEvent.click(screen.getByLabelText("Показывать график"));
+  fireEvent.change(screen.getByLabelText("Вид графика"), { target: { value: "area" } });
+  fireEvent.change(screen.getByLabelText("Положение графика"), { target: { value: "bottom" } });
+  fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
+  expect(localStorage.getItem(MONO_WORKING_PRESETS_KEY)).toBe(before);
+  expect(screen.queryByRole("button", { name: "Повторить сохранение" })).toBeNull();
+  expect(screen.getByText(/Повторите «Применить» в инструменте «График»/)).toBeVisible();
+
+  write.mockRestore();
+  tool("Баланс");
+  fireEvent.change(screen.getByLabelText("Композиция баланса"), { target: { value: "centered" } });
+  fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
+  tool("График");
+  fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
+  const accepted = storedLibrary().records[0];
+  expect(accepted.document.appearance.ledger.chart).toEqual({ visible: true, variant: "area" });
+  expect(accepted.document.appearance.ledger.layout.chartPosition).toBe("bottom");
+  expect(accepted.document.appearance.ledger.balance.composition).toBe("centered");
+  expect(accepted.document.appearance.ledger.assets.variant).toBe("ledger");
+  expect(accepted.revision).toBe(3);
+  expect(screen.getByText("Сохранено в этом браузере")).toBeVisible();
+  tool("Активы");
+  expect(screen.getByLabelText("Оформление активов")).toHaveValue("tiles");
+});
+
+it("does not resurrect a cancelled failed Apply after switching and saving another preset", async () => {
+  seedHiddenChart();
+  await start();
+  const before = storedLibrary().records[0];
+  const write = blockWorkingWrites();
+  tool("График");
+  fireEvent.click(screen.getByLabelText("Показывать график"));
+  fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
+  write.mockRestore();
+  fireEvent.click(screen.getByRole("button", { name: "Отменить пробу" }));
+  expect(screen.getByLabelText("Показывать график")).not.toBeChecked();
+  expect(screen.queryByRole("button", { name: "Повторить сохранение" })).toBeNull();
+  expect(screen.queryByText(/Повторите «Применить»/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Пресет оформления: А" }));
+  fireEvent.click(screen.getByRole("button", { name: "Выбрать Б" }));
+  tool("Баланс");
+  fireEvent.change(screen.getByLabelText("Композиция баланса"), { target: { value: "centered" } });
+  fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
+  const library = storedLibrary();
+  expect(library.activeId).toBe("b");
+  expect(library.records[0]).toEqual(before);
+  expect(library.records[1].document.appearance.ledger.balance.composition).toBe("centered");
+});
 
 it("switches one inspector without mutating the accepted working document", async () => {
   const { container } = await start();
