@@ -20,6 +20,7 @@ with only GLSL 300 syntax adapted for WebGL2. It does not claim portability of
 pixel identity to other GPUs.
 
 Assertions cover visible control effects, stable borrowed texture on updates,
+full-target coverage after a host-owned zero-area scissor,
 frame-rate-independent light at 30/144 fps, zero-dt re-entry, deterministic
 restart, unchanged phase across resize, all four mobile widths and desktop,
 20 dispose/recreate cycles, six native allocation failures plus recovery on the

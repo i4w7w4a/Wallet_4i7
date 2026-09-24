@@ -83,6 +83,16 @@ window.silkProof = {
   resize(width, height) { viewport = size(width, height); effect.resize(viewport); draw(); return effect.getDiagnostics(); },
   run() {
     const report = { controlDifferences: {}, viewportBudgets: [], gestures: {}, allocationFailures: [], cycleCount: 0 };
+    // A compositor may finish its preceding frame with a region scissor active.
+    // A full material target must be complete regardless of that incoming state.
+    const unclipped = pixels();
+    renderer.enable(gl.SCISSOR_TEST); renderer.setScissor(0, 0);
+    mount();
+    output = effect.render({ time: 0, dt: 0, pointer: { uv: [.5, .5], inside: false, down: false, samples: [] } });
+    renderer.disable(gl.SCISSOR_TEST);
+    display.uniforms.image.value = output.texture; renderer.render({ scene: quad, clear: false });
+    report.incomingScissorDelta = difference(unclipped, pixels());
+    insist(report.incomingScissorDelta < .02, `incoming host scissor clipped material: ${report.incomingScissorDelta}`);
     const baseline = silkDefinition.presets.find(({ id }) => id === "radiant-baseline").params;
     const initial = counts();
     const firstTexture = output.texture;

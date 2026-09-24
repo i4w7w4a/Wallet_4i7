@@ -144,6 +144,9 @@ export function createSilkEffect(gl: OGLRenderingContext, init: EffectInit<SilkP
         uniforms.u_elapsed.value = motion.elapsed;
         uniforms.u_pointerLight.value = [motion.pointerX, motion.pointerY, motion.pointerWeight];
         // Every draw is explicitly bound to our FBO. No default-framebuffer pass.
+        // A preceding compositor region may leave scissor enabled. Use OGL's
+        // state cache to restore full-target coverage before the material pass.
+        gl.renderer.disable(gl.SCISSOR_TEST);
         gl.renderer.render({ scene: mesh, target, clear: false, update: false, sort: false, frustumCull: false });
         return output;
       },

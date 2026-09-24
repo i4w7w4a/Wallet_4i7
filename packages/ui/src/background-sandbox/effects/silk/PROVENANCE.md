@@ -25,7 +25,10 @@ promise of identical pixels across GPUs or of upstream wall-clock timing.
 ## Local changes
 
 - Fragment math is adapted to OGL on the host's existing context and an owned RGBA8
-  render target. The compositor alone writes the default framebuffer.
+  render target. The compositor alone writes the default framebuffer. Output has
+  opaque alpha and the original ACES/gamma already applied (display-ready).
+  Full-target rendering disables an inherited region scissor through OGL's state
+  cache; the compositor sets its own region state before subsequent passes.
 - No demo page/UI, remote textures, Svelte, storage, listeners, observers, context
   creation or scheduling in the adapter. Host activity and accessibility guards
   remain authoritative.
