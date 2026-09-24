@@ -16,6 +16,21 @@ seeded six-splat reset; curated palettes applied to transported dye channels;
 strict five-field parameter schema; bounded allocation independent of persisted
 params; explicit disposal. Time is seconds from the host. No downloaded runtime.
 
+This is transient fluid drawing. The six initial splats are added once per reset;
+only accepted drag gestures add more dye. There is no continuous emitter or
+self-sustaining ambient mode. Without gestures the visible color fades into the
+static dark base. Restart restores the initial splats.
+
+Dye decay is fixed at 0.7/s: each advection step divides sampled dye by
+`1 + 0.7 * dt` (`adapter.ts:159`, `shaders.ts:112`). The `dissipation` control,
+labeled «Затухание течения», affects velocity decay only, not the dye lifetime.
+Integrated time is the sum of `clamp(frame.dt, 0, 1/30)` (`adapter.ts:175`);
+`frame.time` is not used and excess time is discarded without catch-up steps.
+Below 30 fps the simulation therefore advances slower than the host's active
+clock. There is no automatic idle stop: positive dt continues to run the
+27-pass solver and display even after the color is practically invisible.
+Host scheduling guards remain responsible for suspending inactive scenes.
+
 Omitted: demo UI, dat.gui, ads, analytics, screenshots, random rainbow, autonomous
 RAF/listeners, touch `preventDefault`, bloom and sunrays. Display uses an original
 procedural dither, never upstream `LDR_LLL1_0.png` (rights not established).

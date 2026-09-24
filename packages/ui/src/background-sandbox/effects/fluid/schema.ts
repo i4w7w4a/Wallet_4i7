@@ -32,7 +32,7 @@ export const fluidSchema: ParameterSchema<FluidParams> = {
     { key: "force", kind: "range", label: "Сила", description: "Импульс скорости при рисовании с нажатой кнопкой.", ...FLUID_BOUNDS.force },
     { key: "radius", kind: "range", label: "Радиус", description: "Ширина пятна скорости и красителя.", ...FLUID_BOUNDS.radius },
     { key: "curl", kind: "range", label: "Вихри", description: "Усиление вращения внутри поля скорости.", ...FLUID_BOUNDS.curl },
-    { key: "dissipation", kind: "range", label: "Затухание", description: "Скорость потери движения; выше — быстрее успокаивается.", ...FLUID_BOUNDS.dissipation },
+    { key: "dissipation", kind: "range", label: "Затухание течения", description: "Выше — течение быстрее замедляется. Скорость исчезновения цвета фиксирована и этим параметром не меняется.", ...FLUID_BOUNDS.dissipation },
     { key: "palette", kind: "select", label: "Палитра", options: [{ value: "graphite", label: "Графит" }, { value: "lagoon", label: "Лагуна" }, { value: "copper", label: "Медь" }] },
   ],
   parse(input) {
