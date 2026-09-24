@@ -29,7 +29,7 @@ export const SILK_DEFAULTS: Readonly<SilkParams> = Object.freeze({
 export const SILK_VARIANTS = Object.freeze([
   { id: "graphite", label: "Графитовый шёлк", params: SILK_DEFAULTS },
   { id: "champagne", label: "Тёплый перламутр", params: Object.freeze<SilkParams>({
-    flowSpeed: 0.3, sheenIntensity: 0.85, foldScale: 0.85, lightWidth: 1.35, palette: "champagne",
+    flowSpeed: 0.3, sheenIntensity: 0.9, foldScale: 0.85, lightWidth: 1.35, palette: "champagne",
   }) },
 ]);
 

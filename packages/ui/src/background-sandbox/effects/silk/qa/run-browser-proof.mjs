@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
 const root = process.cwd();
 const folder = path.dirname(fileURLToPath(import.meta.url));
@@ -18,9 +19,20 @@ const ts = requireRoot("typescript");
 const { chromium } = requireApp("@playwright/test");
 const evidence = path.resolve(process.argv[2] || path.join(process.env.TEMP, "novex-silk-b374-proof"));
 await fs.mkdir(evidence, { recursive: true });
+// This is a test oracle only. Validate immutable source bytes before extracting
+// GLSL; never execute the upstream HTML/JavaScript or serve its demo runtime.
+const upstreamBytes = await fs.readFile(process.env.SILK_UPSTREAM_FILE || path.join(process.env.TEMP, "novex-silk-b374/silk-cascade.html"));
+const upstreamBlob = createHash("sha1").update(`blob ${upstreamBytes.length}\0`).update(upstreamBytes).digest("hex");
+if (upstreamBlob !== "70741edbdff44f8d9af20a25d82be8fdb53ce2f5") throw new Error("Unverified baseline source");
+const source = upstreamBytes.toString("utf8");
+const block = source.slice(source.indexOf("  var fragSrc = ["), source.indexOf("  ].join('\\n');"));
+const baselineShader = block.split(/\r?\n/).map((line) => line.match(/^    '(.*)',?$/)?.[1]).filter((line) => line !== undefined).join("\n")
+  .replace("precision highp float;", "#version 300 es\nprecision highp float;\nout vec4 fragColor;")
+  .replace("gl_FragColor=", "fragColor=");
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://localhost:3143");
+    if (url.pathname === "/baseline.glsl") { res.setHeader("Content-Type", "text/plain"); res.end(baselineShader); return; }
     if (url.pathname === "/") {
       res.setHeader("Content-Type", "text/html");
       res.end(`<!doctype html><meta charset="utf-8"><title>BG-2 Silk shader proof</title>
@@ -45,11 +57,20 @@ try {
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
   const consoleErrors = [];
+  const driverWarnings = [];
   page.on("pageerror", (error) => consoleErrors.push(error.message));
-  page.on("console", (event) => { if (["error", "warning"].includes(event.type())) consoleErrors.push(event.text()); });
+  page.on("console", (event) => {
+    if (!["error", "warning"].includes(event.type())) return;
+    const text = event.text();
+    // Expected only from this proof's explicit readback. Keep it in evidence;
+    // every shader warning, page error and other runtime warning still fails.
+    if (event.type() === "warning" && /^\[\.WebGL-0x[0-9a-f]+\]GL Driver Message \(OpenGL, Performance, GL_CLOSE_PATH_NV, High\): GPU stall due to ReadPixels(?: \(this message will no longer repeat\))?$/i.test(text)) driverWarnings.push(text);
+    else consoleErrors.push(text);
+  });
   await page.goto("http://localhost:3143/");
   await page.waitForFunction(() => Boolean(window.silkProof));
   const report = await page.evaluate(() => window.silkProof.run());
+  report.baseline = await page.evaluate(() => window.silkProof.compareUpstream());
   report.screenshots = [];
   for (const id of ["radiant-baseline", "graphite", "champagne"]) {
     await page.evaluate((id) => { window.silkProof.resize(1280, 720); window.silkProof.preset(id); }, id);
@@ -66,6 +87,7 @@ try {
   }
   report.contextLoss = await page.evaluate(() => window.silkProof.loseContext());
   report.consoleErrors = consoleErrors;
+  report.driverWarnings = driverWarnings;
   report.head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
   report.diff = execFileSync("git", ["status", "--short"], { cwd: root, encoding: "utf8" }).trim();
   report.testedAt = new Date().toISOString();

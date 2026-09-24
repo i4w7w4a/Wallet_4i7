@@ -159,11 +159,43 @@ window.silkProof = {
     const debug = gl.getExtension("WEBGL_debug_renderer_info");
     report.renderer = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
     const times = [];
-    for (let i = 0; i < 24; i += 1) { const begin = performance.now(); draw(1 / 60); gl.finish(); if (i >= 4) times.push(performance.now() - begin); }
+    const fencePixel = new Uint8Array(4);
+    for (let i = 0; i < 24; i += 1) {
+      const begin = performance.now(); draw(1 / 60);
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, fencePixel);
+      if (i >= 4) times.push(performance.now() - begin);
+    }
     times.sort((a, b) => a - b);
-    report.frameTiming = { viewport: "640x400", method: "material + compositor + gl.finish wall time, 4 warmup + 20 frames", medianMs: times[10], p95Ms: times[18] };
+    report.frameTiming = { viewport: "640x400", method: "material + compositor + 1px readback fence wall time, 4 warmup + 20 frames; software renderer, not a device FPS claim", medianMs: times[10], p95Ms: times[18] };
     report.diagnostics = effect.getDiagnostics();
     return report;
+  },
+  async compareUpstream() {
+    const baseline = silkDefinition.presets.find(({ id }) => id === "radiant-baseline").params;
+    effect.update(baseline); effect.reset(0); draw();
+    const ours = pixels();
+    effect.dispose(); effect = null;
+    const source = await (await fetch("/baseline.glsl")).text();
+    const sourceProgram = new Program(gl, {
+      vertex: `#version 300 es\nin vec2 position; void main(){gl_Position=vec4(position,0,1);}`,
+      fragment: source,
+      uniforms: { u_time: { value: 0 }, u_res: { value: [viewport.pixelWidth, viewport.pixelHeight] },
+        u_flowSpeed: { value: .4 }, u_sheenIntensity: { value: 1 }, u_mouse: { value: [-1, -1] } },
+      depthTest: false, depthWrite: false, cullFace: false,
+    });
+    const sourceGeometry = new Geometry(gl, { position: { size: 2, data: new Float32Array([-1, -1, 3, -1, -1, 3]) } });
+    const sourceTarget = new RenderTarget(gl, { width: viewport.pixelWidth, height: viewport.pixelHeight, depth: false });
+    renderer.render({ scene: new Mesh(gl, { program: sourceProgram, geometry: sourceGeometry }), target: sourceTarget, clear: false });
+    display.uniforms.image.value = sourceTarget.texture;
+    renderer.render({ scene: quad, clear: false });
+    const delta = difference(ours, pixels());
+    sourceGeometry.remove();
+    sourceProgram.uniformLocations.forEach((location) => renderer.state.uniformLocations.delete(location));
+    gl.deleteShader(sourceProgram.vertexShader); gl.deleteShader(sourceProgram.fragmentShader); sourceProgram.remove();
+    gl.deleteTexture(sourceTarget.texture.texture); gl.deleteFramebuffer(sourceTarget.buffer);
+    insist(delta < .02, `upstream baseline drift: ${delta}`);
+    mount(); draw();
+    return { blob: "70741edbdff44f8d9af20a25d82be8fdb53ce2f5", time: 0, pointer: "absent", meanByteDelta: delta };
   },
   loseContext() {
     const extension = gl.getExtension("WEBGL_lose_context");
