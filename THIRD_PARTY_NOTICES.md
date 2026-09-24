@@ -60,6 +60,40 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Radiant — Silk Cascade
+
+- Источник: [Silk Cascade](https://github.com/pbakaus/radiant/blob/59e9f48c0ad9a3db2fbeb8898b4390d5a1eabb40/static/silk-cascade.html).
+- Commit: `59e9f48c0ad9a3db2fbeb8898b4390d5a1eabb40`; source blob: `70741edbdff44f8d9af20a25d82be8fdb53ce2f5`.
+- Локальный adapter: `packages/ui/src/background-sandbox/effects/silk/`.
+- Сохранены трёхслойный материал, normals, направленный sheen и color composite. Внешний demo runtime заменён OGL-pass на контексте лаборатории; добавлены versioned controls, непрерывная фаза, pointer easing и lifecycle cleanup. Demo UI и scheduling не перенесены.
+- Это экспериментальная dev-only песочница. Лицензия, source fidelity и техническая проверка не означают визуального утверждения или выпуска в продукт.
+
+### Текст лицензии upstream
+
+```text
+MIT License
+
+Copyright (c) 2025 Paul Bakaus
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## Liquid_Prnc_Glass
 
 - Источник: https://github.com/i4w7w4a/Liquid_Prnc_Glass

@@ -1,5 +1,11 @@
 # Novex Wallet — Skin System
 
+> Актуальная база новой волны: `fa7d6c1ff65a6505100f809c894aca9dc9851eb4`.
+> На ней уже действуют `working-presets.v2`, локальная типографика и полный appearance/viewer.
+> Исторические разделы ниже о v1 storage и отсутствующей типографике не описывают эту базу.
+> Самостоятельная GPU-песочница развивается по [background-sandbox.md](background-sandbox.md)
+> в отдельной experimental ветке; рабочие пресеты и опубликованный MONO она не изменяет.
+
 Статус: направление V2, изолированный design workbench и Color Lab; общий SkinHost и Font Lab ещё не реализованы
 Дата актуализации сценария `/mono`: 2026-09-23 (кандидат до visual review владельца)
 Ветка начала направления: `codex/skin-lab-v2`

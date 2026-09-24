@@ -1,5 +1,10 @@
 # Каталог источников motion и visual effects
 
+Новая волна GPU-фонов: [проверенные pinned источники](background-sandbox-sources.md)
+и [изолированная песочница](background-sandbox.md). Radiant Silk имеет собственный
+локальный OGL adapter в `packages/ui/src/background-sandbox/effects/silk/`;
+его source/license, изменения и границы доказательств перечислены рядом с кодом.
+
 Статус: curated discovery catalog, не dependency allowlist
 Дата проверки основных первичных ссылок: 2026-09-16
 

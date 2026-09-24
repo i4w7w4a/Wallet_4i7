@@ -60,3 +60,5 @@ export type {
   BackgroundMaterialDescriptor, BackgroundPresentation, BackgroundRuntimeStatus,
   BackgroundStageRequest, BackgroundStageRenderer, BackgroundSandboxBindings,
 } from "./background-sandbox/host-contract";
+export { BackgroundGpuSurface } from "./background-sandbox/background-gpu-surface";
+export { backgroundMaterials, backgroundMaterialDescriptors, parseBackgroundRecipe } from "./background-sandbox/registry";
