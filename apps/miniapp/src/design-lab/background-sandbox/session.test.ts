@@ -120,3 +120,24 @@ it("does not carry a failed Save status into a different slot", async () => {
   expect(editor.shownRecipe().intensity).toBe(.6);
   expect(editor.getSnapshot().saveError).toBe("");
 });
+
+it("does not turn an unchanged gesture into an A/B storage write", async () => {
+  const store = memory(), editor = session(store);
+  await editor.save("A", true);
+  editor.pin(editor.getSnapshot().library.trials[0]!);
+  await editor.flushRecovery();
+  let writes = 0;
+  const set = store.setItem;
+  store.setItem = (key, value) => { writes++; set(key, value); };
+  editor.beginGesture(); editor.compare(true);
+  await editor.flushRecovery();
+  expect(writes).toBe(0);
+  expect(editor.getSnapshot().workspace.slots[0].past).toHaveLength(0);
+});
+
+it("does not reset the renderer on a current-slot click or unavailable Undo", () => {
+  const editor = session();
+  const restart = editor.getSnapshot().restartKey;
+  editor.selectSlot(0); editor.undo();
+  expect(editor.getSnapshot().restartKey).toBe(restart);
+});

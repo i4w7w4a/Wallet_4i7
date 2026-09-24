@@ -49,6 +49,7 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
   }
   function slot() { return state.workspace.slots[state.workspace.activeSlot]!; }
   function changeSlot(next: SandboxSlot<R>, restart = false) {
+    if (next === slot() && !restart) return;
     const slots = [...state.workspace.slots] as SandboxWorkspace<R>["slots"];
     slots[state.workspace.activeSlot] = next;
     workspace({ ...state.workspace, slots }, restart);
@@ -89,8 +90,16 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
       if (state.comparing || state.saving) return;
       changeSlot(editRecipe(slot(), parse(next), gesture !== null));
     },
-    undo(redo = false) { if (!state.comparing && !state.saving) { endGesture(); changeSlot(undoSlot(slot(), redo), true); } },
-    selectSlot(index: number) { if (!state.saving) { endGesture(); workspace(selectSlot(state.workspace, index), true); } },
+    undo(redo = false) {
+      if (state.comparing || state.saving) return;
+      endGesture(); const next = undoSlot(slot(), redo);
+      if (next !== slot()) changeSlot(next, true);
+    },
+    selectSlot(index: number) {
+      if (state.saving) return;
+      endGesture();
+      if (index !== state.workspace.activeSlot) workspace(selectSlot(state.workspace, index), true);
+    },
     openTrial(trial: SavedTrial<R>) { if (state.saving) return; endGesture(); changeSlot(openFrame(slot(), frameForTrial(trial)), true); },
     openRecipe(next: R, nextKey: string, restoreDraft = false) {
       if (state.saving) return;
