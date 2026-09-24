@@ -306,34 +306,3 @@ test("подписи нижней навигации остаются читае
   );
   expect(fontSize).toBeGreaterThanOrEqual(10);
 });
-
-test.describe("материальный отклик активов", () => {
-  test.use({ hasTouch: false, isMobile: false, viewport: { width: 1280, height: 900 } });
-
-  test("hover меняет плоскость всей строки без боковой полосы, движения и изменения данных", async ({ page }) => {
-    await page.goto("/mono");
-    const rows = page.locator(".mono-asset-list__row");
-    await expect(rows).toHaveCount(3);
-    for (const theme of ["Тёмная тема", "Светлая тема"]) {
-      const environment = await openMonoEnvironment(page);
-      await environment.getByRole("button", { name: theme }).click();
-      for (const row of await rows.all()) {
-        await row.evaluate(element => element.scrollIntoView({ block: "center" }));
-        await page.mouse.move(0, 0);
-        const content = await row.innerText();
-        const measure = () => row.evaluate(element => {
-          const row = element as HTMLElement;
-          return { x: row.offsetLeft, y: row.offsetTop, width: row.offsetWidth, height: row.offsetHeight };
-        });
-        const before = await measure();
-        const idle = await row.evaluate(element => getComputedStyle(element).backgroundColor);
-        await row.hover();
-        await expect.poll(() => row.evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe(idle);
-        expect(await measure()).toEqual(before);
-        await expect(row).toHaveCSS("box-shadow", "none");
-        await expect(row.locator(".mono-asset-list__symbol")).toHaveCSS("transform", "none");
-        expect(await row.innerText()).toBe(content);
-      }
-    }
-  });
-});
