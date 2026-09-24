@@ -14,14 +14,16 @@ test("оптику можно настроить живьём, сбросить 
   const ior = optics.getByRole("slider", { name: /преломление/i });
   await expect(ior).toHaveValue("1.34");
 
-  await ior.fill("-0.90");
+  await ior.fill("-0.9");
   await expect(ior).toHaveValue("-0.9");
   await expect(optics).toContainText("-0.90");
   expect(await page.evaluate(() => localStorage.getItem("wallet4i7.mono.optical-preview.v1"))).toBeNull();
 
   await optics.getByRole("button", { name: "По умолчанию" }).click();
   await expect(ior).toHaveValue("1.34");
-  await ior.fill("-0.80");
+  await ior.fill("-0.8");
+  await expect(ior).toHaveValue("-0.8");
+  await expect(optics).toContainText("-0.80");
   await fine.locator(".mono-inspector-shell__footer").getByRole("button", { name: "Применить оптику" }).click();
   const saved = await page.evaluate(() => localStorage.getItem("wallet4i7.mono.working-presets.v2"));
   expect(JSON.parse(saved ?? "null").records[0].document.optics.ledger.ior).toBe(-0.8);

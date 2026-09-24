@@ -167,10 +167,13 @@ test("full appearance renders every supplied slice in a fresh viewer and survive
       document.querySelector(".mono-asset-list")!.getBoundingClientRect().bottom)).toBe(true);
 
     const background = page.locator('[data-mono-background-recipe="aperture"]');
+    await expect(scene).toHaveAttribute("data-palette-enabled", "true");
+    await expect(scene).toHaveAttribute("data-mono-theme", "light");
     await expect(scene).toHaveAttribute("data-mono-atmosphere-source", "adapter");
     await expect(page.locator("[data-mono-atmosphere]")).toHaveCount(0);
     await expect(background).toBeVisible();
-    await expect(background).toHaveCSS("background-color", "rgb(231, 226, 217)");
+    // The enabled light palette resolves canvas to #eef6ff, overriding aperture's fallback base.
+    await expect(background).toHaveCSS("background-color", "rgb(238, 246, 255)");
     await expect(background.locator(":scope > div").first()).toHaveCSS("opacity", "0.37");
     await expect(background.locator("svg")).toBeVisible();
 
