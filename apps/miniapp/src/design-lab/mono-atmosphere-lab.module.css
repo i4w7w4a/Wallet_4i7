@@ -54,7 +54,7 @@
 .tuner .note { margin: 14px 0 0; }
 .footer { max-width: 1680px; margin: 22px auto 0; border-top: 1px solid #353e40; padding-top: 12px; color: #aebcbd; font-size: 11px; line-height: 1.65; }
 .footer p { margin: 4px 0; }
-.lab [role="alert"] { color: #f2c6ab; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+:is(.footer, .modal) [role="alert"] { color: #f2c6ab; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
 :is(.header, .toolbar, .viewport, .tuner, .modal, .widths) :is(button, select, input, textarea, a):focus-visible { outline: 2px solid #d4eee1; outline-offset: 3px; }
 .scrim { position: fixed; inset: 0; z-index: 1000; background: rgb(4 9 11 / 72%); display: grid; place-items: center; padding: 20px; overflow: auto; }
 .modal { width: min(100%, 560px); max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; background: #1e2527; color: #e6edeb; border: 1px solid #5c6a6c; border-radius: 14px; padding: 20px; font-size: 13px; line-height: 1.6; box-shadow: 0 24px 100px rgb(0 0 0 / 40%); }
