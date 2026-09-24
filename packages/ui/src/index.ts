@@ -49,3 +49,14 @@ export {
   type VisualRuntimeCapabilities,
 } from "./appearance/wallet-visual-layer";
 export type { PreferenceStorage, ThemeConfig } from "@wallet/core";
+export type {
+  EffectId, Vec2, Config, BackgroundRecipe, ValidationIssue, ParseResult,
+  ParameterValue, ParameterControl, ParameterSchema, Viewport,
+  PointerPhase, PointerSample, PointerFrame, Frame, FrameTexture,
+  GpuLimits, EffectDiagnostics, GpuFailure, CreateResult,
+  Effect, EffectInit, EffectProvenance, EffectPreset, Definition,
+} from "./background-sandbox/contracts";
+export type {
+  BackgroundMaterialDescriptor, BackgroundPresentation, BackgroundRuntimeStatus,
+  BackgroundStageRequest, BackgroundStageRenderer, BackgroundSandboxBindings,
+} from "./background-sandbox/host-contract";
