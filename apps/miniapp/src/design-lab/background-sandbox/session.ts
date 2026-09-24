@@ -44,7 +44,7 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
     }).finally(() => { recoveryTask = null; });
   }
   function workspace(next: SandboxWorkspace<R>, restart = false) {
-    publish({ workspace: next, ...(restart ? { comparing: false, restartKey: state.restartKey + 1 } : {}) });
+    publish({ workspace: next, ...(restart ? { comparing: false, restartKey: state.restartKey + 1, saveError: "" } : {}) });
     queueRecovery();
   }
   function slot() { return state.workspace.slots[state.workspace.activeSlot]!; }

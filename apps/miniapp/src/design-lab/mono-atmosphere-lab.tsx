@@ -8,6 +8,7 @@ import { MonoLabIconButton } from "../mono-preview/mono-lab-controls";
 import { MonoBackgroundRecipeControls } from "../mono-preview/mono-background-recipes-controls";
 import { SandboxDialog } from "./background-sandbox/dialog";
 import { ParameterControls } from "./background-sandbox/parameter-controls";
+import { RecipeSummary } from "./background-sandbox/recipe-summary";
 import { createSandboxSession } from "./background-sandbox/session";
 import { isDirty } from "./background-sandbox/model";
 import { isGpuRecipe, recipeKey, recipeParser, type SandboxRecipe } from "./background-sandbox/recipes";
@@ -234,6 +235,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
         <button className={styles.control} type="button" onClick={() => { try { setImportPreview(parseRecipeImport(importText, parse)); setNotice(""); } catch (error) { setImportPreview(null); setNotice((error as Error).message); } }}>Проверить JSON</button>
         {notice && <p role="alert">{notice}</p>}
         {importPreview && <div className={styles.importPreview} role="region" aria-label="Предпросмотр импорта"><p>{recipeLabel(importPreview)} · полная конфигурация · новая копия</p>
+          <RecipeSummary recipe={importPreview} bindings={bindings} />
           <button className={`${styles.control} ${styles.primary}`} type="button" onClick={() => request({ label: "Открыть импорт", action: () => editor.openRecipe(importPreview, "import") })}>Открыть копию</button></div>}
       </div>}
       {dialog === "source" && <div>

@@ -120,3 +120,32 @@ it("focuses the name, traps focus, and returns to the Save button on Escape", ()
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(save).toHaveFocus();
 });
+
+it("previews imported parameter values before opening a new unsaved copy", () => {
+  render(<MonoAtmosphereLab />);
+  fireEvent.click(screen.getByRole("button", { name: "Дополнительно" }));
+  fireEvent.click(screen.getByRole("button", { name: "Импорт JSON" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Импорт пробы" }), { target: { value: JSON.stringify({
+    version: 1, recipe: "obsidian", intensity: .7, speed: .45, pointerResponse: .55, character: "fluid", calm: false,
+  }) } });
+  fireEvent.click(screen.getByRole("button", { name: "Проверить JSON" }));
+  const preview = screen.getByRole("region", { name: "Предпросмотр импорта" });
+  expect(preview).toHaveTextContent("Интенсивность");
+  expect(preview).toHaveTextContent("70%");
+  fireEvent.click(screen.getByRole("button", { name: "Открыть копию" }));
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("70");
+  expect(screen.getByRole("status")).toHaveTextContent("Изменено");
+  expect(localStorage.getItem(LIBRARY_KEY)).toBeNull();
+});
+
+it("commits the shared numeric input as one complete undo transaction", () => {
+  render(<MonoAtmosphereLab />);
+  const number = screen.getByRole("spinbutton", { name: "Интенсивность — значение" });
+  fireEvent.focus(number); fireEvent.change(number, { target: { value: "81" } }); fireEvent.keyDown(number, { key: "Enter" });
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("81");
+  fireEvent.click(screen.getByRole("button", { name: "Отменить" }));
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("60");
+  expect(screen.getByRole("button", { name: "Отменить" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("81");
+});

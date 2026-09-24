@@ -109,3 +109,14 @@ it("disallows unsafe writes without Web Locks while preserving exportable edits"
   expect(editor.shownRecipe().intensity).toBe(.7);
   expect(store.values.size).toBe(0);
 });
+
+it("does not carry a failed Save status into a different slot", async () => {
+  const editor = createSandboxSession(recipe, "legacy-obsidian", parse);
+  editor.connect({ getItem: () => null, setItem: () => { throw new Error("quota"); } }, locked);
+  editor.edit({ ...recipe, intensity: .7 });
+  await editor.save("Не записано", true);
+  expect(editor.getSnapshot().saveError).toBeTruthy();
+  editor.selectSlot(1);
+  expect(editor.shownRecipe().intensity).toBe(.6);
+  expect(editor.getSnapshot().saveError).toBe("");
+});
