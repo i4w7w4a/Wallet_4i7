@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSilkParams, SILK_BASELINE, SILK_DEFAULTS, SILK_VARIANTS } from "./schema";
+import { parseSilkParams, SILK_BASELINE, SILK_DEFAULTS, SILK_VARIANTS, type SilkParams } from "./schema";
 
 describe("Silk parameter boundary", () => {
   it("round-trips full prepared recipes without clamping or dropping values", () => {
@@ -36,7 +36,7 @@ describe("Silk parameter boundary", () => {
   });
 
   it("does not fill missing imported fields from a mutable default", () => {
-    const partial: Partial<typeof SILK_DEFAULTS> = { ...SILK_DEFAULTS };
+    const partial: Partial<SilkParams> = { ...SILK_DEFAULTS };
     delete partial.lightWidth;
     expect(parseSilkParams(partial)).toBeNull();
     expect(parseSilkParams({ ...partial, lightWidth: 1.173 })?.lightWidth).toBe(1.173);

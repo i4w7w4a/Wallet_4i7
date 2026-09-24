@@ -59,3 +59,22 @@ export function parseSilkParams(input: unknown): SilkParams | null {
     palette: data.palette as SilkPalette,
   };
 }
+
+export const silkSchema: ParameterSchema<SilkParams> = {
+  defaults: SILK_DEFAULTS,
+  controls: [
+    { key: "flowSpeed", label: "Течение", description: "Скорость движения складок", kind: "range", ...SILK_BOUNDS.flowSpeed },
+    { key: "sheenIntensity", label: "Сила блика", description: "Яркость направленного света на волокнах", kind: "range", ...SILK_BOUNDS.sheenIntensity },
+    { key: "lightWidth", label: "Ширина блика", description: "От тонкой световой нити до мягкой полосы", kind: "range", ...SILK_BOUNDS.lightWidth },
+    { key: "foldScale", label: "Частота складок", description: "Выше — больше складок на той же поверхности", kind: "range", ...SILK_BOUNDS.foldScale },
+    { key: "palette", label: "Палитра", kind: "select", options: SILK_PALETTES },
+  ],
+  parse(input) {
+    const value = parseSilkParams(input);
+    return value ? { ok: true, value } : {
+      ok: false,
+      issues: [{ code: "invalid-silk-params", message: "Нужны все пять параметров Silk в допустимых пределах и известная палитра." }],
+    };
+  },
+};
+import type { ParameterSchema } from "../../contracts";
