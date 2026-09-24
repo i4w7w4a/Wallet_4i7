@@ -61,10 +61,21 @@
 
 ## Handoff и реестр
 
+Документационный checkpoint: `6c9e46d045ea9444e273d5feabf85d5431c632f4`. Общий ABI v1: `3be0cb7355e8e271f6fd9772eea5ce5f5fc7bae7`, создан ORACLE поверх checkpoint и передан всем трём исполнителям. Это только contracts/type-only exports; наличие этого commit ещё не означает готовый renderer или preview. Последующие правки реестра не меняют стартовую базу исполнителей.
+
+| Задача | Codex task ID | Worktree под `C:/Users/iwwa/.codex/worktrees/` | Ветка |
+| --- | --- | --- | --- |
+| Фоны — песочница и библиотека проб | `01a0d216-ff4d-7b90-8bbc-8b63a3c422b9` | `a522/5-wallet-foundation` | `codex/mono-background-sandbox-shell` |
+| Фоны — Silk: материал и свет | `01a0d217-15d5-7150-a006-bdde054e912e` | `b374/5-wallet-foundation` | `codex/mono-background-sandbox-silk` |
+| Фоны — Fluid: течение и инерция | `01a0d217-15e5-7700-a163-7123faf7d15f` | `0a8a/5-wallet-foundation` | `codex/mono-background-sandbox-fluid` |
+| ORACLE — единая сборка Novex Wallet | `01a0cfcc-f35e-7a50-a624-6dda3022b4fb` | `mono-background-sandbox-integration/5-wallet-foundation` | `codex/mono-background-sandbox-integration` |
+
+Все четыре задачи используют `gpt-6-astra` / `max`; новые исполнители начали работу в отдельных worktrees. Реестр фиксирует назначение и базу, а не текущую степень готовности. Актуальный handoff читать по task ID: общий список задач может не показывать новые окна.
+
 Согласованный следующий integration worktree: `mono-background-sandbox-integration/5-wallet-foundation`, ветка `codex/mono-background-sandbox-integration`. ORACLE проверил, что они свободны. Предложенный общий порт `3142`; перед запуском проверить повторно. Плановый адрес `http://localhost:3142/design-lab/atmosphere` не является работающим preview до фактического handoff. Только ORACLE публикует владельцу единый результат.
 
 GitHub create parent Issue по текущему запросу владельца получил `403 Resource not accessible by integration`. Parent/child Issue пока НЕ созданы. Запись через другой credential/инструмент не повторяется; владелец получил точный запрос исправить доступ GitHub App к Issues. Это не блокирует разрешённые локальные task windows, не оправдывает выдуманные номера Issues и не меняет режим запрета deployment.
 
 Каждый автор отправляет ORACLE и ORCHESTR WALL: task/Issue, branch, base/head, worktree, изменённые файлы, checks+SHA, preview, preserved/lost mechanics, риски и решение владельцу. Нет ручной передачи владельцем между чатами. До появления живого preview URL не выдаётся за готовый.
 
-Task IDs и GitHub Issue URLs добавляет координатор после фактического создания. Если GitHub integration отказывает в записи, canonical packet остаётся локально/в Git commit; Issue ID не выдумывается, отказ сообщается владельцу. Ранее #33/#38 ещё содержат устаревшую отметку о публикации из-за 403; фактически fa7 уже опубликован, не запускать повторный деплой по этой старой фразе.
+GitHub Issue URLs добавляет координатор только после фактического создания. Если GitHub integration отказывает в записи, canonical packet остаётся локально/в Git commit; Issue ID не выдумывается, отказ сообщается владельцу. Ранее #33/#38 ещё содержат устаревшую отметку о публикации из-за 403; фактически fa7 уже опубликован, не запускать повторный деплой по этой старой фразе.
