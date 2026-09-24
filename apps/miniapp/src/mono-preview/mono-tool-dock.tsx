@@ -29,7 +29,7 @@ export function MonoToolDock({ selected, onSelect, dirtyTools = [], unavailableT
 }) {
   const trialDescription = useId();
   return <div className="mono-tool-dock" role="toolbar" aria-label="Инструменты оформления">
-    <span id={trialDescription} className="mono-tool-dock__description">Есть неприменённая проба</span>
+    {dirtyTools.length > 0 && <span hidden id={trialDescription}>Есть неприменённая проба</span>}
     {TOOLS.map((tool, index) => <MonoLabIconButton key={tool.id} label={MONO_TOOL_LABELS[tool.id]}
       data-mono-tool={tool.id} data-dirty={dirtyTools.includes(tool.id) || undefined}
       aria-pressed={selected === tool.id} aria-controls="mono-active-inspector"

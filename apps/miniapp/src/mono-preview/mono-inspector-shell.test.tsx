@@ -13,8 +13,15 @@ it("exposes nine named tools and selects a tool without committing its trial", (
   expect(screen.getAllByRole("button")).toHaveLength(9);
   expect(screen.getByRole("button", { name: "Цвет" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("button", { name: "Форма и кнопки" })).toHaveAttribute("data-dirty", "true");
+  expect(screen.getByRole("button", { name: "Форма и кнопки" })).toHaveAccessibleDescription("Есть неприменённая проба");
   fireEvent.click(screen.getByRole("button", { name: "Баланс" }));
   expect(select).toHaveBeenCalledWith("balance");
+});
+
+it("does not announce a pending trial when every tool is clean", () => {
+  render(<MonoToolDock selected="color" onSelect={vi.fn()} />);
+  expect(screen.queryByText("Есть неприменённая проба")).toBeNull();
+  for (const button of screen.getAllByRole("button")) expect(button).not.toHaveAttribute("aria-describedby");
 });
 
 it("supports arrow navigation with one tab stop and skips unavailable tools", () => {
