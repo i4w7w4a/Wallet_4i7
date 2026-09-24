@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { closeCompactMonoRail, openMonoRail } from "./mono-test-helpers";
+import { closeCompactMonoRail, openMonoEnvironment, openMonoRail, openMonoTool } from "./mono-test-helpers";
 
 test("логотип Novex остаётся читаемым на всех ширинах MONO", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 844 });
@@ -29,9 +29,9 @@ test("логотип Novex остаётся читаемым на всех ши�
   for (const variant of ["bare", "plaque"] as const) {
     if (variant === "plaque") {
       await page.setViewportSize({ width: 320, height: 844 });
-      const quick = await openMonoRail(page, "quick");
-      await quick.getByRole("button", { name: "Логотип с плашкой" }).click();
-      await closeCompactMonoRail(page, "quick");
+      const logoTool = await openMonoTool(page, "logo");
+      await logoTool.getByRole("button", { name: "Логотип с плашкой" }).click();
+      await closeCompactMonoRail(page, "fine");
     }
     for (const width of [320, 390, 430, 480, 1280]) {
       await page.setViewportSize({ width, height: 844 });
@@ -94,15 +94,16 @@ test("надпись и материал логотипа следуют тём�
   expect(contrast(darkBare.ink, darkBare.canvas)).toBeGreaterThanOrEqual(4.5);
   expect(contrast(darkBare.icon, darkBare.canvas)).toBeGreaterThanOrEqual(3);
 
-  const quick = await openMonoRail(page, "quick");
-  await quick.getByRole("button", { name: "Логотип с плашкой" }).click();
-  await closeCompactMonoRail(page, "quick");
+  const logoTool = await openMonoTool(page, "logo");
+  await logoTool.getByRole("button", { name: "Логотип с плашкой" }).click();
+  await logoTool.getByRole("button", { name: "Применить настройку" }).click();
+  await closeCompactMonoRail(page, "fine");
   const darkPlaque = await appearance();
   expect(luminance(darkPlaque.mark)).toBeLessThan(0.2);
   expect(contrast(darkPlaque.ink, darkPlaque.mark)).toBeGreaterThanOrEqual(4.5);
   expect(contrast(darkPlaque.icon, darkPlaque.mark)).toBeGreaterThanOrEqual(3);
 
-  const fine = await openMonoRail(page, "fine");
+  const fine = await openMonoEnvironment(page);
   await fine.getByRole("button", { name: "Светлая тема" }).click();
   await closeCompactMonoRail(page, "fine");
   await expect(preview).toHaveAttribute("data-mono-theme", "light");
@@ -111,9 +112,9 @@ test("надпись и материал логотипа следуют тём�
   expect(contrast(lightPlaque.ink, lightPlaque.mark)).toBeGreaterThanOrEqual(4.5);
   expect(contrast(lightPlaque.icon, lightPlaque.mark)).toBeGreaterThanOrEqual(3);
 
-  await openMonoRail(page, "quick");
-  await quick.getByRole("button", { name: "Логотип без плашки" }).click();
-  await closeCompactMonoRail(page, "quick");
+  await openMonoTool(page, "logo");
+  await logoTool.getByRole("button", { name: "Логотип без плашки" }).click();
+  await closeCompactMonoRail(page, "fine");
   const lightBare = await appearance();
   expect(lightBare.mark).toBe("rgba(0, 0, 0, 0)");
   expect(contrast(lightBare.ink, lightBare.canvas)).toBeGreaterThanOrEqual(4.5);
@@ -123,33 +124,39 @@ test("надпись и материал логотипа следуют тём�
 test("свой тон эмблемы включается отдельно от надписи и восстанавливается после reload", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 844 });
   await page.goto("/mono");
-  const custom = page.getByRole("checkbox", { name: "Свой цвет эмблемы" });
+  const logoTool = await openMonoTool(page, "logo");
+  const custom = logoTool.getByRole("checkbox", { name: "Свой цвет эмблемы" });
   const icon = page.locator(".mono-logo__icon-primary").first();
   const wordmark = page.locator(".mono-logo__wordmark").first();
   const initialIcon = await icon.evaluate(node => getComputedStyle(node).fill);
   const initialWordmark = await wordmark.evaluate(node => getComputedStyle(node).fill);
 
   await expect(custom).not.toBeChecked();
-  await expect(page.getByRole("slider", { name: "Тон знака Novex" })).toHaveCount(0);
+  await expect(logoTool.getByRole("slider", { name: "Тон знака Novex" })).toHaveCount(0);
   await custom.check();
-  const hue = page.getByRole("slider", { name: "Тон знака Novex" });
+  const hue = logoTool.getByRole("slider", { name: "Тон знака Novex" });
   await expect(hue).toBeVisible();
   await hue.press("Home");
   await expect(hue).toHaveValue("0");
   await expect.poll(() => icon.evaluate(node => getComputedStyle(node).fill)).not.toBe(initialIcon);
   expect(await wordmark.evaluate(node => getComputedStyle(node).fill)).toBe(initialWordmark);
-  await page.getByRole("button", { name: "Логотип с плашкой" }).click();
+  await logoTool.getByRole("button", { name: "Логотип с плашкой" }).click();
 
-  const saved = await page.evaluate(() => localStorage.getItem("wallet4i7.mono.logo-preview.v1"));
-  expect(JSON.parse(saved!)).toEqual({ version: 1, variant: "plaque", customColor: true, hue: 0 });
+  const apply = logoTool.getByRole("button", { name: "Применить настройку" });
+  await expect(apply).toHaveAttribute("aria-disabled", "false");
+  await apply.click();
+  await expect(apply).toHaveAttribute("aria-disabled", "true");
   await page.reload();
+  await openMonoTool(page, "logo");
   await expect(custom).toBeChecked();
   await expect(hue).toHaveValue("0");
   await expect(page.locator(".mono-page")).toHaveAttribute("data-mono-logo-variant", "plaque");
 
-  await page.getByRole("button", { name: "Светлая тема" }).click();
+  const environment = await openMonoEnvironment(page);
+  await environment.getByRole("button", { name: "Светлая тема" }).click();
   await expect.poll(() => icon.evaluate(node => getComputedStyle(node).fill)).not.toBe(initialIcon);
   await expect.poll(() => wordmark.evaluate(node => getComputedStyle(node).fill)).not.toBe(initialWordmark);
+  await openMonoTool(page, "logo");
   await custom.uncheck();
   await expect(hue).toHaveCount(0);
   await expect(page.locator(".mono-page")).toHaveAttribute("data-mono-logo-custom", "false");
@@ -163,6 +170,12 @@ test("MONO LEDGER открывается отдельно от V1 и перек�
   await expect(preview).toBeVisible();
   await expect(preview).toHaveAttribute("data-mono-preset", "ledger");
   await expect(page.getByRole("heading", { name: "Общий баланс" })).toBeVisible();
+  const amount = preview.locator(".mono-balance__amount");
+  await expect(amount).toHaveText(/12\s840,75\s\$/);
+  await expect(amount).toHaveAccessibleName(/12\s840,75\sдоллара США/);
+  await expect(preview.locator(".mono-asset-list__value strong")).toHaveText([
+    /8\s040,25\s\$/, /3\s900,50\s\$/, /900,00\s\$/,
+  ]);
   const quick = await openMonoRail(page, "quick");
   await expect(quick.getByRole("link", { name: /V1/i })).toHaveAttribute("href", "/");
   await closeCompactMonoRail(page, "quick");
@@ -177,7 +190,13 @@ test("MONO LEDGER открывается отдельно от V1 и перек�
 
   await page.keyboard.press("1");
   await expect(preview).toHaveAttribute("data-mono-preset", "ledger");
+  await closeCompactMonoRail(page, "quick");
   await expect(page.getByRole("button", { name: "Показать баланс" })).toBeVisible();
+  await expect(amount).toHaveAccessibleName("Баланс скрыт");
+  await expect(preview.getByText("Значения скрыты")).toHaveCount(3);
+  await expect(preview.getByText("График скрыт")).toBeVisible();
+  await expect(preview.locator(".mono-chart-view svg")).toHaveCount(0);
+  expect(await preview.innerHTML()).not.toMatch(/840,75|040,25|900,50|900,00|0,12/);
 });
 
 test("MONO LEDGER на 320 px не выходит за экран", async ({ page }) => {
@@ -195,12 +214,11 @@ test("Frost и Mercury меняют композицию, а не только �
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/mono");
 
-  const amount = page.locator(".mono-hero__amount");
+  const amount = page.locator(".mono-balance__amount");
   const ledgerX = (await amount.boundingBox())?.x ?? 0;
   const quick = await openMonoRail(page, "quick");
   await quick.getByRole("button", { name: "2 · Frost" }).click();
-  const frostX = (await amount.boundingBox())?.x ?? 0;
-  expect(frostX).toBeGreaterThan(ledgerX + 10);
+  await expect.poll(async () => (await amount.boundingBox())?.x ?? 0).toBeGreaterThan(ledgerX + 10);
 
   await quick.getByRole("button", { name: "3 · Mercury" }).click();
   await closeCompactMonoRail(page, "quick");
@@ -219,18 +237,26 @@ test("рабочие элементы прототипа имеют мобиль
     quick.getByRole("button", { name: "2 · Frost" }),
     quick.getByRole("button", { name: "3 · Mercury" }),
     quick.getByRole("button", { name: "Экран 390 пикселей" }),
-    quick.getByRole("button", { name: "Логотип без плашки" }),
-    quick.getByRole("button", { name: "Логотип с плашкой" }),
   ]) {
     const box = await control.boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
-  const logoColor = quick.getByRole("checkbox", { name: "Свой цвет эмблемы" });
+  const logoTool = await openMonoTool(page, "logo");
+  for (const control of [
+    logoTool.getByRole("button", { name: "Логотип без плашки" }),
+    logoTool.getByRole("button", { name: "Логотип с плашкой" }),
+    logoTool.getByRole("button", { name: "Применить настройку" }),
+  ]) {
+    const box = await control.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+  const logoColor = logoTool.getByRole("checkbox", { name: "Свой цвет эмблемы" });
   expect((await logoColor.locator("xpath=..").boundingBox())?.height).toBeGreaterThanOrEqual(44);
   await logoColor.check();
-  expect((await quick.getByRole("slider", { name: "Тон знака Novex" }).boundingBox())?.height).toBeGreaterThanOrEqual(44);
-  await closeCompactMonoRail(page, "quick");
+  expect((await logoTool.getByRole("slider", { name: "Тон знака Novex" }).boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  await closeCompactMonoRail(page, "fine");
   for (const control of [
     page.getByRole("button", { name: "Скрыть баланс" }),
     page.getByRole("button", { name: "Открыть быстрые настройки" }),
@@ -257,7 +283,7 @@ test("заголовок активов не обрезается нижней �
       );
       expect(hasOverflow, `${width}px, ${preset}: горизонтальное переполнение`).toBe(false);
       await page.waitForTimeout(850);
-      const heading = await page.locator(".mono-assets__heading").boundingBox();
+      const heading = await page.locator(".mono-asset-list__heading").boundingBox();
       const nav = await page.locator(".mono-nav").boundingBox();
       expect(heading).not.toBeNull();
       expect(nav).not.toBeNull();
