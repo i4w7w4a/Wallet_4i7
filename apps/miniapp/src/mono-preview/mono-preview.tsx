@@ -490,7 +490,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
     if (!flushWorking()) {
       setWorkingStatus(current => current.startsWith("Изменён в другой вкладке")
-        ? current : workingApplyError(undefined, tool));
+        ? current : "Не удалось сохранить палитру · Повторить");
       return false;
     }
     const current = workingLibraryRef.current;

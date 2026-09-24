@@ -15,7 +15,7 @@ beforeEach(() => {
     records: [{ id: "a", name: "А", revision: 1, document: createMonoWorkingDocument() },
       { id: "b", name: "Б", revision: 1, document: createMonoWorkingDocument() }] }, 0);
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 async function start() {
   const result = render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
@@ -94,6 +94,33 @@ it("does not resurrect a cancelled failed Apply after switching and saving anoth
   expect(library.activeId).toBe("b");
   expect(library.records[0]).toEqual(before);
   expect(library.records[1].document.appearance.ledger.balance.composition).toBe("centered");
+});
+
+it("keeps palette recovery after a failed pre-Apply flush and chart Cancel", async () => {
+  seedHiddenChart();
+  await start();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const before = storedLibrary();
+  const write = blockWorkingWrites();
+  tool("График");
+  fireEvent.click(screen.getByLabelText("Показывать график"));
+  tool("Цвет");
+  fireEvent.click(screen.getByRole("button", { name: "Включить палитру" }));
+  fireEvent.change(screen.getByRole("slider", { name: "Тон" }), { target: { value: "160" } });
+  expect(write.mock.calls.some(([key]) => key === MONO_WORKING_PRESETS_KEY)).toBe(false);
+  tool("График");
+  fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
+  expect(storedLibrary()).toEqual(before);
+  fireEvent.click(screen.getByRole("button", { name: "Отменить пробу" }));
+  expect(screen.getByLabelText("Показывать график")).not.toBeChecked();
+  expect(screen.getByText("Не удалось сохранить палитру · Повторить")).toBeVisible();
+  const retry = screen.getByRole("button", { name: "Повторить сохранение" });
+  write.mockRestore();
+  fireEvent.click(retry);
+  const recovered = storedLibrary().records[0].document;
+  expect(recovered.palette.slots[0].present.config.themes.dark.recipe.anchorHue).toBe(160);
+  expect(recovered.appearance.ledger.chart.visible).toBe(false);
+  expect(screen.getByText("Сохранено в этом браузере")).toBeVisible();
 });
 
 it("switches one inspector without mutating the accepted working document", async () => {
