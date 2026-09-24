@@ -25,7 +25,29 @@ async function saveAs(page: Page, name: string, first = false) {
 async function library(page: Page) { await page.getByRole("button", { name: "Открыть библиотеку" }).click(); }
 
 test("Silk: two names → switch → return → reload → A/B without product writes", async ({ page }, info) => {
-  await page.addInitScript(keys => { for (const key of keys) localStorage.setItem(key, "preserve-sandbox-e2e"); }, PROTECTED);
+  await page.addInitScript(keys => {
+    const marker = "bg-e2e-protected-seeded", log = "bg-e2e-protected-writes";
+    const set = Storage.prototype.setItem, remove = Storage.prototype.removeItem, clear = Storage.prototype.clear;
+    if (!sessionStorage.getItem(marker)) {
+      for (const key of keys) set.call(localStorage, key, "preserve-sandbox-e2e");
+      set.call(sessionStorage, marker, "true"); set.call(sessionStorage, log, "[]");
+    }
+    const record = (operation: string) => set.call(sessionStorage, log, JSON.stringify([
+      ...JSON.parse(sessionStorage.getItem(log) ?? "[]"), operation,
+    ]));
+    Storage.prototype.setItem = function (key, value) {
+      if (this === localStorage && keys.includes(key)) record(`set:${key}`);
+      return set.call(this, key, value);
+    };
+    Storage.prototype.removeItem = function (key) {
+      if (this === localStorage && keys.includes(key)) record(`remove:${key}`);
+      return remove.call(this, key);
+    };
+    Storage.prototype.clear = function () {
+      if (this === localStorage) record("clear");
+      return clear.call(this);
+    };
+  }, PROTECTED);
   await open(page);
   const first = page.getByRole("slider").first();
   const original = await first.inputValue();
@@ -61,6 +83,7 @@ test("Silk: two names → switch → return → reload → A/B without product w
   await expect(page.locator("canvas")).toHaveCount(1);
   expect(await page.evaluate(key => localStorage.getItem(key), LIBRARY)).toBe(saved);
   expect(await page.evaluate(keys => keys.map(key => localStorage.getItem(key)), PROTECTED)).toEqual(PROTECTED.map(() => "preserve-sandbox-e2e"));
+  expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("bg-e2e-protected-writes") ?? "[]"))).toEqual([]);
   await page.getByRole("button", { name: "Пауза", exact: true }).click();
   await page.screenshot({ path: info.outputPath("silk-sandbox-desktop.png"), fullPage: true });
   await info.attach("acceptance-values", { body: JSON.stringify({ original, soft, bright }), contentType: "application/json" });
@@ -94,6 +117,7 @@ test("320 / 390 / 430 / 480: clean stage, keyboard modal and real targets", asyn
 test("a stale tab cannot replace the library or claim Saved", async ({ page, context }) => {
   await open(page);
   const other = await context.newPage();
+  await other.emulateMedia({ reducedMotion: "reduce" });
   await open(other);
   await saveAs(page, "Первая вкладка", true);
   const before = await page.evaluate(key => localStorage.getItem(key), LIBRARY);
