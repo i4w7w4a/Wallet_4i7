@@ -25,6 +25,8 @@ async function saveAs(page: Page, name: string, first = false) {
 async function library(page: Page) { await page.getByRole("button", { name: "Открыть библиотеку" }).click(); }
 
 test("Silk: two names → switch → return → reload → A/B without product writes", async ({ page }, info) => {
+  // This is a long workflow, not a per-action performance assertion. Keep individual waits bounded.
+  test.setTimeout(90_000);
   await page.addInitScript(keys => {
     const marker = "bg-e2e-protected-seeded", log = "bg-e2e-protected-writes";
     const set = Storage.prototype.setItem, remove = Storage.prototype.removeItem, clear = Storage.prototype.clear;
@@ -49,6 +51,8 @@ test("Silk: two names → switch → return → reload → A/B without product w
     };
   }, PROTECTED);
   await open(page);
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await page.getByRole("button", { name: "Пауза", exact: true }).click();
   const first = page.getByRole("slider").first();
   const original = await first.inputValue();
   await first.focus(); await first.press("Home"); await first.press("ArrowRight");
@@ -75,6 +79,7 @@ test("Silk: two names → switch → return → reload → A/B without product w
   const saved = await page.evaluate(key => localStorage.getItem(key), LIBRARY);
   await page.reload();
   await expect(first).toHaveValue(bright);
+  await page.getByRole("button", { name: "Пауза", exact: true }).click();
   await page.getByRole("button", { name: "Показать A" }).click();
   await expect(first).toBeDisabled();
   await expect(page.locator("canvas")).toHaveCount(1);
@@ -84,7 +89,6 @@ test("Silk: two names → switch → return → reload → A/B without product w
   expect(await page.evaluate(key => localStorage.getItem(key), LIBRARY)).toBe(saved);
   expect(await page.evaluate(keys => keys.map(key => localStorage.getItem(key)), PROTECTED)).toEqual(PROTECTED.map(() => "preserve-sandbox-e2e"));
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("bg-e2e-protected-writes") ?? "[]"))).toEqual([]);
-  await page.getByRole("button", { name: "Пауза", exact: true }).click();
   await page.screenshot({ path: info.outputPath("silk-sandbox-desktop.png"), fullPage: true });
   await info.attach("acceptance-values", { body: JSON.stringify({ original, soft, bright }), contentType: "application/json" });
 });

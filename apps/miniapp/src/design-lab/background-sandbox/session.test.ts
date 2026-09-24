@@ -141,3 +141,18 @@ it("does not reset the renderer on a current-slot click or unavailable Undo", ()
   editor.selectSlot(0); editor.undo();
   expect(editor.getSnapshot().restartKey).toBe(restart);
 });
+
+it("requires explicit fresh-start after an unavailable recovery instead of silently substituting a material", async () => {
+  const store = memory();
+  store.setItem(WORKSPACE_KEY, '{"version":999}');
+  const editor = session(store);
+  expect(editor.getSnapshot().recoveryUnavailable).toBe(true);
+  editor.edit({ ...recipe, intensity: .9 });
+  expect(editor.shownRecipe().intensity).toBe(.6);
+  editor.startFresh();
+  expect(editor.getSnapshot().recoveryUnavailable).toBe(false);
+  editor.edit({ ...recipe, intensity: .9 });
+  expect(editor.shownRecipe().intensity).toBe(.9);
+  await editor.flushRecovery();
+  expect(store.getItem(WORKSPACE_KEY)).toBe('{"version":999}');
+});

@@ -7,14 +7,14 @@ export type StorageLock = <T>(task: () => T) => Promise<T>;
 export type SessionSnapshot<R> = {
   workspace: SandboxWorkspace<R>; library: TrialLibrary<R>; ready: boolean; saving: boolean;
   saveError: string; recoveryError: string; libraryError: string; externalChange: boolean;
-  comparing: boolean; restartKey: number; recovered: boolean; writeAvailable: boolean;
+  comparing: boolean; restartKey: number; recovered: boolean; recoveryUnavailable: boolean; writeAvailable: boolean;
 };
 const message = (error: unknown) => error instanceof Error ? error.message : "Хранилище недоступно.";
 
 /** Pure editor store. Browser connection is explicit, after hydration; no render-time reads/writes. */
 export function createSandboxSession<R>(recipe: R, key: string, parse: RecipeParser<R>) {
   let state: SessionSnapshot<R> = { workspace: createWorkspace(recipe, key), library: createLibrary<R>(), ready: false,
-    saving: false, saveError: "", recoveryError: "", libraryError: "", externalChange: false, comparing: false, restartKey: 0, recovered: false, writeAvailable: false };
+    saving: false, saveError: "", recoveryError: "", libraryError: "", externalChange: false, comparing: false, restartKey: 0, recovered: false, recoveryUnavailable: false, writeAvailable: false };
   const serverState = state;
   const listeners = new Set<() => void>();
   let storage: StoragePort | null = null;
@@ -79,15 +79,17 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
       try {
         workspaceRaw = storage.getItem(WORKSPACE_KEY);
         if (workspaceRaw !== null) publish({ workspace: parseWorkspace(workspaceRaw, parse), recovered: true });
-      } catch (error) { recoveryBlocked = true; publish({ recoveryError: message(error) }); }
+      } catch (error) { recoveryBlocked = true; publish({ recoveryError: message(error), recoveryUnavailable: true }); }
       publish({ ready: true, writeAvailable: !!runLocked });
     },
     refreshLibrary,
+    // Keep unavailable recovery bytes untouched; a fresh named trial can still be saved separately.
+    startFresh() { if (!state.saving) publish({ recoveryUnavailable: false }); },
     notifyExternalChange() { publish({ externalChange: true }); },
     beginGesture() { if (!state.comparing && !state.saving) gesture ??= slot().present; },
     endGesture,
     edit(next: R) {
-      if (state.comparing || state.saving) return;
+      if (state.comparing || state.saving || state.recoveryUnavailable) return;
       changeSlot(editRecipe(slot(), parse(next), gesture !== null));
     },
     undo(redo = false) {
@@ -100,10 +102,11 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
       endGesture();
       if (index !== state.workspace.activeSlot) workspace(selectSlot(state.workspace, index), true);
     },
-    openTrial(trial: SavedTrial<R>) { if (state.saving) return; endGesture(); changeSlot(openFrame(slot(), frameForTrial(trial)), true); },
+    openTrial(trial: SavedTrial<R>) { if (state.saving) return; endGesture(); publish({ recoveryUnavailable: false }); changeSlot(openFrame(slot(), frameForTrial(trial)), true); },
     openRecipe(next: R, nextKey: string, restoreDraft = false) {
       if (state.saving) return;
       endGesture();
+      publish({ recoveryUnavailable: false });
       const existing = restoreDraft ? [slot().present, ...slot().drafts].find(frame => frame.key === nextKey) : undefined;
       changeSlot(openFrame(slot(), existing ?? freshFrame(parse(next), nextKey)), true);
     },
@@ -118,7 +121,7 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
     restart() { endGesture(); publish({ restartKey: state.restartKey + 1 }); },
     shownRecipe: () => state.comparing && state.workspace.pinned ? state.workspace.pinned.recipe : slot().present.recipe,
     async save(name?: string, asNew = false) {
-      if (!storage || state.saving) return false;
+      if (!storage || state.saving || state.recoveryUnavailable) return false;
       endGesture();
       const frame = slot().present;
       const source = asNew ? null : frame.source;

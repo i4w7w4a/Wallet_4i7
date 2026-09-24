@@ -6,10 +6,8 @@ export function SandboxDialog({ title, children, close, busy = false }: { title:
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     (ref.current?.querySelector<HTMLElement>("[data-initial-focus]") ??
       ref.current?.querySelector<HTMLElement>('input, textarea, button:not([aria-label="Закрыть диалог"])') ?? ref.current)?.focus();
-    return () => { if (previous?.isConnected) previous.focus(); };
   }, []);
   return <div className={styles.scrim} onClick={event => { if (event.target === event.currentTarget && !busy) close(); }}>
     <div ref={ref} className={styles.modal} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}

@@ -149,3 +149,17 @@ it("commits the shared numeric input as one complete undo transaction", () => {
   fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("81");
 });
+
+it("shows an unavailable recovered workspace instead of rendering a substitute material", () => {
+  localStorage.setItem(WORKSPACE_KEY, '{"version":999}');
+  render(<MonoAtmosphereLab />);
+  expect(document.querySelector("[data-mono-background-recipe]")).toBeNull();
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Дополнительно" }));
+  expect(screen.getByRole("button", { name: "Экспорт JSON" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Сохранить как…" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Закрыть диалог" }));
+  fireEvent.click(screen.getByRole("button", { name: "Начать новую пробу" }));
+  expect(document.querySelector("[data-mono-background-recipe]")).toBeInTheDocument();
+  expect(localStorage.getItem(WORKSPACE_KEY)).toBe('{"version":999}');
+});

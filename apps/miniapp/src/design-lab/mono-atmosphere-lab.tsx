@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import type { BackgroundPresentation, BackgroundRuntimeStatus, BackgroundSandboxBindings } from "@wallet/ui";
 import { MonoBackgroundRecipes } from "../mono-preview/mono-background-recipes-view";
 import { MONO_BACKGROUND_DEFAULTS, type MonoBackgroundRecipeConfig, type MonoBackgroundRecipeId } from "../mono-preview/mono-background-recipes";
@@ -59,7 +59,8 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   const [presentation, setPresentation] = useState<BackgroundPresentation>({ mode: "standalone", shape: "wide" });
   const [paused, setPaused] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [dialog, setDialog] = useState<Dialog>(null);
+  const [dialog, setDialogState] = useState<Dialog>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
   const [pending, setPending] = useState<Transition | null>(null);
   const [name, setName] = useState("");
   const [asNew, setAsNew] = useState(false);
@@ -73,10 +74,22 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   const title = slot.present.source?.name ?? "Новая проба";
   const currentSaved = slot.present.source && !dirty && !state.externalChange && !state.libraryError &&
     state.library.trials.some(trial => trial.id === slot.present.source?.id && trial.revision === slot.present.source.revision && JSON.stringify(trial.recipe) === JSON.stringify(config));
-  const saveStatus = state.saving ? "Сохранение…" : state.saveError ? "Не удалось сохранить" : currentSaved ? "Сохранено" : dirty ? "Изменено" : "Не сохранено";
+  const saveStatus = state.recoveryUnavailable ? "Проба недоступна" : state.saving ? "Сохранение…" : state.saveError ? "Не удалось сохранить" : currentSaved ? "Сохранено" : dirty ? "Изменено" : "Не сохранено";
   const fittingAvailable = isGpuRecipe(shown) ? !!bindings?.fittingAvailable : !!renderScene;
   const effectivePresentation: BackgroundPresentation = presentation.mode === "mono" && !fittingAvailable ? { mode: "standalone", shape: "wide" } : presentation;
-  const inactive = state.comparing || state.saving || !state.ready;
+  const inactive = state.comparing || state.saving || !state.ready || state.recoveryUnavailable;
+
+  function setDialog(next: Dialog) {
+    // Capture in the opening event, before the following commit makes the launcher inert.
+    if (next !== null && dialog === null) returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setDialogState(next);
+  }
+  useLayoutEffect(() => {
+    if (dialog !== null) return;
+    const target = returnFocus.current; returnFocus.current = null;
+    // All DOM mutations (including removing inert) have completed before layout effects.
+    if (target?.isConnected) target.focus();
+  }, [dialog]);
 
   useEffect(() => {
     const port = { getItem: (key: string) => window.localStorage.getItem(key), setItem: (key: string, value: string) => window.localStorage.setItem(key, value) };
@@ -145,7 +158,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
             <button className={styles.control} type="button" aria-label="Показать A" aria-pressed={state.comparing} disabled={!state.workspace.pinned || state.saving} onClick={() => editor.compare(true)}>A</button>
             <button className={styles.control} type="button" aria-label="Показать B" aria-pressed={!state.comparing} disabled={state.saving} onClick={() => editor.compare(false)}>B</button>
           </div>
-          <button className={`${styles.control} ${styles.primary}`} type="button" disabled={state.saving || !state.ready} onClick={() => { void save(); }}>Сохранить</button>
+          <button className={`${styles.control} ${styles.primary}`} type="button" disabled={state.saving || !state.ready || state.recoveryUnavailable} onClick={() => { void save(); }}>Сохранить</button>
           <MonoLabIconButton label="Дополнительно" disabled={state.saving} onClick={() => { editor.endGesture(); setDialog("more"); }}><Icon kind="more" /></MonoLabIconButton>
         </div>
       </div>
@@ -162,13 +175,15 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
           {effectivePresentation.mode === "mono" && <div className={styles.widths} role="group" aria-label="Ширина примерки">{WIDTHS.map(width => <button type="button" className={styles.control} key={width} aria-pressed={effectivePresentation.width === width} onClick={() => setPresentation({ mode: "mono", width })}>{width}</button>)}</div>}
           <section className={styles.stage} aria-label="Сцена материала" data-mode={effectivePresentation.mode} data-shape={effectivePresentation.mode === "standalone" ? effectivePresentation.shape : "portrait"}
             style={effectivePresentation.mode === "mono" ? { "--fitting-width": `${effectivePresentation.width}px` } as CSSProperties : undefined}>
-            {isGpuRecipe(shown) && bindings ? bindings.renderStage({ recipe: shown, presentation: effectivePresentation, paused: paused || state.comparing, restartKey: state.restartKey, onStatus })
+            {!state.ready ? <div className={styles.unavailable}>Подготовка рабочего места…</div>
+              : state.recoveryUnavailable ? <div className={styles.unavailable}><p>Сохранённое рабочее место недоступно.</p><p>{state.recoveryError}</p><p>Исходные данные сохранены. Можно открыть именованную пробу из библиотеки или начать новую.</p><button className={styles.control} type="button" onClick={editor.startFresh}>Начать новую пробу</button></div>
+              : isGpuRecipe(shown) && bindings ? bindings.renderStage({ recipe: shown, presentation: effectivePresentation, paused: paused || state.comparing, restartKey: state.restartKey, onStatus })
               : !isGpuRecipe(shown) && effectivePresentation.mode === "mono" && renderScene ? renderScene({ config: paused || state.comparing ? { ...shown, calm: true } : shown, theme, width: effectivePresentation.width })
               : !isGpuRecipe(shown) ? <LegacyStage recipe={shown} theme={theme} paused={paused || state.comparing} /> : <p>Этот материал недоступен.</p>}
           </section>
           <div className={styles.stageFoot}><span>{effectivePresentation.mode === "mono" ? "Примерка · оформление кошелька не изменено" : "Самостоятельная проба · только в этом браузере"}</span>
             <span>{isGpuRecipe(shown) ? runtime?.message ?? "Подготовка материала…" : "SVG / CSS · свет, без физической симуляции"}</span></div>
-          <p className={styles.resetNote}>Открытие, A/B и перезапуск начинают движение заново. История жестов и состояние симуляции не сохраняются.</p>
+          <p className={styles.resetNote}>Открытие, A/B и перезапуск начинают движение заново. Смена размера и восстановление GPU могут сбросить симуляцию. Сохраняются параметры, а не история жестов.</p>
         </div>
         <aside className={styles.tuner} aria-label="Инспектор материала">
           <div className={styles.tunerHeading}><h2>Материал</h2><span>{String(state.workspace.activeSlot + 1).padStart(2, "0")}</span></div>
@@ -185,7 +200,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
           }}><option value="" disabled>Выбрать вариант…</option>{descriptor.presets.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}</select></label>}
           <div className={styles.inspectorActions}><button className={styles.control} type="button" disabled={inactive} onClick={() => {
             const defaults = descriptor?.presets[0]?.recipe ?? (!isGpuRecipe(config) ? MONO_BACKGROUND_DEFAULTS[config.recipe] : null); if (defaults) editor.edit(defaults);
-          }}>По умолчанию</button><button className={styles.control} type="button" onClick={() => setDialog("source")}>Об источнике</button></div>
+          }}>По умолчанию</button><button className={styles.control} type="button" disabled={state.recoveryUnavailable} onClick={() => setDialog("source")}>Об источнике</button></div>
           {!isGpuRecipe(config) && <label className={styles.field}>Тема<select value={theme} onChange={event => setTheme(event.target.value as "dark" | "light")}><option value="dark">Тёмная</option><option value="light">Светлая</option></select></label>}
           <p className={styles.note}>{state.workspace.pinned ? `A закреплена: ${state.workspace.pinned.name}, ревизия ${state.workspace.pinned.revision}.` : "Для A выберите сохранённую пробу в библиотеке."}</p>
           {!fittingAvailable && <p className={styles.note}>{bindings?.fittingUnavailableReason ?? "Примерка MONO появится после проверки общего renderer."}</p>}
@@ -199,10 +214,10 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
     </div>
     {dialog && <SandboxDialog key={dialog} title={TITLES[dialog]} close={close} busy={state.saving}>
       {dialog === "more" && <div className={styles.actionList}>
-        <button className={styles.control} type="button" onClick={() => nameDialog(true)}>Сохранить как…</button>
+        <button className={styles.control} type="button" disabled={state.recoveryUnavailable} onClick={() => nameDialog(true)}>Сохранить как…</button>
         <button className={styles.control} type="button" onClick={() => { setImportText(""); setImportPreview(null); setNotice(""); setDialog("import"); }}>Импорт JSON</button>
-        <button className={styles.control} type="button" onClick={() => setDialog("export")}>Экспорт JSON</button>
-        <button className={styles.control} type="button" onClick={() => setDialog("source")}>Материал и источник</button>
+        <button className={styles.control} type="button" disabled={state.recoveryUnavailable} onClick={() => setDialog("export")}>Экспорт JSON</button>
+        <button className={styles.control} type="button" disabled={state.recoveryUnavailable} onClick={() => setDialog("source")}>Материал и источник</button>
       </div>}
       {dialog === "name" && <form onSubmit={event => { event.preventDefault(); void editor.save(name, asNew).then(ok => { if (ok) { pending?.action(); close(); } }); }}>
         <label className={styles.field}>Имя пробы<input data-initial-focus value={name} maxLength={64} required disabled={state.saving} onChange={event => setName(event.target.value)} /></label>
