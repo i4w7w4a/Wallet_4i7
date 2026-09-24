@@ -16,11 +16,21 @@
   display: grid;
   place-items: center;
   width: 100%;
-  min-height: inherit;
+  min-height: 100dvh;
   padding: 24px;
   background: #111216;
   color: #b2bdcb;
   font: 14px/1.5 Arial, sans-serif;
+}
+
+.mono-scene-loading[data-mono-theme="light"],
+html[data-mono-prepaint-theme="light"] .mono-scene-loading:not([data-mono-theme]) {
+  background: #eeece7;
+  color: #3a4147;
+}
+
+@media (max-width: 1199px) {
+  .mono-workbench .mono-scene-loading { min-height: calc(100dvh - 54px); }
 }
 
 .mono-page { --mono-gutter: 20px; }

@@ -93,7 +93,8 @@ export function MonoScene(props: MonoSceneProps) {
   const [hasPresented, setHasPresented] = useState(false);
   const canPresent = ready && (hasPresented || typography.status !== "loading");
   if (canPresent && !hasPresented) setHasPresented(true);
-  if (!canPresent) return <div className="mono-scene-loading" role="status">Загрузка оформления…</div>;
+  if (!canPresent) return <div className="mono-scene-loading" role="status"
+    data-mono-theme={ready ? props.appearance.environment.theme : undefined}>Загрузка оформления…</div>;
   return <MonoSceneContent {...props} typography={typography} />;
 }
 
