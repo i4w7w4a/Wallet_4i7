@@ -76,6 +76,7 @@ function deleteTexture(gl: OGLRenderingContext, texture: Texture): void {
 
 /** A lab scene owns one canvas, one WebGL2 context and one RAF for all active passes. */
 export class MaterialSceneBackend {
+  private readonly viewportElement: HTMLElement;
   private readonly canvas: HTMLCanvasElement;
   private readonly renderer: Renderer;
   private readonly gl: OGLRenderingContext;
@@ -105,10 +106,12 @@ export class MaterialSceneBackend {
     private readonly onStatus: (status: BackgroundRuntimeStatus) => void,
     private readonly onRestore: () => void) {
     this.input = input;
+    // The stage is the visible viewport; MONO's scrollable wallet is taller than it.
+    this.viewportElement = root.parentElement ?? root;
     this.canvas = document.createElement("canvas");
     this.canvas.dataset.materialCanvas = "true";
     this.canvas.setAttribute("aria-hidden", "true");
-    Object.assign(this.canvas.style, { position: "absolute", inset: "0", display: "block", pointerEvents: "none" });
+    Object.assign(this.canvas.style, { position: "absolute", left: "0", top: "0", display: "block", pointerEvents: "none" });
     root.prepend(this.canvas);
     try {
       this.renderer = new Renderer({ canvas: this.canvas, webgl: 2, alpha: true, premultipliedAlpha: true,
@@ -118,16 +121,20 @@ export class MaterialSceneBackend {
       this.limits = { maxTextureSize: Math.min(4096, this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE) as number,
         this.gl.getParameter(this.gl.MAX_RENDERBUFFER_SIZE) as number),
         maxRenderTargetBytes: TOTAL_BYTES - PROMO_BYTES };
-      const size = resolveViewport(root.clientWidth, root.clientHeight, window.devicePixelRatio, this.limits.maxTextureSize);
+      const size = resolveViewport(this.viewportElement.clientWidth, this.viewportElement.clientHeight,
+        window.devicePixelRatio, this.limits.maxTextureSize);
       if (!size) throw new Error("Область материала пока не имеет размера.");
       this.viewport = size;
       this.renderer.dpr = size.dpr;
       this.renderer.setSize(size.cssWidth, size.cssHeight);
+      this.syncCanvasToScroll();
       this.compositor = new MaterialCompositor(this.renderer, size);
       this.resizeObserver = new ResizeObserver(() => this.resize());
       this.mutationObserver = new MutationObserver(() => { if (this.waitingTargets) void this.select(); });
       this.resizeObserver.observe(root);
+      if (this.viewportElement !== root) this.resizeObserver.observe(this.viewportElement);
       this.mutationObserver.observe(root, { childList: true, subtree: true });
+      this.viewportElement.addEventListener("scroll", this.scrollChanged, { passive: true });
       this.canvas.addEventListener("webglcontextlost", this.contextLost);
       this.canvas.addEventListener("webglcontextrestored", this.contextRestored);
       root.addEventListener("pointerenter", this.handlePointer, { passive: true });
@@ -183,7 +190,7 @@ export class MaterialSceneBackend {
     }
     const parsed = parseTargetBindings(this.input.bindings, materialCatalogV2);
     if (!parsed.ok) throw new Error(parsed.issues.map(issue => issue.message).join(" "));
-    const rootRect = this.root.getBoundingClientRect();
+    const rootRect = this.canvas.getBoundingClientRect();
     for (const target of parsed.value) {
       if (!target.enabled) continue;
       const button = this.root.querySelector<HTMLElement>(`[data-material-target="${target.targetId}"]`);
@@ -310,8 +317,8 @@ export class MaterialSceneBackend {
         if (drawn && entry.button && entry.layer) entry.button.setAttribute(`data-material-${entry.layer}-presented`, "true");
       }
       if (this.input.overlay) {
-        this.optical ??= this.input.overlay.create(this.gl, this.limits);
-        const overlayFrame = this.optical.render({ ...timing, pointer: backgroundPointer }, this.viewport, this.root);
+          this.optical ??= this.input.overlay.create(this.gl, this.limits);
+        const overlayFrame = this.optical.render({ ...timing, pointer: backgroundPointer }, this.viewport, this.canvas);
         if (overlayFrame) {
           const [x, y, width, height] = overlayFrame.rect;
           const region: MaterialTargetGeometry = { capability: "background", x, y, width, height,
@@ -330,7 +337,7 @@ export class MaterialSceneBackend {
     if (!entry.button || !entry.layer) return null;
     const element = entry.layer === "icon" ? entry.button.querySelector<HTMLElement>(".mono-actions__icon") : entry.button;
     if (!element) return null;
-    return resolveMaterialTargetGeometry(this.root.getBoundingClientRect(), element.getBoundingClientRect(),
+    return resolveMaterialTargetGeometry(this.canvas.getBoundingClientRect(), element.getBoundingClientRect(),
       this.viewport, `button-${entry.layer}`, entry.geometry.mask, entry.geometry.radiusCss, entry.geometry.borderWidthCss);
   }
 
@@ -353,6 +360,10 @@ export class MaterialSceneBackend {
     if (document.visibilityState === "hidden") { this.pointer.reset(); this.stop(); }
     else { this.draw(); this.schedule(); }
   };
+  private syncCanvasToScroll(): void {
+    this.canvas.style.top = `${this.viewportElement.scrollTop}px`;
+  }
+  private readonly scrollChanged = () => { this.syncCanvasToScroll(); this.invalidate(); };
   private readonly handlePointer = (event: PointerEvent) => {
     if (!this.input.background || !this.input.hostActive || this.input.paused) return;
     const phase = event.type.slice("pointer".length) as PointerPhase;
@@ -361,7 +372,7 @@ export class MaterialSceneBackend {
       "button,a,input,select,textarea,summary,[contenteditable=true],[role='button'],[role='slider']"));
     const routedPhase = materialPointerPhase(phase, overControl);
     if (!routedPhase) return;
-    const rect = this.root.getBoundingClientRect();
+    const rect = this.canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
     this.pointer.push({ id: event.pointerId, phase: routedPhase,
       pointerType: event.pointerType === "touch" || event.pointerType === "pen" ? event.pointerType : "mouse",
@@ -407,7 +418,8 @@ export class MaterialSceneBackend {
 
   resize(): void {
     if (this.disposed || this.lost) return;
-    const size = resolveViewport(this.root.clientWidth, this.root.clientHeight, window.devicePixelRatio,
+    this.syncCanvasToScroll();
+    const size = resolveViewport(this.viewportElement.clientWidth, this.viewportElement.clientHeight, window.devicePixelRatio,
       this.limits.maxTextureSize);
     if (!size || (size.cssWidth === this.viewport.cssWidth && size.cssHeight === this.viewport.cssHeight &&
         size.pixelWidth === this.viewport.pixelWidth && size.pixelHeight === this.viewport.pixelHeight)) return;
@@ -423,6 +435,7 @@ export class MaterialSceneBackend {
     this.disposed = true;
     this.generation++; this.abort?.abort(); this.stop();
     this.resizeObserver.disconnect(); this.mutationObserver.disconnect();
+    this.viewportElement.removeEventListener("scroll", this.scrollChanged);
     this.unsubscribeOverlay?.(); this.unsubscribeOverlay = null;
     this.root.removeEventListener("pointerenter", this.handlePointer);
     this.root.removeEventListener("pointermove", this.handlePointer);

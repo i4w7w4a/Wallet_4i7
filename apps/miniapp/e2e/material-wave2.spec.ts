@@ -20,3 +20,26 @@ test("button workshop presents Metal fill and Pulsing Border on the four real MO
   const withoutGpu = await scene.locator(".mono-actions").screenshot();
   expect(withGpu.equals(withoutGpu)).toBe(false);
 });
+
+test("background canvas follows the visible MONO stage while its content scrolls", async ({ page }) => {
+  await page.goto("/design-lab/atmosphere");
+  const stage = page.getByRole("region", { name: "Сцена материала" });
+  await expect(stage.locator("[data-material-scene]")).toHaveAttribute("data-gpu-phase", /running|paused/, { timeout: 30_000 });
+  await page.getByRole("combobox", { name: "Формат сцены" }).selectOption("mono");
+  await expect(stage).toHaveAttribute("data-mode", "mono");
+  const scene = stage.locator("[data-material-scene]");
+  await expect(scene).toHaveAttribute("data-gpu-phase", /running|paused/, { timeout: 30_000 });
+  const measure = async () => stage.evaluate(element => {
+    const canvas = element.querySelector<HTMLCanvasElement>("[data-material-canvas]")!;
+    return { stageHeight: element.clientHeight, stageTop: element.getBoundingClientRect().top,
+      canvasHeight: canvas.getBoundingClientRect().height, canvasTop: canvas.getBoundingClientRect().top,
+      scrollTop: element.scrollTop };
+  });
+  const before = await measure();
+  expect(Math.abs(before.canvasHeight - before.stageHeight)).toBeLessThanOrEqual(2);
+  expect(Math.abs(before.canvasTop - before.stageTop)).toBeLessThanOrEqual(3);
+  await stage.evaluate(element => { element.scrollTop = 240; });
+  const after = await measure();
+  expect(after.scrollTop).toBeGreaterThan(0);
+  expect(Math.abs(after.canvasTop - after.stageTop)).toBeLessThanOrEqual(3);
+});
