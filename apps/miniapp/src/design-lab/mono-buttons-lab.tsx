@@ -225,7 +225,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
             <button className={styles.control} type="button" disabled={disabled || state.acceptedUnavailable} onClick={() => { void editor.apply().then(ok => { if (ok) setNotice("Применено в локальной примерке."); }); }}>Применить</button>
             <button className={styles.control} type="button" disabled={disabled} onClick={() => { editor.cancel(); setNotice("Возвращена принятая проба."); }}>Отменить пробу</button>
           </div>
-          <p className={styles.note}>Материалы не меняют опубликованные настройки MONO. <a href="/design-lab" target="_blank" rel="noopener noreferrer">Motion Lab ↗</a> настраивает прежний отклик на нажатие.</p>
+          <p className={styles.note}>Материалы не меняют опубликованные настройки MONO. <a href="/design-lab/motion" target="_blank" rel="noopener noreferrer">Отклик / Motion Lab ↗</a> настраивает прежний отклик на нажатие.</p>
         </div>
         <aside className={styles.inspector} aria-label="Инспектор кнопок">
           <div className={styles.inspectorHeading}><h2>{LAYER_LABEL[selection.layer]} · {selection.target === "all" ? "Все четыре" : ACTION_LABEL[selection.target]}</h2><span>Слот {state.workspace.activeSlot + 1}</span></div>

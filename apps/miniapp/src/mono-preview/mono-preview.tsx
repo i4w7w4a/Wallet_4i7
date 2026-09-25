@@ -1016,6 +1016,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         role={compactChrome && mobileRail === "quick" ? "dialog" : undefined}
         aria-modal={compactChrome && mobileRail === "quick" ? true : undefined}>
         <div className="mono-rail__head"><div><span>WORKSPACE</span><strong>MONO</strong></div><a href="/">V1 ↗</a></div>
+        <a className="mono-rail__lab-entry" href="/design-lab">Design Lab · Фоны и кнопки ↗</a>
         <MonoWorkingPresetBar key={workingLibrary?.activeId ?? "baseline"}
           ready={workingReady}
           activeName={workingLibrary?.records.find(record => record.id === workingLibrary.activeId)?.name ?? "Исходный образец"}
@@ -1086,7 +1087,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           {activeTool === "shape" && <div className="mono-workbench__shape">          <MonoShapeTuner values={draftShapes[preset]} dirty={shapeDirty} status={shapeStatus}
             onChange={updateShape} onDefault={resetShape} onCancel={cancelShape} onApply={applyShape}
             onOpenMotionLab={process.env.NODE_ENV === "development" && workingReady ? openQuickActionMotionLab : undefined}
-            buttonLabHref={process.env.NODE_ENV === "development" ? "/design-lab/buttons" : undefined}
+            buttonLabHref="/design-lab/buttons"
             motionLabStatus={quickActionPreview && !quickActionOverride
               ? "Здесь действует стандартный Material; отдельная проба относится к другому пресету."
               : quickActionMotionStatus} />

@@ -1,5 +1,16 @@
 import { expect, test } from "@playwright/test";
 
+test("Design Lab opens its workshops and preserves the old Motion launch URL", async ({ page }) => {
+  await page.goto("/design-lab");
+  await expect(page.getByRole("heading", { name: "Лаборатория" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Фоны/ }).first()).toHaveAttribute("href", "/design-lab/atmosphere");
+  await expect(page.getByRole("link", { name: /Кнопки/ }).first()).toHaveAttribute("href", "/design-lab/buttons");
+  await page.goto("/design-lab/motion");
+  await expect(page.getByRole("heading", { name: /Один объект/ })).toBeVisible();
+  await page.goto("/design-lab?session=invalid&target=mono.quick-actions");
+  await expect(page.getByRole("heading", { name: /Один объект/ })).toBeVisible();
+});
+
 test("button workshop keeps edge-first defaults and readable opt-in Metal fill and icon", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", error => pageErrors.push(error.message));
