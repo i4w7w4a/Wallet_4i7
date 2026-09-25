@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fluid Particles · isolated GPU probe</title>
+<style>
+  body { margin: 0; background: #121821; color: #f4f6fa; font: 14px system-ui; }
+  header { padding: 14px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  button { min-height: 44px; padding: 0 16px; color: inherit; background: #252d39; border: 1px solid #576271; border-radius: 8px; }
+  main { padding: 14px; }
+  canvas { display: block; max-width: 100%; touch-action: auto; }
+  pre { white-space: pre-wrap; }
+</style>
+<header><strong>Fluid Particles · technical preview</strong><button id="play">Play / Pause</button><button id="restart">Restart</button><span>One borrowed WebGL2 context. No orbit or scroll capture.</span></header>
+<main><canvas></canvas><pre id="status">Preparing…</pre></main>
+<script type="module" src="./fixture.ts"></script>
+</html>

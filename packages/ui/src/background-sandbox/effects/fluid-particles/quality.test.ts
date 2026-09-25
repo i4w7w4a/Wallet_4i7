@@ -33,4 +33,15 @@ describe("fluid particle GPU budget", () => {
       { maxTextureSize: 4096, maxRenderTargetBytes: 1024 * 1024 },
     )).toBeNull();
   });
+
+  it("keeps artistic data separate from the runtime economy profile", async () => {
+    const api = await import("./quality");
+    const plan = api.planParticleAllocation(
+      { pixelWidth: 1920, pixelHeight: 1080 },
+      { maxTextureSize: 4096, maxRenderTargetBytes: 28 * 1024 * 1024 },
+      "economy",
+    );
+    expect(plan?.profile).toBe("compact");
+    expect(plan!.attachmentBytes + plan!.textureBytes).toBe(plan!.bytes);
+  });
 });

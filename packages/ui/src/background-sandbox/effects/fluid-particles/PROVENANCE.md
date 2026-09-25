@@ -1,0 +1,23 @@
+# Fluid Particles — David Li source port
+
+Pinned upstream: [dli/fluid at `ac3ee551ee33caaf4c0aa38da21e2be5562fd5ab`](https://github.com/dli/fluid/tree/ac3ee551ee33caaf4c0aa38da21e2be5562fd5ab). The checked-out `shaders` Git tree is `f7f6957bb74a3a7c7c752ba4b69c6e6250078b3b`. Source blobs consulted: `simulator.js` `ccd9d73a2611bb6c27d653c7d780de0b7840aef6`, `renderer.js` `1b2463e06cc408dfffc89714d56043cec1e5f64e`, `simulatorrenderer.js` `5c182b28804934860510d70b234bbb05c689d89c`, `fluidparticles.js` `52c338a1246cdec1b031713856bbfa2aeb5bbf7a`.
+
+License: MIT, Copyright (c) 2016 David Li. The complete upstream notice is in [LICENSE.upstream](./LICENSE.upstream). `upstream-shaders.ts` contains the 23 selected shader files verbatim from the pin. `shader-compat.ts` converts GLSL ES 1.00 syntax to GLSL ES 3.00 at module load; `shaders.ts` makes the Novex changes below. No demo HTML, external script, logo, analytics, new runtime package or network shader is used.
+
+Preserved mechanics:
+
+- 3D particles are transferred into a staggered MAC velocity grid with additive five-slice splats, normalized by weights, and marked as fluid cells.
+- Gravity and pointer force enter the grid; boundaries, divergence, 50 Jacobi pressure iterations and pressure subtraction follow. Particle velocities use the original PIC/FLIP blend. Position advection is RK2 with the source random perturbation.
+- Spheres use the effective 80-triangle upstream mesh. The source `generateSphereGeometry(3)` has a nested `var i` loop bug and actually performs one subdivision; this port intentionally preserves the resulting geometry cost and does not increase it sixteenfold.
+- Deferred normal/speed/depth shading, spherical AO accumulation, 256² shadow depth/PCF, composite lighting and FXAA remain separate passes. Positive `dt` costs 69 simulation draws plus five rendering draws.
+
+Intentional changes:
+
+- One borrowed host WebGL2/OGL context and scheduler replace WrappedGL and the demo's canvas/RAF/listeners/orbit/wheel controls. The pass returns an opaque display-sRGB texture to the shared compositor.
+- Seeded dam initialization replaces `Math.random`. The two source-side random fields replay from the same seed. Reset and resize restart the field; JSON has no live GPU positions.
+- Sphere centers stay at least the **maximum editable sphere radius** inside the 40×20×20 physical volume. Camera presets use a projected bounding sphere with that radius to keep spheres within portrait and wide output.
+- Runtime quality is separate from the artistic recipe. Standard: 32×16×16 grid and 30,720 particles. Compact: 24×12×12 grid and 13,056 particles. Internal output is capped at 960 long edge for detail, 800 for balanced and 640 for economy, and shrinks further to the host's attachment budget. The source fullscreen RGBA32F G-buffer becomes bounded RGBA16F. Plan counts all writable textures, depth storage, output and sampled-only random texture before allocation; driver overhead is separate. Actual FBO completeness is checked.
+- `particleColor` tints the source speed-based hue, and `backgroundColor` replaces the white radial base. `timeScale` multiplies the capped 1/60-second host step; frame scheduling is unchanged. `gravity`, `flipRatio`, `pointerForce`, `particleSize`, `initialFill` and three fixed camera presets are bounded controls. `initialFill` affects the next explicit Restart. The source orbit controller is omitted to preserve page drag and scroll.
+- The source position clamp `0.01` becomes the maximum sphere radius; a background guard avoids spherical AO math on empty G-buffer pixels. No continuous emitter is added. Fluid may settle naturally. The solver does not catch up dropped time, so hardware-independent simulation speed is not claimed.
+
+Source GUI mapping: FLIP ratio and speed/time step are artistic controls; density is an explicit runtime quality profile because arbitrary source densities break the material budget; source dam fill becomes an editable initial width; source orbit/wheel and freehand box editor are omitted in favor of fixed fitted camera and deterministic Restart. Source particle count/texture dimensions vary only by the selected bounded runtime profile.

@@ -6,21 +6,24 @@ export type ParticleAllocation = Readonly<{
   output: Readonly<{ width: number; height: number }>;
   shadow: Readonly<{ width: number; height: number }>;
   sphereRadius: number;
+  attachmentBytes: number;
+  textureBytes: number;
   bytes: number;
 }>;
 
 export function planParticleAllocation(
   viewport: Readonly<{ pixelWidth: number; pixelHeight: number }>,
   limits: Readonly<{ maxTextureSize: number; maxRenderTargetBytes: number }>,
+  quality: "economy" | "balanced" | "detail" = "detail",
 ): ParticleAllocation | null {
   const { pixelWidth, pixelHeight } = viewport;
   const { maxTextureSize, maxRenderTargetBytes } = limits;
   if (![pixelWidth, pixelHeight, maxTextureSize, maxRenderTargetBytes].every(Number.isFinite)
     || pixelWidth < 1 || pixelHeight < 1 || maxTextureSize < 325 || maxRenderTargetBytes < 1) return null;
 
-  const standard = maxRenderTargetBytes >= 16 * 1024 * 1024 && maxTextureSize >= 1024;
+  const standard = quality !== "economy" && maxRenderTargetBytes >= 16 * 1024 * 1024 && maxTextureSize >= 1024;
   const profile = standard ? "standard" : "compact";
-  const grid = (standard ? [32, 16, 16] : [24, 12, 12]) as const;
+  const grid: readonly [number, number, number] = standard ? [32, 16, 16] : [24, 12, 12];
   const particles = standard ? { width: 256, height: 120 } : { width: 192, height: 68 };
   const particleCount = particles.width * particles.height;
   const shadow = { width: 256, height: 256 };
@@ -36,7 +39,7 @@ export function planParticleAllocation(
   const fixedBytes = solverBytes + shadow.width * shadow.height * 2;
   const maxPixelsByBudget = Math.floor((maxRenderTargetBytes - fixedBytes) / renderBytesPerPixel);
   if (maxPixelsByBudget < 192 * 192) return null;
-  const maxLongEdge = Math.min(maxTextureSize, standard ? 960 : 640);
+  const maxLongEdge = Math.min(maxTextureSize, standard ? (quality === "balanced" ? 800 : 960) : 640);
   const firstScale = Math.min(1, maxLongEdge / Math.max(pixelWidth, pixelHeight));
   const firstWidth = Math.max(1, Math.floor(pixelWidth * firstScale));
   const firstHeight = Math.max(1, Math.floor(pixelHeight * firstScale));
@@ -48,6 +51,7 @@ export function planParticleAllocation(
   if (Math.min(output.width, output.height) < 192) return null;
   const bytes = fixedBytes + output.width * output.height * renderBytesPerPixel;
   if (bytes > maxRenderTargetBytes) return null;
+  const textureBytes = particleCount * 16; // sampled-only random direction texture
   return { profile, grid, particleCount, particles, output, shadow,
-    sphereRadius: 7 / grid[0], bytes };
+    sphereRadius: 7 / grid[0], attachmentBytes: bytes - textureBytes, textureBytes, bytes };
 }
