@@ -77,6 +77,34 @@ try {
   assert.equal(b.resetAfterAction.hash, b.initial.hash);
   assert.equal(b.error, 0);
 
+  results.touchGestures = await page.evaluate(() => {
+    const p = window.fluidV2Probe;
+    const sample = (phase, uv, delta, buttons) => ({ id: 27, phase, uv, delta, time: 1, buttons, pointerType: "touch" });
+    const tapBase = p.reset();
+    const tapPasses = p.render(0, { uv: [0.66, 0.45], inside: true, down: false, samples: [
+      sample("down", [0.66, 0.45], [0, 0], 1), sample("up", [0.66, 0.45], [0, 0], 0),
+    ] });
+    const tap = p.capture();
+    const dragBase = p.reset();
+    const dragPasses = p.render(0, { uv: [0.42, 0.5], inside: true, down: false, samples: [
+      sample("down", [0.4, 0.5], [0, 0], 1), sample("move", [0.42, 0.5], [0.02, 0], 1), sample("up", [0.42, 0.5], [0, 0], 0),
+    ] });
+    const drag = p.capture();
+    const cancelBase = p.reset();
+    const cancelPasses = p.render(0, { uv: [0.5, 0.5], inside: false, down: false, samples: [
+      sample("down", [0.5, 0.5], [0, 0], 1), sample("move", [0.5, 0.46], [0, -0.04], 1), sample("cancel", [0.5, 0.46], [0, 0], 0),
+    ] });
+    const canceled = p.capture();
+    return { tapBase, tap, tapPasses, dragBase, drag, dragPasses, cancelBase, canceled, cancelPasses, error: p.error() };
+  });
+  assert.equal(results.touchGestures.tapPasses.passesPerFrame, 4);
+  assert.notEqual(results.touchGestures.tap.hash, results.touchGestures.tapBase.hash);
+  assert.equal(results.touchGestures.dragPasses.passesPerFrame, 4);
+  assert.notEqual(results.touchGestures.drag.hash, results.touchGestures.dragBase.hash);
+  assert.equal(results.touchGestures.cancelPasses.passesPerFrame, 0);
+  assert.equal(results.touchGestures.canceled.hash, results.touchGestures.cancelBase.hash);
+  assert.equal(results.touchGestures.error, 0);
+
   results.controls = await page.evaluate(() => {
     const p = window.fluidV2Probe;
     const base = { mode: "draw", timeScale: 1, force: 3600, radius: 0.25, curl: 30, velocityDissipation: 0.2, dyeDissipation: 1, pressureRetention: 0.8, shading: true, colors: ["#9AA6B3", "#62738B", "#A7927E"], colorAlpha: 0.9, backgroundColor: "#080A0F", backgroundAlpha: 1, colorCycleRate: 0, bloomEnabled: false, bloomIntensity: 0.8, bloomThreshold: 0.6, sunraysEnabled: false, sunraysWeight: 1, ambientRate: 0.5 };

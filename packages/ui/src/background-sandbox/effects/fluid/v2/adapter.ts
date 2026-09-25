@@ -1,13 +1,13 @@
 import { Mesh, Program, RenderTarget, Triangle, type OGLRenderingContext, type Texture } from "ogl";
 import type { CreateResult, EffectDiagnostics, Frame, GpuFailure, Viewport } from "../../../contracts";
 import type { MaterialAction, MaterialFrameTexture, MaterialInit, MaterialPass, MaterialResourcePlan, MaterialTargetGeometry } from "../../../material-contract";
-import { FluidDragInput } from "../input";
 import { createSeedSplats } from "../seed";
 import { createFluidActionState, drainFluidAction, queueFluidAction, type FluidActionState } from "./actions";
 import { createFluidClock, stepFluidClock, type FluidClock } from "./clock";
 import { fluidHexToRgb, resolveFluidV2Colors } from "./colors";
 import { fluidV2Decay } from "./dynamics";
 import { planFluidV2Allocation, type FluidSize, type FluidV2Allocation } from "./quality";
+import { FluidV2PointerInput } from "./pointer";
 import { parseFluidV2Params, type FluidV2Params } from "./schema";
 import * as v2Shaders from "./shaders";
 
@@ -67,7 +67,7 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
   private readonly programs = new Map<PassName, Program>();
   private readonly meshes = new Map<PassName, Mesh>();
   private readonly ownedTargets: RenderTarget[] = [];
-  private readonly input = new FluidDragInput();
+  private readonly input = new FluidV2PointerInput();
   private geometryMesh: Triangle | null = null;
   private targets: Targets | null = null;
   private allocation: FluidV2Allocation | null = null;
@@ -243,12 +243,12 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     }
     const step = stepFluidClock(this.clock, frame.dt, this.params.timeScale, this.params.mode, this.params.ambientRate);
     this.clock = step.clock;
-    const drag = frame.dt > 0 ? this.input.consume(frame.pointer, this.geometry.width / this.geometry.height) : [];
-    if (frame.dt <= 0) this.input.reset();
+    const drag = this.input.consume(frame.pointer, this.geometry.width / this.geometry.height, this.params.mode === "draw");
     let available = 4;
     for (const moved of drag) {
       if (!available) break;
-      this.splat(moved.x, moved.y, moved.dx * this.params.force, moved.dy * this.params.force, this.dragPigment++, 0.35);
+      this.splat(moved.x, moved.y, moved.dx * this.params.force, moved.dy * this.params.force,
+        this.dragPigment++, moved.kind === "tap" ? 0.75 : 0.35);
       available--;
     }
     const manual = drainFluidAction(this.actionState, available);
