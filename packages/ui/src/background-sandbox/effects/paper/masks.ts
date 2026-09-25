@@ -201,8 +201,8 @@ function packHeatmap(width: number, height: number, contour: Uint8Array, outer: 
 export function prepareHeatmapMask({ width, height, rgba }: ColorSource): PaperMask {
   const gray = heatmapGray({ width, height, rgba });
   const side = Math.max(width, height);
-  const bigRadius = Math.floor(side * 0.15);
-  const contour = multiPassBlur(gray, width, height, Math.round(side * 0.005), 1);
+  const bigRadius = Math.floor(side * 150 / 1750);
+  const contour = multiPassBlur(gray, width, height, Math.round(side * 5 / 1750), 1);
   const outer = multiPassBlur(gray, width, height, bigRadius, 3);
   const inner = multiPassBlur(gray, width, height, Math.max(1, Math.round(bigRadius * 0.12)), 3);
   return packHeatmap(width, height, contour, outer, inner);
@@ -212,8 +212,8 @@ export async function prepareHeatmapMaskAsync(source: ColorSource, signal?: Abor
   const { width, height } = source;
   const gray = heatmapGray(source);
   const side = Math.max(width, height);
-  const bigRadius = Math.floor(side * 0.15);
-  const contour = await multiPassBlurAsync(gray, width, height, Math.round(side * 0.005), 1, signal);
+  const bigRadius = Math.floor(side * 150 / 1750);
+  const contour = await multiPassBlurAsync(gray, width, height, Math.round(side * 5 / 1750), 1, signal);
   const outer = await multiPassBlurAsync(gray, width, height, bigRadius, 3, signal);
   const inner = await multiPassBlurAsync(gray, width, height, Math.max(1, Math.round(bigRadius * 0.12)), 3, signal);
   if (signal?.aborted) throw new DOMException("Paper mask preparation cancelled.", "AbortError");
@@ -225,6 +225,7 @@ export function createPaperMaskCache(maxBytes = 2 * 1024 * 1024) {
   const resolved = new Map<string, PaperMask>();
   const pending = new Map<string, Promise<PaperMask>>();
   let used = 0;
+  let generation = 0;
   return {
     async getOrPrepare(key: string, prepare: () => Promise<PaperMask>): Promise<PaperMask> {
       const existing = resolved.get(key);
@@ -235,9 +236,10 @@ export function createPaperMaskCache(maxBytes = 2 * 1024 * 1024) {
       }
       const inFlight = pending.get(key);
       if (inFlight) return inFlight;
+      const startedIn = generation;
       const work = prepare().then((mask) => {
         assertSize(mask.width, mask.height, mask.data.length, 4);
-        if (mask.data.byteLength <= maxBytes) {
+        if (startedIn === generation && mask.data.byteLength <= maxBytes) {
           while (used + mask.data.byteLength > maxBytes) {
             const oldest = resolved.keys().next().value;
             if (oldest === undefined) break;
@@ -249,11 +251,11 @@ export function createPaperMaskCache(maxBytes = 2 * 1024 * 1024) {
           used += mask.data.byteLength;
         }
         return mask;
-      }).finally(() => pending.delete(key));
+      }).finally(() => { if (pending.get(key) === work) pending.delete(key); });
       pending.set(key, work);
       return work;
     },
-    clear(): void { resolved.clear(); pending.clear(); used = 0; },
+    clear(): void { generation++; resolved.clear(); pending.clear(); used = 0; },
     get byteLength(): number { return used; },
   };
 }

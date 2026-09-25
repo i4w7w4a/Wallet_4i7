@@ -4,7 +4,8 @@ import { createPaperPass } from "./gpu";
 import { preparePaperMaskAsset, preparePaperNoise, type PaperPreparedAssets } from "./prepare";
 import { planPaperPass } from "./runtime";
 import {
-  liquidMetalSchema, pulsingBorderSchema, type LiquidMetalParams, type PulsingBorderParams,
+  gemSmokeSchema, heatmapSchema, liquidMetalSchema, pulsingBorderSchema,
+  type GemSmokeParams, type HeatmapParams, type LiquidMetalParams, type PulsingBorderParams,
 } from "./schema";
 
 const revision = "43cd68db79fa0b1759f72ffc941b3238e2a3954c";
@@ -98,4 +99,85 @@ export const pulsingBorderDefinition: MaterialDefinition<"pulsing-border", Pulsi
   prepare: (request, signal) => preparePaperNoise(request, signal),
   plan: (init) => plan(init, false),
   create: (gl, init) => createPaperPass(gl, init, "pulsing-border"),
+};
+
+const gemSource: GemSmokeParams = {
+  ...gemSmokeSchema.defaults, scale: 0.6, speed: 1,
+  colorBack: "#f0efea", colorInner: "#fafaf5",
+  colors: ["#333333", "#e7e6df"], outerGlow: 0.55, innerGlow: 1,
+  innerDistortion: 0.8, outerDistortion: 0.6, offset: 0,
+  angle: 0, size: 0.8, shape: "diamond",
+};
+
+export const gemSmokeDefinition: MaterialDefinition<"gem-smoke", GemSmokeParams, PaperPreparedAssets> = {
+  id: "gem-smoke", abiVersion: 2, effectVersion: 1,
+  label: "Gem Smoke",
+  description: "Цветовой дым внутри и снаружи настоящего силуэта, с Poisson-подготовкой формы.",
+  capabilities: ["background", "button-fill", "button-icon"],
+  schema: gemSmokeSchema,
+  presets: [
+    { id: "quiet-smoke", label: "Сдержанный дым · прозрачный", seed: 0, params: gemSmokeSchema.defaults },
+    { id: "source-default", label: "Paper · исходный характер", seed: 0, params: gemSource },
+    { id: "cool-vapor", label: "Холодный пар", seed: 0, params: {
+      ...gemSmokeSchema.defaults, colors: ["#3f5e7e", "#8a9fa9", "#d5c2b0"],
+      innerGlow: 0.75, outerGlow: 0.2, innerDistortion: 0.35,
+      outerDistortion: 0.3, speed: 0.16,
+    } },
+  ],
+  assetIds,
+  provenance: {
+    id: "paper-gem-smoke-0.0.81",
+    sourceUrl: `https://github.com/paper-design/shaders/blob/${revision}/packages/shaders/src/shaders/gem-smoke.ts`,
+    revision, license: "Apache-2.0 · Copyright 2026 Paper",
+    changes: [
+      "Source image and procedural shape paths, smoke distortion and glow retained in GLSL300.",
+      "Poisson R/G mask uses source-equivalent 2.5% inner padding at bounded target size.",
+      "Heavy image sampling remains visible in diagnostics; no low-cost imitation substituted.",
+      "Host owns the only WebGL context, output pass, RAF and clipping.",
+    ],
+  },
+  fallback: { color: "#4a505d", label: "Gem Smoke недоступен · статическая поверхность" },
+  prepare: (request, signal) => preparePaperMaskAsset("gem", request, signal),
+  plan: (init) => plan(init, true),
+  create: (gl, init) => createPaperPass(gl, init, "gem-smoke"),
+};
+
+const heatSource: HeatmapParams = {
+  ...heatmapSchema.defaults, scale: 0.75, speed: 1,
+  contour: 0.5, angle: 0, noise: 0, innerGlow: 0.5, outerGlow: 0.5,
+  colorBack: "#000000",
+  colors: ["#11206a", "#1f3ba2", "#2f63e7", "#6bd7ff", "#ffe679", "#ff991e", "#ff4c00"],
+};
+
+export const heatmapDefinition: MaterialDefinition<"heatmap", HeatmapParams, PaperPreparedAssets> = {
+  id: "heatmap", abiVersion: 2, effectVersion: 1,
+  label: "Heatmap",
+  description: "Тепловая волна по яркости формы и трём масштабам размытия Paper.",
+  capabilities: ["background", "button-fill", "button-icon"],
+  schema: heatmapSchema,
+  presets: [
+    { id: "quiet-heat", label: "Сдержанное тепло · прозрачный", seed: 0, params: heatmapSchema.defaults },
+    { id: "source-default", label: "Paper · исходный характер", seed: 0, params: heatSource },
+    { id: "sepia", label: "Сепия", seed: 0, params: {
+      ...heatmapSchema.defaults, scale: 0.75, speed: 0.5, contour: 0.5,
+      noise: 0.75, innerGlow: 0.5, outerGlow: 0.5,
+      colorBack: "#000000", colors: ["#997f45", "#ffffff"],
+    } },
+  ],
+  assetIds,
+  provenance: {
+    id: "paper-heatmap-0.0.81",
+    sourceUrl: `https://github.com/paper-design/shaders/blob/${revision}/packages/shaders/src/shaders/heatmap.ts`,
+    revision, license: "Apache-2.0 · Copyright 2026 Paper",
+    changes: [
+      "Source heatwave/color math retained; shape luminance is composited over white before blur.",
+      "Contour, outer and inner blur channels are prepared at bounded target size outside RAF.",
+      "Local icons and geometry replace unrestricted user image URLs.",
+      "RGBA output is premultiplied for the one host compositor.",
+    ],
+  },
+  fallback: { color: "#575263", label: "Heatmap недоступен · статическая поверхность" },
+  prepare: (request, signal) => preparePaperMaskAsset("heatmap", request, signal),
+  plan: (init) => plan(init, true),
+  create: (gl, init) => createPaperPass(gl, init, "heatmap"),
 };

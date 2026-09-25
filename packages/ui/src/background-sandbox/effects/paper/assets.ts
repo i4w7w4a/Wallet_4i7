@@ -1,4 +1,4 @@
-import type { MaterialAssetId } from "../../material-contract";
+import type { MaterialAssetId, MaterialMaskSource } from "../../material-contract";
 import { createPaperMaskCache, prepareHeatmapMaskAsync, preparePoissonMaskAsync, resolvePaperMaskSize, type PaperMask } from "./masks";
 
 export type PaperAssetId = "strict-rectangle" | "rounded-rectangle" | MaterialAssetId;
@@ -57,16 +57,49 @@ export function rasterizePaperAsset(id: PaperAssetId, width: number, height: num
   ctx.translate(width * 0.5 - unit * 12, height * 0.5 - unit * 12);
   ctx.scale(unit, unit);
   ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.35;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.stroke(new Path2D(ACTION_PATHS[id]));
   return { width, height, rgba: new Uint8Array(ctx.getImageData(0, 0, width, height).data) };
 }
 
-export function paperAssetKey(kind: PaperMaskKind, id: PaperAssetId, width: number, height: number, revision: number, radiusPx: number): string {
+/** Resample host-owned coverage; RGB remains black so Heatmap derives real luminance. */
+export function rasterizePaperCoverage(source: MaterialMaskSource, width: number, height: number, padding: number): RasterPaperAsset {
+  validate(width, height, padding);
+  if (!Number.isInteger(source.width) || !Number.isInteger(source.height) ||
+      source.width < 1 || source.height < 1 || source.width > 512 || source.height > 512 ||
+      source.coverage.length !== source.width * source.height) throw new RangeError("Invalid host icon coverage.");
+  const rgba = new Uint8Array(width * height * 4);
+  const sample = (x: number, y: number) => source.coverage[Math.max(0, Math.min(source.height - 1, y)) * source.width +
+    Math.max(0, Math.min(source.width - 1, x))]!;
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const u = ((x + 0.5) / width - padding) / (1 - 2 * padding);
+    const v = ((y + 0.5) / height - padding) / (1 - 2 * padding);
+    if (u < 0 || u > 1 || v < 0 || v > 1) continue;
+    const sx = u * source.width - 0.5;
+    const sy = v * source.height - 0.5;
+    const x0 = Math.floor(sx);
+    const y0 = Math.floor(sy);
+    const fx = sx - x0;
+    const fy = sy - y0;
+    rgba[(y * width + x) * 4 + 3] = Math.round(
+      (1 - fy) * ((1 - fx) * sample(x0, y0) + fx * sample(x0 + 1, y0)) +
+      fy * ((1 - fx) * sample(x0, y0 + 1) + fx * sample(x0 + 1, y0 + 1)),
+    );
+  }
+  return { width, height, rgba };
+}
+
+export function paperCoverageHash(source: MaterialMaskSource): string {
+  let hash = 2166136261;
+  for (const byte of source.coverage) hash = Math.imul(hash ^ byte, 16777619) >>> 0;
+  return hash.toString(16).padStart(8, "0");
+}
+
+export function paperAssetKey(kind: PaperMaskKind, id: PaperAssetId, width: number, height: number, revision: number, radiusPx: number, coverageHash?: string): string {
   if (!Number.isInteger(revision) || revision < 1 || !Number.isFinite(radiusPx) || radiusPx < 0) throw new RangeError("Invalid Paper mask key.");
-  return `${kind}:${id}:${width}x${height}:r${Math.round(radiusPx * 100) / 100}:v${revision}`;
+  return `${kind}:${id}:${width}x${height}:r${Math.round(radiusPx * 100) / 100}:v${revision}${coverageHash ? `:c${coverageHash}` : ""}`;
 }
 
 /** Private mask cache. Color, time and other shader uniforms are deliberately absent from the key. */
@@ -79,14 +112,17 @@ export function createPaperAssetPreparer(maxCacheBytes = 2 * 1024 * 1024) {
       revision = 1,
       radiusPx = 0,
       signal?: AbortSignal,
+      coverage?: MaterialMaskSource,
     ): Promise<PaperMask> {
       const { width, height } = resolvePaperMaskSize(targetWidth, targetHeight, targetWidth, targetHeight);
       const scaledRadius = radiusPx * width / targetWidth;
-      const key = paperAssetKey(kind, id, width, height, revision, scaledRadius);
+      const key = paperAssetKey(kind, id, width, height, revision, scaledRadius, coverage && paperCoverageHash(coverage));
       return cache.getOrPrepare(key, async () => {
         if (signal?.aborted) throw new DOMException("Paper mask preparation cancelled.", "AbortError");
-        const padding = kind === "gem" ? 0.025 : kind === "heatmap" ? 0.375 : 0;
-        const source = rasterizePaperAsset(id, width, height, padding, scaledRadius);
+        const padding = kind === "gem" ? 0.025 : kind === "heatmap" ? 375 / 1750 : 0;
+        const source = coverage && coverage.assetId === id
+          ? rasterizePaperCoverage(coverage, width, height, padding)
+          : rasterizePaperAsset(id, width, height, padding, scaledRadius);
         if (kind === "heatmap") return prepareHeatmapMaskAsync(source, signal);
         const alpha = new Uint8Array(width * height);
         for (let i = 0; i < alpha.length; i++) alpha[i] = source.rgba[i * 4 + 3]!;

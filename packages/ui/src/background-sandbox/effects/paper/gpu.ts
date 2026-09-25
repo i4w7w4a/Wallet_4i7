@@ -91,6 +91,8 @@ function uniformValues(kind: PaperKind, params: PaperParams, geometry: MaterialT
   };
 }
 
+export { uniformValues as paperUniformValues };
+
 function shapeIndex(shape: LiquidMetalParams["shape"]): number {
   return shape === "none" ? 0 : shape === "circle" ? 1 : shape === "daisy" ? 2 : shape === "diamond" ? 3 : 4;
 }

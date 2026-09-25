@@ -2,7 +2,7 @@ import type { CreateResult } from "../../contracts";
 import type {
   MaterialPrepareRequest, PreparedMaterialAssets, PreparedMaterialAsset,
 } from "../../material-contract";
-import { createPaperAssetPreparer, paperAssetKey, type PaperAssetId, type PaperMaskKind } from "./assets";
+import { createPaperAssetPreparer, paperAssetKey, paperCoverageHash, type PaperAssetId, type PaperMaskKind } from "./assets";
 import { resolvePaperMaskSize, type PaperMask } from "./masks";
 import { PAPER_NOISE_DATA_URI } from "./noise-source";
 import type { GemSmokeParams, HeatmapParams, LiquidMetalParams } from "./schema";
@@ -54,11 +54,16 @@ export async function preparePaperNoise(
 ): Promise<CreateResult<PaperPreparedAssets>> {
   abortIfNeeded(signal);
   if (request.maxCpuBytes < 128 * 128 * 4) return fail("Paper Border noise exceeds the CPU preparation budget.");
-  const noise = await loadNoise();
-  abortIfNeeded(signal);
-  return { ok: true, value: {
-    cacheKey: "paper-noise:43cd68:128x128", byteLength: noise.data.byteLength, assets: [], noise,
-  } };
+  try {
+    const noise = await loadNoise();
+    abortIfNeeded(signal);
+    return { ok: true, value: {
+      cacheKey: "paper-noise:43cd68:128x128", byteLength: noise.data.byteLength, assets: [], noise,
+    } };
+  } catch (error) {
+    if (signal.aborted) throw error;
+    return { ok: false, error: { code: "resource-allocation", message: "Local Paper noise could not be decoded." } };
+  }
 }
 
 /** Poisson or luminance preprocessing is completed here, never in create/render/update. */
@@ -80,18 +85,29 @@ export async function preparePaperMaskAsset(
   if (estimatedPeak > request.maxCpuBytes) return fail("Paper mask exceeds the CPU preparation budget.");
   const id: PaperAssetId = geometry.mask.kind === "icon" ? geometry.mask.assetId
     : geometry.radiusCss > 0 ? "rounded-rectangle" : "strict-rectangle";
+  if (request.maskSource && (geometry.mask.kind !== "icon" || request.maskSource.assetId !== geometry.mask.assetId)) {
+    return { ok: false, error: { code: "invalid-config", message: "Paper icon coverage does not match its allowlisted target." } };
+  }
   const radius = geometry.radiusCss * scale;
-  const mask = await maskPreparer.prepare(kind, id, targetWidth, targetHeight, 1, radius, signal);
-  abortIfNeeded(signal);
-  const source: PreparedMaterialAsset["source"] = geometry.mask.kind === "icon"
-    ? { kind: "icon", assetId: geometry.mask.assetId }
-    : { kind: "geometry", key: `${id}:r${geometry.radiusCss}` };
-  const asset: PreparedMaterialAsset = {
-    source, width: mask.width, height: mask.height, rgba: mask.data,
-    encoding: kind === "heatmap" ? "paper-luminance" : "paper-gradient",
-  };
-  return { ok: true, value: {
-    cacheKey: paperAssetKey(kind, id, width, height, 1, radius),
-    byteLength: mask.data.byteLength, assets: [asset],
-  } };
+  try {
+    const mask = await maskPreparer.prepare(kind, id, targetWidth, targetHeight, 1, radius, signal, request.maskSource);
+    abortIfNeeded(signal);
+    const source: PreparedMaterialAsset["source"] = geometry.mask.kind === "icon"
+      ? { kind: "icon", assetId: geometry.mask.assetId }
+      : { kind: "geometry", key: `${id}:r${geometry.radiusCss}` };
+    const asset: PreparedMaterialAsset = {
+      source, width: mask.width, height: mask.height, rgba: mask.data,
+      encoding: kind === "heatmap" ? "paper-luminance" : "paper-gradient",
+    };
+    return { ok: true, value: {
+      cacheKey: paperAssetKey(kind, id, width, height, 1, radius, request.maskSource && paperCoverageHash(request.maskSource)),
+      byteLength: mask.data.byteLength, assets: [asset],
+    } };
+  } catch (error) {
+    if (signal.aborted) throw error;
+    return { ok: false, error: {
+      code: error instanceof RangeError ? "invalid-config" : "resource-allocation",
+      message: error instanceof Error ? error.message : "Paper mask preparation failed.",
+    } };
+  }
 }

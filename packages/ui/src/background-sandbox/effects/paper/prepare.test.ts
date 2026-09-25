@@ -44,4 +44,31 @@ describe("Paper prepare phase", () => {
     controller.abort();
     await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   });
+
+  it("uses an allowlisted host icon coverage when one is supplied", async () => {
+    const coverage = new Uint8Array(9 * 9);
+    for (let y = 2; y <= 6; y++) for (let x = 2; x <= 6; x++) coverage[y * 9 + x] = 255;
+    const result = await preparePaperMaskAsset("metal", {
+      params: liquidMetalSchema.defaults, seed: 0,
+      geometry: { ...geometry, capability: "button-icon", mask: { kind: "icon", assetId: "mono.quick.send" } },
+      maskSource: { assetId: "mono.quick.send", width: 9, height: 9, coverage },
+      quality: "balanced", maxCpuBytes: 500000,
+    }, new AbortController().signal);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.assets[0]!.source).toEqual({ kind: "icon", assetId: "mono.quick.send" });
+    expect(result.value.assets[0]!.rgba[1]).toBe(0);
+    expect(result.value.assets[0]!.rgba[(33 * 66 + 33) * 4 + 1]).toBe(255);
+  });
+
+  it("returns an explicit failure for malformed host icon coverage", async () => {
+    const result = await preparePaperMaskAsset("metal", {
+      params: liquidMetalSchema.defaults, seed: 0,
+      geometry: { ...geometry, capability: "button-icon", mask: { kind: "icon", assetId: "mono.quick.buy" } },
+      maskSource: { assetId: "mono.quick.buy", width: 9, height: 9, coverage: new Uint8Array(3) },
+      quality: "balanced", maxCpuBytes: 500000,
+    }, new AbortController().signal);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("invalid-config");
+  });
 });

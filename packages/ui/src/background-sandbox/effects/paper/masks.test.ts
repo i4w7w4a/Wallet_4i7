@@ -81,4 +81,18 @@ describe("Paper mask preparation", () => {
     await cache.getOrPrepare(key, make);
     expect(calls).toBe(3);
   });
+
+  it("does not retain a late mask after scene teardown clears the cache", async () => {
+    const cache = createPaperMaskCache(200);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const pending = cache.getOrPrepare("scene:mask", async () => {
+      await gate;
+      return { width: 2, height: 2, data: new Uint8Array(16) };
+    });
+    cache.clear();
+    release();
+    await pending;
+    expect(cache.byteLength).toBe(0);
+  });
 });

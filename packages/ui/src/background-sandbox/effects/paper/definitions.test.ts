@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MaterialInit, MaterialTargetGeometry } from "../../material-contract";
-import { liquidMetalDefinition, pulsingBorderDefinition } from "./definitions";
+import { gemSmokeDefinition, heatmapDefinition, liquidMetalDefinition, pulsingBorderDefinition } from "./definitions";
 import type { PaperPreparedAssets } from "./prepare";
 
 const geometry: MaterialTargetGeometry = {
@@ -31,5 +31,29 @@ describe("Paper material definitions", () => {
     for (const preset of pulsingBorderDefinition.presets) {
       expect(pulsingBorderDefinition.schema.parse(preset.params).ok).toBe(true);
     }
+  });
+
+  it("prepares Gem's Poisson gradient and Heatmap's luminance channels for a real rounded target", async () => {
+    const signal = new AbortController().signal;
+    const cases = [
+      { definition: gemSmokeDefinition, prepare: () => gemSmokeDefinition.prepare!({ params: gemSmokeDefinition.schema.defaults,
+        seed: 0, geometry, quality: "balanced", maxCpuBytes: 500000 }, signal) },
+      { definition: heatmapDefinition, prepare: () => heatmapDefinition.prepare!({ params: heatmapDefinition.schema.defaults,
+        seed: 0, geometry, quality: "balanced", maxCpuBytes: 500000 }, signal) },
+    ];
+    for (const { definition, prepare } of cases) {
+      expect(definition.capabilities).toContain("button-fill");
+      expect(definition.capabilities).toContain("button-icon");
+      const prepared = await prepare();
+      expect(prepared.ok).toBe(true);
+      if (!prepared.ok) continue;
+      const asset = prepared.value.assets[0]!;
+      expect(asset.source.kind).toBe("geometry");
+      expect(asset.rgba[(33 * 66 + 33) * 4]).toBeLessThan(asset.rgba[0]!);
+      expect(asset.rgba[3]).toBe(255);
+      if (definition.id === "heatmap") expect(asset.rgba[(33 * 66 + 18) * 4]).toBeLessThan(255);
+    }
+    expect(gemSmokeDefinition.presets.every((preset) => gemSmokeDefinition.schema.parse(preset.params).ok)).toBe(true);
+    expect(heatmapDefinition.presets.every((preset) => heatmapDefinition.schema.parse(preset.params).ok)).toBe(true);
   });
 });
