@@ -5,6 +5,8 @@ import { bindMaterialV2, type MaterialBindingV2 } from "./material-binding-v2";
 import { particleDefinition } from "./effects/fluid-particles";
 import { fluidV2Definition } from "./effects/fluid/v2";
 import { gemSmokeDefinition, heatmapDefinition, liquidMetalDefinition, pulsingBorderDefinition } from "./effects/paper/definitions";
+import { disabledPaperControls } from "./effects/paper/control-state";
+import type { PaperKind, PaperParams } from "./effects/paper/gpu";
 import { vaultGridDefinition } from "./effects/vault-grid/definition";
 
 const unknownMaterial = (): ParseResult<never> => ({ ok: false, issues: [
@@ -45,12 +47,14 @@ export function createMaterialCatalogV2(bindings: readonly MaterialBindingV2[]):
 }
 
 /** Register only adapters with real definitions and resources. More effects join after their own handoff. */
+const paperDisabled = (kind: PaperKind) => (params: PaperParams, key: string, capability?: MaterialCapability) =>
+  disabledPaperControls(kind, params, capability).includes(key);
 export const materialBindingsV2: readonly MaterialBindingV2[] = [
   bindMaterialV2(vaultGridDefinition),
-  bindMaterialV2(liquidMetalDefinition),
-  bindMaterialV2(pulsingBorderDefinition),
-  bindMaterialV2(gemSmokeDefinition),
-  bindMaterialV2(heatmapDefinition),
+  bindMaterialV2({ ...liquidMetalDefinition, isControlDisabled: paperDisabled("liquid-metal") }),
+  bindMaterialV2({ ...pulsingBorderDefinition, isControlDisabled: paperDisabled("pulsing-border") }),
+  bindMaterialV2({ ...gemSmokeDefinition, isControlDisabled: paperDisabled("gem-smoke") }),
+  bindMaterialV2({ ...heatmapDefinition, isControlDisabled: paperDisabled("heatmap") }),
   bindMaterialV2(particleDefinition),
   bindMaterialV2(fluidV2Definition),
 ];

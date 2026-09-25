@@ -87,7 +87,7 @@ export function bindMaterialV2<I extends MaterialEffectId, P extends object, A>(
     description: definition.description, capabilities: definition.capabilities,
     ...(definition.actions ? { actions: definition.actions } : {}),
     provenance: definition.provenance, presets, parseRecipe,
-    readControls(recipe) {
+    readControls(recipe, capability) {
       const parsed = parseRecipe(recipe);
       if (!parsed.ok) return [];
       return definition.schema.controls.flatMap(control => {
@@ -95,7 +95,7 @@ export function bindMaterialV2<I extends MaterialEffectId, P extends object, A>(
         return typeof value === "number" || typeof value === "string" || typeof value === "boolean" ||
           (Array.isArray(value) && value.every(item => typeof item === "string"))
           ? [{ control, value: value as ParameterValue,
-            ...(definition.isControlDisabled?.(parsed.value.params, control.key) ? { disabled: true } : {}) }] : [];
+            ...(definition.isControlDisabled?.(parsed.value.params, control.key, capability) ? { disabled: true } : {}) }] : [];
       });
     },
     updateParameter(recipe, key, value) {

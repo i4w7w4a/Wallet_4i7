@@ -262,7 +262,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
             <optgroup label="Контрольные SVG / CSS">{LEGACY.map(item => <option key={item.id} value={`legacy-${item.id}`}>{item.label}</option>)}</optgroup>
           </select></label>
           <p className={styles.description}>{descriptorV2?.description ?? descriptorV1?.description ?? "Свет и плоскости отвечают на указатель. Контрольный материал прежней лаборатории."}</p>
-          {descriptorV2 && isV2Recipe(config) ? <MaterialControls key={recipeKey(config)} descriptor={descriptorV2} recipe={config} disabled={inactive} onChange={editor.edit}
+          {descriptorV2 && isV2Recipe(config) ? <MaterialControls key={recipeKey(config)} descriptor={descriptorV2} recipe={config} capability="background" disabled={inactive} onChange={editor.edit}
             onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} onError={setNotice}
             onAction={action => setTransientAction({ requestId: ++actionSerial.current, restartKey: state.restartKey, action })} />
             : descriptorV1 && isV1GpuRecipe(config) ? <ParameterControls descriptor={descriptorV1} recipe={config} disabled={inactive} onChange={editor.edit} onStart={editor.beginGesture} onCommit={editor.endGesture} onError={setNotice} />

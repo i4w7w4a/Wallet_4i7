@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { useState } from "react";
-import type { MaterialAction, MaterialDescriptorV2, MaterialRecipeV2, ParameterControl, ParameterValue } from "@wallet/ui";
+import type { MaterialAction, MaterialCapability, MaterialDescriptorV2, MaterialRecipeV2, ParameterControl, ParameterValue } from "@wallet/ui";
 import { MaterialControls } from "./material-controls";
 
 type Params = { tone: string; colors: readonly string[]; flow: number; drift: number; contour: number;
@@ -29,8 +29,9 @@ const descriptor: MaterialDescriptorV2 = {
   actions: [{ kind: "seeded-splats", label: "Добавить всплеск", minCount: 1, maxCount: 6 }],
   parseRecipe(value) { return value && typeof value === "object" && "kind" in value
     ? { ok: true, value: value as MaterialRecipeV2 } : { ok: false, issues: [{ code: "invalid", message: "Недопустимая проба." }] }; },
-  readControls(recipe) { const params = recipe.params as Params;
-    return controls.map(control => ({ control, value: params[control.key as keyof Params] as ParameterValue })); },
+  readControls(recipe, capability) { const params = recipe.params as Params;
+    return controls.map(control => ({ control, value: params[control.key as keyof Params] as ParameterValue,
+      ...(capability === "button-icon" && control.key === "shape" ? { disabled: true } : {}) })); },
   updateParameter(recipe, key, value) {
     const control = controls.find(item => item.key === key);
     const invalid = !control ||
@@ -45,14 +46,15 @@ const descriptor: MaterialDescriptorV2 = {
 };
 afterEach(() => cleanup());
 
-function Host({ disabled = false, onGesture, onAction, onRecipe }: {
+function Host({ disabled = false, capability, onGesture, onAction, onRecipe }: {
   disabled?: boolean;
+  capability?: MaterialCapability;
   onGesture?: (phase: "start" | "commit") => void;
   onAction?: (action: MaterialAction) => void;
   onRecipe?: (recipe: MaterialRecipeV2) => void;
 }) {
   const [recipe, setRecipe] = useState(starting);
-  return <MaterialControls descriptor={descriptor} recipe={recipe} disabled={disabled}
+  return <MaterialControls descriptor={descriptor} recipe={recipe} disabled={disabled} capability={capability}
     onChange={next => { setRecipe(next); onRecipe?.(next); }}
     onAction={onAction} onGestureStart={() => onGesture?.("start")} onGestureCommit={() => onGesture?.("commit")} />;
 }
@@ -131,4 +133,12 @@ it("sends an explicit bounded splat command without changing the saved recipe", 
   fireEvent.click(screen.getByRole("button", { name: "Добавить всплеск" }));
   expect(actions).toEqual([{ kind: "seeded-splats", count: 4 }]);
   expect(recipes).toEqual([]);
+});
+
+it("uses the selected button layer to disable only its inactive controls", () => {
+  const view = render(<Host capability="button-icon" />);
+  fireEvent.click(screen.getByRole("button", { name: "Форма / поверхность" }));
+  expect(screen.getByRole("combobox", { name: "Форма" })).toBeDisabled();
+  view.rerender(<Host capability="button-fill" />);
+  expect(screen.getByRole("combobox", { name: "Форма" })).toBeEnabled();
 });

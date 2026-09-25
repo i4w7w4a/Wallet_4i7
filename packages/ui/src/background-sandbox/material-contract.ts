@@ -146,7 +146,7 @@ export interface MaterialDefinition<
   readonly capabilities: readonly MaterialCapability[];
   readonly schema: ParameterSchema<P>;
   /** Pure inspector state. Disabled controls remain present in the normalized recipe. */
-  isControlDisabled?(params: Readonly<P>, key: Extract<keyof P, string>): boolean;
+  isControlDisabled?(params: Readonly<P>, key: Extract<keyof P, string>, capability?: MaterialCapability): boolean;
   readonly actions?: readonly MaterialActionDescriptor[];
   readonly presets: readonly EffectPreset<P>[];
   readonly assetIds: readonly MaterialAssetId[];
@@ -168,7 +168,7 @@ export interface MaterialDescriptorV2 {
   readonly provenance: EffectProvenance;
   readonly presets: readonly Readonly<{ id: string; label: string; recipe: MaterialRecipeV2 }>[];
   parseRecipe(input: unknown): ParseResult<MaterialRecipeV2>;
-  readControls(recipe: MaterialRecipeV2): readonly Readonly<{
+  readControls(recipe: MaterialRecipeV2, capability?: MaterialCapability): readonly Readonly<{
     control: ParameterControl;
     value: ParameterValue;
     disabled?: boolean;

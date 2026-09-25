@@ -21,4 +21,15 @@ describe("installed v2 material catalog", () => {
       expect(materialCatalogV2.parseRecipe(recipe)).toEqual({ ok: true, value: recipe });
     }
   });
+
+  it("shows Paper controls as dependent on the selected layer and source parameters", () => {
+    const metal = materialCatalogV2.materials.find(item => item.id === "liquid-metal")!;
+    const border = materialCatalogV2.materials.find(item => item.id === "pulsing-border")!;
+    const metalRecipe = metal.presets[0]!.recipe;
+    const borderRecipe = border.presets[0]!.recipe;
+
+    expect(metal.readControls(metalRecipe, "button-icon").find(item => item.control.key === "shape")?.disabled).toBe(true);
+    expect(metal.readControls(metalRecipe, "button-fill").find(item => item.control.key === "shape")?.disabled).toBeUndefined();
+    expect(border.readControls(borderRecipe, "button-border").find(item => item.control.key === "smokeSize")?.disabled).toBe(true);
+  });
 });

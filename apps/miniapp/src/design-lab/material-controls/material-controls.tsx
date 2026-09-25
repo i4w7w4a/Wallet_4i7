@@ -1,13 +1,14 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import type { MaterialAction, MaterialDescriptorV2, MaterialRecipeV2, ParameterControl, ParameterGroup, ParameterValue } from "@wallet/ui";
+import type { MaterialAction, MaterialCapability, MaterialDescriptorV2, MaterialRecipeV2, ParameterControl, ParameterGroup, ParameterValue } from "@wallet/ui";
 import { MonoLabSliderRow } from "../../mono-preview/mono-lab-controls";
 import styles from "./material-controls.module.css";
 
 export type MaterialControlsProps = {
   descriptor: MaterialDescriptorV2;
   recipe: MaterialRecipeV2;
+  capability?: MaterialCapability;
   disabled?: boolean;
   /** Only full, descriptor-validated recipes reach the editor. */
   onChange(recipe: MaterialRecipeV2): void;
@@ -53,10 +54,10 @@ function ColorInput({ label, value, disabled, onStart, onFinish, onValue }: {
 }
 
 /** Both workshops use the same descriptor-fed controls; no storage, target or renderer state. */
-export function MaterialControls({ descriptor, recipe, disabled = false, onChange, onGestureStart,
+export function MaterialControls({ descriptor, recipe, capability, disabled = false, onChange, onGestureStart,
   onGestureCommit, onError, onAction }: MaterialControlsProps) {
   const id = useId();
-  const rows = descriptor.readControls(recipe);
+  const rows = descriptor.readControls(recipe, capability);
   const available = GROUPS.filter(group => rows.some(row => (row.control.group ?? "precise") === group.id) ||
     (group.id === "physics" && !!onAction && !!descriptor.actions?.length));
   const [opened, setOpened] = useState<readonly ParameterGroup[]>(available.length ? [available[0]!.id] : []);

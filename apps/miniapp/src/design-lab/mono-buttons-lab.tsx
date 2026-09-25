@@ -250,7 +250,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
               <option value="" disabled>Выберите пробу…</option>{descriptor.presets.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select></label>}
             {first && <MaterialControls key={`${selection.target}:${selection.layer}:${descriptor.id}:${descriptor.effectVersion}`} descriptor={descriptor}
-              recipe={first.recipe} disabled={disabled} onChange={changeMaterial}
+              recipe={first.recipe} capability={capability(selection.layer)} disabled={disabled} onChange={changeMaterial}
               onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} onError={setNotice} />}
             {first && <div className={styles.geometry}>
               {selection.layer !== "icon" && <label className={styles.field}>Радиус поверхности <output>{first.radiusCss} px</output>
