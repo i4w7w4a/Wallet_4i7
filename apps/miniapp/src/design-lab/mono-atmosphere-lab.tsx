@@ -8,14 +8,18 @@ import { MonoLabIconButton } from "../mono-preview/mono-lab-controls";
 import { MonoBackgroundRecipeControls } from "../mono-preview/mono-background-recipes-controls";
 import { SandboxDialog } from "./background-sandbox/dialog";
 import { ParameterControls } from "./background-sandbox/parameter-controls";
+import { EdgeFinishControls } from "./background-sandbox/edge-finish-controls";
 import { MaterialControls } from "./material-controls";
 import { RecipeSummary } from "./background-sandbox/recipe-summary";
 import { createSandboxSession } from "./background-sandbox/session";
 import { isDirty, type SandboxWorkspace } from "./background-sandbox/model";
 import { isGpuRecipe, isV1GpuRecipe, isV2Recipe, recipeKey, recipeParser, type SandboxRecipe } from "./background-sandbox/recipes";
+import { createBackgroundDocument, parseBackgroundDocument, parseBackgroundDocumentImport,
+  readV2LibraryAsV3, readV2WorkspaceAsV3, type BackgroundLabDocumentV1 } from "./background-sandbox/document-v3";
 import { LEGACY_KEY, boundedJson, exactObject, parseRecipeImport, readLegacyTrial } from "./background-sandbox/storage";
-import { readV1LibraryPreview, V2_LIBRARY_KEY, V2_WORKSPACE_KEY } from "./background-sandbox/storage-v2";
-import { readV1WorkspacePreview } from "./background-sandbox/workspace-v2";
+import { parseLibraryV2, readV1LibraryPreview, V2_LIBRARY_KEY, V2_WORKSPACE_KEY, type TrialLibraryV2 } from "./background-sandbox/storage-v2";
+import { V3_LIBRARY_KEY, V3_WORKSPACE_KEY } from "./background-sandbox/storage-v3";
+import { parseWorkspaceV2, readV1WorkspacePreview } from "./background-sandbox/workspace-v2";
 import type { TrialLibrary } from "./background-sandbox/storage";
 import "../mono-preview/mono-fonts.css";
 import "../mono-preview/mono-preview.css";
@@ -43,6 +47,10 @@ const MATERIAL_LABELS: Record<MaterialEffectId, string> = {
   heatmap: "Тепловая карта",
   "pulsing-border": "Пульсирующая рамка",
 };
+function isFluidV2Draw(recipe: SandboxRecipe) {
+  return isV2Recipe(recipe) && recipe.effectId === "fluid" &&
+    !!recipe.params && typeof recipe.params === "object" && "mode" in recipe.params && recipe.params.mode === "draw";
+}
 
 function Icon({ kind }: { kind: "open" | "undo" | "redo" | "pause" | "play" | "restart" | "more" }) {
   const paths = { open: "M3 7h7l2 2h9l-2 11H3V7Zm0 0V4h7l2 3", undo: "m9 5-6 5 6 5M3 10h10a7 7 0 0 1 0 14", redo: "m15 5 6 5-6 5m6-5H11a7 7 0 0 0 0 14", pause: "M8 5v14M16 5v14", play: "m8 4 12 8-12 8V4Z", restart: "M4 4v6h6M4 10a8 8 0 1 1 .5 7", more: "M5 11v2M12 11v2M19 11v2" };
@@ -60,7 +68,8 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   bindings?: BackgroundSandboxBindings;
   renderScene?: (input: MonoAtmosphereSceneInput) => ReactNode;
 } = {}) {
-  const parse = recipeParser(bindings);
+  const parseMaterial = recipeParser(bindings);
+  const parse = (input: unknown) => parseBackgroundDocument(input, parseMaterial);
   const backgroundMaterialsV2 = bindings?.materialCatalogV2?.materials.filter(item => item.capabilities.includes("background")) ?? [];
   const pavelFluid = backgroundMaterialsV2.find(item => item.id === "fluid" && item.effectVersion === 2);
   const orderedMaterialsV2 = pavelFluid
@@ -69,12 +78,17 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
     const initial: SandboxRecipe = pavelFluid?.presets.find(item => item.id === "fluid-v2-living-graphite")?.recipe
       ?? orderedMaterialsV2[0]?.presets[0]?.recipe
       ?? bindings?.materials[0]?.presets[0]?.recipe ?? { ...MONO_BACKGROUND_DEFAULTS.obsidian };
-    return createSandboxSession(initial, recipeKey(initial), parse, 2);
+    return createSandboxSession(createBackgroundDocument(initial), recipeKey(initial), parse, 3, {
+      readPreviousLibrary: store => readV2LibraryAsV3(store, parseMaterial),
+      readPreviousWorkspace: store => readV2WorkspaceAsV3(store, parseMaterial),
+    });
   });
   const state = useSyncExternalStore(editor.subscribe, editor.getSnapshot, editor.getServerSnapshot);
   const slot = state.workspace.slots[state.workspace.activeSlot]!;
-  const config = slot.present.recipe;
-  const shown = editor.shownRecipe();
+  const labDocument = slot.present.recipe;
+  const config = labDocument.material;
+  const shownDocument = editor.shownRecipe();
+  const shown = shownDocument.material;
   const descriptorV1 = isV1GpuRecipe(config) ? bindings?.materials.find(item => item.id === config.effectId) : undefined;
   const descriptorV2 = isV2Recipe(config) ? bindings?.materialCatalogV2?.materials.find(item => item.id === config.effectId && item.effectVersion === config.effectVersion) : undefined;
   const shownDescriptor = isV2Recipe(shown)
@@ -89,12 +103,14 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   const [name, setName] = useState("");
   const [asNew, setAsNew] = useState(false);
   const [importText, setImportText] = useState("");
-  const [importPreview, setImportPreview] = useState<SandboxRecipe | null>(null);
+  const [importPreview, setImportPreview] = useState<BackgroundLabDocumentV1 | null>(null);
   const [copyPreview, setCopyPreview] = useState<MaterialRecipeV2 | null>(null);
   const copyConsumed = useRef(false);
   const [legacy, setLegacy] = useState<MonoBackgroundRecipeConfig | null>(null);
   const [v1Library, setV1Library] = useState<TrialLibrary<SandboxRecipe> | null>(null);
   const [v1Workspace, setV1Workspace] = useState<SandboxWorkspace<SandboxRecipe> | null>(null);
+  const [v2Library, setV2Library] = useState<TrialLibraryV2<SandboxRecipe> | null>(null);
+  const [v2Workspace, setV2Workspace] = useState<SandboxWorkspace<SandboxRecipe> | null>(null);
   const [legacyNotice, setLegacyNotice] = useState("");
   const [notice, setNotice] = useState("");
   const [runtime, setRuntime] = useState<BackgroundRuntimeStatus | null>(null);
@@ -105,7 +121,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   const dirty = isDirty(slot) || slot.present.key.includes("import");
   const title = slot.present.source?.name ?? "Новая проба";
   const currentSaved = slot.present.source && !dirty && !state.externalChange && !state.libraryError &&
-    state.library.trials.some(trial => trial.id === slot.present.source?.id && trial.revision === slot.present.source.revision && JSON.stringify(trial.recipe) === JSON.stringify(config));
+    state.library.trials.some(trial => trial.id === slot.present.source?.id && trial.revision === slot.present.source.revision && JSON.stringify(trial.recipe) === JSON.stringify(labDocument));
   const saveStatus = state.recoveryUnavailable ? "Проба недоступна" : state.saving ? "Сохранение…" : state.saveError ? "Не удалось сохранить" : currentSaved ? "Сохранено" : dirty ? "Изменено" : "Не сохранено";
   const fittingAvailable = isV2Recipe(shown) ? !!bindings?.fittingAvailable && !!bindings.renderMaterialStageV2
     : isGpuRecipe(shown) ? !!bindings?.fittingAvailable : !!renderScene;
@@ -126,8 +142,10 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
 
   useEffect(() => {
     const port = { getItem: (key: string) => window.localStorage.getItem(key), setItem: (key: string, value: string) => window.localStorage.setItem(key, value) };
-    editor.connect(port, navigator.locks?.request ? task => navigator.locks.request("wallet4i7.background-sandbox.v2", task) : undefined);
-    function changed(event: StorageEvent) { if (event.key === null || event.key === V2_LIBRARY_KEY || event.key === V2_WORKSPACE_KEY) editor.notifyExternalChange(); }
+    editor.connect(port, navigator.locks?.request ? task => navigator.locks.request("wallet4i7.background-sandbox.v3", task) : undefined);
+    function changed(event: StorageEvent) {
+      if (event.key === null || [V3_LIBRARY_KEY, V3_WORKSPACE_KEY, V2_LIBRARY_KEY, V2_WORKSPACE_KEY].includes(event.key)) editor.notifyExternalChange();
+    }
     function leaving(event: BeforeUnloadEvent) {
       if (editor.getSnapshot().workspace.slots.some(item => isDirty(item) || item.present.key.includes("import"))) { event.preventDefault(); event.returnValue = ""; }
     }
@@ -187,8 +205,16 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
     editor.endGesture(); editor.refreshLibrary();
     const errors: string[] = [];
     try { setLegacy(readLegacyTrial(localStorage)); } catch (error) { setLegacy(null); errors.push(`Atmosphere v1: ${(error as Error).message}`); }
-    try { setV1Library(readV1LibraryPreview(localStorage, parse)); } catch (error) { setV1Library(null); errors.push(`Библиотека v1: ${(error as Error).message}`); }
-    try { setV1Workspace(readV1WorkspacePreview(localStorage, parse)); } catch (error) { setV1Workspace(null); errors.push(`Черновики v1: ${(error as Error).message}`); }
+    try { setV1Library(readV1LibraryPreview(localStorage, parseMaterial)); } catch (error) { setV1Library(null); errors.push(`Библиотека v1: ${(error as Error).message}`); }
+    try { setV1Workspace(readV1WorkspacePreview(localStorage, parseMaterial)); } catch (error) { setV1Workspace(null); errors.push(`Черновики v1: ${(error as Error).message}`); }
+    try {
+      const raw = localStorage.getItem(V2_LIBRARY_KEY);
+      setV2Library(raw === null ? null : parseLibraryV2(raw, parseMaterial));
+    } catch (error) { setV2Library(null); errors.push(`Библиотека v2: ${(error as Error).message}`); }
+    try {
+      const raw = localStorage.getItem(V2_WORKSPACE_KEY);
+      setV2Workspace(raw === null ? null : parseWorkspaceV2(raw, parseMaterial));
+    } catch (error) { setV2Workspace(null); errors.push(`Черновики v2: ${(error as Error).message}`); }
     setLegacyNotice(errors.join(" ")); setNotice("");
     setDialog("library");
   }
@@ -198,8 +224,9 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
     const materialV1 = bindings?.materials.find(item => item.id === key);
     const next = materialV2?.presets[0]?.recipe ?? materialV1?.presets[0]?.recipe
       ?? (key.startsWith("legacy-") ? MONO_BACKGROUND_DEFAULTS[key.slice(7) as MonoBackgroundRecipeId] : undefined);
-    if (next) request({ label: "Сменить материал", action: () => editor.openRecipe(next, key, true) });
+    if (next) request({ label: "Сменить материал", action: () => editor.openRecipe(createBackgroundDocument(next), key, true) });
   }
+  function editMaterial(next: SandboxRecipe) { editor.edit({ ...labDocument, material: next }); }
   const recipeLabel = (value: SandboxRecipe) => isV2Recipe(value)
     ? MATERIAL_LABELS[value.effectId]
     : isV1GpuRecipe(value) ? bindings?.materials.find(item => item.id === value.effectId)?.label ?? value.effectId
@@ -256,7 +283,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
             {!state.ready ? <div className={styles.unavailable}>Подготовка рабочего места…</div>
               : state.recoveryUnavailable ? <div className={styles.unavailable}><p>Сохранённое рабочее место недоступно.</p><p>{state.recoveryError}</p><p>Исходные данные сохранены. Можно открыть именованную пробу из библиотеки или начать новую.</p><button className={styles.control} type="button" onClick={editor.startFresh}>Начать новую пробу</button></div>
               : isV2Recipe(shown) && bindings?.renderMaterialStageV2 ? bindings.renderMaterialStageV2({ recipe: shown, presentation: effectivePresentation,
-                quality, paused: paused || state.comparing, restartKey: state.restartKey,
+                quality, edgeFinish: shownDocument.edgeFinish, paused: paused || state.comparing, restartKey: state.restartKey,
                 transientAction: !state.comparing && transientAction?.restartKey === state.restartKey ? transientAction : undefined, onStatus })
               : isV1GpuRecipe(shown) && bindings ? bindings.renderStage({ recipe: shown, presentation: effectivePresentation, paused: paused || state.comparing, restartKey: state.restartKey, onStatus })
               : !isGpuRecipe(shown) && effectivePresentation.mode === "mono" && renderScene ? renderScene({ config: paused || state.comparing ? { ...shown, calm: true } : shown, theme, width: effectivePresentation.width })
@@ -276,16 +303,19 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
             <optgroup label="Контрольные SVG / CSS">{LEGACY.map(item => <option key={item.id} value={`legacy-${item.id}`}>{item.label}</option>)}</optgroup>
           </select></label>
           <p className={styles.description}>{descriptorV2?.description ?? descriptorV1?.description ?? "Свет и плоскости отвечают на указатель. Контрольный материал прежней лаборатории."}</p>
-          {descriptorV2 && isV2Recipe(config) ? <MaterialControls key={recipeKey(config)} descriptor={descriptorV2} recipe={config} capability="background" disabled={inactive} onChange={editor.edit}
+          {isFluidV2Draw(config) && <p className={styles.note}>Касание или движение вбок — рисунок; вертикальный свайп — прокрутка</p>}
+          {descriptorV2 && isV2Recipe(config) ? <MaterialControls key={recipeKey(config)} descriptor={descriptorV2} recipe={config} capability="background" disabled={inactive} onChange={editMaterial}
             onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} onError={setNotice}
             onAction={action => setTransientAction({ requestId: ++actionSerial.current, restartKey: state.restartKey, action })} />
-            : descriptorV1 && isV1GpuRecipe(config) ? <ParameterControls descriptor={descriptorV1} recipe={config} disabled={inactive} onChange={editor.edit} onStart={editor.beginGesture} onCommit={editor.endGesture} onError={setNotice} />
-            : !isGpuRecipe(config) && <MonoBackgroundRecipeControls value={config} disabled={inactive} showRecipeSelector={false} onChange={next => { if (next) editor.edit(next); }} onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} />}
+            : descriptorV1 && isV1GpuRecipe(config) ? <ParameterControls descriptor={descriptorV1} recipe={config} disabled={inactive} onChange={editMaterial} onStart={editor.beginGesture} onCommit={editor.endGesture} onError={setNotice} />
+            : !isGpuRecipe(config) && <MonoBackgroundRecipeControls value={config} disabled={inactive} showRecipeSelector={false} onChange={next => { if (next) editMaterial(next); }} onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} />}
+          {isV2Recipe(config) && bindings?.renderMaterialStageV2 && <EdgeFinishControls value={labDocument.edgeFinish} disabled={inactive}
+            onChange={next => editor.edit({ ...labDocument, edgeFinish: next })} onStart={editor.beginGesture} onCommit={editor.endGesture} />}
           {((descriptorV2?.presets.length ?? descriptorV1?.presets.length ?? 0) > 1) && <label className={styles.field}>Начальная проба<select aria-label="Начальная проба" value="" disabled={inactive} onChange={event => {
-            const preset = (descriptorV2?.presets ?? descriptorV1?.presets)?.find(item => item.id === event.target.value); if (preset) editor.edit(preset.recipe);
+            const preset = (descriptorV2?.presets ?? descriptorV1?.presets)?.find(item => item.id === event.target.value); if (preset) editMaterial(preset.recipe);
           }}><option value="" disabled>Выбрать вариант…</option>{(descriptorV2?.presets ?? descriptorV1?.presets)?.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}</select></label>}
           <div className={styles.inspectorActions}><button className={styles.control} type="button" disabled={inactive} onClick={() => {
-            const defaults = descriptorV2?.presets[0]?.recipe ?? descriptorV1?.presets[0]?.recipe ?? (!isGpuRecipe(config) ? MONO_BACKGROUND_DEFAULTS[config.recipe] : null); if (defaults) editor.edit(defaults);
+            const defaults = descriptorV2?.presets[0]?.recipe ?? descriptorV1?.presets[0]?.recipe ?? (!isGpuRecipe(config) ? MONO_BACKGROUND_DEFAULTS[config.recipe] : null); if (defaults) editor.edit(createBackgroundDocument(defaults));
           }}>По умолчанию</button><button className={styles.control} type="button" disabled={state.recoveryUnavailable} onClick={() => setDialog("source")}>Об источнике</button></div>
           {isV2Recipe(config) && descriptorV2?.capabilities.includes("button-fill") && <a className={styles.control}
             aria-disabled={state.recoveryUnavailable || state.saving} href="/design-lab/buttons"
@@ -324,43 +354,56 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
         {state.libraryError && <p role="alert">{state.libraryError}</p>}
         {!state.library.trials.length && <p>Пока пусто. Сохраните первую пробу.</p>}
         <div className={styles.library}>{state.library.trials.map(trial => <div className={styles.libraryRow} key={trial.id}>
-          <div><strong>{trial.name}</strong><small>{recipeLabel(trial.recipe)} · ревизия {trial.revision}</small></div>
+          <div><strong>{trial.name}</strong><small>{recipeLabel(trial.recipe.material)} · ревизия {trial.revision}</small></div>
           <button className={styles.control} type="button" aria-label={`Открыть «${trial.name}»`} onClick={() => request({ label: `Открыть «${trial.name}»`, action: () => editor.openTrial(trial) })}>Открыть</button>
           <button className={styles.control} type="button" aria-label={`Закрепить «${trial.name}» как A`} onClick={() => editor.pin(trial)}>A</button>
         </div>)}</div>
+        {(v2Library || v2Workspace) && <section className={styles.legacyImport} aria-label="Данные v2 · только чтение">
+          <h3>Исходные пробы v2 · только чтение</h3>
+          {v2Library?.trials.map(trial => <div className={styles.libraryRow} key={`v2-${trial.id}`}>
+            <div><strong>{trial.name}</strong><small>{recipeLabel(trial.recipe)} · v2 · ревизия {trial.revision}</small></div>
+            <button className={styles.control} type="button" aria-label={`Копировать v2 «${trial.name}»`}
+              onClick={() => request({ label: `Копировать v2 «${trial.name}»`, action: () => editor.openRecipe(createBackgroundDocument(trial.recipe), "v2-import") })}>Копировать в v3</button>
+          </div>)}
+          {v2Workspace?.slots.map((oldSlot, index) => <div className={styles.libraryRow} key={`v2-slot-${index}`}>
+            <div><strong>Черновик v2 · слот {index + 1}</strong><small>{recipeLabel(oldSlot.present.recipe)}</small></div>
+            <button className={styles.control} type="button" onClick={() => request({ label: `Копировать черновик v2 · слот ${index + 1}`,
+              action: () => editor.openRecipe(createBackgroundDocument(oldSlot.present.recipe), "v2-import") })}>Копировать в v3</button>
+          </div>)}
+        </section>}
         {(v1Library || v1Workspace || legacy || legacyNotice) && <section className={styles.legacyImport} aria-label="Данные v1 · только чтение">
           <h3>Данные v1 · только чтение</h3>
           {v1Library?.trials.map(trial => <div className={styles.libraryRow} key={`v1-${trial.id}`}>
             <div><strong>{trial.name}</strong><small>{recipeLabel(trial.recipe)} · v1 · ревизия {trial.revision}</small></div>
             <button className={styles.control} type="button" aria-label={`Копировать v1 «${trial.name}»`}
-              onClick={() => request({ label: `Копировать v1 «${trial.name}»`, action: () => editor.openRecipe(trial.recipe, "v1-import") })}>Копировать в v2</button>
+              onClick={() => request({ label: `Копировать v1 «${trial.name}»`, action: () => editor.openRecipe(createBackgroundDocument(trial.recipe), "v1-import") })}>Копировать в v3</button>
           </div>)}
           {v1Workspace?.slots.map((oldSlot, index) => <div className={styles.libraryRow} key={`v1-slot-${index}`}>
             <div><strong>Черновик v1 · слот {index + 1}</strong><small>{recipeLabel(oldSlot.present.recipe)}</small></div>
             <button className={styles.control} type="button" onClick={() => request({ label: `Копировать черновик v1 · слот ${index + 1}`,
-              action: () => editor.openRecipe(oldSlot.present.recipe, "v1-import") })}>Копировать в v2</button>
+              action: () => editor.openRecipe(createBackgroundDocument(oldSlot.present.recipe), "v1-import") })}>Копировать в v3</button>
           </div>)}
-          {legacy && <button className={styles.control} type="button" onClick={() => request({ label: "Восстановить старую SVG / CSS-пробу", action: () => editor.openRecipe(legacy, "legacy-import") })}>Копировать atmosphere-v1</button>}
+          {legacy && <button className={styles.control} type="button" onClick={() => request({ label: "Восстановить старую SVG / CSS-пробу", action: () => editor.openRecipe(createBackgroundDocument(legacy), "legacy-import") })}>Копировать atmosphere-v1</button>}
           {legacyNotice && <p role="alert">{legacyNotice}</p>}
         </section>}
-        <p className={styles.note}>Старые записи читаются явно и копируются как новая несохранённая проба. Ключи v1 и оформление MONO не меняются.</p>
+        <p className={styles.note}>Пробы v1/v2 остаются доступными и копируются отдельно. Исходные ключи и оформление MONO не меняются.</p>
         {notice && <p role="alert">{notice}</p>}
       </div>}
-      {dialog === "export" && <div><p>Конфигурация B · {title}. Без истории симуляции.</p><textarea aria-label="Экспорт пробы" rows={14} readOnly value={JSON.stringify(config, null, 2)} /><p className={styles.note}>Выделите и скопируйте JSON. Он откроется как новая несохранённая копия.</p></div>}
+      {dialog === "export" && <div><p>Конфигурация B · {title}. Без истории симуляции.</p><textarea aria-label="Экспорт пробы" rows={14} readOnly value={JSON.stringify(labDocument, null, 2)} /><p className={styles.note}>Выделите и скопируйте JSON. Он откроется как новая несохранённая копия.</p></div>}
       {dialog === "copy" && copyPreview && <div>
         <p>Материал {recipeLabel(copyPreview)} · полная проверенная копия.</p>
         {dirty && <p className={styles.note}>Черновик фона изменён. При переходе можно сохранить его, отбросить или вернуться.</p>}
         <RecipeSummary recipe={copyPreview} bindings={bindings} />
         <button className={`${styles.control} ${styles.primary}`} data-initial-focus type="button"
-          onClick={() => request({ label: "Открыть копию кнопки", action: () => editor.openRecipe(copyPreview, "button-import") })}>Взять в черновик</button>
+          onClick={() => request({ label: "Открыть копию кнопки", action: () => editor.openRecipe(createBackgroundDocument(copyPreview), "button-import") })}>Взять в черновик</button>
       </div>}
       {dialog === "import" && <div>
         <p className={styles.note}>До 64 KiB. Сначала проверка полной конфигурации, затем открытие новой копии.</p>
         <textarea aria-label="Импорт пробы" rows={9} value={importText} maxLength={65537} onChange={event => { setImportText(event.target.value); setImportPreview(null); setNotice(""); }} />
-        <button className={styles.control} type="button" onClick={() => { try { setImportPreview(parseRecipeImport(importText, parse)); setNotice(""); } catch (error) { setImportPreview(null); setNotice((error as Error).message); } }}>Проверить JSON</button>
+        <button className={styles.control} type="button" onClick={() => { try { setImportPreview(parseRecipeImport(importText, input => parseBackgroundDocumentImport(input, parseMaterial))); setNotice(""); } catch (error) { setImportPreview(null); setNotice((error as Error).message); } }}>Проверить JSON</button>
         {notice && <p role="alert">{notice}</p>}
-        {importPreview && <div className={styles.importPreview} role="region" aria-label="Предпросмотр импорта"><p>{recipeLabel(importPreview)} · полная конфигурация · новая копия</p>
-          <RecipeSummary recipe={importPreview} bindings={bindings} />
+        {importPreview && <div className={styles.importPreview} role="region" aria-label="Предпросмотр импорта"><p>{recipeLabel(importPreview.material)} · полная конфигурация · новая копия</p>
+          <RecipeSummary recipe={importPreview.material} bindings={bindings} />
           <button className={`${styles.control} ${styles.primary}`} type="button" onClick={() => request({ label: "Открыть импорт", action: () => editor.openRecipe(importPreview, "import") })}>Открыть копию</button></div>}
       </div>}
       {dialog === "source" && <div>

@@ -2,23 +2,30 @@ import { createLibrary, parseLibrary, saveTrial, writeChecked, LIBRARY_KEY, WORK
   type RecipeParser, type SavedTrial, type StoragePort, type TrialLibrary } from "./storage";
 import { createLibraryV2, parseLibraryV2, saveTrialV2, V2_LIBRARY_KEY, V2_WORKSPACE_KEY, type TrialLibraryV2 } from "./storage-v2";
 import { parseWorkspaceV2, persistWorkspaceV2 } from "./workspace-v2";
+import { createLibraryV3, parseLibraryV3, saveTrialV3, V3_LIBRARY_KEY, V3_WORKSPACE_KEY, type TrialLibraryV3 } from "./storage-v3";
+import { parseWorkspaceV3, persistWorkspaceV3 } from "./workspace-v3";
 import { createWorkspace, editRecipe, finishGesture, frameForTrial, freshFrame, markSaved, openFrame, parseWorkspace,
   pinTrial, selectSlot, undoSlot, type EditorFrame, type SandboxSlot, type SandboxWorkspace } from "./model";
 
 export type StorageLock = <T>(task: () => T) => Promise<T>;
+export type PreviousWorkspace<R> = {
+  readPreviousLibrary(store: StoragePort): TrialLibraryV3<R> | null;
+  readPreviousWorkspace(store: StoragePort): SandboxWorkspace<R> | null;
+};
 export type SessionSnapshot<R> = {
-  workspace: SandboxWorkspace<R>; library: TrialLibrary<R> | TrialLibraryV2<R>; ready: boolean; saving: boolean;
+  workspace: SandboxWorkspace<R>; library: TrialLibrary<R> | TrialLibraryV2<R> | TrialLibraryV3<R>; ready: boolean; saving: boolean;
   saveError: string; recoveryError: string; libraryError: string; externalChange: boolean;
   comparing: boolean; restartKey: number; recovered: boolean; recoveryUnavailable: boolean; writeAvailable: boolean;
 };
 const message = (error: unknown) => error instanceof Error ? error.message : "Хранилище недоступно.";
 
 /** Pure editor store. Browser connection is explicit, after hydration; no render-time reads/writes. */
-export function createSandboxSession<R>(recipe: R, key: string, parse: RecipeParser<R>, storageVersion: 1 | 2 = 1) {
-  const libraryKey = storageVersion === 2 ? V2_LIBRARY_KEY : LIBRARY_KEY;
-  const workspaceKey = storageVersion === 2 ? V2_WORKSPACE_KEY : WORKSPACE_KEY;
+export function createSandboxSession<R>(recipe: R, key: string, parse: RecipeParser<R>, storageVersion: 1 | 2 | 3 = 1,
+  previous?: PreviousWorkspace<R>) {
+  const libraryKey = storageVersion === 3 ? V3_LIBRARY_KEY : storageVersion === 2 ? V2_LIBRARY_KEY : LIBRARY_KEY;
+  const workspaceKey = storageVersion === 3 ? V3_WORKSPACE_KEY : storageVersion === 2 ? V2_WORKSPACE_KEY : WORKSPACE_KEY;
   let state: SessionSnapshot<R> = { workspace: createWorkspace(recipe, key),
-    library: storageVersion === 2 ? createLibraryV2<R>() : createLibrary<R>(), ready: false,
+    library: storageVersion === 3 ? createLibraryV3<R>() : storageVersion === 2 ? createLibraryV2<R>() : createLibrary<R>(), ready: false,
     saving: false, saveError: "", recoveryError: "", libraryError: "", externalChange: false, comparing: false, restartKey: 0, recovered: false, recoveryUnavailable: false, writeAvailable: false };
   const serverState = state;
   const listeners = new Set<() => void>();
@@ -31,16 +38,18 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
   function publish(patch: Partial<SessionSnapshot<R>>) { state = { ...state, ...patch }; listeners.forEach(listener => listener()); }
   function queueRecovery() {
     if (!storage || recoveryBlocked) return;
-    pendingRecovery = JSON.stringify(storageVersion === 2 ? { ...state.workspace, version: 2 } : state.workspace);
+    pendingRecovery = JSON.stringify(storageVersion > 1 ? { ...state.workspace, version: storageVersion } : state.workspace);
     if (recoveryTask) return;
     recoveryTask = Promise.resolve().then(async () => {
       while (pendingRecovery !== null && !recoveryBlocked) {
         const raw = pendingRecovery; pendingRecovery = null;
         try {
-          const validated = storageVersion === 2 ? parseWorkspaceV2(raw, parse) : parseWorkspace(raw, parse);
+          const validated = storageVersion === 3 ? parseWorkspaceV3(raw, parse)
+            : storageVersion === 2 ? parseWorkspaceV2(raw, parse) : parseWorkspace(raw, parse);
           await locked(() => {
             if (storage!.getItem(workspaceKey) !== workspaceRaw) recoveryBlocked = true;
-            if (storageVersion === 2) workspaceRaw = persistWorkspaceV2(storage!, workspaceRaw, validated, parse);
+            if (storageVersion === 3) workspaceRaw = persistWorkspaceV3(storage!, workspaceRaw, validated, parse);
+            else if (storageVersion === 2) workspaceRaw = persistWorkspaceV2(storage!, workspaceRaw, validated, parse);
             else { writeChecked(storage!, WORKSPACE_KEY, workspaceRaw, raw); workspaceRaw = raw; }
           });
           publish({ recoveryError: "" });
@@ -67,7 +76,9 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
     if (!storage) return;
     try {
       const raw = storage.getItem(libraryKey);
-      const library = storageVersion === 2
+      const library = storageVersion === 3
+        ? raw === null ? previous?.readPreviousLibrary(storage) ?? createLibraryV3<R>() : parseLibraryV3(raw, parse)
+        : storageVersion === 2
         ? raw === null ? createLibraryV2<R>() : parseLibraryV2(raw, parse)
         : raw === null ? createLibrary<R>() : parseLibrary(raw, parse);
       libraryRaw = raw; libraryBlocked = false;
@@ -85,7 +96,11 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
       refreshLibrary();
       try {
         workspaceRaw = storage.getItem(workspaceKey);
-        if (workspaceRaw !== null) publish({ workspace: storageVersion === 2 ? parseWorkspaceV2(workspaceRaw, parse) : parseWorkspace(workspaceRaw, parse), recovered: true });
+        const recovered = workspaceRaw !== null
+          ? storageVersion === 3 ? parseWorkspaceV3(workspaceRaw, parse)
+            : storageVersion === 2 ? parseWorkspaceV2(workspaceRaw, parse) : parseWorkspace(workspaceRaw, parse)
+          : storageVersion === 3 ? previous?.readPreviousWorkspace(storage) : null;
+        if (recovered) publish({ workspace: recovered, recovered: true });
       } catch (error) { recoveryBlocked = true; publish({ recoveryError: message(error), recoveryUnavailable: true }); }
       publish({ ready: true, writeAvailable: !!runLocked });
     },
@@ -137,6 +152,10 @@ export function createSandboxSession<R>(recipe: R, key: string, parse: RecipePar
         if (libraryBlocked) throw new Error("Библиотека повреждена или недоступна. Её данные не перезаписаны; доступен экспорт.");
         const request = { ...(source ? { id: source.id, revision: source.revision } : {}), name: name ?? source?.name ?? "", recipe: frame.recipe };
         const result = await locked(() => {
+          if (storageVersion === 3) {
+            if (state.library.version !== 3) throw new Error("Версия библиотеки фонов не поддерживается.");
+            return saveTrialV3(storage!, libraryRaw, state.library, request, parse);
+          }
           if (storageVersion === 2) {
             if (state.library.version !== 2) throw new Error("Версия библиотеки фонов не поддерживается.");
             return saveTrialV2(storage!, libraryRaw, state.library, request, parse);

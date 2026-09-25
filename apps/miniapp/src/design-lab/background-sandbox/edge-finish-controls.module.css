@@ -1,0 +1,7 @@
+.root { border-top: 1px solid #46524e; margin-top: 18px; padding-top: 10px; }
+.disclosure { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 9px; padding: 7px 10px; border: 1px solid #53625c; border-radius: 7px; background: #202a26; color: #e8f0e9; font: inherit; font-size: 12px; cursor: pointer; }
+.disclosure > :last-child { margin-left: auto; font-size: 18px; }
+.icon { display: inline-grid; place-items: center; width: 24px; height: 24px; color: #d0dccc; font-size: 17px; }
+.controls { display: grid; gap: 10px; padding: 12px 2px 0; }
+.controls p { margin: 0 0 3px; color: #b6c4bd; font-size: 11px; line-height: 1.5; }
+.root :is(button, input):focus-visible { outline: 2px solid #d4eee1; outline-offset: 3px; }

@@ -3,7 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoAtmosphereLab } from "./mono-atmosphere-lab";
 import { LIBRARY_KEY, LEGACY_KEY, WORKSPACE_KEY } from "./background-sandbox/storage";
-import { V2_LIBRARY_KEY, V2_WORKSPACE_KEY } from "./background-sandbox/storage-v2";
+import { V2_LIBRARY_KEY } from "./background-sandbox/storage-v2";
+import { V3_LIBRARY_KEY, V3_WORKSPACE_KEY } from "./background-sandbox/storage-v3";
 import { MONO_BACKGROUND_DEFAULTS } from "../mono-preview/mono-background-recipes";
 
 beforeEach(() => {
@@ -33,6 +34,7 @@ it("keeps a clean standalone stage and three independent comparison slots", () =
   const stage = screen.getByRole("region", { name: "Сцена материала" });
   expect(within(stage).queryByRole("button")).toBeNull();
   expect(stage.querySelector("[data-mono-logo], .mono-app-header__mark")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Края" })).toBeNull();
   intensity(81);
   fireEvent.click(screen.getByRole("button", { name: "Слот 2" }));
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("60");
@@ -56,7 +58,7 @@ it("saves two names, returns to each after reload, and toggles pinned A without 
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("25");
   fireEvent.click(screen.getByRole("button", { name: "Открыть библиотеку" }));
   fireEvent.click(screen.getByRole("button", { name: "Открыть «Яркий»" }));
-  await waitFor(() => expect(localStorage.getItem(V2_WORKSPACE_KEY)).toContain("Яркий"));
+  await waitFor(() => expect(localStorage.getItem(V3_WORKSPACE_KEY)).toContain("Яркий"));
   view.unmount(); render(<MonoAtmosphereLab />);
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("85");
   fireEvent.click(screen.getByRole("button", { name: "Показать A" }));
@@ -67,7 +69,8 @@ it("saves two names, returns to each after reload, and toggles pinned A without 
   expect(localStorage.getItem(LEGACY_KEY)).toBeNull();
   expect(localStorage.getItem(LIBRARY_KEY)).toBeNull();
   expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
-  expect(localStorage.getItem(V2_LIBRARY_KEY)).toContain("Яркий");
+  expect(localStorage.getItem(V3_LIBRARY_KEY)).toContain("Яркий");
+  expect(localStorage.getItem(V2_LIBRARY_KEY)).toBeNull();
 });
 
 it("guards dirty material switches and retains edits when Back is chosen", () => {
@@ -156,7 +159,7 @@ it("commits the shared numeric input as one complete undo transaction", () => {
 });
 
 it("shows an unavailable recovered workspace instead of rendering a substitute material", () => {
-  localStorage.setItem(V2_WORKSPACE_KEY, '{"version":999}');
+  localStorage.setItem(V3_WORKSPACE_KEY, '{"version":999}');
   render(<MonoAtmosphereLab />);
   expect(document.querySelector("[data-mono-background-recipe]")).toBeNull();
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toBeDisabled();
@@ -166,7 +169,7 @@ it("shows an unavailable recovered workspace instead of rendering a substitute m
   fireEvent.click(screen.getByRole("button", { name: "Закрыть диалог" }));
   fireEvent.click(screen.getByRole("button", { name: "Начать новую пробу" }));
   expect(document.querySelector("[data-mono-background-recipe]")).toBeInTheDocument();
-  expect(localStorage.getItem(V2_WORKSPACE_KEY)).toBe('{"version":999}');
+  expect(localStorage.getItem(V3_WORKSPACE_KEY)).toBe('{"version":999}');
 });
 
 it("opens a historical v1 trial only after an explicit copy and preserves its bytes", async () => {
@@ -181,7 +184,7 @@ it("opens a historical v1 trial only after an explicit copy and preserves its by
   fireEvent.click(screen.getByRole("button", { name: "Копировать v1 «Архив»" }));
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("33");
   expect(screen.getByRole("status")).toHaveTextContent("Изменено");
-  await saveAs("Архив v2", true);
+  await saveAs("Архив v3", true);
   expect(localStorage.getItem(LIBRARY_KEY)).toBe(oldRaw);
-  expect(localStorage.getItem(V2_LIBRARY_KEY)).toContain("Архив v2");
+  expect(localStorage.getItem(V3_LIBRARY_KEY)).toContain("Архив v3");
 });
