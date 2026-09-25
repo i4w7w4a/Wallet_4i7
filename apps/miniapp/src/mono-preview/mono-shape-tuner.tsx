@@ -20,6 +20,7 @@ export function MonoShapeTuner({
   onApply,
   onOpenMotionLab,
   motionLabStatus,
+  buttonLabHref,
 }: {
   values: Record<MonoShapeGroup, number>;
   dirty: boolean;
@@ -30,6 +31,7 @@ export function MonoShapeTuner({
   onApply: () => void;
   onOpenMotionLab?: (anchor: HTMLAnchorElement) => void;
   motionLabStatus?: string;
+  buttonLabHref?: "/design-lab/buttons";
 }) {
   const [group, setGroup] = useState<MonoShapeGroup>("quick-actions");
   const radius = values[group];
@@ -93,6 +95,13 @@ export function MonoShapeTuner({
           <a href="/design-lab" target="_blank" rel="noopener noreferrer"
             onClick={(event) => onOpenMotionLab(event.currentTarget)}>Открыть Motion Lab <span aria-hidden="true">↗</span></a>
           <p role="status" aria-label="Состояние Motion Lab">{motionLabStatus}</p>
+        </div>
+      )}
+      {group === "quick-actions" && buttonLabHref && (
+        <div className="mono-shape-tuner__motion">
+          <strong>Материалы быстрых действий</strong>
+          <p>Поверхность, иконка и рамка настраиваются в отдельной мастерской.</p>
+          <a href={buttonLabHref} target="_blank" rel="noopener noreferrer">Открыть мастерскую кнопок <span aria-hidden="true">↗</span></a>
         </div>
       )}
       <p className="mono-shape-tuner__status" role="status" aria-label="Состояние формы"
