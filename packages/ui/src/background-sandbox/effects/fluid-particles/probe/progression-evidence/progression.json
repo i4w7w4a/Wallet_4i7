@@ -1,0 +1,143 @@
+{
+  "method": "Source-speed preset, seed 147, fixed colors/front camera, detail runtime profile (same as the initial GPU probe). Every solver call receives dt=1/60 s; the adapter caps dt to 1/60 s and multiplies by timeScale=1. Integrated time is solver calls/60 and is distinct from measured wall time. No recolor, resize, pointer input, quality or artistic parameter changes occur between samples.",
+  "samples": [
+    {
+      "steps": 0,
+      "integratedSeconds": 0,
+      "wallElapsedMs": 1951.5764000000004,
+      "position": {
+        "count": 30720,
+        "min": [
+          0.3062892556190491,
+          0.3063237965106964,
+          0.3064705729484558
+        ],
+        "max": [
+          14.693596839904785,
+          19.693490982055664,
+          19.69184112548828
+        ],
+        "mean": [
+          7.558099907040014,
+          10.060035095649074,
+          10.027669188302632
+        ],
+        "span": [
+          14.387307584285736,
+          19.387167185544968,
+          19.385370552539825
+        ]
+      },
+      "image": {
+        "hash": 1592400715,
+        "coloredPixels": 4753,
+        "bounds": {
+          "x0": 217,
+          "y0": 182,
+          "x1": 431,
+          "y1": 427
+        },
+        "width": 960,
+        "height": 640
+      },
+      "glError": 0
+    },
+    {
+      "steps": 15,
+      "integratedSeconds": 0.25,
+      "wallElapsedMs": 38406.545999999995,
+      "position": {
+        "count": 30720,
+        "min": [
+          0.3062500059604645,
+          0.3062500059604645,
+          0.3062500059604645
+        ],
+        "max": [
+          17.678190231323242,
+          18.679351806640625,
+          19.693750381469727
+        ],
+        "mean": [
+          8.299294079684962,
+          9.218853043732816,
+          10.022109300157172
+        ],
+        "span": [
+          17.371940225362778,
+          18.37310180068016,
+          19.387500375509262
+        ]
+      },
+      "image": {
+        "hash": 1273579166,
+        "coloredPixels": 5026,
+        "bounds": {
+          "x0": 218,
+          "y0": 181,
+          "x1": 453,
+          "y1": 413
+        },
+        "width": 960,
+        "height": 640
+      },
+      "glError": 0
+    },
+    {
+      "steps": 30,
+      "integratedSeconds": 0.5,
+      "wallElapsedMs": 75557.6944,
+      "position": {
+        "count": 30720,
+        "min": [
+          0.3100447952747345,
+          0.3062500059604645,
+          0.3062500059604645
+        ],
+        "max": [
+          25.102449417114258,
+          15.916459083557129,
+          19.693750381469727
+        ],
+        "mean": [
+          9.870482130469949,
+          7.264998214825755,
+          10.018226362960801
+        ],
+        "span": [
+          24.792404621839523,
+          15.610209077596664,
+          19.387500375509262
+        ]
+      },
+      "image": {
+        "hash": 996580006,
+        "coloredPixels": 5036,
+        "bounds": {
+          "x0": 221,
+          "y0": 181,
+          "x1": 542,
+          "y1": 385
+        },
+        "width": 960,
+        "height": 640
+      },
+      "glError": 0
+    }
+  ],
+  "preset": {
+    "particleColor": "#408CFF",
+    "backgroundColor": "#FFFFFF",
+    "timeScale": 1,
+    "flipRatio": 0.99,
+    "gravity": 40,
+    "pointerForce": 3,
+    "particleSize": 1,
+    "initialFill": 0.375,
+    "aoStrength": 0.7,
+    "shadowStrength": 0.8,
+    "camera": "front"
+  },
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "errors": []
+}
