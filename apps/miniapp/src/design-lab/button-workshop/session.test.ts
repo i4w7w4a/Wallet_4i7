@@ -96,3 +96,26 @@ test("unparseable workspace is preserved until explicit fresh start", () => {
   expect(editor.getSnapshot().recoveryUnavailable).toBe(true);
   expect(store.values.get(WORKSPACE_KEY)).toBe("{bad-json");
 });
+
+test("a first visit records the initial draft for exact reload", async () => {
+  const store = memoryStorage();
+  const initial = createButtonSession(ACTIONS, parseRecipe);
+  initial.connect(store, lock);
+  await initial.flushRecovery();
+  expect(store.values.has(WORKSPACE_KEY)).toBe(true);
+  expect(JSON.parse(store.values.get(WORKSPACE_KEY)!).slots).toHaveLength(3);
+});
+
+test("recovery storage failure reports an error without rejecting the flush or losing the live draft", async () => {
+  let reads = 0;
+  const store = {
+    getItem() { reads++; if (reads > 3) throw Error("Storage unavailable"); return null; },
+    setItem() { throw Error("Quota"); },
+  };
+  const editor = createButtonSession(ACTIONS, parseRecipe);
+  editor.connect(store, lock);
+  editor.edit("send", "fill", metal);
+  await expect(editor.flushRecovery()).resolves.toBeUndefined();
+  expect(editor.getSnapshot().recoveryError).not.toBe("");
+  expect(editor.shownDocument().actions.send.fill).toEqual(metal);
+});

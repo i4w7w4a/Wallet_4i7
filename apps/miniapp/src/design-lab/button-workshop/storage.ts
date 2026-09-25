@@ -30,7 +30,7 @@ function trialName(value: string): string {
 
 export function saveButtonTrial<A extends string, R>(store: ButtonStoragePort, expected: string | null,
   library: ButtonTrialLibrary<A, R>, request: { id?: string; revision?: number; name: string; document: ButtonLabDocument<A, R> },
-  actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R>): { raw: string; library: ButtonTrialLibrary<A, R>; trial: ButtonSavedTrial<A, R> } {
+  actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>): { raw: string; library: ButtonTrialLibrary<A, R>; trial: ButtonSavedTrial<A, R> } {
   const name = trialName(request.name);
   const document = parseButtonDocument(request.document, actionIds, parseRecipe);
   const prior = request.id ? library.trials.find(item => item.id === request.id) : undefined;

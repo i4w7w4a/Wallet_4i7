@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import type { ButtonTargetId, MaterialTargetBinding } from "@wallet/ui";
 import { createButtonWorkspace, editButtonBinding } from "./model";
 import { parseButtonDocument, parseButtonImport, parseButtonWorkspace } from "./codec";
 
@@ -38,4 +39,25 @@ test("import limit and malformed recovery never normalize silently", () => {
   const workspace = createButtonWorkspace<Action, Recipe>(ACTIONS);
   expect(() => parseButtonWorkspace(JSON.stringify({ ...workspace, version: 2 }), ACTIONS, parseRecipe)).toThrow(/Версия/);
   expect(() => parseButtonDocument({ ...document, actions: { ...document.actions, send: { fill: null, icon: null } } }, ACTIONS, parseRecipe)).toThrow();
+});
+
+test("full target bindings keep geometry and distinct IDs in one all-four edit", () => {
+  const ids: readonly ButtonTargetId[] = ["quick.send", "quick.receive", "quick.swap", "quick.buy"];
+  const recipe = { kind: "novex-material", version: 2, effectId: "liquid-metal", effectVersion: 1,
+    seed: 7, params: { colorTint: "#abcdef" }, assetIds: [] } as const;
+  const initial = createButtonWorkspace<ButtonTargetId, MaterialTargetBinding>(ids).slots[0].present.document;
+  const document = editButtonBinding(initial, ids, "all", "fill", (targetId): MaterialTargetBinding => ({
+    targetId, layer: "fill", recipe, mask: { kind: "rounded-rect" }, radiusCss: 0, borderWidthCss: 3, enabled: true,
+  }));
+  const parser = (input: unknown, layer: "fill" | "icon" | "border", target: ButtonTargetId): MaterialTargetBinding => {
+    const value = input as MaterialTargetBinding;
+    if (value.targetId !== target || value.layer !== layer) throw Error("Wrong target/layer");
+    return value;
+  };
+  const restored = parseButtonDocument(JSON.parse(JSON.stringify(document)), ids, parser);
+  expect(ids.map(id => restored.actions[id].fill?.targetId)).toEqual(ids);
+  expect(restored.actions["quick.buy"].fill).toMatchObject({ radiusCss: 0, borderWidthCss: 3, enabled: true, mask: { kind: "rounded-rect" } });
+  const swapped = JSON.parse(JSON.stringify(document));
+  swapped.actions["quick.buy"].fill.targetId = "quick.send";
+  expect(() => parseButtonDocument(swapped, ids, parser)).toThrow("Wrong target/layer");
 });

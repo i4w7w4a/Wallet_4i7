@@ -33,18 +33,21 @@ export function createButtonDocument<A extends string, R>(actionIds: readonly A[
   return { version: 1, actions: Object.fromEntries(actionIds.map(id => [id, { fill: null, icon: null, border: null }])) as Record<A, ButtonLayers<R>> };
 }
 
-export function createButtonWorkspace<A extends string, R>(actionIds: readonly A[]): ButtonLabWorkspace<A, R> {
-  const initial = createButtonDocument<A, R>(actionIds);
+export function createButtonWorkspace<A extends string, R>(actionIds: readonly A[], initialDraft?: ButtonLabDocument<A, R>): ButtonLabWorkspace<A, R> {
+  const initial = initialDraft ? copyButtonValue(initialDraft) : createButtonDocument<A, R>(actionIds);
   const slot = (): ButtonLabSlot<A, R> => ({ present: { document: copyButtonValue(initial), baseline: copyButtonValue(initial), source: null }, past: [], future: [] });
   return { version: 1, activeSlot: 0, selection: { target: "all", layer: "fill" }, slots: [slot(), slot(), slot()], pinned: null };
 }
 
 export function editButtonBinding<A extends string, R>(document: ButtonLabDocument<A, R>, actionIds: readonly A[],
-  target: ButtonTarget<A>, layer: ButtonLayer, recipe: R | null): ButtonLabDocument<A, R> {
+  target: ButtonTarget<A>, layer: ButtonLayer, binding: R | ((action: A) => R | null) | null): ButtonLabDocument<A, R> {
   if (layer !== "fill" && layer !== "icon" && layer !== "border") throw new Error("Неизвестный слой кнопки.");
   if (target !== "all" && !actionIds.includes(target as A)) throw new Error("Неизвестная кнопка.");
   const next = copyButtonValue(document);
-  for (const action of target === "all" ? actionIds : [target as A]) next.actions[action][layer] = copyButtonValue(recipe);
+  for (const action of target === "all" ? actionIds : [target as A]) {
+    const value = typeof binding === "function" ? (binding as (action: A) => R | null)(action) : binding;
+    next.actions[action][layer] = copyButtonValue(value);
+  }
   return next;
 }
 

@@ -1,7 +1,7 @@
 import { copyButtonValue, type ButtonLabDocument, type ButtonLabFrame, type ButtonLabSlot,
   type ButtonLabWorkspace, type ButtonLayer, type ButtonSavedTrial } from "./model";
 
-export type ButtonRecipeParser<R> = (input: unknown, layer: ButtonLayer) => R;
+export type ButtonRecipeParser<R, A extends string = string> = (input: unknown, layer: ButtonLayer, target: A) => R;
 export type ButtonTrialLibrary<A extends string, R> = {
   version: 1; revision: number; nextId: number; trials: ButtonSavedTrial<A, R>[];
 };
@@ -31,7 +31,7 @@ function trialName(value: unknown): string {
   return value.trim();
 }
 
-export function parseButtonDocument<A extends string, R>(input: unknown, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R>): ButtonLabDocument<A, R> {
+export function parseButtonDocument<A extends string, R>(input: unknown, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>): ButtonLabDocument<A, R> {
   const data = exactButtonObject(input, ["version", "actions"]);
   if (data.version !== 1) throw new Error("Версия ButtonLabDocument не поддерживается.");
   if (actionIds.length !== 4 || new Set(actionIds).size !== 4) throw new Error("Нужны четыре действия MONO.");
@@ -40,26 +40,26 @@ export function parseButtonDocument<A extends string, R>(input: unknown, actionI
   for (const action of actionIds) {
     const layers = exactButtonObject(actions[action], ["fill", "icon", "border"]);
     parsed[action] = {
-      fill: layers.fill === null ? null : copyButtonValue(parseRecipe(layers.fill, "fill")),
-      icon: layers.icon === null ? null : copyButtonValue(parseRecipe(layers.icon, "icon")),
-      border: layers.border === null ? null : copyButtonValue(parseRecipe(layers.border, "border")),
+      fill: layers.fill === null ? null : copyButtonValue(parseRecipe(layers.fill, "fill", action)),
+      icon: layers.icon === null ? null : copyButtonValue(parseRecipe(layers.icon, "icon", action)),
+      border: layers.border === null ? null : copyButtonValue(parseRecipe(layers.border, "border", action)),
     };
   }
   return { version: 1, actions: parsed };
 }
 
-export function parseButtonImport<A extends string, R>(raw: string, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R>): ButtonLabDocument<A, R> {
+export function parseButtonImport<A extends string, R>(raw: string, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>): ButtonLabDocument<A, R> {
   return parseButtonDocument(boundedButtonJson(raw, 64 * 1024), actionIds, parseRecipe);
 }
 
-export function parseButtonTrial<A extends string, R>(input: unknown, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R>): ButtonSavedTrial<A, R> {
+export function parseButtonTrial<A extends string, R>(input: unknown, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>): ButtonSavedTrial<A, R> {
   const data = exactButtonObject(input, ["id", "name", "revision", "document"]);
   if (typeof data.id !== "string" || !/^trial-[1-9]\d{0,14}$/.test(data.id)) throw new Error("Неизвестный ID пробы.");
   return { id: data.id, name: trialName(data.name), revision: integer(data.revision, 1),
     document: parseButtonDocument(data.document, actionIds, parseRecipe) };
 }
 
-export function parseButtonLibrary<A extends string, R>(raw: string, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R>): ButtonTrialLibrary<A, R> {
+export function parseButtonLibrary<A extends string, R>(raw: string, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>): ButtonTrialLibrary<A, R> {
   const data = exactButtonObject(boundedButtonJson(raw, 512 * 1024), ["version", "revision", "nextId", "trials"]);
   if (data.version !== 1) throw new Error("Версия библиотеки кнопок не поддерживается.");
   if (!Array.isArray(data.trials) || data.trials.length > 32) throw new Error("В библиотеке не больше 32 проб.");
@@ -71,7 +71,7 @@ export function parseButtonLibrary<A extends string, R>(raw: string, actionIds: 
   return { version: 1, revision: integer(data.revision, 0), nextId, trials };
 }
 
-export function parseButtonWorkspace<A extends string, R>(raw: string, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R>): ButtonLabWorkspace<A, R> {
+export function parseButtonWorkspace<A extends string, R>(raw: string, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>): ButtonLabWorkspace<A, R> {
   const data = exactButtonObject(boundedButtonJson(raw, 1024 * 1024), ["version", "activeSlot", "selection", "slots", "pinned"]);
   if (data.version !== 1) throw new Error("Версия workspace кнопок не поддерживается.");
   const selection = exactButtonObject(data.selection, ["target", "layer"]);

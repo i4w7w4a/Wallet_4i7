@@ -1,4 +1,4 @@
-import { parseButtonDocument, parseButtonLibrary, parseButtonTrial, parseButtonWorkspace,
+import { boundedButtonJson, parseButtonDocument, parseButtonLibrary, parseButtonTrial, parseButtonWorkspace,
   type ButtonRecipeParser, type ButtonTrialLibrary } from "./codec";
 import { buttonFrameForTrial, copyButtonValue, createButtonDocument, createButtonWorkspace, editButtonBinding,
   editButtonSlot, finishButtonGesture, openButtonFrame, selectButtonSlot, undoButtonSlot,
@@ -29,8 +29,10 @@ export type ButtonSessionSnapshot<A extends string, R> = {
 const message = (error: unknown) => error instanceof Error ? error.message : "Хранилище недоступно.";
 
 /** Browser storage is connected only after hydration; this store is safe to construct during SSR. */
-export function createButtonSession<A extends string, R>(actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R>) {
-  const initialWorkspace = createButtonWorkspace<A, R>(actionIds);
+export function createButtonSession<A extends string, R>(actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>,
+  initialDraft?: ButtonLabDocument<A, R>) {
+  const initialWorkspace = createButtonWorkspace<A, R>(actionIds,
+    initialDraft ? parseButtonDocument(initialDraft, actionIds, parseRecipe) : undefined);
   let state: ButtonSessionSnapshot<A, R> = {
     workspace: initialWorkspace, accepted: createButtonDocument<A, R>(actionIds), library: createButtonLibrary<A, R>(),
     ready: false, saving: false, saveError: "", acceptedError: "", recoveryError: "", libraryError: "",
@@ -62,7 +64,8 @@ export function createButtonSession<A extends string, R>(actionIds: readonly A[]
           await locked(() => { writeButtonChecked(storage!, WORKSPACE_KEY, workspaceRaw, raw); workspaceRaw = raw; });
           publish({ recoveryError: "" });
         } catch (error) {
-          if (storage?.getItem(WORKSPACE_KEY) !== workspaceRaw) recoveryBlocked = true;
+          try { if (storage?.getItem(WORKSPACE_KEY) !== workspaceRaw) recoveryBlocked = true; }
+          catch { recoveryBlocked = true; }
           publish({ recoveryError: message(error) });
         }
       }
@@ -107,23 +110,27 @@ export function createButtonSession<A extends string, R>(actionIds: readonly A[]
       refreshLibrary();
       try {
         acceptedRaw = storage.getItem(ACCEPTED_KEY);
-        if (acceptedRaw !== null) publish({ accepted: parseButtonDocument(JSON.parse(acceptedRaw) as unknown, actionIds, parseRecipe) });
+        if (acceptedRaw !== null) publish({ accepted: parseButtonDocument(boundedButtonJson(acceptedRaw, 256 * 1024), actionIds, parseRecipe) });
       } catch (error) { publish({ acceptedError: message(error), acceptedUnavailable: true }); }
       try {
         workspaceRaw = storage.getItem(WORKSPACE_KEY);
         if (workspaceRaw !== null) publish({ workspace: parseButtonWorkspace(workspaceRaw, actionIds, parseRecipe), recovered: true });
       } catch (error) { recoveryBlocked = true; publish({ recoveryError: message(error), recoveryUnavailable: true }); }
       publish({ ready: true, writeAvailable: !!runLocked });
+      if (workspaceRaw === null && !recoveryBlocked) queueRecovery();
     },
     refreshLibrary,
     notifyExternalChange() { publish({ externalChange: true }); },
     startFresh() { if (!state.saving) { recoveryBlocked = false; publish({ recoveryUnavailable: false, acceptedUnavailable: false }); queueRecovery(); } },
     beginGesture() { if (!state.comparing && !state.saving) gesture ??= copyButtonValue(slot().present); },
     endGesture,
-    edit(target: ButtonTarget<A>, layer: ButtonLayer, recipe: R | null) {
+    edit(target: ButtonTarget<A>, layer: ButtonLayer, binding: R | ((action: A) => R | null) | null) {
       if (state.comparing || state.saving || state.recoveryUnavailable) return;
-      const parsed = recipe === null ? null : parseRecipe(recipe, layer);
-      changeSlot(editButtonSlot(slot(), editButtonBinding(slot().present.document, actionIds, target, layer, parsed), gesture !== null));
+      const resolve = (action: A) => {
+        const value = typeof binding === "function" ? (binding as (action: A) => R | null)(action) : binding;
+        return value === null ? null : parseRecipe(value, layer, action);
+      };
+      changeSlot(editButtonSlot(slot(), editButtonBinding(slot().present.document, actionIds, target, layer, resolve), gesture !== null));
     },
     undo(redo = false) {
       if (state.comparing || state.saving) return;
