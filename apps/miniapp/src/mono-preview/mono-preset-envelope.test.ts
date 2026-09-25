@@ -1,10 +1,21 @@
-import { normalizeMonoPaletteConfig, setMonoPaletteLock } from "@wallet/ui";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, materialCatalogV2, normalizeMonoPaletteConfig, setMonoPaletteLock } from "@wallet/ui";
 import { describe, expect, it } from "vitest";
 import { createMonoWorkingDocument } from "./mono-working-presets";
 import { monoPaletteStyle } from "./mono-palette-tokens";
 import { createMonoAppearanceEnvelope, createMonoAppearanceFromDocument, normalizeMonoAppearanceEnvelope } from "./mono-preset-envelope";
 
 describe("allowlisted complete MONO appearance", () => {
+  it("refuses a share link when selected material data cannot roundtrip through its envelope", () => {
+    const document = createMonoWorkingDocument();
+    const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
+    document.materials.ledger = { ...document.materials.ledger,
+      background: { version: 1, recipe: fluid, edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH } };
+    expect(() => createMonoAppearanceFromDocument(document, "ledger")).toThrow(/материал.*ссылк/i);
+    expect(() => createMonoAppearanceFromDocument(document, "frost")).not.toThrow();
+    document.materials.ledger = { background: null, buttons: { version: 1, bindings: [] } };
+    expect(() => createMonoAppearanceFromDocument(document, "ledger")).not.toThrow();
+  });
+
   it("provides a complete snapshot with the approved positive Ledger optics", () => {
     const result = createMonoAppearanceEnvelope();
     expect(result.appearance.optics.ior).toBe(1.34);

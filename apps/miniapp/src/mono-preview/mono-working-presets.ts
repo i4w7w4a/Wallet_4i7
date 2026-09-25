@@ -6,6 +6,7 @@ import { importMonoPalettePreset } from "./mono-preset-codec";
 import { createMonoShapeDefaults, normalizeMonoShapeMap, type MonoShapeMap, type MonoShapePreset } from "./mono-shape-preview";
 import { createMonoExtendedAppearance, normalizeMonoExtendedAppearance, type MonoExtendedAppearance } from "./mono-preset-envelope";
 import { loadMonoLogoPreview, MONO_LOGO_PREVIEW_DEFAULTS, type MonoLogoPreview } from "./mono-logo-preview";
+import { createEmptyMonoMaterials, normalizeMonoMaterialMap, type MonoMaterialMap } from "./mono-material-preset";
 
 export const MONO_WORKING_PRESETS_KEY = "wallet4i7.mono.working-presets.v2";
 export const MONO_WORKING_PRESETS_LEGACY_KEY = "wallet4i7.mono.working-presets.v1";
@@ -16,12 +17,13 @@ const MAX_IMPORT_BYTES = 2_000_000;
 export type MonoBackground = "iris" | "tide" | "strata";
 export type MonoOpticsMap = Record<MonoShapePreset, MonoGlassSettings>;
 export type MonoWorkingDocument = {
-  version: 2;
+  version: 3;
   palette: MonoPaletteWorkspace;
   shapes: MonoShapeMap;
   optics: MonoOpticsMap;
   background: MonoBackground;
   appearance: Record<MonoShapePreset, MonoExtendedAppearance>;
+  materials: MonoMaterialMap;
 };
 export type MonoWorkingRecord = {
   id: string;
@@ -53,7 +55,7 @@ export class MonoWorkingStoreError extends Error {
 
 export function createMonoWorkingDocument(legacyLogo?: MonoLogoPreview): MonoWorkingDocument {
   return {
-    version: 2,
+    version: 3,
     palette: createMonoPaletteWorkspace(),
     shapes: createMonoShapeDefaults(),
     optics: {
@@ -67,6 +69,7 @@ export function createMonoWorkingDocument(legacyLogo?: MonoLogoPreview): MonoWor
       frost: createMonoExtendedAppearance("frost", legacyLogo, legacyLogo !== undefined),
       mercury: createMonoExtendedAppearance("mercury", legacyLogo, legacyLogo !== undefined),
     },
+    materials: createEmptyMonoMaterials(),
   };
 }
 
@@ -133,8 +136,10 @@ export function normalizeMonoWorkingDocument(value: unknown, legacyLogo?: MonoLo
   const input = record(value);
   if (!input || !record(input.optics)) throw new MonoWorkingStoreError("Рабочий пресет повреждён.", "invalid");
   const legacy = input.version === undefined;
-  if (!legacy && input.version !== 2) throw new MonoWorkingStoreError("Версия рабочего документа неизвестна.", "invalid");
-  exactKeys(input, ["palette", "shapes", "optics", "background", ...(legacy ? [] : ["version", "appearance"])], "Рабочий пресет");
+  if (!legacy && input.version !== 2 && input.version !== 3)
+    throw new MonoWorkingStoreError("Версия рабочего документа неизвестна.", "invalid");
+  exactKeys(input, ["palette", "shapes", "optics", "background",
+    ...(legacy ? [] : ["version", "appearance"]), ...(input.version === 3 ? ["materials"] : [])], "Рабочий пресет");
   exactKeys(input.shapes, ["ledger", "frost", "mercury"], "Форма");
   exactKeys(input.optics, ["ledger", "frost", "mercury"], "Оптика");
   const optics = input.optics as Record<string, unknown>;
@@ -151,7 +156,7 @@ export function normalizeMonoWorkingDocument(value: unknown, legacyLogo?: MonoLo
     catch { throw new MonoWorkingStoreError("Оформление рабочего пресета повреждено.", "invalid"); }
   }
   const result: MonoWorkingDocument = {
-    version: 2,
+    version: 3,
     palette: normalizePalette(input.palette),
     shapes: normalizeMonoShapeMap(input.shapes),
     optics: {
@@ -161,15 +166,18 @@ export function normalizeMonoWorkingDocument(value: unknown, legacyLogo?: MonoLo
     },
     background: input.background as MonoBackground,
     appearance,
+    materials: input.version === 3 ? normalizeMonoMaterialMap(input.materials) : createEmptyMonoMaterials(),
   };
   if (canonical(input.shapes) !== canonical(result.shapes) || canonical(input.optics) !== canonical(result.optics))
     throw new MonoWorkingStoreError("Форма или оптика рабочего пресета повреждена.", "invalid");
+  if (input.version === 3 && canonical(input.materials) !== canonical(result.materials))
+    throw new MonoWorkingStoreError("Материал рабочего пресета изменён или не поддерживается.", "invalid");
   return result;
 }
 
 export function exportMonoWorkingPreset(name: string, document: MonoWorkingDocument): string {
   const normalized = normalizeMonoWorkingDocument({ ...document, palette: settledPalette(document.palette) });
-  return JSON.stringify({ kind: "mono-working-preset", version: 2, skinId: "mono-ledger-v1",
+  return JSON.stringify({ kind: "mono-working-preset", version: 3, skinId: "mono-ledger-v1",
     name: name.trim().slice(0, 80) || "Пресет оформления", document: normalized });
 }
 
@@ -183,13 +191,19 @@ export async function previewMonoWorkingImport(text: string): Promise<MonoWorkin
   if (!input) throw new MonoWorkingStoreError("Формат импорта неизвестен.", "invalid");
   if (input.kind === "mono-working-preset") {
     exactKeys(input, ["kind", "version", "skinId", "name", "document"], "Импорт");
-    if ((input.version !== 1 && input.version !== 2) || input.skinId !== "mono-ledger-v1")
+    if ((input.version !== 1 && input.version !== 2 && input.version !== 3) || input.skinId !== "mono-ledger-v1")
       throw new MonoWorkingStoreError("Версия рабочего пресета неизвестна или несовместима.", "invalid");
     if (typeof input.name !== "string" || !input.name.trim() || input.name.length > 80)
       throw new MonoWorkingStoreError("Название рабочего пресета повреждено.", "invalid");
-    exactKeys(input.document, ["palette", "shapes", "optics", "background", ...(input.version === 2 ? ["version", "appearance"] : [])], "Рабочий пресет");
+    exactKeys(input.document, ["palette", "shapes", "optics", "background",
+      ...(input.version === 1 ? [] : ["version", "appearance"]), ...(input.version === 3 ? ["materials"] : [])], "Рабочий пресет");
     const document = normalizeMonoWorkingDocument(input.document);
-    const comparison = input.version === 1 ? { palette: document.palette, shapes: document.shapes, optics: document.optics, background: document.background } : document;
+    const comparison = input.version === 1
+      ? { palette: document.palette, shapes: document.shapes, optics: document.optics, background: document.background }
+      : input.version === 2
+      ? { version: 2, palette: document.palette, shapes: document.shapes, optics: document.optics,
+        background: document.background, appearance: document.appearance }
+      : document;
     if (canonical(input.document) !== canonical(comparison))
       throw new MonoWorkingStoreError("В рабочем пресете есть неподдерживаемые или изменённые значения.", "invalid");
     return { name: input.name.trim(), document, kind: "full" };
@@ -237,7 +251,7 @@ export function loadMonoWorkingLibrary(storage: Pick<Storage, "getItem">): MonoW
       typeof origin.contentHash === "string"
       ? { source: { kind: "legacy-palette" as const, id: origin.id, contentHash: origin.contentHash } }
       : {};
-    if (currentRaw !== null && record(item.document)?.version !== 2)
+    if (currentRaw !== null && record(item.document)?.version !== 2 && record(item.document)?.version !== 3)
       throw new MonoWorkingStoreError("Версия рабочего документа неизвестна.", "invalid");
     return { id: item.id, name: item.name, revision: Number(item.revision),
       document: normalizeMonoWorkingDocument(item.document, legacyLogo), ...sourceMetadata };

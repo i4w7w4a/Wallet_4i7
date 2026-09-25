@@ -60,6 +60,9 @@ export type MonoSceneProps = {
   surfaceRef?: RefObject<HTMLElement | null>;
   /** Optional lab composition; absence preserves the standard private optical runtime. */
   opticalHost?: MonoSharedOpticalHost;
+  /** Host session state survives a decorative renderer swap without entering the saved preset. */
+  session?: { balanceHidden: boolean; onBalanceHiddenChange: (hidden: boolean) => void;
+    period: ChartPeriod; onPeriodChange: (period: ChartPeriod) => void };
 };
 
 const FIELD_NODES = [
@@ -104,19 +107,23 @@ export function MonoScene(props: MonoSceneProps) {
 
 function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady = true,
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true,
-  atmosphere, surfaceRef, typography, opticalHost, materialTargets = false,
+  atmosphere, surfaceRef, typography, opticalHost, materialTargets = false, session,
 }: MonoSceneProps & { typography: ReturnType<typeof useMonoTypographyPreview> }) {
   const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
   const fullScene = Boolean(appearance.balance && appearance.chart && appearance.layout && appearance.assets);
-  const [period, setPeriod] = useState<ChartPeriod>("1D");
+  const [localPeriod, setLocalPeriod] = useState<ChartPeriod>("1D");
+  const period = session?.period ?? localPeriod;
+  const setPeriod = session?.onPeriodChange ?? setLocalPeriod;
   const moneyFormat = { locale: "ru-RU", currency: snapshot.balance.currency,
     minimumFractionDigits: 2, maximumFractionDigits: 2 };
   const { theme, background } = appearance.environment;
   const paletteStyle = useMemo(() => palette.enabled
     ? monoPaletteStyle(palette.config.themes[theme]) : {}, [palette.enabled, palette.config, theme]);
   const logoColors = useMemo(() => resolveMonoLogoColors(logoPreview.hue), [logoPreview.hue]);
-  const [balanceHidden, setBalanceHidden] = useState(snapshot.balance.hidden);
+  const [localBalanceHidden, setLocalBalanceHidden] = useState(snapshot.balance.hidden);
+  const balanceHidden = session?.balanceHidden ?? localBalanceHidden;
+  const setBalanceHidden = session?.onBalanceHiddenChange ?? setLocalBalanceHidden;
   const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
   const pageRef = useRef<HTMLElement>(null);
   const paletteCrossfadeRef = useRef<HTMLDivElement>(null);
@@ -357,7 +364,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
               type="button"
               aria-label={balanceHidden ? "Показать баланс" : "Скрыть баланс"}
               aria-pressed={balanceHidden}
-              onClick={() => setBalanceHidden((hidden) => !hidden)}
+              onClick={() => setBalanceHidden(!balanceHidden)}
             >
               {balanceHidden ? "○" : "◉"}
             </button>

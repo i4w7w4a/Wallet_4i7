@@ -107,7 +107,9 @@ export class MaterialSceneBackend {
     private readonly onRestore: () => void) {
     this.input = input;
     // The stage is the visible viewport; MONO's scrollable wallet is taller than it.
-    this.viewportElement = root.parentElement ?? root;
+    // A width-limited stage may sit inside a wider scrolling viewport. The canvas
+    // follows that viewport vertically while keeping the stage's real CSS width.
+    this.viewportElement = root.closest<HTMLElement>("[data-material-scrollport]") ?? root.parentElement ?? root;
     this.canvas = document.createElement("canvas");
     this.canvas.dataset.materialCanvas = "true";
     this.canvas.setAttribute("aria-hidden", "true");
@@ -121,7 +123,7 @@ export class MaterialSceneBackend {
       this.limits = { maxTextureSize: Math.min(4096, this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE) as number,
         this.gl.getParameter(this.gl.MAX_RENDERBUFFER_SIZE) as number),
         maxRenderTargetBytes: TOTAL_BYTES - PROMO_BYTES };
-      const size = resolveViewport(this.viewportElement.clientWidth, this.viewportElement.clientHeight,
+      const size = resolveViewport(root.clientWidth, this.viewportElement.clientHeight,
         window.devicePixelRatio, this.limits.maxTextureSize);
       if (!size) throw new Error("Область материала пока не имеет размера.");
       this.viewport = size;
@@ -192,7 +194,10 @@ export class MaterialSceneBackend {
     const parsed = parseTargetBindings(this.input.bindings, materialCatalogV2);
     if (!parsed.ok) throw new Error(parsed.issues.map(issue => issue.message).join(" "));
     const rootRect = this.canvas.getBoundingClientRect();
-    for (const target of parsed.value) {
+    // A working preset can receive layers in any order. Composite by visual depth,
+    // so a later fill transfer cannot cover an earlier icon or border transfer.
+    const layerOrder = { fill: 0, border: 1, icon: 2 } as const;
+    for (const target of [...parsed.value].sort((left, right) => layerOrder[left.layer] - layerOrder[right.layer])) {
       if (!target.enabled) continue;
       const button = this.root.querySelector<HTMLElement>(`[data-material-target="${target.targetId}"]`);
       const element = target.layer === "icon" ? button?.querySelector<HTMLElement>(".mono-actions__icon") : button;
@@ -420,7 +425,7 @@ export class MaterialSceneBackend {
   resize(): void {
     if (this.disposed || this.lost) return;
     this.syncCanvasToScroll();
-    const size = resolveViewport(this.viewportElement.clientWidth, this.viewportElement.clientHeight, window.devicePixelRatio,
+    const size = resolveViewport(this.root.clientWidth, this.viewportElement.clientHeight, window.devicePixelRatio,
       this.limits.maxTextureSize);
     if (!size || (size.cssWidth === this.viewport.cssWidth && size.cssHeight === this.viewport.cssHeight &&
         size.pixelWidth === this.viewport.pixelWidth && size.pixelHeight === this.viewport.pixelHeight)) return;

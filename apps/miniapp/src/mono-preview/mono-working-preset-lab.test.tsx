@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { webcrypto } from "node:crypto";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockWalletRepository } from "@wallet/core";
-import { normalizeMonoPaletteConfig } from "@wallet/ui";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, createTargetBinding, materialCatalogV2, normalizeMonoPaletteConfig } from "@wallet/ui";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { MonoPreview } from "./mono-preview";
@@ -21,11 +21,134 @@ const openEnvironment = () => {
 
 beforeEach(() => {
   localStorage.clear();
+  history.replaceState(null, "", "/mono");
   vi.stubGlobal("crypto", webcrypto);
   vi.stubGlobal("matchMedia", (query: string) => ({
     matches: query.includes("reduced-motion"), media: query,
     addEventListener() {}, removeEventListener() {},
   }));
+});
+
+it("opens the exact working record and direction named by a product Apply link", async () => {
+  const first = createMonoWorkingDocument();
+  const second = createMonoWorkingDocument();
+  const library = { version: 2 as const, skinId: "mono-ledger-v1" as const, generation: 1,
+    activeId: "first", records: [
+      { id: "first", name: "Первый", revision: 1, document: first },
+      { id: "second", name: "Второй", revision: 2, document: second },
+    ] };
+  saveMonoWorkingLibrary(localStorage, library, 0);
+  history.replaceState(null, "", "/mono?working=second&direction=frost");
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  render(<MonoPreview snapshot={snapshot} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Пресет оформления: Второй" })).toBeVisible());
+  expect(document.querySelector(".mono-page")?.getAttribute("data-mono-preset")).toBe("frost");
+  expect(JSON.parse(localStorage.getItem(WORKING_KEY)!).activeId).toBe("second");
+});
+
+it("reports a live unsaved MONO draft to a material Apply request from another tab", async () => {
+  class LocalChannel {
+    static peers = new Set<LocalChannel>();
+    onmessage: ((event: MessageEvent) => void) | null = null;
+    constructor(readonly name: string) { LocalChannel.peers.add(this); }
+    postMessage(data: unknown) {
+      for (const peer of LocalChannel.peers) if (peer !== this && peer.name === this.name)
+        queueMicrotask(() => peer.onmessage?.({ data } as MessageEvent));
+    }
+    close() { LocalChannel.peers.delete(this); }
+  }
+  vi.stubGlobal("BroadcastChannel", LocalChannel);
+  saveMonoWorkingLibrary(localStorage, { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1,
+      document: createMonoWorkingDocument() }] }, 0);
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  render(<MonoPreview snapshot={snapshot} />);
+  const enable = screen.getByRole("button", { name: "Включить палитру" });
+  await waitFor(() => expect(enable).toBeEnabled());
+  fireEvent.click(enable);
+  const otherTab = new LocalChannel(MONO_WORKING_PRESETS_KEY);
+  const answers: unknown[] = [];
+  otherTab.onmessage = event => answers.push(event.data);
+  otherTab.postMessage({ kind: "material-apply-check", requestId: "probe", targetId: "mine" });
+  await waitFor(() => expect(answers).toContainEqual({ kind: "material-apply-status",
+    requestId: "probe", targetId: "mine", dirty: true }));
+  otherTab.close();
+});
+
+it("does not report a clean stale MONO reader as an unsaved draft", async () => {
+  class LocalChannel {
+    static peers = new Set<LocalChannel>();
+    onmessage: ((event: MessageEvent) => void) | null = null;
+    constructor(readonly name: string) { LocalChannel.peers.add(this); }
+    postMessage(data: unknown) {
+      for (const peer of LocalChannel.peers) if (peer !== this && peer.name === this.name)
+        queueMicrotask(() => peer.onmessage?.({ data } as MessageEvent));
+    }
+    close() { LocalChannel.peers.delete(this); }
+  }
+  vi.stubGlobal("BroadcastChannel", LocalChannel);
+  saveMonoWorkingLibrary(localStorage, { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1,
+      document: createMonoWorkingDocument() }] }, 0);
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  render(<MonoPreview snapshot={snapshot} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Пресет оформления: Мой" })).toBeEnabled());
+  const previous = localStorage.getItem(WORKING_KEY)!;
+  const next = JSON.parse(previous) as { generation: number };
+  next.generation += 1;
+  const value = JSON.stringify(next);
+  localStorage.setItem(WORKING_KEY, value);
+  fireEvent(window, new StorageEvent("storage", { key: WORKING_KEY, oldValue: previous, newValue: value }));
+  await waitFor(() => expect(screen.getByText(/Изменён в другой вкладке/)).toBeVisible());
+  const otherTab = new LocalChannel(WORKING_KEY);
+  const answers: unknown[] = [];
+  otherTab.onmessage = event => answers.push(event.data);
+  otherTab.postMessage({ kind: "material-apply-check", requestId: "clean-probe", targetId: "mine" });
+  await waitFor(() => expect(answers).toContainEqual({ kind: "material-apply-status",
+    requestId: "clean-probe", targetId: "mine", dirty: false }));
+  otherTab.close();
+});
+
+it("mounts one shared material scene for applied quick action bindings", async () => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  const working = createMonoWorkingDocument();
+  const border = materialCatalogV2.materials.find(item => item.id === "pulsing-border")!.presets[0]!.recipe;
+  const binding = createTargetBinding("quick.send", "border", border, materialCatalogV2);
+  if (!binding.ok) throw new Error("Installed border fixture is invalid");
+  working.materials.ledger = { ...working.materials.ledger,
+    buttons: { version: 1, bindings: [binding.value] } };
+  saveMonoWorkingLibrary(localStorage, { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1, document: working }] }, 0);
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  render(<MonoPreview snapshot={snapshot} />);
+  await waitFor(() => expect(document.querySelectorAll("[data-material-scene]")).toHaveLength(1));
+  expect(document.querySelectorAll('[data-material-target="quick.send"]')).toHaveLength(1);
+  expect(document.querySelectorAll('[data-material-scrollport]')).toHaveLength(1);
+});
+
+it("removes an applied material background and reveals the preserved MONO background", async () => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  const working = createMonoWorkingDocument();
+  working.background = "tide";
+  const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
+  working.materials.ledger = { ...working.materials.ledger,
+    background: { version: 1, recipe: fluid, edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH } };
+  saveMonoWorkingLibrary(localStorage, { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1, document: working }] }, 0);
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  render(<MonoPreview snapshot={snapshot} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Пресет оформления: Мой" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "Скрыть баланс" }));
+  fireEvent.click(screen.getByRole("button", { name: "За неделю" }));
+  expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "За неделю" })).toHaveAttribute("aria-pressed", "true");
+  selectTool("Среда");
+  fireEvent.click(screen.getByRole("button", { name: "Снять материал фона" }));
+  await waitFor(() => expect(JSON.parse(localStorage.getItem(WORKING_KEY)!).records[0].document.materials.ledger.background)
+    .toBeNull());
+  expect(JSON.parse(localStorage.getItem(WORKING_KEY)!).records[0].document.background).toBe("tide");
+  expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "За неделю" })).toHaveAttribute("aria-pressed", "true");
 });
 
 afterEach(() => {

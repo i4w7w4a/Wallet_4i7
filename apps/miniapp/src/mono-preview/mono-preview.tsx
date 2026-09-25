@@ -9,7 +9,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import type { WalletSnapshot } from "@wallet/core";
+import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
 import { CHANNEL_NAME, parseApplyRequest, parseApplyRequestEnvelope, type ApplyAck, type ApplyLaunch } from "../design-lab/control-feedback-handoff";
 import type { ControlFeedbackPreset } from "../design-lab/control-feedback-model";
 import {
@@ -36,6 +36,7 @@ import {
   createRecoveredMonoWorkingLibrary,
   exportMonoWorkingPreset,
   loadMonoWorkingLibrary,
+  MONO_WORKING_PRESETS_KEY,
   MonoWorkingStoreError,
   saveMonoWorkingLibrary,
   type MonoWorkingDocument,
@@ -50,7 +51,7 @@ import {
   type MonoShapeGroup,
   type MonoShapeMap,
 } from "./mono-shape-preview";
-import { MonoScene } from "./mono-scene";
+import { MonoProductScene } from "./mono-product-scene";
 import { useMonoSceneActivity } from "./mono-scene-activity";
 import { MonoToolDock, MONO_TOOL_LABELS, type MonoToolId } from "./mono-tool-dock";
 import { MonoInspectorShell } from "./mono-inspector-shell";
@@ -204,8 +205,18 @@ function focusWorkingSelector() {
   requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".mono-working-preset__selector")?.focus());
 }
 
+function readMaterialOpenTarget(): { id: string; preset: MonoPreset } | null {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("working"), direction = params.get("direction");
+  if (!id || !direction || id.length > 100) return null;
+  const preset = PRESETS.find(item => item.id === direction)?.id;
+  return preset ? { id, preset } : null;
+}
+
 export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const hostActive = useMonoSceneActivity();
+  const [sceneBalanceHidden, setSceneBalanceHidden] = useState(snapshot.balance.hidden);
+  const [scenePeriod, setScenePeriod] = useState<ChartPeriod>("1D");
   const [initialDocument] = useState(() => createMonoWorkingDocument(MONO_LOGO_PREVIEW_DEFAULTS));
   const quickActionLaunchRef = useRef<ApplyLaunch | null>(null);
   const quickActionKnownSessionsRef = useRef<string[]>([]);
@@ -217,6 +228,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const workingBlockedRef = useRef(false);
   const workingBlockReasonRef = useRef("");
   const workingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const workingSaveFailedRef = useRef(false);
+  const materialDirtyRef = useRef(true);
   const [workingLibrary, setWorkingLibrary] = useState<MonoWorkingLibrary | null>(null);
   const [workingStatus, setWorkingStatus] = useState("Загрузка рабочего пресета…");
 
@@ -226,6 +239,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     const next = { ...pending, generation: savedGenerationRef.current + 1 };
     try {
       saveMonoWorkingLibrary(localStorage, next, savedGenerationRef.current);
+      workingSaveFailedRef.current = false;
       savedGenerationRef.current = next.generation;
       workingLibraryRef.current = next;
       setWorkingLibrary(next);
@@ -240,6 +254,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       } catch { /* Legacy paint cache is not the working preset. */ }
       return true;
     } catch (error) {
+      workingSaveFailedRef.current = true;
       setWorkingStatus(workingSaveError(error));
       return false;
     }
@@ -609,11 +624,26 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     const frame = requestAnimationFrame(() => {
       void (async () => { try {
         let library = loadMonoWorkingLibrary(localStorage);
+        const openTarget = readMaterialOpenTarget();
+        let openedDirection: MonoPreset | null = null;
+        if (library && openTarget) {
+          const target = library.records.find(record => record.id === openTarget.id);
+          if (target) {
+            if (library.activeId !== target.id) {
+              const next = { ...library, activeId: target.id, generation: library.generation + 1 };
+              saveMonoWorkingLibrary(localStorage, next, library.generation);
+              library = next;
+            }
+            openedDirection = openTarget.preset;
+          }
+        }
         const activeId = library?.activeId;
         const saved = library?.records.find(record => record.id === activeId)?.document;
         let document = saved ?? { ...createMonoWorkingDocument(loadMonoLogoPreview(localStorage)),
           optics: loadOpticalCandidate(), shapes: loadMonoShapeCandidateFrom(() => localStorage),
           background: loadEnvironmentCandidate().background };
+        if (openedDirection) document = { ...document, palette: { ...document.palette,
+          activeSlotId: (PRESETS.findIndex(item => item.id === openedDirection) + 1) as 1 | 2 | 3 } };
         if (!library) {
           validateLegacyCandidate(MONO_SHAPE_STORAGE_KEY, 5_000, "shape");
           validateLegacyCandidate(OPTICAL_STORAGE_KEY, 50_000, "optics");
@@ -901,6 +931,35 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       JSON.stringify(draftShapes) !== JSON.stringify(appliedShapes) ||
       JSON.stringify(draftOptics) !== JSON.stringify(appliedOptics));
   }
+  const activeWorking = workingLibraryRef.current?.records.find(record =>
+    record.id === workingLibraryRef.current?.activeId);
+  materialDirtyRef.current = hasPendingTrials() || workingTimerRef.current !== null || workingSaveFailedRef.current ||
+    Boolean(activeWorking && JSON.stringify(workingDocumentRef.current) !== JSON.stringify(activeWorking.document));
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel(MONO_WORKING_PRESETS_KEY);
+    channel.onmessage = event => {
+      const request = event.data as { kind?: unknown; requestId?: unknown; targetId?: unknown };
+      if (request?.kind !== "material-apply-check" || typeof request.requestId !== "string" ||
+        request.requestId.length > 100 || request.targetId !== workingLibraryRef.current?.activeId) return;
+      channel.postMessage({ kind: "material-apply-status", requestId: request.requestId,
+        targetId: request.targetId, dirty: !workingReadyRef.current || materialDirtyRef.current });
+    };
+    return () => channel.close();
+  }, []);
+  useEffect(() => {
+    const changed = (event: StorageEvent) => {
+      if (event.key !== MONO_WORKING_PRESETS_KEY || !workingReadyRef.current) return;
+      try {
+        const latest = loadMonoWorkingLibrary(localStorage);
+        if (latest?.generation === savedGenerationRef.current) return;
+      } catch { /* A damaged external write must not be applied over this draft. */ }
+      workingBlockedRef.current = true;
+      setWorkingStatus("Изменён в другой вкладке · Перезагрузите MONO перед новой записью.");
+    };
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
+  }, []);
   function toolDirty(tool: MonoToolId) {
     if (tool === "shape") return shapeDirty;
     if (tool === "optics") return JSON.stringify(draftOptics[preset]) !== JSON.stringify(appliedOptics[preset]);
@@ -924,6 +983,15 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       if (tool === "environment") { setBackground(next.background); setBackgroundDraft(null); }
       clearTrialWarning();
     }
+  }
+  function clearAppliedMaterialBackground() {
+    if (!workingDocumentRef.current.materials[preset].background) return;
+    if (!trialsSettled(clearAppliedMaterialBackground)) return;
+    const current = workingDocumentRef.current;
+    const next = { ...current, materials: { ...current.materials,
+      [preset]: { ...current.materials[preset], background: null } } };
+    if (acceptWorkingDocument(next, "environment"))
+      setWorkingStatus("Материал фона снят · прежний фон MONO сохранён.");
   }
   function cancelTool(tool: MonoToolId) {
     if (tool === "shape") { cancelShape(); return; }
@@ -978,6 +1046,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   }, [pendingTransition]);
 
   const activeRecord = workingLibrary?.records.find(record => record.id === workingLibrary.activeId);
+  const activeMaterials = workingDocumentRef.current.materials[preset];
+  const materialSceneActive = Boolean(activeMaterials.background || activeMaterials.buttons?.bindings.length);
   const dirtyTools = (Object.keys(MONO_TOOL_LABELS) as MonoToolId[]).filter(toolDirty);
 
   return (
@@ -1119,6 +1189,10 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           </div>
 </>}
           {activeTool === "environment" && <>
+            {activeMaterials.background && <div className="mono-workbench__material-return">
+              <p>Это направление показывает материал из мастерской. Прежний фон MONO сохранён.</p>
+              <button type="button" onClick={clearAppliedMaterialBackground}>Снять материал фона</button>
+            </div>}
             <MonoBackgroundRecipeControls value={draftAppearance[preset].background} onChange={value => updateAppearance("background", value)} />
             <MonoLabSection title="Исходная среда и тема">          <div className="mono-environment" aria-label="Визуальная среда" data-mono-control>
             <div className="mono-environment__backgrounds" role="group" aria-label="Фон">
@@ -1153,12 +1227,15 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           </>}
         </MonoInspectorShell>
       </aside>
-      <div className="mono-preview-frame" inert={compactChrome && panelsVisible && mobileRail !== null}>
-        <MonoScene snapshot={snapshot} appearance={{ ...draftAppearance[preset],
+      <div className="mono-preview-frame" data-material-scrollport={materialSceneActive || undefined}
+        inert={compactChrome && panelsVisible && mobileRail !== null}>
+        <MonoProductScene material={activeMaterials} snapshot={snapshot} appearance={{ ...draftAppearance[preset],
           preset, palette: { enabled: Boolean(colorLab.shown.paletteEnabled), config: colorLab.shown.config },
           shape: draftShapes[preset], optics: draftOptics[preset], environment: { theme, background: shownBackground },
         }} viewport={viewport} ready={workingReady} paletteReady={colorLab.ready}
           active={hostActive}
+          session={{ balanceHidden: sceneBalanceHidden, onBalanceHiddenChange: setSceneBalanceHidden,
+            period: scenePeriod, onPeriodChange: setScenePeriod }}
           paletteTransitionEnabled={colorLab.workspace.compare === null} quickActionPreset={quickActionPreset} />
       </div>
       <dialog ref={trialDialogRef} className="mono-trial-guard" aria-label="Неприменённые пробы"

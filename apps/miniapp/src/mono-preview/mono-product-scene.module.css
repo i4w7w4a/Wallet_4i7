@@ -1,0 +1,23 @@
+.stage { width: 100%; min-height: 100%; }
+.stage[data-mono-effect-background="true"] { background: radial-gradient(ellipse 82% 36% at 52% 0%, var(--mono-palette-atmosphereCool-08, #ffffff08), transparent 72%), linear-gradient(180deg, var(--mono-palette-canvas-ff, var(--mono-product-canvas)) 0%, var(--mono-palette-canvas-ff, var(--mono-product-canvas)) 100%); }
+.content { width: 100%; min-height: 100%; }
+.stage[data-mono-effect-background="true"] .content :global(.mono-page[data-mono-theme][data-mono-background]) { background: transparent; }
+.stage[data-mono-effect-background="true"] .content :global(.mono-actions) { background: transparent; }
+.stage[data-mono-effect-background="true"] .content :global(.mono-promo-frame:has([data-optics="shared-webgl"])) { background: transparent; }
+.stage[data-mono-effect-background="false"] :global([data-material-scene] > canvas[data-material-canvas]) { z-index: 1; }
+.stage[data-mono-effect-background="false"] .content :global(.mono-page) { isolation: auto; }
+.stage[data-mono-effect-background="false"] .content :global(.mono-scene) { z-index: auto; }
+.stage[data-mono-effect-background="false"] .content :global(.mono-actions) { animation-fill-mode: none; }
+.stage[data-mono-effect-background="false"] .content :global(.mono-actions__status) { z-index: 2; }
+.stage[data-mono-effect-background="false"] .content :global(.mono-promo-frame:has([data-optics="shared-webgl"])) { z-index: 2; background: transparent; }
+.stage[data-mono-effect-background="false"] .content :global(.mono-actions__item[data-material-fill-presented="true"]),
+.stage[data-mono-effect-background="false"] .content :global(.mono-actions__item[data-material-icon-presented="true"]),
+.stage[data-mono-effect-background="false"] .content :global(.mono-actions__item[data-material-border-presented="true"]) { position: relative; z-index: 2; }
+.stage[data-mono-effect-background="false"] .content :global(.mono-promo[data-optics="shared-webgl"]) { isolation: auto !important; }
+.stage[data-mono-effect-background="false"] .content :global(.mono-promo[data-optics="shared-webgl"] > div) { z-index: auto !important; }
+.content :global(.mono-actions__item[data-material-fill-presented="true"]) { background: transparent; box-shadow: none; }
+.content :global(.mono-actions__item[data-material-fill-presented="true"] .mono-actions__icon) { color: #f7faf9; background: rgb(7 12 16 / 65%); border-radius: 6px; box-shadow: 0 0 0 1px rgb(255 255 255 / 18%); }
+.content :global(.mono-actions__item[data-material-fill-presented="true"] .mono-actions__label) { color: #f7faf9; background: rgb(7 12 16 / 78%); border-radius: 4px; padding: 2px 4px; }
+.content :global(.mono-actions__item[data-material-icon-presented="true"] .mono-actions__icon svg) { opacity: 0; }
+.content :global(.mono-actions__item[data-material-icon-presented="true"] .mono-actions__icon) { background: transparent; box-shadow: none; }
+.content :global(.mono-actions__item[data-material-border-presented="true"]) { border-left-color: transparent; }

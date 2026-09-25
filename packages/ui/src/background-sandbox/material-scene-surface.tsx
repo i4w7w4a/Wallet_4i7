@@ -8,7 +8,8 @@ import { materialBindingsV2 } from "./registry-v2";
 import { MaterialSceneBackend, type MaterialSceneInput } from "./material-scene-backend";
 
 export function MaterialSceneSurface({ background = null, edgeFinish, bindings = [], quality, paused, restartKey,
-  hostActive = true, overlay, transientAction, children, onStatus }: {
+  hostActive = true, overlay, transientAction, emptyBackgroundColor = "#0c1119", canvasAboveContent = false,
+  children, onStatus }: {
   background?: MaterialRecipeV2 | null;
   edgeFinish?: BackgroundEdgeFinishV1;
   bindings?: readonly MaterialTargetBinding[];
@@ -18,6 +19,10 @@ export function MaterialSceneSurface({ background = null, edgeFinish, bindings =
   hostActive?: boolean;
   overlay?: BackgroundOverlay;
   transientAction?: Readonly<{ requestId: number; action: MaterialAction }>;
+  /** Preserve the underlying MONO atmosphere when only button passes are active. */
+  emptyBackgroundColor?: string;
+  /** Allow a transparent button canvas to sit over the original DOM-painted surfaces. */
+  canvasAboveContent?: boolean;
   children?: ReactNode;
   onStatus?: (status: BackgroundRuntimeStatus) => void;
 }) {
@@ -30,7 +35,7 @@ export function MaterialSceneSurface({ background = null, edgeFinish, bindings =
     hostActive, overlay, transientAction }), [background, edgeFinish, bindings, quality, paused, restartKey,
     hostActive, overlay, transientAction]);
   const latestInput = useRef(input);
-  const fallback = materialBindingsV2.find(binding => binding.descriptor.id === background?.effectId)?.fallback.color ?? "#0c1119";
+  const fallback = materialBindingsV2.find(binding => binding.descriptor.id === background?.effectId)?.fallback.color ?? emptyBackgroundColor;
   useEffect(() => { notify.current = onStatus; }, [onStatus]);
   useEffect(() => { latestInput.current = input; }, [input]);
   useEffect(() => {
@@ -51,10 +56,11 @@ export function MaterialSceneSurface({ background = null, edgeFinish, bindings =
   }, [restoreGeneration]);
   useEffect(() => { backend.current?.update(input); }, [input]);
   return <div ref={root} data-material-scene data-gpu-phase={status.phase}
+    data-material-canvas-layer={canvasAboveContent ? "foreground" : "background"}
     style={{ position: "relative", width: "100%", height: children ? "auto" : "100%",
       minHeight: children ? "100%" : 1, overflow: "hidden", backgroundColor: fallback,
       touchAction: background ? "pan-y" : "auto" }}>
-    {children && <div style={{ position: "relative", zIndex: 1 }}>{children}</div>}
+    {children && <div style={{ position: "relative", zIndex: canvasAboveContent ? "auto" : 1 }}>{children}</div>}
     {!children && (status.phase === "fallback" || status.phase === "lost") && <div role="status"
       style={{ position: "absolute", inset: 0, display: "grid", placeContent: "center",
         padding: 24, color: "#e1e6e9", background: fallback, textAlign: "center", fontSize: 14 }}>
