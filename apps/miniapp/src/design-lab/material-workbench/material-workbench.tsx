@@ -87,8 +87,8 @@ export function MaterialWorkbench({ activeLab, title, status, toolbar, left, rig
         }
       }
     };
-    document.addEventListener("keydown", keydown);
-    return () => document.removeEventListener("keydown", keydown);
+    window.addEventListener("keydown", keydown, true);
+    return () => window.removeEventListener("keydown", keydown, true);
   }, [open, closeDrawer]);
 
   const leftClosed = compact && open !== "left";
@@ -100,7 +100,7 @@ export function MaterialWorkbench({ activeLab, title, status, toolbar, left, rig
         <a href="/design-lab/atmosphere" aria-current={activeLab === "background" ? "page" : undefined}>Фоны</a>
         <a href="/design-lab/buttons" aria-current={activeLab === "buttons" ? "page" : undefined}>Кнопки</a>
       </nav>
-      <div className={styles.identity}><h1 title={title}>{title}</h1><span role="status">{status}</span></div>
+      <div className={styles.identity}><h1 title={title}>{title}</h1><span role="status" data-save-status={status}>{status}</span></div>
       <div className={styles.toolbar} role="toolbar" aria-label="Действия пробы">{toolbar}</div>
       <div className={styles.launchers}>
         <button ref={leftLauncher} type="button" aria-label="Материалы" aria-controls={`${id}-left`}
