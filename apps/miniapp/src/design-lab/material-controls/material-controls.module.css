@@ -1,0 +1,30 @@
+.root { display: grid; gap: 12px; min-width: 0; color: #e4ece9; }
+.root *, .root *::before, .root *::after { box-sizing: border-box; }
+.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.tabs button { display: grid; align-content: center; justify-items: center; min-width: 0; min-height: 52px; padding: 4px; border: 1px solid #51605d; border-radius: 8px; background: #192021; color: #d2dfd9; font: inherit; font-size: 10px; line-height: 1.1; cursor: pointer; }
+.tabs button > :first-child { font-size: 16px; line-height: 1; }
+.tabs button > :last-child { overflow-wrap: anywhere; }
+.tabs button[aria-pressed="true"] { border-color: #c7d9ce; background: #35423b; color: #fff; }
+.tabs button:hover { border-color: #c7d9ce; }
+.panel { display: grid; gap: 12px; min-width: 0; border-top: 1px solid #40504a; padding-top: 13px; }
+.panel[hidden] { display: none; }
+.row { min-width: 0; }
+.field, .colorList { display: grid; gap: 7px; min-width: 0; font-size: 12px; }
+.field select, .action select { min-width: 0; width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #647570; border-radius: 7px; background: #17201e; color: #eef4f0; font: inherit; }
+.toggle { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 12px; }
+.toggle input { width: 44px; height: 44px; margin: 0; accent-color: #cde1d1; }
+.colorInput { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.colorInput input[type="color"] { width: 44px; height: 44px; flex: 0 0 44px; padding: 2px; border: 1px solid #647570; border-radius: 7px; background: transparent; cursor: pointer; }
+.colorInput input[type="text"] { flex: 1; min-width: 0; min-height: 44px; padding: 8px; border: 1px solid #647570; border-radius: 7px; background: #17201e; color: #eef4f0; font: 12px/1.4 monospace; }
+.colorItem { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.colorItem .colorInput { flex: 1; }
+.colorItem button, .add, .action button { min-width: 44px; min-height: 44px; border: 1px solid #647570; border-radius: 7px; background: #242e2b; color: #eef4f0; cursor: pointer; font: inherit; font-size: 12px; }
+.colorItem button { font-size: 18px; }
+.add { width: 100%; }
+.action { display: grid; gap: 8px; }
+.action label { display: grid; gap: 6px; font-size: 12px; }
+.hint { display: block; margin-top: 4px; color: #b2bdb9; font-size: 11px; line-height: 1.5; }
+.error { display: block; margin-top: 5px; color: #fac8b6; font-size: 12px; line-height: 1.5; }
+.root button:disabled, .root input:disabled, .root select:disabled { opacity: .55; cursor: default; }
+.root :is(button, input, select):focus-visible { outline: 2px solid #d4eee1; outline-offset: 3px; }
+@media (forced-colors: active) { .root :is(button, input, select) { border-color: ButtonText; } }
