@@ -14,13 +14,14 @@
 .control:hover { background: #303839; border-color: #a0afad; }
 .control[aria-pressed="true"] { border-color: #b8c7c0; background: #303a37; color: #f5fcf7; }
 .control:disabled { cursor: default; opacity: .45; }
+.control[aria-disabled="true"] { cursor: default; opacity: .45; }
 .primary { background: #d1ded5; color: #16231b; border-color: #d1ded5; font-weight: 600; }
 .primary:hover { background: #e7f0e9; }
 .compare { display: flex; gap: 3px; margin: 0 12px; }
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; max-width: 1680px; margin: 0 auto; align-items: start; }
 .previewColumn { min-width: 0; }
-.viewport { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 48px; margin-bottom: 8px; font-size: 11px; color: #b6c0c2; }
-.viewport > span { min-width: 0; overflow-wrap: anywhere; }
+.viewport { display: flex; justify-content: flex-end; flex-wrap: wrap; align-items: center; gap: 8px 16px; min-height: 48px; margin-bottom: 8px; font-size: 11px; color: #b6c0c2; }
+.viewport > span { min-width: 0; margin-right: auto; overflow-wrap: anywhere; }
 .viewport label { display: flex; align-items: center; gap: 10px; }
 .viewport select { min-height: 44px; font-size: 11px; padding: 8px 30px 8px 12px; border: 1px solid #515c60; border-radius: 7px; color: #e3e9e8; background: #1e2425; }
 .stage { position: relative; isolation: isolate; width: 100%; height: clamp(440px, calc(100dvh - 254px), 1000px); overflow: hidden; border-radius: 12px; outline: 1px solid #465153; background: #101617; margin-inline: auto; container: sandbox-stage / inline-size; }
@@ -52,6 +53,7 @@
 .inspectorActions .control { flex: 1; padding: 8px; font-size: 11px; }
 .note { color: #b0bdbc; font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
 .tuner .note { margin: 14px 0 0; }
+.tuner > a.control { display: inline-flex; align-items: center; margin-top: 12px; text-decoration: none; }
 .footer { max-width: 1680px; margin: 22px auto 0; border-top: 1px solid #353e40; padding-top: 12px; color: #aebcbd; font-size: 11px; line-height: 1.65; }
 .footer p { margin: 4px 0; }
 :is(.footer, .modal) [role="alert"] { color: #f2c6ab; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
@@ -69,6 +71,9 @@
 .libraryRow { display: grid; grid-template-columns: minmax(0, 1fr) auto 44px; gap: 8px; align-items: center; border-top: 1px solid #475355; padding-top: 12px; }
 .libraryRow strong { display: block; font-weight: 500; overflow-wrap: anywhere; }
 .libraryRow small { display: block; color: #acbdbc; font-size: 11px; }
+.legacyImport { margin-top: 22px; border-top: 1px solid #596769; padding-top: 12px; }
+.legacyImport h3 { font-size: 13px; font-weight: 500; margin: 0 0 10px; }
+.legacyImport .libraryRow { grid-template-columns: minmax(0, 1fr) auto; }
 .importPreview { border-top: 1px solid #4c5f5a; margin-top: 20px; padding-top: 8px; }
 .diagnostics { display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 12px; }
 .diagnostics dd { margin: 0; }

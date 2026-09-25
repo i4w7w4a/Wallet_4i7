@@ -3,6 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoAtmosphereLab } from "./mono-atmosphere-lab";
 import { LIBRARY_KEY, LEGACY_KEY, WORKSPACE_KEY } from "./background-sandbox/storage";
+import { V2_LIBRARY_KEY, V2_WORKSPACE_KEY } from "./background-sandbox/storage-v2";
+import { MONO_BACKGROUND_DEFAULTS } from "../mono-preview/mono-background-recipes";
 
 beforeEach(() => {
   localStorage.clear();
@@ -54,7 +56,7 @@ it("saves two names, returns to each after reload, and toggles pinned A without 
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("25");
   fireEvent.click(screen.getByRole("button", { name: "Открыть библиотеку" }));
   fireEvent.click(screen.getByRole("button", { name: "Открыть «Яркий»" }));
-  await waitFor(() => expect(localStorage.getItem(WORKSPACE_KEY)).toContain("Яркий"));
+  await waitFor(() => expect(localStorage.getItem(V2_WORKSPACE_KEY)).toContain("Яркий"));
   view.unmount(); render(<MonoAtmosphereLab />);
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("85");
   fireEvent.click(screen.getByRole("button", { name: "Показать A" }));
@@ -63,6 +65,9 @@ it("saves two names, returns to each after reload, and toggles pinned A without 
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("85");
   expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toBe("untouched");
   expect(localStorage.getItem(LEGACY_KEY)).toBeNull();
+  expect(localStorage.getItem(LIBRARY_KEY)).toBeNull();
+  expect(localStorage.getItem(WORKSPACE_KEY)).toBeNull();
+  expect(localStorage.getItem(V2_LIBRARY_KEY)).toContain("Яркий");
 });
 
 it("guards dirty material switches and retains edits when Back is chosen", () => {
@@ -151,7 +156,7 @@ it("commits the shared numeric input as one complete undo transaction", () => {
 });
 
 it("shows an unavailable recovered workspace instead of rendering a substitute material", () => {
-  localStorage.setItem(WORKSPACE_KEY, '{"version":999}');
+  localStorage.setItem(V2_WORKSPACE_KEY, '{"version":999}');
   render(<MonoAtmosphereLab />);
   expect(document.querySelector("[data-mono-background-recipe]")).toBeNull();
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toBeDisabled();
@@ -161,5 +166,22 @@ it("shows an unavailable recovered workspace instead of rendering a substitute m
   fireEvent.click(screen.getByRole("button", { name: "Закрыть диалог" }));
   fireEvent.click(screen.getByRole("button", { name: "Начать новую пробу" }));
   expect(document.querySelector("[data-mono-background-recipe]")).toBeInTheDocument();
-  expect(localStorage.getItem(WORKSPACE_KEY)).toBe('{"version":999}');
+  expect(localStorage.getItem(V2_WORKSPACE_KEY)).toBe('{"version":999}');
+});
+
+it("opens a historical v1 trial only after an explicit copy and preserves its bytes", async () => {
+  const oldRaw = JSON.stringify({ version: 1, revision: 1, nextId: 2, trials: [
+    { id: "trial-1", name: "Архив", revision: 1, recipe: { ...MONO_BACKGROUND_DEFAULTS.obsidian, intensity: .33 } },
+  ] });
+  localStorage.setItem(LIBRARY_KEY, oldRaw);
+  render(<MonoAtmosphereLab />);
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("60");
+  fireEvent.click(screen.getByRole("button", { name: "Открыть библиотеку" }));
+  expect(screen.getByRole("region", { name: "Данные v1 · только чтение" })).toHaveTextContent("Архив");
+  fireEvent.click(screen.getByRole("button", { name: "Копировать v1 «Архив»" }));
+  expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("33");
+  expect(screen.getByRole("status")).toHaveTextContent("Изменено");
+  await saveAs("Архив v2", true);
+  expect(localStorage.getItem(LIBRARY_KEY)).toBe(oldRaw);
+  expect(localStorage.getItem(V2_LIBRARY_KEY)).toContain("Архив v2");
 });
