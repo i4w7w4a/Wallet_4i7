@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { OGLRenderingContext } from "ogl";
 import type { MaterialDefinition } from "./material-contract";
 import { bindMaterialV2 } from "./material-binding-v2";
 import { createMaterialCatalogV2 } from "./registry-v2";
@@ -111,5 +112,64 @@ describe("v2 material catalog", () => {
     const binding = bindMaterialV2(definition);
 
     expect(() => createMaterialCatalogV2([binding, binding])).toThrow(/vault-grid/);
+  });
+
+  it("preflights a validated recipe and target before any GPU allocation", async () => {
+    const runtimeDefinition: MaterialDefinition<"vault-grid", Params> = {
+      ...definition,
+      plan(init) { return { ok: true, value: {
+        attachmentBytes: init.geometry.pixelWidth * init.geometry.pixelHeight * 4,
+        textureBytes: 0, passesPerFrame: 1, quality: init.quality,
+      } }; },
+    };
+    const binding = bindMaterialV2(runtimeDefinition);
+    const geometry = { capability: "background" as const, x: 0, y: 0, width: 32, height: 16,
+      pixelWidth: 64, pixelHeight: 32, dpr: 2, radiusCss: 0, borderWidthCss: 0,
+      mask: { kind: "rounded-rect" as const } };
+    const prepared = await binding.prepare(binding.descriptor.presets[0]!.recipe,
+      geometry, "balanced", 2 * 1024 * 1024, new AbortController().signal);
+
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
+    expect(prepared.value.plan({ cssWidth: 32, cssHeight: 16, pixelWidth: 64, pixelHeight: 32, dpr: 2 },
+      { maxTextureSize: 4096, maxRenderTargetBytes: 28 * 1024 * 1024 })).toEqual({ ok: true, value: {
+      attachmentBytes: 8192, textureBytes: 0, passesPerFrame: 1, quality: "balanced",
+    } });
+  });
+
+  it("mounts the approved plan and forwards normalized edits without resetting the live pass", async () => {
+    const events: string[] = [];
+    const runtimeDefinition: MaterialDefinition<"vault-grid", Params> = {
+      ...definition,
+      plan() { return { ok: true, value: { attachmentBytes: 8192, textureBytes: 0,
+        passesPerFrame: 1, quality: "balanced" } }; },
+      create(_gl, init) {
+        events.push(`create:${init.plan.attachmentBytes}:${init.prepared === null}`);
+        return { ok: true, value: {
+          update(params) { events.push(`update:${params.drift}`); },
+          resize() {}, render() { throw new Error("render belongs to GPU integration"); },
+          reset() { events.push("reset"); }, dispose() { events.push("dispose"); },
+        } };
+      },
+    };
+    const binding = bindMaterialV2(runtimeDefinition);
+    const geometry = { capability: "background" as const, x: 0, y: 0, width: 32, height: 16,
+      pixelWidth: 64, pixelHeight: 32, dpr: 2, radiusCss: 0, borderWidthCss: 0,
+      mask: { kind: "rounded-rect" as const } };
+    const viewport = { cssWidth: 32, cssHeight: 16, pixelWidth: 64, pixelHeight: 32, dpr: 2 };
+    const limits = { maxTextureSize: 4096, maxRenderTargetBytes: 28 * 1024 * 1024 };
+    const prepared = await binding.prepare(binding.descriptor.presets[0]!.recipe,
+      geometry, "balanced", 2 * 1024 * 1024, new AbortController().signal);
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
+    const plan = prepared.value.plan(viewport, limits);
+    expect(plan.ok).toBe(true);
+    if (!plan.ok) return;
+    const mounted = prepared.value.create({} as OGLRenderingContext, viewport, limits, plan.value);
+    expect(mounted.ok).toBe(true);
+    if (!mounted.ok) return;
+    mounted.value.update({ ...binding.descriptor.presets[0]!.recipe,
+      params: { pattern: "rib", baseColor: "#FFFFFF", drift: 0.2 } });
+    expect(events).toEqual(["create:8192:true", "update:0.2"]);
   });
 });

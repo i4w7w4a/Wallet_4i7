@@ -1,9 +1,25 @@
-import type { ParseResult, ParameterValue } from "./contracts";
-import type { MaterialDefinition, MaterialDescriptorV2, MaterialEffectId, MaterialRecipeV2 } from "./material-contract";
+import type { OGLRenderingContext } from "ogl";
+import type { CreateResult, GpuLimits, ParseResult, ParameterValue, Viewport } from "./contracts";
+import type {
+  MaterialDefinition, MaterialDescriptorV2, MaterialEffectId, MaterialPass, MaterialQualityProfile, MaterialRecipeV2,
+  MaterialResourcePlan, MaterialTargetGeometry,
+} from "./material-contract";
+
+export type PreparedMaterialMountV2 = Readonly<{
+  id: MaterialEffectId;
+  recipe: MaterialRecipeV2;
+  geometry: MaterialTargetGeometry;
+  quality: MaterialQualityProfile;
+  plan(viewport: Viewport, limits: GpuLimits): CreateResult<MaterialResourcePlan>;
+  create(gl: OGLRenderingContext, viewport: Viewport, limits: GpuLimits,
+    plan: MaterialResourcePlan): CreateResult<MaterialPass<MaterialRecipeV2>>;
+}>;
 
 export type MaterialBindingV2 = Readonly<{
   descriptor: MaterialDescriptorV2;
   fallback: Readonly<{ color: string; label: string }>;
+  prepare(recipe: unknown, geometry: MaterialTargetGeometry, quality: MaterialQualityProfile,
+    maxCpuBytes: number, signal: AbortSignal): Promise<CreateResult<PreparedMaterialMountV2>>;
 }>;
 
 const KEYS = ["kind", "version", "effectId", "effectVersion", "seed", "params", "assetIds"];
@@ -89,5 +105,54 @@ export function bindMaterialV2<I extends MaterialEffectId, P extends object, A>(
       return parseRecipe({ ...parsed.value, params: { ...parsed.value.params, [key]: value } });
     },
   };
-  return { descriptor, fallback: definition.fallback };
+  return {
+    descriptor, fallback: definition.fallback,
+    async prepare(input, geometry, quality, maxCpuBytes, signal) {
+      const parsed = parseRecipe(input);
+      if (!parsed.ok) return { ok: false, error: {
+        code: "invalid-config", message: parsed.issues.map(issue => issue.message).join(" "),
+      } };
+      if (signal.aborted) return { ok: false, error: { code: "invalid-config", message: "Подготовка материала отменена." } };
+      try {
+        const prepared = definition.prepare
+          ? await definition.prepare({ params: parsed.value.params, seed: parsed.value.seed,
+            geometry, quality, maxCpuBytes }, signal)
+          : { ok: true as const, value: null as A };
+        if (!prepared.ok) return prepared;
+        if (signal.aborted) return { ok: false, error: { code: "invalid-config", message: "Подготовка материала отменена." } };
+        return { ok: true, value: {
+          id: definition.id, recipe: parsed.value, geometry, quality,
+          plan(viewport, limits) {
+            return definition.plan({ params: parsed.value.params, seed: parsed.value.seed,
+              viewport, geometry, quality, limits, prepared: prepared.value });
+          },
+          create(gl, viewport, limits, plan) {
+            try {
+              const created = definition.create(gl, { params: parsed.value.params, seed: parsed.value.seed,
+                viewport, geometry, quality, limits, prepared: prepared.value, plan });
+              if (!created.ok) return created;
+              const pass = created.value;
+              return { ok: true, value: {
+                update(next) {
+                  const valid = parseRecipe(next);
+                  if (!valid.ok) throw new Error(valid.issues.map(issue => issue.message).join(" "));
+                  pass.update(valid.value.params);
+                },
+                resize: (size, target) => pass.resize(size, target),
+                render: (frame, target) => pass.render(frame, target),
+                ...(pass.invokeAction ? { invokeAction: (action) => pass.invokeAction!(action) } : {}),
+                reset: seed => pass.reset(seed),
+                dispose: () => pass.dispose(),
+                ...(pass.getDiagnostics ? { getDiagnostics: () => pass.getDiagnostics!() } : {}),
+              } };
+            } catch { return { ok: false, error: {
+              code: "resource-allocation", message: "Не удалось создать GPU-проход материала.",
+            } }; }
+          },
+        } };
+      } catch {
+        return { ok: false, error: { code: "resource-allocation", message: "Не удалось подготовить материал." } };
+      }
+    },
+  };
 }
