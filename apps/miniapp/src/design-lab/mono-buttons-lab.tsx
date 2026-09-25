@@ -1,16 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { MATERIAL_BORDER_BOUNDS, MATERIAL_RADIUS_BOUNDS,
   type ButtonMaterialLayer, type ButtonTargetId, type ButtonWorkshopBindings,
   type MaterialQualityProfile, type MaterialRecipeV2, type MaterialTargetBinding } from "@wallet/ui";
 import { SandboxDialog } from "./background-sandbox/dialog";
 import { MaterialControls } from "./material-controls";
+import { MaterialWorkbench } from "./material-workbench";
+import { MonoProductApply } from "./mono-product-apply";
+import { MonoLabIconButton } from "../mono-preview/mono-lab-controls";
 import { createButtonBinding, replaceBindingRecipe, parseButtonBinding,
   buttonDocumentBindings, BUTTON_TARGETS } from "./button-workshop/binding";
 import { boundedButtonJson, parseButtonImport } from "./button-workshop/codec";
 import { createButtonDocument, editButtonBinding, isButtonSlotDirty } from "./button-workshop/model";
 import { createButtonSession } from "./button-workshop/session";
+import { focusButtonActions } from "./button-workshop/scene-focus";
 import { ACCEPTED_KEY, LIBRARY_KEY, WORKSPACE_KEY } from "./button-workshop/storage";
 import { BACKGROUND_TO_BUTTONS_KEY, BUTTONS_TO_BACKGROUND_KEY,
   createButtonsToBackgroundTransfer, parseBackgroundToButtonsTransfer } from "./button-workshop/transfer";
@@ -19,7 +23,11 @@ import styles from "./mono-buttons-lab.module.css";
 const ACTION_LABEL: Readonly<Record<ButtonTargetId, string>> = {
   "quick.send": "Отправить", "quick.receive": "Получить", "quick.swap": "Обменять", "quick.buy": "Купить",
 };
+const ACTION_ICON: Readonly<Record<ButtonTargetId, string>> = {
+  "quick.send": "↗", "quick.receive": "↙", "quick.swap": "⇄", "quick.buy": "+",
+};
 const LAYER_LABEL: Readonly<Record<ButtonMaterialLayer, string>> = { fill: "Поверхность", icon: "Иконка", border: "Кромка" };
+const LAYER_ICON: Readonly<Record<ButtonMaterialLayer, string>> = { fill: "▣", icon: "✧", border: "□" };
 const EDITOR_LAYERS: readonly ButtonMaterialLayer[] = ["border", "fill", "icon"];
 const WIDTHS = [320, 390, 430, 480] as const;
 type Dialog = "library" | "name" | "guard" | "more" | "import" | "export" | "material-import" | "material-export" | null;
@@ -71,6 +79,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
   const [quality, setQuality] = useState<MaterialQualityProfile>("balanced");
   const [paused, setPaused] = useState(false);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [pending, setPending] = useState<Transition | null>(null);
   const [name, setName] = useState("");
   const [asNew, setAsNew] = useState(false);
@@ -80,7 +89,12 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
   const [materialPreviewLayer, setMaterialPreviewLayer] = useState<ButtonMaterialLayer>("fill");
   const [notice, setNotice] = useState("");
   const [runtimeStatus, setRuntimeStatus] = useState("");
+  const stageRef = useRef<HTMLElement>(null);
   const onRuntimeStatus = useCallback((status: { message: string }) => setRuntimeStatus(status.message), []);
+
+  useEffect(() => {
+    if (state.ready && !state.recoveryUnavailable && stageRef.current) focusButtonActions(stageRef.current);
+  }, [state.ready, state.recoveryUnavailable, state.workspace.activeSlot, selection.target, width]);
 
   useEffect(() => {
     const port = { getItem: (key: string) => window.localStorage.getItem(key),
@@ -186,63 +200,49 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
 
   return <div className={styles.lab} data-button-workshop>
     <div inert={dialog !== null} aria-hidden={dialog !== null || undefined}>
-      <header className={styles.header}><a href="/design-lab">← Design Lab</a><span>BUTTON MATERIAL WORKSHOP</span><a href="/mono">MONO ↗</a></header>
-      <div className={styles.toolbar}>
-        <button className={styles.control} type="button" onClick={() => { editor.refreshLibrary(); setDialog("library"); }}>Открыть</button>
-        <div className={styles.title}><h1>{title}</h1><span role="status" data-save-status={saveStatus}>{saveStatus}</span></div>
-        <div className={styles.tools}>
-          <button className={styles.control} type="button" aria-label="Отменить" disabled={disabled || !slot.past.length} onClick={() => editor.undo()}>↶</button>
-          <button className={styles.control} type="button" aria-label="Повторить" disabled={disabled || !slot.future.length} onClick={() => editor.undo(true)}>↷</button>
-          <button className={styles.control} type="button" onClick={() => setPaused(value => !value)}>{paused ? "Продолжить" : "Пауза"}</button>
-          <button className={styles.control} type="button" onClick={() => editor.restart()}>Перезапустить</button>
+      <MaterialWorkbench activeLab="buttons" title={title} status={saveStatus} modalOpen={dialog !== null || productDialogOpen}
+        toolbar={<>
+          <span className={styles.productApply}><MonoProductApply scope="buttons" document={document} selection={selection}
+            disabled={disabled} onDialogChange={setProductDialogOpen} /></span>
+          <MonoLabIconButton label="Отменить" disabled={disabled || !slot.past.length} onClick={() => editor.undo()}>↶</MonoLabIconButton>
+          <MonoLabIconButton label="Повторить" disabled={disabled || !slot.future.length} onClick={() => editor.undo(true)}>↷</MonoLabIconButton>
+          <MonoLabIconButton label={paused ? "Продолжить" : "Пауза"} onClick={() => setPaused(value => !value)}>{paused ? "▶" : "Ⅱ"}</MonoLabIconButton>
+          <MonoLabIconButton label="Перезапустить" onClick={() => editor.restart()}>↻</MonoLabIconButton>
           <div className={styles.compare} role="group" aria-label="Сравнение A/B">
             <button className={styles.control} type="button" aria-pressed={state.comparing} disabled={!state.workspace.pinned} onClick={() => editor.compare(true)}>A</button>
             <button className={styles.control} type="button" aria-pressed={!state.comparing} onClick={() => editor.compare(false)}>B</button>
           </div>
-          <button className={`${styles.control} ${styles.primary}`} type="button" disabled={disabled} onClick={() => { void save(); }}>Сохранить</button>
-          <button className={styles.control} type="button" onClick={() => setDialog("more")}>Ещё</button>
-        </div>
-      </div>
-      <div className={styles.workspace}>
-        <div className={styles.previewColumn}>
-          <div className={styles.stageHead}>
-            <span>{state.comparing ? `A · ${state.workspace.pinned?.name}` : "B · реальные действия MONO"}</span>
-            <label>Качество<select aria-label="Качество" value={quality} onChange={event => setQuality(event.currentTarget.value as MaterialQualityProfile)}>
-              <option value="economy">Экономное</option><option value="balanced">Сбалансированное</option><option value="detail">Детальное</option>
-            </select></label>
+          <MonoLabIconButton label="Сохранить" disabled={disabled} onClick={() => { void save(); }}>▣</MonoLabIconButton>
+          <MonoLabIconButton label="Ещё" onClick={() => setDialog("more")}>⋯</MonoLabIconButton>
+        </>}
+        left={<div className={styles.leftRail}>
+          <div className={styles.railHeading}><h2>Цель · {selection.target === "all" ? "Все четыре" : ACTION_LABEL[selection.target]}</h2><span>Слот {state.workspace.activeSlot + 1}</span></div>
+          <div className={styles.targets} role="group" aria-label="Редактируемые кнопки">
+            <MonoLabIconButton label="Все четыре" aria-pressed={selection.target === "all"} onClick={() => editor.selectTarget("all")}>▦</MonoLabIconButton>
+            {BUTTON_TARGETS.map(target => <MonoLabIconButton label={ACTION_LABEL[target]} key={target}
+              aria-pressed={selection.target === target} onClick={() => editor.selectTarget(target)}>{ACTION_ICON[target]}</MonoLabIconButton>)}
           </div>
-          <div className={styles.widths} role="group" aria-label="Ширина примерки">{WIDTHS.map(value =>
-            <button className={styles.control} key={value} type="button" aria-pressed={width === value} onClick={() => setWidth(value)}>{value}</button>)}</div>
-          <section className={styles.stage} aria-label="Реальные кнопки MONO" style={{ width: `min(100%, ${width}px)` }}>
-            {!state.ready ? <p>Подготовка мастерской…</p> : state.recoveryUnavailable ? <div className={styles.unavailable}>
-              <p>Черновики не прочитаны. Исходные данные в хранилище сохранены.</p><p>{state.recoveryError}</p>
-              <button className={styles.control} type="button" onClick={editor.startFresh}>Начать новую пробу</button>
-            </div> : stage}
-          </section>
-          <p className={styles.stageFoot}>{runtimeStatus || "Техническая примерка. Текст и действия остаются DOM."}</p>
-          <div className={styles.applyBar}>
-            <span>Принятая проба хранится только для этой dev-мастерской.</span>
-            <button className={styles.control} type="button" disabled={disabled || state.acceptedUnavailable} onClick={() => { void editor.apply().then(ok => { if (ok) setNotice("Применено в локальной примерке."); }); }}>Применить</button>
-            <button className={styles.control} type="button" disabled={disabled} onClick={() => { editor.cancel(); setNotice("Возвращена принятая проба."); }}>Отменить пробу</button>
-          </div>
-          <p className={styles.note}>Материалы не меняют опубликованные настройки MONO. <a href="/design-lab/motion" target="_blank" rel="noopener noreferrer">Отклик / Motion Lab ↗</a> настраивает прежний отклик на нажатие.</p>
-        </div>
-        <aside className={styles.inspector} aria-label="Инспектор кнопок">
-          <div className={styles.inspectorHeading}><h2>{LAYER_LABEL[selection.layer]} · {selection.target === "all" ? "Все четыре" : ACTION_LABEL[selection.target]}</h2><span>Слот {state.workspace.activeSlot + 1}</span></div>
+          <div className={styles.railHeading}><h2>Пробы</h2></div>
           <div className={styles.slots} role="group" aria-label="Независимые слоты">{[0, 1, 2].map(index =>
             <button className={styles.control} type="button" key={index} aria-label={`Слот ${index + 1}`}
               aria-pressed={state.workspace.activeSlot === index} disabled={state.saving} onClick={() => editor.selectSlot(index)}>{index + 1}{isButtonSlotDirty(state.workspace.slots[index]!) ? " ·" : ""}</button>)}</div>
-          <div className={styles.targets} role="group" aria-label="Редактируемые кнопки">
-            <button className={styles.control} type="button" aria-pressed={selection.target === "all"} onClick={() => editor.selectTarget("all")}>Все четыре</button>
-            {BUTTON_TARGETS.map(target => <button className={styles.control} key={target} type="button"
-              aria-pressed={selection.target === target} onClick={() => editor.selectTarget(target)}>{ACTION_LABEL[target]}</button>)}
-          </div>
+          <button className={styles.libraryButton} type="button" onClick={() => { editor.refreshLibrary(); setDialog("library"); }}>Открыть</button>
+          <details className={styles.sceneSettings}><summary>Сцена</summary>
+            <label className={styles.field}>Качество<select aria-label="Качество" value={quality} onChange={event => setQuality(event.currentTarget.value as MaterialQualityProfile)}>
+              <option value="economy">Экономное</option><option value="balanced">Сбалансированное</option><option value="detail">Детальное</option>
+            </select></label>
+            <div className={styles.widths} role="group" aria-label="Ширина примерки">{WIDTHS.map(value =>
+              <button className={styles.control} key={value} type="button" aria-pressed={width === value} onClick={() => setWidth(value)}>{value}</button>)}</div>
+          </details>
+          <p className={styles.railNote}>{state.recovered ? "Черновики восстановлены." : "Три независимых черновика."} Именованные пробы — в библиотеке.</p>
+        </div>}
+        right={<div className={styles.inspector}>
+          <div className={styles.inspectorHeading}><h2>{LAYER_LABEL[selection.layer]} · {selection.target === "all" ? "Все четыре" : ACTION_LABEL[selection.target]}</h2></div>
           <div className={styles.layers} role="tablist" aria-label="Слой кнопки">{EDITOR_LAYERS.map(layer =>
-            <button className={styles.control} type="button" role="tab" key={layer} aria-selected={selection.layer === layer}
-              onClick={() => editor.selectLayer(layer)}>{LAYER_LABEL[layer]}</button>)}</div>
-          <p className={styles.layerCue}>{selection.layer === "border" ? "Кромка и боковая грань. Свет идёт по краю; знак и подпись остаются читаемыми." :
-            selection.layer === "fill" ? "Поверхность всей кнопки. Яркий материал может уменьшить контраст знака — сравните с кромкой." :
-              "Материал только внутри контура знака. Поверхность и кромка сохраняют свои настройки."}</p>
+            <MonoLabIconButton className={styles.layerTab} label={LAYER_LABEL[layer]} role="tab" key={layer}
+              aria-selected={selection.layer === layer} onClick={() => editor.selectLayer(layer)}>{LAYER_ICON[layer]}</MonoLabIconButton>)}</div>
+          <p className={styles.layerCue}>{selection.layer === "border" ? "Материал по краю кнопки." :
+            selection.layer === "fill" ? "Материал всей поверхности." : "Материал внутри знака."}</p>
           <label className={styles.field}>Материал<select aria-label="Материал" value={sharedEffect} disabled={disabled}
             onChange={event => {
               const chosen = available.find(item => item.id === event.currentTarget.value);
@@ -251,8 +251,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
             <option value="">Без материала / разные материалы</option>
             {available.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select></label>
-          {selection.target === "all" && <p className={styles.note}>Правка «Все четыре» выполняется одним шагом Undo. Настройки остальных слоёв сохраняются.</p>}
-          {descriptor && <><p className={styles.description}>{descriptor.description}</p>
+          {descriptor && <><details className={styles.description}><summary>О материале</summary><p>{descriptor.description}</p></details>
             {descriptor.presets.length > 1 && <label className={styles.field}>Начальная проба<select aria-label="Начальная проба" value="" disabled={disabled}
               onChange={event => { const preset = descriptor.presets.find(item => item.id === event.currentTarget.value); if (preset) changeMaterial(preset.recipe); }}>
               <option value="" disabled>Выберите пробу…</option>{descriptor.presets.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
@@ -260,7 +259,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
             {first && <MaterialControls key={`${selection.target}:${selection.layer}:${descriptor.id}:${descriptor.effectVersion}`} descriptor={descriptor}
               recipe={first.recipe} capability={capability(selection.layer)} disabled={disabled} onChange={changeMaterial}
               onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} onError={setNotice} />}
-            {first && <div className={styles.geometry}>
+            {first && <details className={styles.geometry}><summary>Форма и слой</summary>
               {selection.layer !== "icon" && <label className={styles.field}>Скругление {selection.layer === "border" ? "кромки" : "поверхности"} <output>{first.radiusCss} px</output>
                 <input type="range" min={MATERIAL_RADIUS_BOUNDS.min} max={MATERIAL_RADIUS_BOUNDS.max} step="0.5" value={first.radiusCss} disabled={disabled}
                   onPointerDown={editor.beginGesture} onPointerUp={editor.endGesture} onKeyDown={editor.beginGesture} onKeyUp={editor.endGesture}
@@ -271,24 +270,35 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
                   onChange={event => changeBinding(binding => ({ ...binding, borderWidthCss: Number(event.currentTarget.value) }))} /></label>}
               <label className={styles.toggle}><input type="checkbox" checked={first.enabled} disabled={disabled}
                 onChange={event => changeBinding(binding => ({ ...binding, enabled: event.currentTarget.checked }))} />Материал включён</label>
-              <p className={styles.note}>Выключение скрывает эффект, сохраняя все параметры. Сброс меняет только этот слой и отменяется через Undo.</p>
               <button className={styles.control} type="button" disabled={disabled || !descriptor.presets[0]} onClick={() => {
                 if (descriptor.presets[0]) changeMaterial(descriptor.presets[0].recipe);
               }}>Сбросить материал слоя</button>
               <button className={styles.quietControl} type="button" disabled={disabled} onClick={() => changeMaterial(null)}>Очистить слой · можно отменить</button>
-            </div>}
+            </details>}
           </>}
           {!descriptor && <p className={styles.note}>Выберите материал для выбранного слоя. Контуры, иконки и поверхность меняются независимо.</p>}
-        </aside>
-      </div>
-      <footer className={styles.footer}>
-        <p>{state.recovered ? "Черновики восстановлены отдельно от принятой пробы и библиотеки." : "Три слота сохраняют свои черновики отдельно от именованных проб."}</p>
-        {!state.writeAvailable && state.ready && <p role="alert">Без Web Locks запись недоступна; можно экспортировать JSON.</p>}
-        {(state.saveError || state.libraryError || state.recoveryError || state.acceptedError || state.externalChange || notice) &&
-          <p role={state.saveError || state.libraryError || state.recoveryError || state.acceptedError ? "alert" : "status"}>
-            {state.saveError || state.libraryError || state.recoveryError || state.acceptedError || notice || "Хранилище изменено в другой вкладке. Обновите библиотеку перед сохранением."}
-          </p>}
-      </footer>
+        </div>}
+        footer={<div className={styles.footer}>
+          {!state.writeAvailable && state.ready && <p role="alert">Без Web Locks запись недоступна; можно экспортировать JSON.</p>}
+          {(state.saveError || state.libraryError || state.recoveryError || state.acceptedError || state.externalChange || notice) &&
+            <p role={state.saveError || state.libraryError || state.recoveryError || state.acceptedError ? "alert" : "status"}>
+              {state.saveError || state.libraryError || state.recoveryError || state.acceptedError || notice || "Хранилище изменено в другой вкладке. Обновите библиотеку перед сохранением."}
+            </p>}
+        </div>}>
+        <div className={styles.previewColumn}>
+          <div className={styles.stageHead}>
+            <span>{state.comparing ? `A · ${state.workspace.pinned?.name}` : "B · действия MONO"}</span>
+            <MonoLabIconButton label="К кнопкам" onClick={() => { if (stageRef.current) focusButtonActions(stageRef.current); }}>⌖</MonoLabIconButton>
+          </div>
+          <section ref={stageRef} className={styles.stage} aria-label="Реальные кнопки MONO" style={{ width: `min(100%, ${width}px)` }}>
+            {!state.ready ? <p>Подготовка мастерской…</p> : state.recoveryUnavailable ? <div className={styles.unavailable}>
+              <p>Черновики не прочитаны. Исходные данные в хранилище сохранены.</p><p>{state.recoveryError}</p>
+              <button className={styles.control} type="button" onClick={editor.startFresh}>Начать новую пробу</button>
+            </div> : stage}
+          </section>
+          <p className={styles.stageFoot}>{runtimeStatus || "Реальные кнопки MONO · живой DOM"}</p>
+        </div>
+      </MaterialWorkbench>
     </div>
     {dialog && <SandboxDialog key={dialog} title={TITLES[dialog]} close={close} busy={state.saving}>
       {dialog === "library" && <div className={styles.dialogBody}>
@@ -312,6 +322,18 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
         <button className={styles.control} type="button" data-initial-focus onClick={close}>Вернуться</button>
       </div>}
       {dialog === "more" && <div className={styles.dialogBody}>
+        <div className={styles.previewActions}>
+          <h3>Локальная примерка</h3>
+          <p>Снимок для этой мастерской. Рабочий пресет MONO меняется отдельно.</p>
+          <div className={styles.applyBar}>
+            <button className={styles.control} type="button" disabled={disabled || state.acceptedUnavailable} onClick={() => {
+              void editor.apply().then(ok => { close(); if (ok) setNotice("Применено в локальной примерке."); });
+            }}>Применить</button>
+            <button className={styles.control} type="button" disabled={disabled} onClick={() => {
+              editor.cancel(); close(); setNotice("Возвращена принятая проба.");
+            }}>Отменить пробу</button>
+          </div>
+        </div>
         <button className={styles.control} type="button" onClick={() => startSave(true)}>Сохранить как…</button>
         <button className={styles.control} type="button" onClick={() => { setImportText(""); setDialog("import"); }}>Импорт конфигурации JSON</button>
         <button className={styles.control} type="button" onClick={() => setDialog("export")}>Экспорт конфигурации JSON</button>

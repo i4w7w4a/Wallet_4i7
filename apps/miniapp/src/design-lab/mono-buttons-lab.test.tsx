@@ -59,11 +59,13 @@ test("separate button lab sends four real target bindings and keeps icon edits i
 
 test("Apply and Cancel affect only local accepted bindings", async () => {
   render(<MonoButtonsLab bindings={bindings} />);
-  fireEvent.click(screen.getByRole("button", { name: "Применить" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ещё" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Дополнительно" })).getByRole("button", { name: "Применить" }));
   await screen.findByText(/Применено в локальной примерке/);
   fireEvent.click(screen.getByRole("tab", { name: "Кромка" }));
   fireEvent.change(screen.getByRole("combobox", { name: "Материал" }), { target: { value: "" } });
-  fireEvent.click(screen.getByRole("button", { name: "Отменить пробу" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ещё" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Дополнительно" })).getByRole("button", { name: "Отменить пробу" }));
   expect(screen.getByTestId("button-stage").textContent?.split("|")).toHaveLength(4);
   expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toBeNull();
 });
@@ -105,7 +107,8 @@ test("named Save, Open and reload keep a complete accepted preview and separate 
   fireEvent.change(within(dialog).getByRole("textbox", { name: "Имя пробы" }), { target: { value: "Metal and border" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "Сохранить пробу" }));
   await waitFor(() => expect(screen.getByText("Сохранено")).toBeInTheDocument());
-  fireEvent.click(screen.getByRole("button", { name: "Применить" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ещё" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Дополнительно" })).getByRole("button", { name: "Применить" }));
   await waitFor(() => expect(localStorage.getItem("wallet4i7.button-sandbox.accepted.v1")).not.toBeNull());
   fireEvent.click(screen.getByRole("button", { name: "Слот 2" }));
   fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
@@ -123,4 +126,76 @@ test("named Save, Open and reload keep a complete accepted preview and separate 
   expect(screen.getByTestId("button-stage").textContent?.split("|")).toHaveLength(4);
   expect(screen.getByRole("heading", { name: "Metal and border" })).toBeInTheDocument();
   expect(JSON.parse(localStorage.getItem("wallet4i7.button-sandbox.library.v1")!).trials).toHaveLength(1);
+});
+
+test("the preview opens on real actions and a parameter edit does not move its scroll", async () => {
+  const focusedBindings: ButtonWorkshopBindings = { ...bindings,
+    renderStage() { return <div ref={node => {
+      if (!node) return;
+      const viewport = node.closest<HTMLElement>('[aria-label="Реальные кнопки MONO"]')!;
+      const row = node.querySelector<HTMLElement>(".mono-actions")!;
+      Object.defineProperty(viewport, "clientHeight", { configurable: true, value: 420 });
+      Object.defineProperty(viewport, "scrollHeight", { configurable: true, value: 1100 });
+      viewport.getBoundingClientRect = () => ({ top: 100 } as DOMRect);
+      row.getBoundingClientRect = () => ({ top: 680 - viewport.scrollTop, height: 120 } as DOMRect);
+    }}><div className="mono-actions" /></div>; },
+  };
+  render(<MonoButtonsLab bindings={focusedBindings} />);
+  const viewport = screen.getByRole("region", { name: "Реальные кнопки MONO" });
+  await waitFor(() => expect(viewport.scrollTop).toBe(430));
+  fireEvent.click(screen.getByText("Форма и слой", { selector: "summary" }));
+  viewport.scrollTop = 123;
+  fireEvent.change(document.querySelector<HTMLInputElement>('input[type="range"]')!, { target: { value: "14" } });
+  expect(viewport.scrollTop).toBe(123);
+  fireEvent.click(screen.getByRole("button", { name: "К кнопкам" }));
+  expect(viewport.scrollTop).toBe(430);
+  viewport.scrollTop = 0;
+  fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+  await waitFor(() => expect(viewport.scrollTop).toBe(430));
+});
+
+test("compact workbench places target selection apart from material controls", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const targets = screen.getByRole("complementary", { name: "Материалы" });
+  const controls = screen.getByRole("complementary", { name: "Настройки" });
+  expect(within(targets).getByRole("group", { name: "Редактируемые кнопки" })).toBeInTheDocument();
+  expect(within(targets).getByRole("group", { name: "Независимые слоты" })).toBeInTheDocument();
+  expect(within(targets).getByRole("button", { name: "Открыть" })).toBeInTheDocument();
+  expect(within(controls).getByRole("tablist", { name: "Слой кнопки" })).toBeInTheDocument();
+  expect(within(controls).getByRole("combobox", { name: "Материал" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Реальные кнопки MONO" })).toContainElement(screen.getByTestId("button-stage"));
+});
+
+test("target and layer controls are icon sized, with scene settings collapsed in the left rail", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const targets = screen.getByRole("complementary", { name: "Материалы" });
+  const controls = screen.getByRole("complementary", { name: "Настройки" });
+  expect(within(targets).getByRole("button", { name: "Отправить" })).not.toHaveTextContent("Отправить");
+  expect(within(controls).getByRole("tab", { name: "Поверхность" })).not.toHaveTextContent("Поверхность");
+  const sceneToggle = within(targets).getByText("Сцена", { selector: "summary" });
+  expect(sceneToggle.parentElement).not.toHaveAttribute("open");
+  fireEvent.click(sceneToggle);
+  expect(sceneToggle.parentElement).toHaveAttribute("open");
+  expect(within(targets).getByRole("group", { name: "Ширина примерки" })).toBeInTheDocument();
+});
+
+test("secondary geometry stays collapsed until the editor asks for it", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const controls = screen.getByRole("complementary", { name: "Настройки" });
+  const toggle = within(controls).getByText("Форма и слой", { selector: "summary" });
+  expect(toggle.parentElement).not.toHaveAttribute("open");
+  fireEvent.click(toggle);
+  expect(toggle.parentElement).toHaveAttribute("open");
+  expect(within(controls).getByText(/Скругление кромки/)).toBeInTheDocument();
+});
+
+test("local preview acceptance stays under More while Save is compact in the toolbar", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const toolbar = screen.getByRole("toolbar", { name: "Действия пробы" });
+  expect(within(toolbar).getByRole("button", { name: /MONO/ })).toBeInTheDocument();
+  const save = within(toolbar).getByRole("button", { name: "Сохранить" });
+  expect(save).not.toHaveTextContent("Сохранить");
+  expect(screen.queryByRole("button", { name: "Применить" })).not.toBeInTheDocument();
+  fireEvent.click(within(toolbar).getByRole("button", { name: "Ещё" }));
+  expect(within(screen.getByRole("dialog", { name: "Дополнительно" })).getByRole("button", { name: "Применить" })).toBeInTheDocument();
 });
