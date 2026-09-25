@@ -1,6 +1,7 @@
 import { Geometry, Mesh, Program, type OGLRenderingContext, type Renderer, type Texture } from "ogl";
 import type { FrameTexture, Viewport } from "./contracts";
-import type { MaterialTargetGeometry } from "./material-contract";
+import type { BackgroundEdgeFinishV1, MaterialTargetGeometry } from "./material-contract";
+import { normalizeBackgroundEdgeFinish } from "./material-edge-finish";
 import { materialScissorRect } from "./material-target-geometry";
 
 const VERTEX = `#version 300 es
@@ -19,6 +20,7 @@ uniform float uRadius;
 uniform float uBorder;
 uniform float uKind;
 uniform float uOpaque;
+uniform vec3 uEdgeFinish;
 in vec2 vUv;
 out vec4 fragColor;
 
@@ -47,6 +49,12 @@ void main() {
   }
   color.rgb *= coverage;
   color.a = mix(color.a, 1.0, uOpaque) * coverage;
+  if (uKind < 0.5 && uEdgeFinish.x > 0.0) {
+    float fromSide = min(uv.x, 1.0 - uv.x);
+    float feather = max(0.015, uEdgeFinish.z);
+    float edgeWeight = 1.0 - smoothstep(uEdgeFinish.y, uEdgeFinish.y + feather, fromSide);
+    color.rgb *= 1.0 - uEdgeFinish.x * edgeWeight;
+  }
   fragColor = color;
 }`;
 
@@ -66,6 +74,7 @@ export class MaterialCompositor {
     uViewport: { value: Float32Array }; uRegion: { value: Float32Array };
     uRadius: { value: number }; uBorder: { value: number };
     uKind: { value: number }; uOpaque: { value: number };
+    uEdgeFinish: { value: Float32Array };
   };
   private disposed = false;
 
@@ -77,6 +86,7 @@ export class MaterialCompositor {
       uViewport: { value: new Float32Array([viewport.cssWidth, viewport.cssHeight]) },
       uRegion: { value: new Float32Array([0, 0, viewport.cssWidth, viewport.cssHeight]) },
       uRadius: { value: 0 }, uBorder: { value: 0 }, uKind: { value: 0 }, uOpaque: { value: 1 },
+      uEdgeFinish: { value: new Float32Array(3) },
     };
     this.program = new Program(gl, { vertex: VERTEX, fragment: FRAGMENT, uniforms: this.uniforms,
       transparent: true, depthTest: false, depthWrite: false, cullFace: false });
@@ -102,7 +112,7 @@ export class MaterialCompositor {
   }
 
   draw(source: FrameTexture, target: MaterialTargetGeometry, mode: MaterialDrawMode,
-    opaque: boolean, iconMask?: Texture): boolean {
+    opaque: boolean, iconMask?: Texture, edgeFinish?: BackgroundEdgeFinishV1): boolean {
     if (this.disposed) return false;
     const clip = materialScissorRect(target, this.viewport);
     if (!clip) return false;
@@ -114,6 +124,8 @@ export class MaterialCompositor {
     this.uniforms.uBorder.value = target.borderWidthCss;
     this.uniforms.uKind.value = KIND[mode];
     this.uniforms.uOpaque.value = opaque ? 1 : 0;
+    const finish = normalizeBackgroundEdgeFinish(mode === "background" ? edgeFinish : undefined);
+    this.uniforms.uEdgeFinish.value.set([finish.sideDarkening, finish.inset, finish.softness]);
     this.renderer.enable(gl.SCISSOR_TEST);
     gl.scissor(clip.x, clip.y, clip.width, clip.height);
     this.renderer.render({ scene: this.mesh, clear: false, update: false, sort: false, frustumCull: false });

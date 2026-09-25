@@ -15,6 +15,13 @@ export type MaterialAssetId =
   | "mono.quick.send" | "mono.quick.receive" | "mono.quick.swap" | "mono.quick.buy";
 export type MaterialQualityProfile = "economy" | "balanced" | "detail";
 export type MaterialAlphaMode = "opaque" | "premultiplied";
+/** Background-only presentation finish. It never changes a material recipe or DOM content. */
+export type BackgroundEdgeFinishV1 = Readonly<{
+  version: 1;
+  sideDarkening: number;
+  inset: number;
+  softness: number;
+}>;
 /** A command acts on the live field only. It never enters params, trials or workspace. */
 export type MaterialAction = Readonly<{
   kind: "seeded-splats";

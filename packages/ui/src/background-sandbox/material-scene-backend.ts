@@ -4,7 +4,7 @@ import { ActiveClock, PointerInput, resolveViewport } from "./host-input";
 import type { BackgroundOverlay } from "./overlay";
 import type { BackgroundRuntimeStatus } from "./host-contract";
 import type {
-  ButtonMaterialLayer, MaterialFrameTexture, MaterialMaskSource, MaterialPass,
+  BackgroundEdgeFinishV1, ButtonMaterialLayer, MaterialFrameTexture, MaterialMaskSource, MaterialPass,
   MaterialQualityProfile, MaterialRecipeV2, MaterialResourcePlan, MaterialTargetBinding,
   MaterialTargetGeometry,
 } from "./material-contract";
@@ -25,6 +25,7 @@ const EMPTY_POINTER: PointerFrame = { uv: [0.5, 0.5], inside: false, down: false
 
 export type MaterialSceneInput = Readonly<{
   background: MaterialRecipeV2 | null;
+  edgeFinish?: BackgroundEdgeFinishV1;
   bindings: readonly MaterialTargetBinding[];
   quality: MaterialQualityProfile;
   paused: boolean;
@@ -303,7 +304,8 @@ export class MaterialSceneBackend {
         const frame: Frame = { ...timing, pointer: entry.key === "background" ? backgroundPointer : EMPTY_POINTER };
         const texture: MaterialFrameTexture = entry.pass.render(frame, geometry);
         const mode: MaterialDrawMode = entry.key === "background" ? "background" : entry.layer!;
-        const drawn = this.compositor.draw(texture, geometry, mode, texture.alphaMode === "opaque", entry.iconTexture);
+        const drawn = this.compositor.draw(texture, geometry, mode, texture.alphaMode === "opaque",
+          entry.iconTexture, entry.key === "background" ? this.input.edgeFinish : undefined);
         if (drawn && entry.button && entry.layer) entry.button.setAttribute(`data-material-${entry.layer}-presented`, "true");
       }
       if (this.input.overlay) {

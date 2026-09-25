@@ -58,7 +58,7 @@ export type {
 } from "./background-sandbox/contracts";
 export type {
   MaterialEffectId, MaterialCapability, MaterialEffectVersion, MaterialAssetId,
-  MaterialQualityProfile, MaterialAlphaMode, MaterialAction, MaterialActionDescriptor,
+  MaterialQualityProfile, MaterialAlphaMode, BackgroundEdgeFinishV1, MaterialAction, MaterialActionDescriptor,
   MaterialRecipeV2, NormalizedBackgroundMaterial,
   ButtonTargetId, ButtonMaterialLayer, MaterialMask, MaterialTargetBinding, MaterialTargetGeometry,
   MaterialMaskSource, PreparedMaterialSource, PreparedMaterialAsset, PreparedMaterialAssets, MaterialPrepareRequest,
@@ -72,6 +72,8 @@ export type {
 } from "./background-sandbox/host-contract";
 export { BackgroundGpuSurface } from "./background-sandbox/background-gpu-surface";
 export { MaterialSceneSurface } from "./background-sandbox/material-scene-surface";
+export { DEFAULT_BACKGROUND_EDGE_FINISH, BACKGROUND_EDGE_FINISH_BOUNDS,
+  normalizeBackgroundEdgeFinish } from "./background-sandbox/material-edge-finish";
 export { createMonoOpticalHost, type MonoSharedOpticalHost } from "./mono/mono-optical-host";
 export { createMonoOpticalOverlay } from "./mono/mono-optical-overlay";
 export { backgroundMaterials, backgroundMaterialDescriptors, parseBackgroundRecipe } from "./background-sandbox/registry";

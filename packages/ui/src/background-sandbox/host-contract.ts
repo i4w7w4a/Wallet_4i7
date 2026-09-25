@@ -4,7 +4,7 @@ import type {
   ParameterControl, ParameterValue, ParseResult,
 } from "./contracts";
 import type {
-  MaterialAction, MaterialCapability, MaterialDescriptorV2, MaterialEffectId, MaterialQualityProfile, MaterialRecipeV2,
+  BackgroundEdgeFinishV1, MaterialAction, MaterialCapability, MaterialDescriptorV2, MaterialEffectId, MaterialQualityProfile, MaterialRecipeV2,
   MaterialTargetBinding, NormalizedBackgroundMaterial,
 } from "./material-contract";
 
@@ -68,6 +68,7 @@ export interface MaterialCatalogV2 {
 }
 export type MaterialStageRequestV2 = Readonly<{
   recipe: NormalizedBackgroundMaterial;
+  edgeFinish?: BackgroundEdgeFinishV1;
   presentation: BackgroundPresentation;
   quality: MaterialQualityProfile;
   paused: boolean;

@@ -51,7 +51,8 @@ function MaterialGpuStage({ request, snapshot, hostActive }: {
   const overlay = useMemo(() => createMonoOpticalOverlay(opticalHost), [opticalHost]);
   if (request.recipe.kind !== "novex-material") return <p role="status">Материал v2 не установлен.</p>;
   const width = request.presentation.mode === "mono" ? request.presentation.width : null;
-  return <MaterialSceneSurface background={request.recipe} quality={request.quality} paused={request.paused}
+  return <MaterialSceneSurface background={request.recipe} edgeFinish={request.edgeFinish}
+    quality={request.quality} paused={request.paused}
     restartKey={request.restartKey} hostActive={hostActive} overlay={width ? overlay : undefined}
     transientAction={request.transientAction}
     onStatus={status => request.onStatus?.({ ...status, message: width
