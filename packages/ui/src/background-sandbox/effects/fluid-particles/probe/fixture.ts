@@ -1,8 +1,9 @@
 /** Isolated visual and budget probe. Never imported by the product registry. */
 import { Geometry, Mesh, Program, Renderer, type OGLRenderingContext } from "ogl";
 import type { Frame, PointerFrame, Viewport } from "../../../contracts";
-import type { MaterialPass, MaterialTargetGeometry } from "../../../material-contract";
+import type { MaterialPass, MaterialQualityProfile, MaterialTargetGeometry } from "../../../material-contract";
 import { particleDefinition } from "../index";
+import { summarizeParticlePositions } from "../progression";
 import { PARTICLE_DEFAULTS, type ParticleParams } from "../schema";
 
 const canvas = document.querySelector("canvas")!;
@@ -39,6 +40,7 @@ const limits = { maxTextureSize: Math.min(4096, gl.getParameter(gl.MAX_TEXTURE_S
   maxRenderTargetBytes: 28 * 1024 * 1024 };
 let viewport: Viewport = { cssWidth: 960, cssHeight: 640, pixelWidth: 960, pixelHeight: 640, dpr: 1 };
 let params: ParticleParams = { ...PARTICLE_DEFAULTS };
+let runtimeQuality: MaterialQualityProfile = "detail";
 let pass: MaterialPass<ParticleParams> | null = null;
 let time = 0;
 let running = false;
@@ -69,14 +71,15 @@ function render(dt = 1 / 60, pointer: PointerFrame = noPointer, compose = true) 
   status.textContent = JSON.stringify(statistics(), null, 2);
   return pass.getDiagnostics?.();
 }
-function open(seed = 147, nextParams = PARTICLE_DEFAULTS) {
+function open(seed = 147, nextParams = PARTICLE_DEFAULTS, quality: MaterialQualityProfile = "detail") {
   pass?.dispose(); pass = null;
   params = { ...nextParams };
+  runtimeQuality = quality;
   time = 0;
   renderer.setSize(viewport.pixelWidth, viewport.pixelHeight);
   canvas.style.width = `${viewport.cssWidth}px`;
   canvas.style.height = `${viewport.cssHeight}px`;
-  const init = { params, seed, viewport, geometry: geometry(), quality: "detail" as const,
+  const init = { params, seed, viewport, geometry: geometry(), quality,
     limits, prepared: null };
   const plan = particleDefinition.plan(init);
   if (!plan.ok) throw new Error(JSON.stringify(plan.error));
@@ -114,6 +117,30 @@ function capture() {
   return { hash: hash >>> 0, coloredPixels: count,
     bounds: count ? { x0, y0, x1, y1 } : null, width: canvas.width, height: canvas.height };
 }
+function positionSummary() {
+  if (!pass) throw new Error("Particle effect is not open");
+  // Test-only readback from this local adapter instance. No production method,
+  // public registry exposure or per-frame readback is added to the effect.
+  const privateTargets = (pass as unknown as { targets?: { position: { texture: WebGLTexture; width: number; height: number } } }).targets;
+  const position = privateTargets?.position;
+  if (!position) throw new Error("Position texture unavailable to isolated probe");
+  const fbo = gl.createFramebuffer();
+  if (!fbo) throw new Error("Probe framebuffer allocation failed");
+  try {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, position.texture, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error("Probe position FBO incomplete");
+    const pixels = new Float32Array(position.width * position.height * 4);
+    gl.readPixels(0, 0, position.width, position.height, gl.RGBA, gl.FLOAT, pixels);
+    const error = gl.getError();
+    if (error !== gl.NO_ERROR) throw new Error(`Probe position readPixels failed: ${error}`);
+    return summarizeParticlePositions(pixels);
+  } finally {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.renderer.state.framebuffer = null;
+    gl.deleteFramebuffer(fbo);
+  }
+}
 function stop() { running = false; cancelAnimationFrame(raf); previousTime = 0; }
 function tick(now: number) {
   if (!running) return;
@@ -123,7 +150,12 @@ function tick(now: number) {
 }
 function play() { if (running) return; running = true; previousTime = 0; raf = requestAnimationFrame(tick); }
 const probe = {
-  open, render, resize, capture, statistics, play, stop,
+  open, render, resize, capture, statistics, positionSummary, play, stop,
+  openSourceReference() {
+    const source = particleDefinition.presets.find(preset => preset.id === "particles-source");
+    if (!source) throw new Error("Source-speed preset is missing");
+    return open(source.seed, source.params, "detail");
+  },
   update(patch: Partial<ParticleParams>) { params = { ...params, ...patch }; pass!.update(params); render(0); return capture(); },
   reset(seed = 147) { pass!.reset(seed); time = 0; render(0); return capture(); },
   dispose() { stop(); pass?.dispose(); pass = null; return statistics(); },
@@ -136,7 +168,7 @@ const probe = {
       let failureCode: string | null = null;
       canvas.addEventListener("webglcontextlost", event => {
         event.preventDefault();
-        const init = { params, seed: 147, viewport, geometry: geometry(), quality: "detail" as const,
+        const init = { params, seed: 147, viewport, geometry: geometry(), quality: runtimeQuality,
           limits, prepared: null };
         const plan = particleDefinition.plan(init);
         const failed = plan.ok ? particleDefinition.create(gl, { ...init, plan: plan.value }) : plan;
