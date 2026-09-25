@@ -1086,6 +1086,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           {activeTool === "shape" && <div className="mono-workbench__shape">          <MonoShapeTuner values={draftShapes[preset]} dirty={shapeDirty} status={shapeStatus}
             onChange={updateShape} onDefault={resetShape} onCancel={cancelShape} onApply={applyShape}
             onOpenMotionLab={process.env.NODE_ENV === "development" && workingReady ? openQuickActionMotionLab : undefined}
+            buttonLabHref={process.env.NODE_ENV === "development" ? "/design-lab/buttons" : undefined}
             motionLabStatus={quickActionPreview && !quickActionOverride
               ? "Здесь действует стандартный Material; отдельная проба относится к другому пресету."
               : quickActionMotionStatus} />

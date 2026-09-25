@@ -78,3 +78,4 @@ export {
   BUTTON_MASK_ASSETS, MATERIAL_RADIUS_BOUNDS, MATERIAL_BORDER_BOUNDS,
   parseTargetBinding, parseTargetBindings, createTargetBinding,
 } from "./background-sandbox/target-binding";
+export { MATERIAL_ICON_PATHS, monoActionIconPath } from "./background-sandbox/material-icon-assets";

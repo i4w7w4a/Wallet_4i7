@@ -27,7 +27,7 @@ it("lets a user try each quick action's feedback while keeping operations unavai
 
   const names = ["Отправить", "Получить", "Обмен", "Купить"];
   for (const name of names) {
-    const control = screen.getByRole("button", { name: new RegExp(`^${name}.*операция недоступна`) });
+    const control = await screen.findByRole("button", { name: new RegExp(`^${name}.*операция недоступна`) });
     expect(control).toBeEnabled();
     fireEvent.click(control);
     expect(screen.getByRole("status", { name: "Статус быстрых действий" }))
@@ -40,7 +40,7 @@ it("starts all four quick actions with the approved material response", async ()
   render(<MonoPreview snapshot={snapshot} />);
 
   for (const name of ["Отправить", "Получить", "Обмен", "Купить"]) {
-    const control = screen.getByRole("button", { name: new RegExp(`^${name}.*операция недоступна`) });
+    const control = await screen.findByRole("button", { name: new RegExp(`^${name}.*операция недоступна`) });
     expect(control).toHaveAttribute("data-control-effect", "material");
     expect(control).toHaveStyle({ "--press-depth": "2.7px", "--settle-ms": "270ms" });
   }

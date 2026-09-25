@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
   type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefObject } from "react";
 import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
-import { MonoOpticalGlass, type MonoGlassSettings, type MonoPaletteConfigV1, type MonoSharedOpticalHost } from "@wallet/ui";
+import { MonoOpticalGlass, monoActionIconPath, type MonoGlassSettings, type MonoPaletteConfigV1, type MonoSharedOpticalHost } from "@wallet/ui";
 import { MonoLogo } from "./mono-logo";
 import { resolveMonoLogoColors, type MonoLogoPreview } from "./mono-logo-preview";
 import { monoPaletteStyle } from "./mono-palette-tokens";
@@ -52,6 +52,8 @@ export type MonoSceneProps = {
   paletteReady?: boolean;
   paletteTransitionEnabled?: boolean;
   quickActionPreset?: ComponentProps<typeof MonoQuickActionFeedback>["preset"];
+  /** Dev-only material workshop can identify the existing four DOM action targets. */
+  materialTargets?: boolean;
   active?: boolean;
   /** Host-owned adapter replaces the legacy ambient layer and its pointer reactions. */
   atmosphere?: ReactNode;
@@ -67,10 +69,10 @@ const FIELD_NODES = [
 ] as const;
 
 const ACTIONS = [
-  { label: "Отправить", path: "M5 18 19 4M8 4h11v11" },
-  { label: "Получить", path: "M19 6 5 20M16 20H5V9" },
-  { label: "Обмен", path: "M4 8h16m0 0-4-4m4 4-4 4M20 16H4m0 0 4-4m-4 4 4 4" },
-  { label: "Купить", path: "M12 4v16M4 12h16" },
+  { id: "quick.send", label: "Отправить", path: monoActionIconPath("quick.send") },
+  { id: "quick.receive", label: "Получить", path: monoActionIconPath("quick.receive") },
+  { id: "quick.swap", label: "Обмен", path: monoActionIconPath("quick.swap") },
+  { id: "quick.buy", label: "Купить", path: monoActionIconPath("quick.buy") },
 ] as const;
 
 const NAV_ITEMS = [
@@ -102,7 +104,7 @@ export function MonoScene(props: MonoSceneProps) {
 
 function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady = true,
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true,
-  atmosphere, surfaceRef, typography, opticalHost,
+  atmosphere, surfaceRef, typography, opticalHost, materialTargets = false,
 }: MonoSceneProps & { typography: ReturnType<typeof useMonoTypographyPreview> }) {
   const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
@@ -392,6 +394,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             <MonoQuickActionFeedback
               key={`${action.label}:${quickActionPreset?.effectId ?? "baseline"}:${quickActionPreset?.config.magneticTravel ?? 0}`}
               label={action.label} path={action.path} preset={quickActionPreset}
+              materialTargetId={materialTargets ? action.id : undefined}
               onActivate={() => setQuickActionStatus(`${action.label} — операция недоступна в демо.`)} />
           ))}
           <p id="mono-actions-status" className="mono-actions__status" role="status"

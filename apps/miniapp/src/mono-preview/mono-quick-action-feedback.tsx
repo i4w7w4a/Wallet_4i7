@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 
 import { magneticOffset, type ControlFeedbackPreset } from "../design-lab/control-feedback-model";
+import type { ButtonTargetId } from "@wallet/ui";
 
 type QuickActionFeedback = Pick<ControlFeedbackPreset, "effectId" | "config">;
 
@@ -16,9 +17,10 @@ type Props = {
   path: string;
   preset: QuickActionFeedback;
   onActivate: () => void;
+  materialTargetId?: ButtonTargetId;
 };
 
-export function MonoQuickActionFeedback({ label, path, preset, onActivate }: Props) {
+export function MonoQuickActionFeedback({ label, path, preset, onActivate, materialTargetId }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [keyboardPressed, setKeyboardPressed] = useState(false);
   const effectId = preset.effectId;
@@ -68,6 +70,7 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate }: Pro
 
   return (
     <button className="mono-actions__item" type="button" data-control-effect={effectId}
+      data-material-target={materialTargetId}
       data-key-pressed={keyboardPressed}
       style={style} aria-label={`${label} — демо, операция недоступна`} onClick={onActivate}
       onPointerMove={move} onPointerLeave={reset} onPointerCancel={reset}
