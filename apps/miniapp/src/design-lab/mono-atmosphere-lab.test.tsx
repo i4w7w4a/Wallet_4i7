@@ -144,6 +144,20 @@ it("focuses the name, traps focus, and returns to the Save button on Escape", ()
   expect(save).toHaveFocus();
 });
 
+it("closes More on Escape despite an open icon tooltip and returns focus to More", () => {
+  render(<MonoAtmosphereLab />);
+  const more = screen.getByRole("button", { name: "Дополнительно" });
+  act(() => more.focus());
+  fireEvent.click(more);
+  const modal = screen.getByRole("dialog", { name: "Дополнительно" });
+  const close = within(modal).getByRole("button", { name: "Закрыть диалог" });
+  act(() => close.focus());
+  expect(screen.getByRole("tooltip")).toBeInTheDocument();
+  fireEvent.keyDown(close, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: "Дополнительно" })).toBeNull();
+  expect(more).toHaveFocus();
+});
+
 it("previews imported parameter values before opening a new unsaved copy", () => {
   render(<MonoAtmosphereLab />);
   fireEvent.click(screen.getByRole("button", { name: "Дополнительно" }));
