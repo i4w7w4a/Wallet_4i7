@@ -1,9 +1,10 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 import { useState } from "react";
 import type { MaterialAction, MaterialCapability, MaterialDescriptorV2, MaterialRecipeV2, ParameterControl, ParameterValue } from "@wallet/ui";
 import { MaterialControls } from "./material-controls";
+import { MaterialWorkbench } from "../material-workbench";
 
 type Params = { tone: string; colors: readonly string[]; flow: number; drift: number; contour: number;
   shape: string; highlight: number; glow: boolean; viscosity: number; detail: number };
@@ -44,7 +45,7 @@ const descriptor: MaterialDescriptorV2 = {
     return { ok: true, value: { ...recipe, params: { ...(recipe.params as Params), [key]: value } } };
   },
 };
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 function Host({ disabled = false, capability, onGesture, onAction, onRecipe }: {
   disabled?: boolean;
@@ -149,4 +150,40 @@ it("uses the selected button layer to disable only its inactive controls", () =>
   expect(screen.getByRole("combobox", { name: "Форма" })).toBeDisabled();
   view.rerender(<Host capability="button-fill" />);
   expect(screen.getByRole("combobox", { name: "Форма" })).toBeEnabled();
+});
+
+it("lets HEX and numeric Escape cancel editing inside a mobile drawer before drawer Escape", () => {
+  vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("max-width: 980px"),
+    addEventListener() {}, removeEventListener() {} }));
+  const changes: MaterialRecipeV2[] = [];
+  render(<MaterialWorkbench activeLab="background" title="Проба" status="Черновик"
+    toolbar={<button type="button">Сохранить пробу</button>} left={<div>Материалы</div>}
+    right={<Host onRecipe={recipe => changes.push(recipe)} />}>
+    <div>Сцена</div>
+  </MaterialWorkbench>);
+  const launcher = screen.getByRole("button", { name: "Настройки" });
+  fireEvent.click(launcher);
+  const drawer = screen.getByRole("dialog", { name: "Настройки" });
+  const hex = within(drawer).getByRole("textbox", { name: "Основной цвет — HEX" });
+  act(() => hex.focus());
+  fireEvent.change(hex, { target: { value: "#abcdef80" } });
+  fireEvent.keyDown(hex, { key: "Escape" });
+  expect(hex).toHaveValue("#33669980");
+  expect(changes).toEqual([]);
+  expect(drawer).toBeInTheDocument();
+
+  fireEvent.click(within(drawer).getByRole("button", { name: "Движение" }));
+  const number = within(drawer).getByRole("spinbutton", { name: "Течение — значение" });
+  act(() => number.focus());
+  fireEvent.change(number, { target: { value: "0.9" } });
+  fireEvent.keyDown(number, { key: "Escape" });
+  expect(number).toHaveValue(0.5);
+  expect(changes).toEqual([]);
+  expect(drawer).toBeInTheDocument();
+
+  const category = within(drawer).getByRole("button", { name: "Движение" });
+  act(() => category.focus());
+  fireEvent.keyDown(category, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: "Настройки" })).toBeNull();
+  expect(launcher).toHaveFocus();
 });

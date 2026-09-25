@@ -18,6 +18,14 @@ export type MaterialWorkbenchProps = {
 type Drawer = "left" | "right" | null;
 const COMPACT_QUERY = "(max-width: 980px)";
 const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex]:not([tabindex="-1"])';
+const EDITABLE_INPUT_TYPES = new Set(["text", "number", "search", "email", "tel", "url", "password", "color", "date", "datetime-local", "month", "week", "time", "file"]);
+
+function editingEscapeTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable || target.closest("textarea, select")) return true;
+  const input = target.closest("input");
+  return input instanceof HTMLInputElement && EDITABLE_INPUT_TYPES.has(input.type);
+}
 
 function compactSnapshot() { return typeof window !== "undefined" && !!window.matchMedia?.(COMPACT_QUERY).matches; }
 function subscribeCompact(change: () => void) {
@@ -74,6 +82,7 @@ export function MaterialWorkbench({ activeLab, title, status, toolbar, left, rig
     if (!panel) return;
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (editingEscapeTarget(event.target)) return;
         event.preventDefault(); event.stopPropagation();
         closeDrawer(open);
       } else if (event.key === "Tab") {
