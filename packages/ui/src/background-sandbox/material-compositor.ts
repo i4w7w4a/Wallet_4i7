@@ -36,6 +36,17 @@ void main() {
   vec2 local = vUv * uViewport - uRegion.xy;
   vec2 uv = local / uRegion.zw;
   vec4 color = texture(uSource, clamp(uv, vec2(0.0), vec2(1.0)));
+  if (uKind > 4.5) {
+    float core = texture(uMask, clamp(uv, vec2(0.0), vec2(1.0))).a;
+    vec2 reach = vec2(2.0) / max(uRegion.zw, vec2(1.0));
+    float outer = core;
+    outer = max(outer, texture(uMask, clamp(uv + vec2(reach.x, 0.0), vec2(0.0), vec2(1.0))).a);
+    outer = max(outer, texture(uMask, clamp(uv - vec2(reach.x, 0.0), vec2(0.0), vec2(1.0))).a);
+    outer = max(outer, texture(uMask, clamp(uv + vec2(0.0, reach.y), vec2(0.0), vec2(1.0))).a);
+    outer = max(outer, texture(uMask, clamp(uv - vec2(0.0, reach.y), vec2(0.0), vec2(1.0))).a);
+    fragColor = vec4(vec3(0.0), max(outer - core, 0.0) * 0.82);
+    return;
+  }
   float coverage = 1.0;
   if (uKind > 0.5) {
     coverage = roundedCoverage(local, uRegion.zw, uRadius);
@@ -128,6 +139,12 @@ export class MaterialCompositor {
     this.uniforms.uEdgeFinish.value.set([finish.sideDarkening, finish.inset, finish.softness]);
     this.renderer.enable(gl.SCISSOR_TEST);
     gl.scissor(clip.x, clip.y, clip.width, clip.height);
+    // A narrow dark contour sits behind the chosen GPU icon, never over its shader pixels.
+    if (mode === "icon" && iconMask) {
+      this.uniforms.uKind.value = 5;
+      this.renderer.render({ scene: this.mesh, clear: false, update: false, sort: false, frustumCull: false });
+      this.uniforms.uKind.value = KIND.icon;
+    }
     this.renderer.render({ scene: this.mesh, clear: false, update: false, sort: false, frustumCull: false });
     this.renderer.disable(gl.SCISSOR_TEST);
     return true;

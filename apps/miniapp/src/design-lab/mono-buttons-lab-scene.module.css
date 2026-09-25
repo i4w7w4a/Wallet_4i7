@@ -20,9 +20,9 @@
 .frame :global(.mono-actions__item[data-material-icon-presented="true"] .mono-actions__icon svg) {
   opacity: 0;
 }
-.frame :global(.mono-actions__item[data-material-fill-presented="true"][data-material-icon-presented="true"] .mono-actions__icon svg) {
-  opacity: .8;
-  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 65%));
+.frame :global(.mono-actions__item[data-material-icon-presented="true"] .mono-actions__icon) {
+  background: transparent;
+  box-shadow: none;
 }
 .frame :global(.mono-actions__item[data-material-border-presented="true"]) { border-left-color: transparent; }
 .frame :global(.mono-promo-frame:has([data-optics="shared-webgl"])) { background: transparent; }

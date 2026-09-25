@@ -159,7 +159,8 @@ export class MaterialSceneBackend {
       entry.plan.textureBytes + (entry.iconTexture ? entry.maskSource!.width * entry.maskSource!.height * 4 : 0), 0);
     const diagnostics = this.passes.length ? {
       targetCount: this.passes.reduce((sum, entry) => sum + (entry.pass.getDiagnostics?.().targetCount ?? 0), 0),
-      allocatedBytes, passesPerFrame: this.passes.reduce((sum, entry) => sum + entry.plan.passesPerFrame, 0) + 1,
+      allocatedBytes, passesPerFrame: this.passes.reduce((sum, entry) => sum + entry.plan.passesPerFrame +
+        (entry.layer === "icon" ? 1 : 0), 0) + 1,
       quality: this.input.quality, notes: ["Один WebGL2 canvas и один RAF. Promo зарезервирован в общих 32 MiB.", ...notes],
     } : undefined;
     const next: BackgroundRuntimeStatus = { phase, message,
