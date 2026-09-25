@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fluid v2 · technical pass probe</title>
+<style>
+  body { margin: 0; background: #0b0d11; color: #e5e8ed; font: 14px system-ui; }
+  header, main { padding: 16px; }
+  header { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  button, select, input { min-height: 44px; color: inherit; background: #252932; border: 1px solid #515866; border-radius: 8px; }
+  #controls { display: flex; flex-wrap: wrap; gap: 12px; width: 100%; }
+  label { display: inline-flex; gap: 6px; align-items: center; }
+  canvas { display: block; max-width: 100%; touch-action: auto; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+<header><strong>Fluid v2 · техническая сцена</strong><button id="play">Play</button><button id="reset">Restart</button><button id="splats">Добавить 6 всплесков</button><span>Drag: кнопка мыши. Touch: обычная прокрутка.</span><div id="controls"></div></header>
+<main><canvas></canvas><pre id="status">Подготовка…</pre></main>
+<script type="module" src="./fixture.ts"></script>
+</html>

@@ -1,7 +1,7 @@
 export interface FluidClock { time: number; phase: number; emitted: number; seed: number }
 export interface AmbientSplat { ordinal: number; x: number; y: number; dx: number; dy: number; pigment: number }
 export function createFluidClock(seed: number): FluidClock { return { time: 0, phase: 0, emitted: 0, seed }; }
-function emission(seed: number, ordinal: number): AmbientSplat {
+export function makeFluidSeededSplat(seed: number, ordinal: number): AmbientSplat {
   // Counter-addressed stream: bounded, stable, unaffected by UI controls or frame batching.
   let state = ((seed >>> 0) ^ Math.imul(ordinal + 1, 0x9e3779b9)) >>> 0;
   const random = () => {
@@ -26,7 +26,7 @@ export function stepFluidClock(clock: FluidClock, frameDt: number, scale: number
     const safeRate = Number.isFinite(rate) ? Math.max(0, Math.min(2, rate)) : 0;
     next.phase += dt * safeRate;
     while (next.phase >= 1 - 1e-12 && splats.length < 2) {
-      splats.push(emission(clock.seed, next.emitted));
+      splats.push(makeFluidSeededSplat(clock.seed, next.emitted));
       next.emitted++;
       next.phase = Math.max(0, next.phase - 1);
     }

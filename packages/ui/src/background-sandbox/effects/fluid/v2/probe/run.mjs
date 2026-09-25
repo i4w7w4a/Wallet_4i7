@@ -1,0 +1,150 @@
+// Test-only probe. Run only after ORACLE grants one browser/GPU slot and a free port.
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const root = resolve(here, "../../../../../../../../");
+const require = createRequire(resolve(root, "apps/miniapp/package.json"));
+const { chromium } = require("@playwright/test");
+const url = process.env.FLUID_V2_PROBE_URL;
+if (!url) throw new Error("Set FLUID_V2_PROBE_URL to the coordinator-assigned local probe URL");
+const evidence = resolve(process.env.FLUID_V2_EVIDENCE_DIR || resolve(here, "evidence"));
+await mkdir(evidence, { recursive: true });
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1200 }, deviceScaleFactor: 1 });
+const errors = [], readbackWarnings = [];
+page.on("pageerror", (error) => errors.push(error.message));
+page.on("console", (message) => {
+  if (!["error", "warning"].includes(message.type())) return;
+  if (/GL Driver Message.*GPU stall due to ReadPixels/.test(message.text())) readbackWarnings.push(message.text());
+  else errors.push(message.text());
+});
+const results = {};
+try {
+  await page.goto(url, { waitUntil: "networkidle" });
+  await page.waitForFunction(() => window.fluidV2Probe?.stats().diagnostics?.targetCount === 20);
+  results.initial = await page.evaluate(() => ({ image: window.fluidV2Probe.capture(), ...window.fluidV2Probe.stats(), error: window.fluidV2Probe.error() }));
+  assert.equal(results.initial.diagnostics.targetCount, 20);
+  assert.ok(results.initial.diagnostics.allocatedBytes <= 28 * 1024 * 1024);
+  assert.equal(results.initial.alphaMode, "opaque");
+  assert.equal(results.initial.colorSpace, "display-srgb");
+  assert.equal(results.initial.error, 0);
+
+  results.behavior = await page.evaluate(() => {
+    const p = window.fluidV2Probe;
+    const pointer = (phase, t, delta = [0, 0], down = true) => ({ uv: [0.55, 0.5], inside: true, down, samples: [{ phase, id: 1, uv: [0.55, 0.5], delta, time: t, buttons: down ? 1 : 0 }] });
+    const initial = p.reset(), repeated = p.reset();
+    const madeBefore = p.stats().made;
+    const original = p.capture();
+    const recolored = p.update({ colors: ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#00FFFF", "#FF00FF"] });
+    const madeAfter = p.stats().made;
+    p.update({ colors: ["#9AA6B3", "#62738B", "#A7927E"] });
+    p.reset();
+    p.render(1 / 60, pointer("down", 1));
+    const splat = p.render(1 / 60, pointer("move", 2, [0.02, 0.015]));
+    p.render(1 / 60, pointer("up", 3, [0, 0], false));
+    const released = p.capture();
+    for (let i = 0; i < 20; i++) p.render(1 / 60);
+    const afterRelease = p.capture();
+    const idle = p.stats().diagnostics;
+    const beforePause = p.capture(), paused = p.render(0), afterPause = p.capture();
+    const entered = p.render(1 / 60, pointer("enter", 4, [100, 100]));
+    const invalid = p.render(1 / 60, pointer("move", 5, [Infinity, NaN]));
+    p.reset();
+    const action = p.action(6), actionFollowup = p.render(0);
+    const afterAction = p.capture(), resetAfterAction = p.reset();
+    return { initial, repeated, original, recolored, madeBefore, madeAfter, splat, released, afterRelease, idle, beforePause, paused, afterPause, entered, invalid, action, actionFollowup, afterAction, resetAfterAction, error: p.error() };
+  });
+  const b = results.behavior;
+  assert.equal(b.initial.hash, b.repeated.hash, "same-seed reset must replay on this GPU");
+  assert.notEqual(b.original.hash, b.recolored.hash, "editing palette recolors existing dye");
+  assert.deepEqual(b.madeBefore, b.madeAfter, "uniform update must not allocate");
+  assert.equal(b.splat.passesPerFrame, 32, "one drag splat adds three passes");
+  assert.notEqual(b.released.hash, b.afterRelease.hash, "field continues after release");
+  assert.equal(b.idle.passesPerFrame, 29);
+  assert.equal(b.paused.passesPerFrame, 0);
+  assert.equal(b.beforePause.hash, b.afterPause.hash);
+  assert.equal(b.entered.passesPerFrame, 29);
+  assert.equal(b.invalid.passesPerFrame, 29);
+  assert.equal(b.action.diagnostics.passesPerFrame, 13); // four action splats + display.
+  assert.equal(b.actionFollowup.passesPerFrame, 7); // remaining two + display.
+  assert.notEqual(b.action.pixels.hash, b.afterAction.hash);
+  assert.equal(b.resetAfterAction.hash, b.initial.hash);
+  assert.equal(b.error, 0);
+
+  results.controls = await page.evaluate(() => {
+    const p = window.fluidV2Probe;
+    const base = { mode: "draw", timeScale: 1, force: 3600, radius: 0.25, curl: 30, velocityDissipation: 0.2, dyeDissipation: 1, pressureRetention: 0.8, shading: true, colors: ["#9AA6B3", "#62738B", "#A7927E"], colorAlpha: 0.9, backgroundColor: "#080A0F", backgroundAlpha: 1, colorCycleRate: 0, bloomEnabled: false, bloomIntensity: 0.8, bloomThreshold: 0.6, sunraysEnabled: false, sunraysWeight: 1, ambientRate: 0.5 };
+    const simulate = (patch, steps = 12) => { p.open({ ...base, ...patch }); for (let i = 0; i < steps; i++) p.render(1 / 60); return p.capture(); };
+    const baseline = simulate({});
+    const values = {
+      force: simulate({ force: 0 }), radius: simulate({ radius: 0.5 }), curl: simulate({ curl: 0 }),
+      velocityDissipation: simulate({ velocityDissipation: 4 }), dyeDissipation: simulate({ dyeDissipation: 4 }),
+      pressureRetention: simulate({ pressureRetention: 0 }), shading: simulate({ shading: false }),
+      colorAlpha: simulate({ colorAlpha: 0 }), backgroundColor: simulate({ backgroundColor: "#770000" }),
+      backgroundAlpha: simulate({ backgroundAlpha: 0 }), colorCycleRate: simulate({ colorCycleRate: 3 }),
+      timeScale: simulate({ timeScale: 0.1 }),
+    };
+    const lightBase = simulate({ bloomEnabled: true, bloomThreshold: 0.1, sunraysEnabled: true });
+    const light = { bloomIntensity: simulate({ bloomEnabled: true, bloomThreshold: 0.1, sunraysEnabled: true, bloomIntensity: 0 }), bloomThreshold: simulate({ bloomEnabled: true, bloomThreshold: 1, sunraysEnabled: true }), sunraysWeight: simulate({ bloomEnabled: true, bloomThreshold: 0.1, sunraysEnabled: true, sunraysWeight: 2 }) };
+    const lowAmbient = simulate({ mode: "ambient", ambientRate: 0.05, timeScale: 2 }, 24);
+    const highAmbient = simulate({ mode: "ambient", ambientRate: 2, timeScale: 2 }, 24);
+    const transparent = simulate({ colorAlpha: 0, backgroundAlpha: 0 }, 0);
+    return { baseline, values, lightBase, light, lowAmbient, highAmbient, transparent, colorList: simulate({ colors: ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#00FFFF", "#FF00FF"] }) };
+  });
+  for (const [key, image] of Object.entries(results.controls.values)) assert.notEqual(image.hash, results.controls.baseline.hash, `${key} must change pixels`);
+  for (const [key, image] of Object.entries(results.controls.light)) assert.notEqual(image.hash, results.controls.lightBase.hash, `${key} must change lit pixels`);
+  assert.notEqual(results.controls.colorList.hash, results.controls.baseline.hash);
+  assert.notEqual(results.controls.lowAmbient.hash, results.controls.highAmbient.hash, "ambient rate must add bounded pigment");
+  assert.equal(results.controls.transparent.alpha, 0);
+
+  results.benchmarks = [];
+  for (const [width, height, dpr, profile] of [[390, 844, 1.5, "balanced"], [960, 640, 1, "detail"]]) {
+    await page.evaluate(({ width, height, dpr, profile }) => { const p = window.fluidV2Probe; p.resize(width, height, dpr); p.open(undefined, undefined, profile); }, { width, height, dpr, profile });
+    results.benchmarks.push(await page.evaluate(() => window.fluidV2Probe.benchmark(30)));
+  }
+  await page.evaluate(() => { const p = window.fluidV2Probe; p.resize(390, 844, 1.5); p.preset(1); });
+  results.benchmarks.push(await page.evaluate(() => window.fluidV2Probe.benchmark(30)));
+  await page.evaluate(() => { const p = window.fluidV2Probe; p.resize(960, 640); for (let i = 0; i < 20; i++) p.render(1 / 60); });
+  await page.locator("canvas").screenshot({ path: resolve(evidence, "fluid-v2-wide.png") });
+  results.sizes = [];
+  for (const width of [320, 390, 430, 480]) {
+    const size = await page.evaluate((width) => { const p = window.fluidV2Probe; p.resize(width, 844, 1.5); return { width, ...p.stats(), image: p.capture(), error: p.error() }; }, width);
+    assert.equal(size.diagnostics.targetCount, 20); assert.ok(size.diagnostics.allocatedBytes <= 28 * 1024 * 1024); assert.equal(size.error, 0);
+    results.sizes.push(size);
+  }
+  await page.locator("canvas").screenshot({ path: resolve(evidence, "fluid-v2-portrait.png") });
+
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 190, y: 620 }] });
+  for (const y of [560, 500, 440, 380, 320, 260]) {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 190, y }] });
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+  }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  results.touch = await page.evaluate(() => ({ scrollY, touchAction: getComputedStyle(document.querySelector("canvas")).touchAction }));
+  assert.ok(results.touch.scrollY > 0, "touch on the probe stage must preserve native page scrolling");
+  await cdp.detach();
+
+  results.failure = await page.evaluate(() => window.fluidV2Probe.failure());
+  assert.equal(results.failure.ok, false); assert.equal(results.failure.code, "unsupported-format");
+  assert.deepEqual(results.failure.before, results.failure.after, "partial third-FBO failure must clean up");
+  results.lifecycle = await page.evaluate(() => {
+    const p = window.fluidV2Probe; const baseline = p.stats().resources;
+    for (let i = 0; i < 6; i++) { p.open(); p.render(); p.dispose(); p.dispose(); }
+    return { baseline, after: p.stats(), error: p.error() };
+  });
+  assert.deepEqual(results.lifecycle.baseline, results.lifecycle.after.resources);
+  assert.equal(results.lifecycle.after.diagnostics.allocatedBytes, 0);
+  assert.equal(results.lifecycle.error, 0);
+  results.errors = errors; results.readbackWarnings = readbackWarnings;
+  await writeFile(resolve(evidence, "results.json"), JSON.stringify(results, null, 2));
+  assert.deepEqual(errors, [], "runtime/shader warnings and errors must be investigated");
+  console.log(JSON.stringify({ ok: true, evidence, benchmarks: results.benchmarks.map((item) => ({ cpuMs: item.cpuMs, gpuMs: item.gpuMs, frameIntervalMs: item.frameIntervalMs, renderer: item.renderer, diagnostics: item.diagnostics })) }, null, 2));
+} finally { await browser.close(); }
