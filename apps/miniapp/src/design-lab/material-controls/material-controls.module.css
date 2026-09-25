@@ -6,9 +6,10 @@
 .panel { display: grid; gap: 9px; min-width: 0; border-top: 1px solid #40504a; padding-top: 10px; }
 .panel[hidden] { display: none; }
 .panel h3 { margin: 0 0 2px; color: #e5eee7; font-size: 13px; line-height: 1.4; font-weight: 600; }
-.row { min-width: 0; position: relative; }
-.row > :global(.mono-lab-control-tooltip-anchor) { position: absolute; top: 0; right: 0; }
-.row :global(.mono-lab-control-slider-row) > label { padding-right: 44px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 4px; min-width: 0; }
+.row > :first-child { grid-column: 1 / -1; }
+.hasHelp > :first-child { grid-column: 1; grid-row: 1; }
+.hasHelp > :global(.mono-lab-control-tooltip-anchor) { grid-column: 2; grid-row: 1; align-self: start; }
 .helpButton { color: #c3d0c5; font-weight: 700; font-size: 14px; }
 .field, .colorList { display: grid; gap: 7px; min-width: 0; font-size: 12px; }
 .field select, .action select { min-width: 0; width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #647570; border-radius: 7px; background: #17201e; color: #eef4f0; font: inherit; }
@@ -24,8 +25,8 @@
 .add { width: 100%; }
 .action { display: grid; gap: 8px; }
 .action label { display: grid; gap: 6px; font-size: 12px; }
-.hint { display: block; margin-top: 6px; padding: 8px 10px; border-left: 2px solid #718a79; background: #222d26; color: #c7d6c9; font-size: 12px; line-height: 1.5; }
-.error { display: block; margin-top: 5px; color: #fac8b6; font-size: 12px; line-height: 1.5; }
+.hint { grid-column: 1 / -1; display: block; margin-top: 3px; padding: 8px 10px; border-left: 2px solid #718a79; background: #222d26; color: #c7d6c9; font-size: 12px; line-height: 1.5; }
+.error { grid-column: 1 / -1; display: block; margin-top: 5px; color: #fac8b6; font-size: 12px; line-height: 1.5; }
 .root button:disabled, .root input:disabled, .root select:disabled { opacity: .55; cursor: default; }
 .root :is(button, input, select):focus-visible { outline: 2px solid #d4eee1; outline-offset: 3px; }
 @media (forced-colors: active) { .root :is(button, input, select) { border-color: ButtonText; } }

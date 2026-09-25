@@ -113,7 +113,7 @@ export function MaterialControls({ descriptor, recipe, capability, disabled = fa
           onClick={() => atomic(control.key, [...colors, colors.at(-1) ?? "#ffffff"])}>Добавить цвет</button>
       </div>;
     } else input = <p role="alert">Значение «{control.label}» недоступно.</p>;
-    return <div className={styles.row} key={control.key}>{input}{hint}
+    return <div className={`${styles.row} ${hint ? styles.hasHelp : ""}`} key={control.key}>{input}{hint}
       {error?.key === control.key && <small className={styles.error} role="alert">{error.message}</small>}
     </div>;
   }
