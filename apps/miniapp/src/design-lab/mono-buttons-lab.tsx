@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { MATERIAL_BORDER_BOUNDS, MATERIAL_RADIUS_BOUNDS,
   type ButtonMaterialLayer, type ButtonTargetId, type ButtonWorkshopBindings,
   type MaterialQualityProfile, type MaterialRecipeV2, type MaterialTargetBinding } from "@wallet/ui";
@@ -78,7 +78,9 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
   const [width, setWidth] = useState<(typeof WIDTHS)[number]>(390);
   const [quality, setQuality] = useState<MaterialQualityProfile>("balanced");
   const [paused, setPaused] = useState(false);
-  const [dialog, setDialog] = useState<Dialog>(null);
+  const [dialog, setDialogState] = useState<Dialog>(null);
+  const dialogRef = useRef<Dialog>(null);
+  const dialogLauncher = useRef<HTMLElement | null>(null);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [pending, setPending] = useState<Transition | null>(null);
   const [name, setName] = useState("");
@@ -91,6 +93,22 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
   const [runtimeStatus, setRuntimeStatus] = useState("");
   const stageRef = useRef<HTMLElement>(null);
   const onRuntimeStatus = useCallback((status: { message: string }) => setRuntimeStatus(status.message), []);
+
+  const setDialog = useCallback((next: Dialog) => {
+    if (next !== null && dialogRef.current === null) {
+      dialogLauncher.current = globalThis.document.activeElement instanceof HTMLElement ? globalThis.document.activeElement : null;
+    }
+    dialogRef.current = next;
+    setDialogState(next);
+  }, []);
+  useLayoutEffect(() => {
+    if (dialog !== null) return;
+    const launcher = dialogLauncher.current;
+    dialogLauncher.current = null;
+    if (!launcher) return;
+    if (launcher.isConnected && !launcher.closest("[inert]")) launcher.focus();
+    else globalThis.document.querySelector<HTMLElement>('[data-button-workshop] [aria-label="Ещё"]')?.focus();
+  }, [dialog]);
 
   useEffect(() => {
     if (state.ready && !state.recoveryUnavailable && stageRef.current) focusButtonActions(stageRef.current);
@@ -128,7 +146,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
       finally { try { window.sessionStorage.removeItem(BACKGROUND_TO_BUTTONS_KEY); } catch { /* The preview stays local. */ } }
     });
     return () => { active = false; };
-  }, [catalog]);
+  }, [catalog, setDialog]);
 
   useEffect(() => {
     function keyboard(event: KeyboardEvent) {
@@ -290,11 +308,13 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
             <span>{state.comparing ? `A · ${state.workspace.pinned?.name}` : "B · действия MONO"}</span>
             <MonoLabIconButton label="К кнопкам" onClick={() => { if (stageRef.current) focusButtonActions(stageRef.current); }}>⌖</MonoLabIconButton>
           </div>
-          <section ref={stageRef} className={styles.stage} aria-label="Реальные кнопки MONO" style={{ width: `min(100%, ${width}px)` }}>
-            {!state.ready ? <p>Подготовка мастерской…</p> : state.recoveryUnavailable ? <div className={styles.unavailable}>
-              <p>Черновики не прочитаны. Исходные данные в хранилище сохранены.</p><p>{state.recoveryError}</p>
-              <button className={styles.control} type="button" onClick={editor.startFresh}>Начать новую пробу</button>
-            </div> : stage}
+          <section ref={stageRef} className={styles.stageScroll} aria-label="Реальные кнопки MONO">
+            <div className={styles.stage} style={{ width: `min(100%, ${width}px)` }}>
+              {!state.ready ? <p>Подготовка мастерской…</p> : state.recoveryUnavailable ? <div className={styles.unavailable}>
+                <p>Черновики не прочитаны. Исходные данные в хранилище сохранены.</p><p>{state.recoveryError}</p>
+                <button className={styles.control} type="button" onClick={editor.startFresh}>Начать новую пробу</button>
+              </div> : stage}
+            </div>
           </section>
           <p className={styles.stageFoot}>{runtimeStatus || "Реальные кнопки MONO · живой DOM"}</p>
         </div>

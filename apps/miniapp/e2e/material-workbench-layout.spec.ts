@@ -43,6 +43,8 @@ test("button controls scroll in their rail while the real actions stay visible o
       expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
       await rail.getByRole("button", { name: "Свет", exact: true }).click();
+      await page.mouse.move(1, 1);
+      await expect(page.getByRole("tooltip")).toHaveCount(0);
       await expectOwnHitbox(rail.getByRole("spinbutton", { name: "Сложение света — значение" }));
       await expectOwnHitbox(rail.getByRole("button", { name: "Описание «Сложение света»" }));
       expect(await page.evaluate(() => window.scrollY)).toBe(0);

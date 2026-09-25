@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import type { ButtonWorkshopBindings, MaterialCapability, MaterialDescriptorV2, MaterialRecipeV2 } from "@wallet/ui";
 import { MonoButtonsLab } from "./mono-buttons-lab";
@@ -198,4 +198,34 @@ test("local preview acceptance stays under More while Save is compact in the too
   expect(screen.queryByRole("button", { name: "Применить" })).not.toBeInTheDocument();
   fireEvent.click(within(toolbar).getByRole("button", { name: "Ещё" }));
   expect(within(screen.getByRole("dialog", { name: "Дополнительно" })).getByRole("button", { name: "Применить" })).toBeInTheDocument();
+});
+
+test("closing More returns focus to its launcher after the workbench becomes interactive", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const launcher = screen.getByRole("button", { name: "Ещё" });
+  act(() => launcher.focus());
+  fireEvent.click(launcher);
+  const dialog = screen.getByRole("dialog", { name: "Дополнительно" });
+  expect(launcher.closest("[inert]")).toBeInTheDocument();
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  expect(dialog).not.toBeInTheDocument();
+  expect(launcher).toHaveFocus();
+});
+
+test("switching More to Import keeps the original launcher for focus return", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const launcher = screen.getByRole("button", { name: "Ещё" });
+  act(() => launcher.focus());
+  fireEvent.click(launcher);
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Дополнительно" })).getByRole("button", { name: "Импорт конфигурации JSON" }));
+  const dialog = screen.getByRole("dialog", { name: "Импорт конфигурации кнопок" });
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  expect(launcher).toHaveFocus();
+});
+
+test("preview width is applied inside a separate full-width scrollport", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const scrollport = screen.getByRole("region", { name: "Реальные кнопки MONO" });
+  expect(scrollport).not.toHaveAttribute("style");
+  expect(scrollport.firstElementChild).toHaveStyle({ width: "min(100%, 390px)" });
 });
