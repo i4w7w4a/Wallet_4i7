@@ -114,6 +114,13 @@ test("Atmosphere Physics scroll and its lower slider leave the central scene fix
 test("mobile drawer and More return focus without horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/design-lab/buttons");
+  const toolbar = page.getByRole("toolbar", { name: "Действия пробы" });
+  const productApply = toolbar.getByRole("button", { name: "В рабочий пресет MONO…" });
+  await toolbar.evaluate(element => { element.scrollLeft = element.scrollWidth; });
+  await expect.poll(async () => {
+    const bar = await toolbar.boundingBox(), button = await productApply.boundingBox();
+    return !!bar && !!button && button.x >= bar.x - 1 && button.x + button.width <= bar.x + bar.width + 1;
+  }).toBe(true);
   const launcher = page.getByRole("button", { name: "Настройки", exact: true });
   await launcher.click();
   const drawer = page.getByRole("dialog", { name: "Настройки" });
@@ -123,7 +130,7 @@ test("mobile drawer and More return focus without horizontal overflow", async ({
   await expect(drawer).toHaveCount(0);
   await expect(launcher).toBeFocused();
 
-  const more = page.getByRole("toolbar", { name: "Действия пробы" }).getByRole("button", { name: "Ещё" });
+  const more = toolbar.getByRole("button", { name: "Ещё" });
   await more.click();
   const modal = page.getByRole("dialog", { name: "Дополнительно" });
   await expect(modal).toBeVisible();

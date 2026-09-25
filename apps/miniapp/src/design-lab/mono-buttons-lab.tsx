@@ -279,11 +279,13 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
               onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} onError={setNotice} />}
             {first && <details className={styles.geometry}><summary>Форма и слой</summary>
               {selection.layer !== "icon" && <label className={styles.field}>Скругление {selection.layer === "border" ? "кромки" : "поверхности"} <output>{first.radiusCss} px</output>
-                <input type="range" min={MATERIAL_RADIUS_BOUNDS.min} max={MATERIAL_RADIUS_BOUNDS.max} step="0.5" value={first.radiusCss} disabled={disabled}
+                <input type="range" aria-label={`Скругление ${selection.layer === "border" ? "кромки" : "поверхности"}`}
+                  min={MATERIAL_RADIUS_BOUNDS.min} max={MATERIAL_RADIUS_BOUNDS.max} step="0.5" value={first.radiusCss} disabled={disabled}
                   onPointerDown={editor.beginGesture} onPointerUp={editor.endGesture} onKeyDown={editor.beginGesture} onKeyUp={editor.endGesture}
                   onChange={event => changeBinding(binding => ({ ...binding, radiusCss: Number(event.currentTarget.value) }))} /></label>}
               {selection.layer === "border" && <label className={styles.field}>Толщина рамки <output>{first.borderWidthCss} px</output>
-                <input type="range" min={MATERIAL_BORDER_BOUNDS.min} max={MATERIAL_BORDER_BOUNDS.max} step="0.25" value={first.borderWidthCss} disabled={disabled}
+                <input type="range" aria-label="Толщина рамки" min={MATERIAL_BORDER_BOUNDS.min} max={MATERIAL_BORDER_BOUNDS.max}
+                  step="0.25" value={first.borderWidthCss} disabled={disabled}
                   onPointerDown={editor.beginGesture} onPointerUp={editor.endGesture} onKeyDown={editor.beginGesture} onKeyUp={editor.endGesture}
                   onChange={event => changeBinding(binding => ({ ...binding, borderWidthCss: Number(event.currentTarget.value) }))} /></label>}
               <label className={styles.toggle}><input type="checkbox" checked={first.enabled} disabled={disabled}

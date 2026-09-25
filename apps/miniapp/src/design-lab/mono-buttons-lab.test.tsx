@@ -189,6 +189,17 @@ test("secondary geometry stays collapsed until the editor asks for it", () => {
   expect(within(controls).getByText(/Скругление кромки/)).toBeInTheDocument();
 });
 
+test("geometry sliders expose their layer-specific names to assistive technology", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  fireEvent.click(screen.getByText("Форма и слой", { selector: "summary" }));
+  expect(screen.getByRole("slider", { name: "Скругление кромки" })).toBeInTheDocument();
+  expect(screen.getByRole("slider", { name: "Толщина рамки" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("tab", { name: "Поверхность" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Материал" }), { target: { value: "liquid-metal" } });
+  fireEvent.click(screen.getByText("Форма и слой", { selector: "summary" }));
+  expect(screen.getByRole("slider", { name: "Скругление поверхности" })).toBeInTheDocument();
+});
+
 test("local preview acceptance stays under More while Save is compact in the toolbar", () => {
   render(<MonoButtonsLab bindings={bindings} />);
   const toolbar = screen.getByRole("toolbar", { name: "Действия пробы" });

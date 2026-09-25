@@ -8,7 +8,7 @@
 .control:disabled, .libraryButton:disabled, .layerTab:disabled, .quietControl:disabled { opacity: .45; cursor: default; }
 .primary { color: #18271e; background: #d1e2d5; border-color: #d1e2d5; font-weight: 600; }
 .primary:hover { color: #18271e; background: #e6f2e8; }
-.productApply { flex: 0 0 auto; }
+.productApply { position: sticky; left: 0; z-index: 2; flex: 0 0 auto; background: #151718; }
 .productApply > button { min-height: 44px; border: 1px solid #d1e2d5; border-radius: 6px; background: #d1e2d5; color: #17241b; padding: 8px 12px; font: 600 12px/1.2 Arial, sans-serif; white-space: nowrap; cursor: pointer; }
 .productApply > button:hover { background: #e6f2e8; }
 .productApply > button:disabled { opacity: .5; cursor: default; }
