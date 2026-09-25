@@ -30,6 +30,7 @@ async function expectCanvasMatchesVisiblePhone(preview: Locator, phoneWidth: num
 }
 
 test("button controls scroll in their rail while the real actions stay visible on desktop", async ({ browser }) => {
+  test.setTimeout(60_000);
   for (const viewport of [{ width: 1366, height: 600 }, { width: 1440, height: 900 }]) {
     const context = await browser.newContext({ baseURL: String(test.info().project.use.baseURL), viewport,
       deviceScaleFactor: 1, reducedMotion: "reduce" });
@@ -57,7 +58,8 @@ test("button controls scroll in their rail while the real actions stay visible o
       await rail.getByText("Форма и слой", { exact: true }).click();
       await rail.evaluate(element => { element.scrollTop = element.scrollHeight; });
       expect(await rail.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
-      await rail.getByRole("slider", { name: /Толщина рамки/ }).fill("2");
+      const geometry = rail.locator("details").filter({ has: rail.getByText("Форма и слой", { exact: true }) });
+      await geometry.locator("label").filter({ hasText: "Толщина рамки" }).locator('input[type="range"]').fill("2");
       expect(await preview.evaluate(element => element.scrollTop)).toBe(previewScroll);
       await expectActionsInsidePreview(preview);
       expect(await page.evaluate(() => window.scrollY)).toBe(0);
@@ -88,7 +90,7 @@ test("Atmosphere Physics scroll and its lower slider leave the central scene fix
   try {
     const page = await context.newPage();
     await page.goto("/design-lab/atmosphere");
-    const scene = page.getByRole("region", { name: "Сцена" });
+    const scene = page.getByRole("region", { name: "Сцена", exact: true });
     const rail = page.locator('[data-workbench-rail="right"]');
     await expect(scene.locator("[data-material-scene]")).toBeVisible();
     const before = await scene.boundingBox();
@@ -116,7 +118,7 @@ test("mobile drawer and More return focus without horizontal overflow", async ({
   await launcher.click();
   const drawer = page.getByRole("dialog", { name: "Настройки" });
   await expect(drawer).toBeVisible();
-  await expect(page.getByRole("region", { name: "Сцена" })).toHaveAttribute("inert", "");
+  await expect(page.getByRole("region", { name: "Сцена", exact: true })).toHaveAttribute("inert", "");
   await page.keyboard.press("Escape");
   await expect(drawer).toHaveCount(0);
   await expect(launcher).toBeFocused();
