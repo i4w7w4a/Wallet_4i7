@@ -82,6 +82,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
   const dialogRef = useRef<Dialog>(null);
   const dialogLauncher = useRef<HTMLElement | null>(null);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const allowProductExit = useRef(false);
   const [pending, setPending] = useState<Transition | null>(null);
   const [name, setName] = useState("");
   const [asNew, setAsNew] = useState(false);
@@ -122,6 +123,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
       if (event.key === null || event.key === LIBRARY_KEY || event.key === WORKSPACE_KEY || event.key === ACCEPTED_KEY) editor.notifyExternalChange();
     }
     function leaving(event: BeforeUnloadEvent) {
+      if (allowProductExit.current) { allowProductExit.current = false; return; }
       if (editor.getSnapshot().workspace.slots.some(isButtonSlotDirty)) { event.preventDefault(); event.returnValue = ""; }
     }
     window.addEventListener("storage", changed); window.addEventListener("beforeunload", leaving);
@@ -221,7 +223,10 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
       <MaterialWorkbench activeLab="buttons" title={title} status={saveStatus} modalOpen={dialog !== null || productDialogOpen}
         toolbar={<>
           <span className={styles.productApply}><MonoProductApply scope="buttons" document={document} selection={selection}
-            disabled={disabled} onDialogChange={setProductDialogOpen} /></span>
+            disabled={disabled} onDialogChange={setProductDialogOpen} onNavigateToMono={() => {
+              allowProductExit.current = true;
+              window.setTimeout(() => { allowProductExit.current = false; }, 1500);
+            }} /></span>
           <MonoLabIconButton label="Отменить" disabled={disabled || !slot.past.length} onClick={() => editor.undo()}>↶</MonoLabIconButton>
           <MonoLabIconButton label="Повторить" disabled={disabled || !slot.future.length} onClick={() => editor.undo(true)}>↷</MonoLabIconButton>
           <MonoLabIconButton label={paused ? "Продолжить" : "Пауза"} onClick={() => setPaused(value => !value)}>{paused ? "▶" : "Ⅱ"}</MonoLabIconButton>

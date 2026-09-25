@@ -101,6 +101,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [dialog, setDialogState] = useState<Dialog>(null);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const allowProductExit = useRef(false);
   const returnFocus = useRef<HTMLElement | null>(null);
   const [pending, setPending] = useState<Transition | null>(null);
   const [name, setName] = useState("");
@@ -150,6 +151,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
       if (event.key === null || [V3_LIBRARY_KEY, V3_WORKSPACE_KEY, V2_LIBRARY_KEY, V2_WORKSPACE_KEY].includes(event.key)) editor.notifyExternalChange();
     }
     function leaving(event: BeforeUnloadEvent) {
+      if (allowProductExit.current) { allowProductExit.current = false; return; }
       if (editor.getSnapshot().workspace.slots.some(item => isDirty(item) || item.present.key.includes("import"))) { event.preventDefault(); event.returnValue = ""; }
     }
     window.addEventListener("storage", changed); window.addEventListener("beforeunload", leaving);
@@ -248,7 +250,10 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
 
   const toolbar = <div className={styles.tools}>
     <span className={styles.productAction}><MonoProductApply scope="background" document={labDocument}
-      disabled={inactive} onDialogChange={setProductDialogOpen} /></span>
+      disabled={inactive} onDialogChange={setProductDialogOpen} onNavigateToMono={() => {
+        allowProductExit.current = true;
+        window.setTimeout(() => { allowProductExit.current = false; }, 1500);
+      }} /></span>
     <MonoLabIconButton label="Открыть библиотеку" disabled={state.saving} onClick={openLibrary}><Icon kind="open" /></MonoLabIconButton>
     <MonoLabIconButton label="Отменить" disabled={inactive || !slot.past.length} onClick={() => editor.undo()}><Icon kind="undo" /></MonoLabIconButton>
     <MonoLabIconButton label="Повторить" disabled={inactive || !slot.future.length} onClick={() => editor.undo(true)}><Icon kind="redo" /></MonoLabIconButton>

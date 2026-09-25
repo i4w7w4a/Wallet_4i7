@@ -13,7 +13,8 @@ import type { ButtonLabDocument, ButtonLabWorkspace } from "./button-workshop/mo
 import { backgroundPatchFromLab, buttonPatchFromLab } from "./mono-product-apply-source";
 import styles from "./mono-product-apply.module.css";
 
-type Shared = { disabled?: boolean; onDialogChange?: (open: boolean) => void };
+type Shared = { disabled?: boolean; onDialogChange?: (open: boolean) => void;
+  onNavigateToMono?: () => void };
 export type MonoProductApplyProps = Shared & (
   | { scope: "background"; document: BackgroundLabDocumentV1 }
   | { scope: "buttons"; document: ButtonLabDocument<ButtonTargetId, MaterialTargetBinding>;
@@ -168,7 +169,11 @@ export function MonoProductApply(props: MonoProductApplyProps) {
       {error && <p role="alert" className={styles.error}>{error}</p>}
       {success ? <>
         <p role="status">Применено: {success.name} · {DIRECTIONS.find(item => item.id === success.direction)?.name}.</p>
-        <a href={`/mono?working=${encodeURIComponent(success.id)}&direction=${success.direction}`}>Открыть MONO</a>
+        <a href={`/mono?working=${encodeURIComponent(success.id)}&direction=${success.direction}`}
+          onClick={event => {
+            if (event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey)
+              props.onNavigateToMono?.();
+          }}>Открыть MONO</a>
       </> : patch && <>
         {library ? <label htmlFor={`${id}-target`}>Рабочий пресет
           <select id={`${id}-target`} value={targetId} onChange={event => {

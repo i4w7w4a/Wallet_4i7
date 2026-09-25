@@ -13,6 +13,7 @@ async function createLightStrataPreset(page: Page) {
   await fine.getByRole("button", { name: "Слои", exact: true }).click();
   await fine.getByRole("button", { name: "Применить настройку", exact: true }).click();
   await expect(page.locator(".mono-page[data-mono-theme='light'][data-mono-background='strata']")).toBeVisible();
+  await expect(page.locator(".mono-working-preset__status")).toContainText("Сохранено в этом браузере");
 }
 
 async function applyButtonMaterial(page: Page, layer: "Поверхность" | "Иконка" | "Кромка", effect?: string) {
@@ -166,4 +167,15 @@ test("background then button Apply survives normal links, direction switch and r
   await expect(page.locator("[data-material-scene]")).toHaveAttribute("data-gpu-phase", "running");
   await expect(page.locator("[data-material-target='quick.send']")).toHaveAttribute("data-material-border-presented", "true");
   await expect(page.locator("canvas")).toHaveCount(1);
+});
+
+test("a clean stale MONO tab does not block the next material Apply", async ({ page, context }) => {
+  await createLightStrataPreset(page);
+  const fresh = await context.newPage();
+  await applyButtonMaterial(fresh, "Кромка");
+  await expect(page.locator(".mono-working-preset__status")).toContainText("Изменён в другой вкладке");
+  await applyButtonMaterial(fresh, "Иконка", "liquid-metal");
+  await expect(fresh.locator("[data-material-target='quick.send']")).toHaveAttribute("data-material-border-presented", "true");
+  await expect(fresh.locator("[data-material-target='quick.send']")).toHaveAttribute("data-material-icon-presented", "true");
+  await fresh.close();
 });
