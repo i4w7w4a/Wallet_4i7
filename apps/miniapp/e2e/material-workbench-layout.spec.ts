@@ -59,7 +59,10 @@ test("button controls scroll in their rail while the real actions stay visible o
       await rail.evaluate(element => { element.scrollTop = element.scrollHeight; });
       expect(await rail.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
       const geometry = rail.locator("details").filter({ has: rail.getByText("Форма и слой", { exact: true }) });
-      await geometry.locator("label").filter({ hasText: "Толщина рамки" }).locator('input[type="range"]').fill("2");
+      const borderWidth = geometry.locator("label").filter({ hasText: "Толщина рамки" }).locator('input[type="range"]');
+      const previousBorderWidth = await borderWidth.inputValue();
+      await borderWidth.press("ArrowRight");
+      await expect(borderWidth).not.toHaveValue(previousBorderWidth);
       expect(await preview.evaluate(element => element.scrollTop)).toBe(previewScroll);
       await expectActionsInsidePreview(preview);
       expect(await page.evaluate(() => window.scrollY)).toBe(0);
@@ -100,12 +103,13 @@ test("Atmosphere Physics scroll and its lower slider leave the central scene fix
     await expect(slider).toBeVisible();
     await rail.evaluate(element => { element.scrollTop = element.scrollHeight; });
     expect(await rail.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
-    const original = Number(await slider.inputValue());
+    const previous = await slider.inputValue();
+    const original = Number(previous);
     const min = Number(await slider.getAttribute("min"));
     const max = Number(await slider.getAttribute("max"));
-    const step = Number(await slider.getAttribute("step")) || 1;
-    const next = original + step <= max ? original + step : Math.max(min, original - step);
-    await slider.fill(String(Number(next.toFixed(6))));
+    expect(max).toBeGreaterThan(min);
+    await slider.press(original < max ? "ArrowRight" : "ArrowLeft");
+    await expect(slider).not.toHaveValue(previous);
     expect(await scene.boundingBox()).toEqual(before);
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
   } finally { await context.close(); }
