@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveMaterialTargetGeometry } from "./material-target-geometry";
+import { resolveMaterialTargetGeometry, materialScissorRect } from "./material-target-geometry";
 
 describe("live material target geometry", () => {
   it("projects a real DOM target into bottom-left scene coordinates and bounded physical pixels", () => {
@@ -36,5 +36,14 @@ describe("live material target geometry", () => {
       { left: NaN, top: 10, width: 20, height: 20 }, viewport,
       "button-fill", { kind: "rounded-rect" }, 12, 0,
     )).toBeNull();
+  });
+
+  it("clips a partially visible target to physical canvas pixels for the shared compositor", () => {
+    const viewport = { cssWidth: 100, cssHeight: 50, pixelWidth: 200, pixelHeight: 100, dpr: 2 };
+    const geometry = { capability: "button-fill" as const, x: -10, y: 5, width: 30, height: 20,
+      pixelWidth: 60, pixelHeight: 40, dpr: 2, radiusCss: 12, borderWidthCss: 0,
+      mask: { kind: "rounded-rect" as const } };
+
+    expect(materialScissorRect(geometry, viewport)).toEqual({ x: 0, y: 10, width: 40, height: 40 });
   });
 });

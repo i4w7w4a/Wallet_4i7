@@ -2,6 +2,16 @@ import type { Viewport } from "./contracts";
 import type { MaterialCapability, MaterialMask, MaterialTargetGeometry } from "./material-contract";
 
 export type RectMeasure = Readonly<{ left: number; top: number; width: number; height: number }>;
+export type MaterialScissorRect = Readonly<{ x: number; y: number; width: number; height: number }>;
+
+/** The pass may keep its full local UV; only visible canvas pixels are composited. */
+export function materialScissorRect(geometry: MaterialTargetGeometry, viewport: Viewport): MaterialScissorRect | null {
+  const left = Math.max(0, Math.floor(geometry.x * viewport.dpr));
+  const bottom = Math.max(0, Math.floor(geometry.y * viewport.dpr));
+  const right = Math.min(viewport.pixelWidth, Math.ceil((geometry.x + geometry.width) * viewport.dpr));
+  const top = Math.min(viewport.pixelHeight, Math.ceil((geometry.y + geometry.height) * viewport.dpr));
+  return right > left && top > bottom ? { x: left, y: bottom, width: right - left, height: top - bottom } : null;
+}
 
 export function resolveMaterialTargetGeometry(
   root: RectMeasure, target: RectMeasure, viewport: Viewport,
