@@ -12,4 +12,13 @@ describe("installed v2 material catalog", () => {
     expect(border && materialCatalogV2.copyForTarget(border, "button-border").ok).toBe(true);
     expect(particles && materialCatalogV2.copyForTarget(particles, "button-fill").ok).toBe(false);
   });
+
+  it("roundtrips all completed source material families through the installed parser", () => {
+    for (const id of ["fluid", "gem-smoke", "heatmap"] as const) {
+      const material = materialCatalogV2.materials.find(item => item.id === id);
+      expect(material).toBeDefined();
+      const recipe = material!.presets[0]!.recipe;
+      expect(materialCatalogV2.parseRecipe(recipe)).toEqual({ ok: true, value: recipe });
+    }
+  });
 });

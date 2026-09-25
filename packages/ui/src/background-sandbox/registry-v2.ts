@@ -3,7 +3,8 @@ import type { MaterialCatalogV2 } from "./host-contract";
 import type { MaterialCapability, MaterialEffectId, MaterialRecipeV2 } from "./material-contract";
 import { bindMaterialV2, type MaterialBindingV2 } from "./material-binding-v2";
 import { particleDefinition } from "./effects/fluid-particles";
-import { liquidMetalDefinition, pulsingBorderDefinition } from "./effects/paper/definitions";
+import { fluidV2Definition } from "./effects/fluid/v2";
+import { gemSmokeDefinition, heatmapDefinition, liquidMetalDefinition, pulsingBorderDefinition } from "./effects/paper/definitions";
 import { vaultGridDefinition } from "./effects/vault-grid/definition";
 
 const unknownMaterial = (): ParseResult<never> => ({ ok: false, issues: [
@@ -48,6 +49,9 @@ export const materialBindingsV2: readonly MaterialBindingV2[] = [
   bindMaterialV2(vaultGridDefinition),
   bindMaterialV2(liquidMetalDefinition),
   bindMaterialV2(pulsingBorderDefinition),
+  bindMaterialV2(gemSmokeDefinition),
+  bindMaterialV2(heatmapDefinition),
   bindMaterialV2(particleDefinition),
+  bindMaterialV2(fluidV2Definition),
 ];
 export const materialCatalogV2 = createMaterialCatalogV2(materialBindingsV2);
