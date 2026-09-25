@@ -64,6 +64,7 @@ function render(dt = 1 / 60, pointer: PointerFrame = noPointer, present = true) 
   if (present) compose();
   return effect.getDiagnostics?.();
 }
+function disposeActiveEffect() { effect?.dispose(); effect = null; }
 function open(nextParams: FluidV2Params = params, nextSeed = seed, nextQuality = quality) {
   effect?.dispose(); effect = null;
   params = { ...nextParams, colors: [...nextParams.colors] }; seed = nextSeed; quality = nextQuality; time = 0;
@@ -156,6 +157,40 @@ export const probe = {
     } finally { gl.checkFramebufferStatus = original; }
     if (mounted.ok) mounted.value.dispose();
     return { ok: mounted.ok, code: mounted.ok ? null : mounted.error.code, before, after: resources() };
+  },
+  async contextLoss() {
+    const extension = gl.getExtension("WEBGL_lose_context");
+    if (!extension) return { available: false };
+    disposeActiveEffect();
+    const baseline = resources();
+    open();
+    const event = (name: "webglcontextlost" | "webglcontextrestored") => new Promise<boolean>((resolve) => {
+      const timeout = window.setTimeout(() => resolve(false), 5000);
+      canvas.addEventListener(name, (received) => {
+        window.clearTimeout(timeout);
+        if (name === "webglcontextlost") received.preventDefault();
+        resolve(true);
+      }, { once: true });
+    });
+    const lostEvent = event("webglcontextlost");
+    extension.loseContext();
+    const lostEventObserved = await lostEvent;
+    const lost = gl.isContextLost();
+    let renderCode: string | null = null;
+    try { render(1 / 60); } catch (error) { renderCode = (error as { code?: string }).code ?? null; }
+    const init: MaterialInit<FluidV2Params, null> = { params, seed, viewport, geometry, quality, limits: { maxTextureSize: 4096, maxRenderTargetBytes: 28 * 1024 * 1024 }, prepared: null };
+    const plan = fluidV2Definition.plan(init);
+    if (!plan.ok) throw new Error(JSON.stringify(plan.error));
+    const rejected = fluidV2Definition.create(gl, { ...init, plan: plan.value });
+    disposeActiveEffect();
+    const after = resources();
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    const restoredEvent = event("webglcontextrestored");
+    extension.restoreContext();
+    const lostAfterRestoreCall = gl.isContextLost();
+    const restoredEventObserved = await restoredEvent;
+    return { available: true, lost, renderCode, createCode: rejected.ok ? null : rejected.error.code,
+      baseline, after, lostEventObserved, lostAfterRestoreCall, restoredEventObserved, restored: !gl.isContextLost() };
   },
   error() { return gl.getError(); },
 };

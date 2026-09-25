@@ -15,11 +15,13 @@ const evidence = resolve(process.env.FLUID_V2_EVIDENCE_DIR || resolve(here, "evi
 await mkdir(evidence, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1200 }, deviceScaleFactor: 1 });
-const errors = [], readbackWarnings = [];
+const errors = [], readbackWarnings = [], expectedContextLossWarnings = [];
+let deliberateLoss = false;
 page.on("pageerror", (error) => errors.push(error.message));
 page.on("console", (message) => {
   if (!["error", "warning"].includes(message.type())) return;
   if (/GL Driver Message.*GPU stall due to ReadPixels/.test(message.text())) readbackWarnings.push(message.text());
+  else if (deliberateLoss && /CONTEXT_LOST_WEBGL|WebGL context was lost/.test(message.text())) expectedContextLossWarnings.push(message.text());
   else errors.push(message.text());
 });
 const results = {};
@@ -149,7 +151,18 @@ try {
   assert.deepEqual(results.lifecycle.baseline, results.lifecycle.after.resources);
   assert.equal(results.lifecycle.after.diagnostics.allocatedBytes, 0);
   assert.equal(results.lifecycle.error, 0);
-  results.errors = errors; results.readbackWarnings = readbackWarnings;
+  deliberateLoss = true;
+  results.contextLoss = await page.evaluate(() => window.fluidV2Probe.contextLoss());
+  deliberateLoss = false;
+  assert.equal(results.contextLoss.available, true);
+  assert.equal(results.contextLoss.lostEventObserved, true);
+  assert.equal(results.contextLoss.lost, true);
+  assert.equal(results.contextLoss.renderCode, "context-lost");
+  assert.equal(results.contextLoss.createCode, "context-lost");
+  assert.deepEqual(results.contextLoss.after, results.contextLoss.baseline, "lost pass must release owned resources");
+  assert.equal(results.contextLoss.restoredEventObserved, true);
+  assert.equal(results.contextLoss.restored, true);
+  results.errors = errors; results.readbackWarnings = readbackWarnings; results.expectedContextLossWarnings = expectedContextLossWarnings;
   await writeFile(resolve(evidence, "results.json"), JSON.stringify(results, null, 2));
   assert.deepEqual(errors, [], "runtime/shader warnings and errors must be investigated");
   console.log(JSON.stringify({ ok: true, evidence, benchmarks: results.benchmarks.map((item) => ({ cpuMs: item.cpuMs, gpuMs: item.gpuMs, frameIntervalMs: item.frameIntervalMs, renderer: item.renderer, diagnostics: item.diagnostics })) }, null, 2));

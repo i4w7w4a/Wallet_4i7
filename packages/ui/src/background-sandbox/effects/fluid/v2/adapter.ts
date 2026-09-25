@@ -175,6 +175,7 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     swap(targets.dyeA);
     this.draw("pigmentSplat", targets.dyeB.write, { ...uniforms, source: targets.dyeB.read.texture, impulse: b });
     swap(targets.dyeB);
+    this.displayDirty = true;
   }
 
   private step(dt: number): void {
