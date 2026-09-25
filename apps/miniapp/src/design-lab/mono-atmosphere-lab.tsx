@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
-import type { BackgroundPresentation, BackgroundRuntimeStatus, BackgroundSandboxBindings, MaterialAction, MaterialQualityProfile, MaterialRecipeV2 } from "@wallet/ui";
+import type { BackgroundPresentation, BackgroundRuntimeStatus, BackgroundSandboxBindings, MaterialAction, MaterialEffectId, MaterialQualityProfile, MaterialRecipeV2 } from "@wallet/ui";
 import { MonoBackgroundRecipes } from "../mono-preview/mono-background-recipes-view";
 import { MONO_BACKGROUND_DEFAULTS, type MonoBackgroundRecipeConfig, type MonoBackgroundRecipeId } from "../mono-preview/mono-background-recipes";
 import { MonoLabIconButton } from "../mono-preview/mono-lab-controls";
@@ -34,6 +34,15 @@ type Transition = { action(): void; label: string };
 const TITLES = { library: "Библиотека проб", more: "Дополнительно", name: "Сохранить пробу", guard: "Несохранённая проба", import: "Импорт JSON", export: "Экспорт JSON", source: "Материал и источник", copy: "Копия из мастерской кнопок" };
 const BUTTON_COPY_KEY = "wallet4i7.material-copy.buttons-to-background.v1";
 const BACKGROUND_COPY_KEY = "wallet4i7.material-copy.background-to-buttons.v1";
+const MATERIAL_LABELS: Record<MaterialEffectId, string> = {
+  fluid: "Живая жидкость · Pavel Fluid v2",
+  "fluid-particles": "Жидкие частицы · 3D",
+  "vault-grid": "Металлическая сетка",
+  "liquid-metal": "Жидкий металл",
+  "gem-smoke": "Дымчатый камень",
+  heatmap: "Тепловая карта",
+  "pulsing-border": "Пульсирующая рамка",
+};
 
 function Icon({ kind }: { kind: "open" | "undo" | "redo" | "pause" | "play" | "restart" | "more" }) {
   const paths = { open: "M3 7h7l2 2h9l-2 11H3V7Zm0 0V4h7l2 3", undo: "m9 5-6 5 6 5M3 10h10a7 7 0 0 1 0 14", redo: "m15 5 6 5-6 5m6-5H11a7 7 0 0 0 0 14", pause: "M8 5v14M16 5v14", play: "m8 4 12 8-12 8V4Z", restart: "M4 4v6h6M4 10a8 8 0 1 1 .5 7", more: "M5 11v2M12 11v2M19 11v2" };
@@ -52,8 +61,13 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   renderScene?: (input: MonoAtmosphereSceneInput) => ReactNode;
 } = {}) {
   const parse = recipeParser(bindings);
+  const backgroundMaterialsV2 = bindings?.materialCatalogV2?.materials.filter(item => item.capabilities.includes("background")) ?? [];
+  const pavelFluid = backgroundMaterialsV2.find(item => item.id === "fluid" && item.effectVersion === 2);
+  const orderedMaterialsV2 = pavelFluid
+    ? [pavelFluid, ...backgroundMaterialsV2.filter(item => item !== pavelFluid)] : backgroundMaterialsV2;
   const [editor] = useState(() => {
-    const initial: SandboxRecipe = bindings?.materialCatalogV2?.materials[0]?.presets[0]?.recipe
+    const initial: SandboxRecipe = pavelFluid?.presets.find(item => item.id === "fluid-v2-living-graphite")?.recipe
+      ?? orderedMaterialsV2[0]?.presets[0]?.recipe
       ?? bindings?.materials[0]?.presets[0]?.recipe ?? { ...MONO_BACKGROUND_DEFAULTS.obsidian };
     return createSandboxSession(initial, recipeKey(initial), parse, 2);
   });
@@ -187,7 +201,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
     if (next) request({ label: "Сменить материал", action: () => editor.openRecipe(next, key, true) });
   }
   const recipeLabel = (value: SandboxRecipe) => isV2Recipe(value)
-    ? bindings?.materialCatalogV2?.materials.find(item => item.id === value.effectId && item.effectVersion === value.effectVersion)?.label ?? value.effectId
+    ? MATERIAL_LABELS[value.effectId]
     : isV1GpuRecipe(value) ? bindings?.materials.find(item => item.id === value.effectId)?.label ?? value.effectId
       : LEGACY.find(item => item.id === value.recipe)?.label;
   function copyToButtons() {
@@ -256,8 +270,8 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
           <div className={styles.tunerHeading}><h2>Материал</h2><span>{String(state.workspace.activeSlot + 1).padStart(2, "0")}</span></div>
           <div className={styles.slots} role="group" aria-label="Независимые пробы">{[0, 1, 2].map(index => <button className={styles.control} type="button" key={index} aria-label={`Слот ${index + 1}`} aria-pressed={state.workspace.activeSlot === index} disabled={state.saving} onClick={() => editor.selectSlot(index)}>{index + 1}{isDirty(state.workspace.slots[index]!) ? " ·" : ""}</button>)}</div>
           <label className={styles.field}>Материал<select value={recipeKey(config)} disabled={inactive} onChange={event => chooseMaterial(event.target.value)}>
-            {bindings?.materialCatalogV2?.materials.map(item => <option key={`material:${item.id}:${item.effectVersion}`}
-              value={`material:${item.id}:${item.effectVersion}`}>{item.label} · v{item.effectVersion}</option>)}
+            {orderedMaterialsV2.map(item => <option key={`material:${item.id}:${item.effectVersion}`}
+              value={`material:${item.id}:${item.effectVersion}`}>{MATERIAL_LABELS[item.id]}</option>)}
             {!!bindings?.materials.length && <optgroup label="Ранние GPU-пробы v1">{bindings.materials.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>}
             <optgroup label="Контрольные SVG / CSS">{LEGACY.map(item => <option key={item.id} value={`legacy-${item.id}`}>{item.label}</option>)}</optgroup>
           </select></label>

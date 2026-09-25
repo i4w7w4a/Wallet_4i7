@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { BackgroundSandboxBindings, MaterialDescriptorV2, MaterialRecipeV2, MaterialStageRequestV2 } from "@wallet/ui";
+import { materialCatalogV2, type BackgroundSandboxBindings, type MaterialDescriptorV2, type MaterialRecipeV2, type MaterialStageRequestV2 } from "@wallet/ui";
 import { MonoAtmosphereLab } from "./mono-atmosphere-lab";
 import { V2_LIBRARY_KEY, V2_WORKSPACE_KEY } from "./background-sandbox/storage-v2";
 import { LIBRARY_KEY, WORKSPACE_KEY } from "./background-sandbox/storage";
@@ -44,6 +44,17 @@ beforeEach(() => {
   vi.stubGlobal("navigator", { ...navigator, locks: { request: async (_name: string, task: () => unknown) => task() } });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+it("starts a new background workspace with living Pavel Fluid v2 as the clear first material", () => {
+  const requests: MaterialStageRequestV2[] = [];
+  render(<MonoAtmosphereLab bindings={{ ...bindings(requests), materialCatalogV2 }} />);
+  const selector = screen.getByRole("combobox", { name: "Материал" });
+  expect(selector).toHaveValue("material:fluid:2");
+  expect(within(selector).getAllByRole("option")[0]).toHaveValue("material:fluid:2");
+  expect(screen.getByRole("option", { name: /Живая жидкость · Pavel Fluid/ })).toBeInTheDocument();
+  expect((requests.at(-1)?.recipe as MaterialRecipeV2).params).toMatchObject({ mode: "ambient" });
+  expect(localStorage.getItem(V2_WORKSPACE_KEY)).toBeNull();
+});
 
 it("edits a v2 palette and separates runtime quality and splats from the saved artistic snapshot", async () => {
   const requests: MaterialStageRequestV2[] = [];
