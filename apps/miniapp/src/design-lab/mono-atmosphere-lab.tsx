@@ -10,6 +10,8 @@ import { SandboxDialog } from "./background-sandbox/dialog";
 import { ParameterControls } from "./background-sandbox/parameter-controls";
 import { EdgeFinishControls } from "./background-sandbox/edge-finish-controls";
 import { MaterialControls } from "./material-controls";
+import { MaterialWorkbench } from "./material-workbench";
+import { MonoProductApply } from "./mono-product-apply";
 import { RecipeSummary } from "./background-sandbox/recipe-summary";
 import { createSandboxSession } from "./background-sandbox/session";
 import { isDirty, type SandboxWorkspace } from "./background-sandbox/model";
@@ -98,6 +100,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   const [paused, setPaused] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [dialog, setDialogState] = useState<Dialog>(null);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
   const returnFocus = useRef<HTMLElement | null>(null);
   const [pending, setPending] = useState<Transition | null>(null);
   const [name, setName] = useState("");
@@ -243,42 +246,73 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
     } catch (error) { setNotice(error instanceof Error ? error.message : "Не удалось передать материал."); return false; }
   }
 
+  const toolbar = <div className={styles.tools}>
+    <span className={styles.productAction}><MonoProductApply scope="background" document={labDocument}
+      disabled={inactive} onDialogChange={setProductDialogOpen} /></span>
+    <MonoLabIconButton label="Открыть библиотеку" disabled={state.saving} onClick={openLibrary}><Icon kind="open" /></MonoLabIconButton>
+    <MonoLabIconButton label="Отменить" disabled={inactive || !slot.past.length} onClick={() => editor.undo()}><Icon kind="undo" /></MonoLabIconButton>
+    <MonoLabIconButton label="Повторить" disabled={inactive || !slot.future.length} onClick={() => editor.undo(true)}><Icon kind="redo" /></MonoLabIconButton>
+    <MonoLabIconButton label={paused ? "Продолжить" : "Пауза"} aria-pressed={paused} onClick={() => setPaused(value => !value)}><Icon kind={paused ? "play" : "pause"} /></MonoLabIconButton>
+    <MonoLabIconButton label="Перезапустить" onClick={() => editor.restart()}><Icon kind="restart" /></MonoLabIconButton>
+    <div className={styles.compare} role="group" aria-label="Сравнение A/B">
+      <button className={styles.control} type="button" aria-label="Показать A" aria-pressed={state.comparing} disabled={!state.workspace.pinned || state.saving} onClick={() => editor.compare(true)}>A</button>
+      <button className={styles.control} type="button" aria-label="Показать B" aria-pressed={!state.comparing} disabled={state.saving} onClick={() => editor.compare(false)}>B</button>
+    </div>
+    <MonoLabIconButton label="Сохранить пробу" disabled={state.saving || !state.ready || state.recoveryUnavailable} onClick={() => { void save(); }}>✓</MonoLabIconButton>
+    <MonoLabIconButton label="Дополнительно" disabled={state.saving} onClick={() => { editor.endGesture(); setDialog("more"); }}><Icon kind="more" /></MonoLabIconButton>
+  </div>;
+  const left = <div className={styles.leftPanel}>
+    <div className={styles.railHeading}><strong>Выбор</strong><span>Слот {state.workspace.activeSlot + 1}</span></div>
+    <label className={styles.field}>Материал<select value={recipeKey(config)} disabled={inactive} onChange={event => chooseMaterial(event.target.value)}>
+      {orderedMaterialsV2.map(item => <option key={`material:${item.id}:${item.effectVersion}`}
+        value={`material:${item.id}:${item.effectVersion}`}>{MATERIAL_LABELS[item.id]}</option>)}
+      {!!bindings?.materials.length && <optgroup label="Ранние GPU-пробы v1">{bindings.materials.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>}
+      <optgroup label="Контрольные SVG / CSS">{LEGACY.map(item => <option key={item.id} value={`legacy-${item.id}`}>{item.label}</option>)}</optgroup>
+    </select></label>
+    <div className={styles.slots} role="group" aria-label="Независимые пробы">{[0, 1, 2].map(index => <button className={styles.control} type="button" key={index} aria-label={`Слот ${index + 1}`} aria-pressed={state.workspace.activeSlot === index} disabled={state.saving} onClick={() => editor.selectSlot(index)}>{index + 1}{isDirty(state.workspace.slots[index]!) ? " ·" : ""}</button>)}</div>
+    <label className={styles.field}>Формат<select aria-label="Формат сцены" value={effectivePresentation.mode === "mono" ? "mono" : effectivePresentation.shape}
+      onChange={event => setPresentation(event.target.value === "mono" ? { mode: "mono", width: 390 } : { mode: "standalone", shape: event.target.value as "wide" | "square" | "portrait" })}>
+      <option value="wide">Широкая сцена</option><option value="square">Квадрат</option><option value="portrait">Портрет</option>
+      <option value="mono" disabled={!fittingAvailable}>Примерка MONO{fittingAvailable ? "" : " · недоступна"}</option>
+    </select></label>
+    {effectivePresentation.mode === "mono" && <div className={styles.widths} role="group" aria-label="Ширина примерки">{WIDTHS.map(width => <button type="button" className={styles.control} key={width} aria-pressed={effectivePresentation.width === width} onClick={() => setPresentation({ mode: "mono", width })}>{width}</button>)}</div>}
+    {isV2Recipe(shown) && <label className={styles.field}>Качество просмотра<select aria-label="Качество просмотра" value={quality}
+      onChange={event => setQuality(event.target.value as MaterialQualityProfile)}>
+      <option value="economy">Экономно</option><option value="balanced">Сбалансировано</option><option value="detail">Детально</option>
+    </select></label>}
+    {!isGpuRecipe(config) && <label className={styles.field}>Тема<select value={theme} onChange={event => setTheme(event.target.value as "dark" | "light")}><option value="dark">Тёмная</option><option value="light">Светлая</option></select></label>}
+    <button className={styles.control} type="button" disabled={state.saving} onClick={openLibrary}>Библиотека проб</button>
+    <p className={styles.note}>{state.workspace.pinned ? `A закреплена: ${state.workspace.pinned.name}, ревизия ${state.workspace.pinned.revision}.` : "Для A выберите сохранённую пробу в библиотеке."}</p>
+    {!fittingAvailable && <p className={styles.note}>{bindings?.fittingUnavailableReason ?? "Примерка MONO появится после проверки общего renderer."}</p>}
+  </div>;
+  const right = <div className={styles.rightPanel}>
+    <div className={styles.railHeading}><strong>Параметры</strong><MonoLabIconButton label="По умолчанию" disabled={inactive} onClick={() => {
+      const defaults = descriptorV2?.presets[0]?.recipe ?? descriptorV1?.presets[0]?.recipe ?? (!isGpuRecipe(config) ? MONO_BACKGROUND_DEFAULTS[config.recipe] : null); if (defaults) editor.edit(createBackgroundDocument(defaults));
+    }}>↺</MonoLabIconButton></div>
+    <details className={styles.description}><summary>О материале</summary><p>{descriptorV2?.description ?? descriptorV1?.description ?? "Контрольный материал прежней лаборатории."}</p></details>
+    {isFluidV2Draw(config) && <p className={styles.note}>Касание или движение вбок — рисунок; вертикальный свайп — прокрутка</p>}
+    {descriptorV2 && isV2Recipe(config) ? <MaterialControls key={recipeKey(config)} descriptor={descriptorV2} recipe={config} capability="background" disabled={inactive} onChange={editMaterial}
+      onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} onError={setNotice}
+      onAction={action => setTransientAction({ requestId: ++actionSerial.current, restartKey: state.restartKey, action })} />
+      : descriptorV1 && isV1GpuRecipe(config) ? <ParameterControls descriptor={descriptorV1} recipe={config} disabled={inactive} onChange={editMaterial} onStart={editor.beginGesture} onCommit={editor.endGesture} onError={setNotice} />
+      : !isGpuRecipe(config) && <MonoBackgroundRecipeControls value={config} disabled={inactive} showRecipeSelector={false} onChange={next => { if (next) editMaterial(next); }} onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} />}
+    {isV2Recipe(config) && bindings?.renderMaterialStageV2 && <EdgeFinishControls value={labDocument.edgeFinish} disabled={inactive}
+      onChange={next => editor.edit({ ...labDocument, edgeFinish: next })} onStart={editor.beginGesture} onCommit={editor.endGesture} />}
+    {((descriptorV2?.presets.length ?? descriptorV1?.presets.length ?? 0) > 1) && <label className={styles.field}>Начальная проба<select aria-label="Начальная проба" value="" disabled={inactive} onChange={event => {
+      const preset = (descriptorV2?.presets ?? descriptorV1?.presets)?.find(item => item.id === event.target.value); if (preset) editMaterial(preset.recipe);
+    }}><option value="" disabled>Выбрать вариант…</option>{(descriptorV2?.presets ?? descriptorV1?.presets)?.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}</select></label>}
+  </div>;
+  const footer = <div className={styles.footer}>
+    <p>{state.recoveryError ? `Workspace не записан: ${state.recoveryError}` : state.recovered ? "Черновик восстановлен. Именованные пробы сохраняются отдельно." : "Локальный черновик. Только «Сохранить пробу» пишет в библиотеку."}</p>
+    {state.ready && !state.writeAvailable && <p role="alert">Сохранение недоступно: браузер не поддерживает Web Locks. Черновик доступен для экспорта JSON.</p>}
+    {(state.saveError || state.libraryError || state.externalChange || notice) && <p role="alert">{state.saveError || state.libraryError || notice || "Хранилище изменено в другой вкладке. Откройте библиотеку заново перед сохранением."}</p>}
+  </div>;
   return <div className={styles.lab} data-atmosphere-lab data-background-sandbox>
-    <div inert={dialog !== null} aria-hidden={dialog !== null || undefined}>
-      <header className={styles.header}><a href="/design-lab">← Design Lab</a><span>BACKGROUND SANDBOX</span><a href="/mono">MONO ↗</a></header>
-      <div className={styles.toolbar}>
-        <MonoLabIconButton label="Открыть библиотеку" disabled={state.saving} onClick={openLibrary}><Icon kind="open" /></MonoLabIconButton>
-        <div className={styles.documentTitle}><h1>{title}</h1><span data-save-status={saveStatus} role="status">{saveStatus}</span></div>
-        <div className={styles.tools}>
-          <MonoLabIconButton label="Отменить" disabled={inactive || !slot.past.length} onClick={() => editor.undo()}><Icon kind="undo" /></MonoLabIconButton>
-          <MonoLabIconButton label="Повторить" disabled={inactive || !slot.future.length} onClick={() => editor.undo(true)}><Icon kind="redo" /></MonoLabIconButton>
-          <span className={styles.divider} />
-          <MonoLabIconButton label={paused ? "Продолжить" : "Пауза"} aria-pressed={paused} onClick={() => setPaused(value => !value)}><Icon kind={paused ? "play" : "pause"} /></MonoLabIconButton>
-          <MonoLabIconButton label="Перезапустить" onClick={() => editor.restart()}><Icon kind="restart" /></MonoLabIconButton>
-          <div className={styles.compare} role="group" aria-label="Сравнение A/B">
-            <button className={styles.control} type="button" aria-label="Показать A" aria-pressed={state.comparing} disabled={!state.workspace.pinned || state.saving} onClick={() => editor.compare(true)}>A</button>
-            <button className={styles.control} type="button" aria-label="Показать B" aria-pressed={!state.comparing} disabled={state.saving} onClick={() => editor.compare(false)}>B</button>
-          </div>
-          <button className={`${styles.control} ${styles.primary}`} type="button" disabled={state.saving || !state.ready || state.recoveryUnavailable} onClick={() => { void save(); }}>Сохранить</button>
-          <MonoLabIconButton label="Дополнительно" disabled={state.saving} onClick={() => { editor.endGesture(); setDialog("more"); }}><Icon kind="more" /></MonoLabIconButton>
-        </div>
-      </div>
-      <div className={styles.workspace}>
+    <div className={styles.shellSlot} inert={dialog !== null} aria-hidden={dialog !== null || undefined}>
+      <MaterialWorkbench activeLab="background" title={title} status={saveStatus} toolbar={toolbar} left={left} right={right} footer={footer} modalOpen={dialog !== null || productDialogOpen}>
         <div className={styles.previewColumn}>
-          <div className={styles.viewport}>
-            <span>{state.comparing ? `A · ${state.workspace.pinned?.name}` : `B · ${recipeLabel(config)}`}</span>
-            <label>Формат<select aria-label="Формат сцены" value={effectivePresentation.mode === "mono" ? "mono" : effectivePresentation.shape}
-              onChange={event => setPresentation(event.target.value === "mono" ? { mode: "mono", width: 390 } : { mode: "standalone", shape: event.target.value as "wide" | "square" | "portrait" })}>
-              <option value="wide">Широкая сцена</option><option value="square">Квадрат</option><option value="portrait">Портрет</option>
-              <option value="mono" disabled={!fittingAvailable}>Примерка MONO{fittingAvailable ? "" : " · недоступна"}</option>
-            </select></label>
-            {isV2Recipe(shown) && <label>Качество просмотра<select aria-label="Качество просмотра" value={quality}
-              onChange={event => setQuality(event.target.value as MaterialQualityProfile)}>
-              <option value="economy">Экономно</option><option value="balanced">Сбалансировано</option><option value="detail">Детально</option>
-            </select></label>}
-          </div>
-          {effectivePresentation.mode === "mono" && <div className={styles.widths} role="group" aria-label="Ширина примерки">{WIDTHS.map(width => <button type="button" className={styles.control} key={width} aria-pressed={effectivePresentation.width === width} onClick={() => setPresentation({ mode: "mono", width })}>{width}</button>)}</div>}
-          <section className={styles.stage} aria-label="Сцена материала" data-mode={effectivePresentation.mode} data-shape={effectivePresentation.mode === "standalone" ? effectivePresentation.shape : "portrait"}
+          <div className={styles.previewHeading}>{state.comparing ? `A · ${state.workspace.pinned?.name}` : `B · ${recipeLabel(config)}`}</div>
+          <div className={styles.stageHolder} data-workbench-stage-holder><section className={styles.stage} aria-label="Сцена материала" data-mode={effectivePresentation.mode} data-shape={effectivePresentation.mode === "standalone" ? effectivePresentation.shape : "portrait"}
             style={effectivePresentation.mode === "mono" ? { "--fitting-width": `${effectivePresentation.width}px` } as CSSProperties : undefined}>
             {!state.ready ? <div className={styles.unavailable}>Подготовка рабочего места…</div>
               : state.recoveryUnavailable ? <div className={styles.unavailable}><p>Сохранённое рабочее место недоступно.</p><p>{state.recoveryError}</p><p>Исходные данные сохранены. Можно открыть именованную пробу из библиотеки или начать новую.</p><button className={styles.control} type="button" onClick={editor.startFresh}>Начать новую пробу</button></div>
@@ -288,48 +322,12 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
               : isV1GpuRecipe(shown) && bindings ? bindings.renderStage({ recipe: shown, presentation: effectivePresentation, paused: paused || state.comparing, restartKey: state.restartKey, onStatus })
               : !isGpuRecipe(shown) && effectivePresentation.mode === "mono" && renderScene ? renderScene({ config: paused || state.comparing ? { ...shown, calm: true } : shown, theme, width: effectivePresentation.width })
               : !isGpuRecipe(shown) ? <LegacyStage recipe={shown} theme={theme} paused={paused || state.comparing} /> : <p>Этот материал недоступен.</p>}
-          </section>
-          <div className={styles.stageFoot}><span>{effectivePresentation.mode === "mono" ? "Примерка · оформление кошелька не изменено" : "Самостоятельная проба · только в этом браузере"}</span>
+          </section></div>
+          <div className={styles.stageFoot}><span>{effectivePresentation.mode === "mono" ? "Техническая примерка · MONO не изменён" : "Локальная проба · только этот браузер"}</span>
             <span>{isGpuRecipe(shown) ? runtime?.message ?? "Подготовка материала…" : "SVG / CSS · свет, без физической симуляции"}</span></div>
-          <p className={styles.resetNote}>Открытие, A/B и перезапуск начинают движение заново. Смена размера и восстановление GPU могут сбросить симуляцию. Сохраняются параметры, а не история жестов.</p>
+          <p className={styles.resetNote}>Открытие, A/B и перезапуск начинают движение заново. Сохраняются параметры, а не история жестов.</p>
         </div>
-        <aside className={styles.tuner} aria-label="Инспектор материала">
-          <div className={styles.tunerHeading}><h2>Материал</h2><span>{String(state.workspace.activeSlot + 1).padStart(2, "0")}</span></div>
-          <div className={styles.slots} role="group" aria-label="Независимые пробы">{[0, 1, 2].map(index => <button className={styles.control} type="button" key={index} aria-label={`Слот ${index + 1}`} aria-pressed={state.workspace.activeSlot === index} disabled={state.saving} onClick={() => editor.selectSlot(index)}>{index + 1}{isDirty(state.workspace.slots[index]!) ? " ·" : ""}</button>)}</div>
-          <label className={styles.field}>Материал<select value={recipeKey(config)} disabled={inactive} onChange={event => chooseMaterial(event.target.value)}>
-            {orderedMaterialsV2.map(item => <option key={`material:${item.id}:${item.effectVersion}`}
-              value={`material:${item.id}:${item.effectVersion}`}>{MATERIAL_LABELS[item.id]}</option>)}
-            {!!bindings?.materials.length && <optgroup label="Ранние GPU-пробы v1">{bindings.materials.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>}
-            <optgroup label="Контрольные SVG / CSS">{LEGACY.map(item => <option key={item.id} value={`legacy-${item.id}`}>{item.label}</option>)}</optgroup>
-          </select></label>
-          <p className={styles.description}>{descriptorV2?.description ?? descriptorV1?.description ?? "Свет и плоскости отвечают на указатель. Контрольный материал прежней лаборатории."}</p>
-          {isFluidV2Draw(config) && <p className={styles.note}>Касание или движение вбок — рисунок; вертикальный свайп — прокрутка</p>}
-          {descriptorV2 && isV2Recipe(config) ? <MaterialControls key={recipeKey(config)} descriptor={descriptorV2} recipe={config} capability="background" disabled={inactive} onChange={editMaterial}
-            onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} onError={setNotice}
-            onAction={action => setTransientAction({ requestId: ++actionSerial.current, restartKey: state.restartKey, action })} />
-            : descriptorV1 && isV1GpuRecipe(config) ? <ParameterControls descriptor={descriptorV1} recipe={config} disabled={inactive} onChange={editMaterial} onStart={editor.beginGesture} onCommit={editor.endGesture} onError={setNotice} />
-            : !isGpuRecipe(config) && <MonoBackgroundRecipeControls value={config} disabled={inactive} showRecipeSelector={false} onChange={next => { if (next) editMaterial(next); }} onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} />}
-          {isV2Recipe(config) && bindings?.renderMaterialStageV2 && <EdgeFinishControls value={labDocument.edgeFinish} disabled={inactive}
-            onChange={next => editor.edit({ ...labDocument, edgeFinish: next })} onStart={editor.beginGesture} onCommit={editor.endGesture} />}
-          {((descriptorV2?.presets.length ?? descriptorV1?.presets.length ?? 0) > 1) && <label className={styles.field}>Начальная проба<select aria-label="Начальная проба" value="" disabled={inactive} onChange={event => {
-            const preset = (descriptorV2?.presets ?? descriptorV1?.presets)?.find(item => item.id === event.target.value); if (preset) editMaterial(preset.recipe);
-          }}><option value="" disabled>Выбрать вариант…</option>{(descriptorV2?.presets ?? descriptorV1?.presets)?.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}</select></label>}
-          <div className={styles.inspectorActions}><button className={styles.control} type="button" disabled={inactive} onClick={() => {
-            const defaults = descriptorV2?.presets[0]?.recipe ?? descriptorV1?.presets[0]?.recipe ?? (!isGpuRecipe(config) ? MONO_BACKGROUND_DEFAULTS[config.recipe] : null); if (defaults) editor.edit(createBackgroundDocument(defaults));
-          }}>По умолчанию</button><button className={styles.control} type="button" disabled={state.recoveryUnavailable} onClick={() => setDialog("source")}>Об источнике</button></div>
-          {isV2Recipe(config) && descriptorV2?.capabilities.includes("button-fill") && <a className={styles.control}
-            aria-disabled={state.recoveryUnavailable || state.saving} href="/design-lab/buttons"
-            onClick={event => { if (!copyToButtons()) event.preventDefault(); }}>Копировать в мастерскую кнопок</a>}
-          {!isGpuRecipe(config) && <label className={styles.field}>Тема<select value={theme} onChange={event => setTheme(event.target.value as "dark" | "light")}><option value="dark">Тёмная</option><option value="light">Светлая</option></select></label>}
-          <p className={styles.note}>{state.workspace.pinned ? `A закреплена: ${state.workspace.pinned.name}, ревизия ${state.workspace.pinned.revision}.` : "Для A выберите сохранённую пробу в библиотеке."}</p>
-          {!fittingAvailable && <p className={styles.note}>{bindings?.fittingUnavailableReason ?? "Примерка MONO появится после проверки общего renderer."}</p>}
-        </aside>
-      </div>
-      <footer className={styles.footer}>
-        <p>{state.recoveryError ? `Workspace не записан: ${state.recoveryError}` : state.recovered ? "Рабочее место восстановлено. Именованные пробы сохраняются отдельно." : "Workspace восстанавливает черновики; именованная проба записывается только по «Сохранить»."}</p>
-        {state.ready && !state.writeAvailable && <p role="alert">Сохранение недоступно: браузер не поддерживает Web Locks. Черновик доступен для экспорта JSON.</p>}
-        {(state.saveError || state.libraryError || state.externalChange || notice) && <p role="alert">{state.saveError || state.libraryError || notice || "Хранилище изменено в другой вкладке. Откройте библиотеку заново перед сохранением."}</p>}
-      </footer>
+      </MaterialWorkbench>
     </div>
     {dialog && <SandboxDialog key={dialog} title={TITLES[dialog]} close={close} busy={state.saving}>
       {dialog === "more" && <div className={styles.actionList}>
@@ -337,6 +335,9 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
         <button className={styles.control} type="button" onClick={() => { setImportText(""); setImportPreview(null); setNotice(""); setDialog("import"); }}>Импорт JSON</button>
         <button className={styles.control} type="button" disabled={state.recoveryUnavailable} onClick={() => setDialog("export")}>Экспорт JSON</button>
         <button className={styles.control} type="button" disabled={state.recoveryUnavailable} onClick={() => setDialog("source")}>Материал и источник</button>
+        {isV2Recipe(config) && descriptorV2?.capabilities.includes("button-fill") && <a className={styles.control}
+          aria-disabled={state.recoveryUnavailable || state.saving} href="/design-lab/buttons"
+          onClick={event => { if (!copyToButtons()) event.preventDefault(); }}>Копировать в мастерскую кнопок</a>}
       </div>}
       {dialog === "name" && <form onSubmit={event => { event.preventDefault(); void editor.save(name, asNew).then(ok => { if (ok) { pending?.action(); close(); } }); }}>
         <label className={styles.field}>Имя пробы<input data-initial-focus value={name} maxLength={64} required disabled={state.saving} onChange={event => setName(event.target.value)} /></label>

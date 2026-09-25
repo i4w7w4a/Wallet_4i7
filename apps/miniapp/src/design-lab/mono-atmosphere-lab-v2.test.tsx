@@ -94,7 +94,7 @@ it("saves edge finish with the named trial and restores it after reload", async 
   fireEvent.pointerDown(darkening);
   fireEvent.change(darkening, { target: { value: "0.45" } });
   fireEvent.pointerUp(darkening);
-  fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+  fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Имя пробы" }), { target: { value: "Тёмный край" } });
   fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -127,7 +127,7 @@ it("keeps v2 names and active draft visible while writing only new v3 bytes", as
   fireEvent.click(screen.getByRole("button", { name: "Края" }));
   fireEvent.change(screen.getByRole("slider", { name: "Затемнение боков" }), { target: { value: "0.35" } });
   await waitFor(() => expect(localStorage.getItem(V3_WORKSPACE_KEY)).toContain('"sideDarkening":0.35'));
-  fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+  fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Имя пробы" }), { target: { value: "Новая v3" } });
   fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -189,7 +189,7 @@ it("edits a v2 palette and separates runtime quality and splats from the saved a
   expect(requests.at(-1)?.transientAction?.action).toEqual({ kind: "seeded-splats", count: 3 });
   expect(localStorage.getItem(V3_WORKSPACE_KEY)).not.toContain("seeded-splats");
 
-  fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+  fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Имя пробы" }), { target: { value: "Холодный" } });
   fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -206,6 +206,7 @@ it("edits a v2 palette and separates runtime quality and splats from the saved a
 it("copies a normalized full snapshot only by an explicit compatible link", () => {
   const requests: MaterialStageRequestV2[] = [];
   render(<MonoAtmosphereLab bindings={bindings(requests)} />);
+  fireEvent.click(screen.getByRole("button", { name: "Дополнительно" }));
   const link = screen.getByRole("link", { name: "Копировать в мастерскую кнопок" });
   expect(link).toHaveAttribute("href", "/design-lab/buttons");
   expect(sessionStorage.getItem("wallet4i7.material-copy.background-to-buttons.v1")).toBeNull();

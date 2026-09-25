@@ -19,7 +19,7 @@ function intensity(value: number) {
   fireEvent.pointerDown(slider); fireEvent.change(slider, { target: { value } }); fireEvent.pointerUp(slider);
 }
 async function saveAs(name: string, first = false) {
-  if (first) fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+  if (first) fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
   else {
     fireEvent.click(screen.getByRole("button", { name: "Дополнительно" }));
     fireEvent.click(screen.getByRole("button", { name: "Сохранить как…" }));
@@ -45,6 +45,21 @@ it("keeps a clean standalone stage and three independent comparison slots", () =
   fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
   expect(screen.getByRole("slider", { name: "Интенсивность" })).toHaveValue("81");
   expect(localStorage.getItem(LIBRARY_KEY)).toBeNull();
+});
+
+it("keeps material selection and controls in separate rails while the scene stays in the workbench center", () => {
+  render(<MonoAtmosphereLab />);
+  expect(document.querySelector("[data-material-workbench]")).toBeInTheDocument();
+  const left = screen.getByRole("complementary", { name: "Материалы" });
+  const right = screen.getByRole("complementary", { name: "Настройки" });
+  const scene = screen.getByRole("region", { name: "Сцена" });
+  expect(within(left).getByRole("combobox", { name: "Материал" })).toBeInTheDocument();
+  expect(within(left).getByRole("button", { name: "Слот 3" })).toBeInTheDocument();
+  expect(within(right).getByRole("slider", { name: "Интенсивность" })).toBeInTheDocument();
+  expect(within(scene).getByRole("region", { name: "Сцена материала" })).toBeInTheDocument();
+  const toolbar = screen.getByRole("toolbar", { name: "Действия пробы" });
+  expect(within(toolbar).getByRole("button", { name: "В рабочий пресет MONO…" })).toBeInTheDocument();
+  expect(within(toolbar).getByRole("button", { name: "Сохранить пробу" })).toBeInTheDocument();
 });
 
 it("saves two names, returns to each after reload, and toggles pinned A without editing B", async () => {
@@ -91,7 +106,7 @@ it("shows save errors without Saved, preserves draft, and gives JSON only on req
   expect(screen.queryByRole("textbox")).toBeNull();
   intensity(79);
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("quota"); });
-  fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+  fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Имя пробы" }), { target: { value: "Не потерять" } });
   fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
   await waitFor(() => expect(screen.getAllByText(/Не удалось сохранить/).length).toBeGreaterThan(0));
@@ -117,7 +132,7 @@ it("rejects unknown import atomically and ignores slot hotkeys while typing", ()
 
 it("focuses the name, traps focus, and returns to the Save button on Escape", () => {
   render(<MonoAtmosphereLab />);
-  const save = screen.getByRole("button", { name: "Сохранить" });
+  const save = screen.getByRole("button", { name: "Сохранить пробу" });
   act(() => save.focus()); fireEvent.click(save);
   const input = screen.getByRole("textbox", { name: "Имя пробы" });
   expect(input).toHaveFocus();

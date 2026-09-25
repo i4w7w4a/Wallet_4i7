@@ -1,6 +1,5 @@
 .frame.frame { min-height: 0; outline: 1px solid #45474a; }
-/* Lab context scrolls with the document. Keep the unchanged navigation inside
-   this preview's bounds instead of attaching it to the lab's browser viewport. */
+/* Keep MONO navigation inside the bounded preview, not the browser viewport. */
 .frame :global(.mono-nav) { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; transform: none; }
 .gpuFrame.gpuFrame { outline: none; }
 .gpuFrame.gpuFrame :global(.mono-page[data-mono-theme][data-mono-background]) { background: transparent; }

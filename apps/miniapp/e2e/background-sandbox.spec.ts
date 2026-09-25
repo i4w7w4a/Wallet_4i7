@@ -9,10 +9,10 @@ async function open(page: Page) {
   await page.goto("/design-lab/atmosphere");
   await expect(page.locator("[data-background-sandbox]")).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Материал", exact: true })).toHaveValue("silk");
-  await expect(page.getByRole("button", { name: "Сохранить", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Сохранить пробу", exact: true })).toBeEnabled();
 }
 async function saveAs(page: Page, name: string, first = false) {
-  if (first) await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  if (first) await page.getByRole("button", { name: "Сохранить пробу", exact: true }).click();
   else {
     await page.getByRole("button", { name: "Дополнительно", exact: true }).click();
     await page.getByRole("button", { name: "Сохранить как…", exact: true }).click();
@@ -110,7 +110,7 @@ test("320 / 390 / 430 / 480: clean stage, keyboard modal and real targets", asyn
     expect(dimensions!.width).toBeLessThanOrEqual(width);
     await page.screenshot({ path: info.outputPath(`silk-sandbox-${width}.png`), fullPage: true });
   }
-  const save = page.getByRole("button", { name: "Сохранить", exact: true });
+  const save = page.getByRole("button", { name: "Сохранить пробу", exact: true });
   await save.click();
   await expect(page.getByRole("textbox", { name: "Имя пробы" })).toBeFocused();
   await page.keyboard.press("Escape");
@@ -127,10 +127,65 @@ test("a stale tab cannot replace the library or claim Saved", async ({ page, con
   const before = await page.evaluate(key => localStorage.getItem(key), LIBRARY);
   await other.getByRole("slider").first().focus();
   await other.getByRole("slider").first().press("End");
-  await other.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await other.getByRole("button", { name: "Сохранить пробу", exact: true }).click();
   await other.getByRole("textbox", { name: "Имя пробы" }).fill("Устаревшая вкладка");
   await other.getByRole("button", { name: "Сохранить пробу", exact: true }).click();
   await expect(other.getByRole("dialog").getByRole("alert")).toContainText("другой вкладке");
   expect(await page.evaluate(key => localStorage.getItem(key), LIBRARY)).toBe(before);
   await other.close();
+});
+
+test("bounded workbench keeps every scene shape visible and traps narrow drawers", async ({ page }) => {
+  await page.goto("/design-lab/atmosphere");
+  await expect(page.getByRole("button", { name: "Сохранить пробу", exact: true })).toBeEnabled();
+  const stage = page.getByRole("region", { name: "Сцена материала" });
+  const holder = page.locator("[data-workbench-stage-holder]");
+  const product = page.getByRole("toolbar", { name: "Действия пробы" })
+    .getByRole("button", { name: "В рабочий пресет MONO…" });
+
+  for (const [width, height] of [[1440, 600], [390, 844], [320, 700]]) {
+    await page.setViewportSize({ width, height });
+    await expect(stage).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    const productBox = await product.boundingBox();
+    expect(productBox?.width).toBeGreaterThanOrEqual(44);
+    expect(productBox?.height).toBeGreaterThanOrEqual(44);
+
+    const compact = width <= 980;
+    if (compact) {
+      const left = page.locator('[data-workbench-rail="left"]');
+      const right = page.locator('[data-workbench-rail="right"]');
+      await expect(left).toHaveAttribute("aria-hidden", "true");
+      await expect(right).toHaveAttribute("aria-hidden", "true");
+      const launcher = page.getByRole("button", { name: "Материалы", exact: true });
+      await launcher.click();
+      await expect(page.getByRole("dialog", { name: "Материалы" })).toBeVisible();
+      await expect(page.getByRole("combobox", { name: "Материал" })).toBeFocused();
+    }
+
+    for (const [shape, ratio] of [["square", 1], ["portrait", 430 / 720]] as const) {
+      await page.getByRole("combobox", { name: "Формат сцены" }).selectOption(shape);
+      const fit = await stage.evaluate((element, holderSelector) => {
+        const scene = element.getBoundingClientRect();
+        const space = document.querySelector(holderSelector)!.getBoundingClientRect();
+        return { inside: scene.left >= space.left - 1 && scene.right <= space.right + 1 &&
+          scene.top >= space.top - 1 && scene.bottom <= space.bottom + 1,
+          ratio: scene.width / scene.height };
+      }, "[data-workbench-stage-holder]");
+      expect(fit.inside).toBe(true);
+      expect(Math.abs(fit.ratio - ratio)).toBeLessThan(0.01);
+    }
+
+    if (compact) {
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("button", { name: "Материалы", exact: true })).toBeFocused();
+      const settings = page.getByRole("button", { name: "Настройки", exact: true });
+      await settings.click();
+      await expect(page.getByRole("dialog", { name: "Настройки" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Сцена", exact: true })).toHaveAttribute("inert", "");
+      await page.keyboard.press("Escape");
+      await expect(settings).toBeFocused();
+    }
+  }
+  await expect(holder).toBeVisible();
 });
