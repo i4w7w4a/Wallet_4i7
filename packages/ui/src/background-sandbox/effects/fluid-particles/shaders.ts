@@ -44,11 +44,13 @@ export function particleShaderPair(name: ParticleProgramName): Readonly<{ vertex
     "vec4 data = texture2D(u_renderingTexture, coordinates);\n    if (data.b < 0.0) discard;",
   );
   if (name === "composite") fragment = fragment
-    .replace("void main () {", "uniform vec3 u_particleColor;\nuniform vec3 u_backgroundColor;\nvoid main () {")
+    .replace("void main () {", "uniform vec3 u_particleColor;\nuniform vec3 u_backgroundColor;\nuniform float u_aoStrength;\nuniform float u_shadowStrength;\nvoid main () {")
     .replace("vec3 color = hsvToRGB(vec3(max(0.6 - speed * 0.0025, 0.52), 0.75, 1.0));",
       "vec3 sourceColor = hsvToRGB(vec3(max(0.6 - speed * 0.0025, 0.52), 0.75, 1.0));\n    vec3 color = clamp(sourceColor * u_particleColor / vec3(0.25, 0.55, 1.0), 0.0, 1.0);")
     .replace("vec3 backgroundColor = vec3(1.0) - length(v_coordinates * 2.0 - 1.0) * 0.1;",
-      "vec3 backgroundColor = u_backgroundColor * (1.0 - length(v_coordinates * 2.0 - 1.0) * 0.1);");
+      "vec3 backgroundColor = u_backgroundColor * (1.0 - length(v_coordinates * 2.0 - 1.0) * 0.1);")
+    .replace("occlusion * 0.7", "occlusion * u_aoStrength")
+    .replace("(1.0 - shadow) * 0.8", "(1.0 - shadow) * u_shadowStrength");
   return { vertex: adaptSourceShader("vertex", UPSTREAM_SHADERS[spec.vertex]),
     fragment: adaptSourceShader("fragment", fragment), sphere: Boolean(spec.sphere) };
 }

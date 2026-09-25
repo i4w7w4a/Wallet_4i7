@@ -10,7 +10,7 @@ export const particleDefinition: MaterialDefinition<"fluid-particles", ParticleP
   presets: [
     { id: "particles-calm", label: "Тихое растекание", seed: 147, params: PARTICLE_DEFAULTS },
     { id: "particles-source", label: "Исходная скорость · адаптация", seed: 147,
-      params: { ...PARTICLE_DEFAULTS, timeScale: 1, camera: "front", backgroundColor: "#FFFFFF" } },
+      params: { ...PARTICLE_DEFAULTS, timeScale: 1, camera: "front", backgroundColor: "#FFFFFF", aoStrength: 0.7, shadowStrength: 0.8 } },
     { id: "particles-still", label: "Почти неподвижно", seed: 203,
       params: { ...PARTICLE_DEFAULTS, timeScale: 0.01, particleColor: "#C9B79D", backgroundColor: "#11151C", gravity: 28, camera: "high" } },
   ],
@@ -20,7 +20,7 @@ export const particleDefinition: MaterialDefinition<"fluid-particles", ParticleP
     changes: ["3D PIC/FLIP and spherical AO/shadow ported to host-owned WebGL2; 50 pressure iterations and RK2 retained.",
       "Seeded dam replaces Math.random; source effective 80-triangle sphere retained.",
       "Bounded grid/particle/internal resolution profiles, RGBA16F G-buffer and explicit cleanup replace unbounded fullscreen float targets.",
-      "Editable particle/background colors, gravity, FLIP ratio, slow time, size, fill, pointer force and fixed camera presets; no orbit/scroll capture."],
+      "Editable particle/background colors, AO/shadow strengths, gravity, FLIP ratio, slow time, size, fill, pointer force and fixed camera presets; no orbit/scroll capture."],
   },
   fallback: { color: "#F5FAFF", label: "Fluid Particles недоступен · статический фон" },
   plan(init) {

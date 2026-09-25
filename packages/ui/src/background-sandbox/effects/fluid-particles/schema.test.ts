@@ -19,4 +19,10 @@ describe("fluid particle artistic schema", () => {
     expect(particleSchema.parse({ ...PARTICLE_DEFAULTS, particleColor: "red" }).ok).toBe(false);
     expect(particleSchema.parse(Object.assign(Object.create({ inherited: true }), PARTICLE_DEFAULTS)).ok).toBe(false);
   });
+
+  it("keeps AO and shadow strength independently adjustable", () => {
+    expect(particleSchema.parse({ ...PARTICLE_DEFAULTS, aoStrength: 0.2, shadowStrength: 0.8 }))
+      .toMatchObject({ ok: true, value: { aoStrength: 0.2, shadowStrength: 0.8 } });
+    expect(particleSchema.parse({ ...PARTICLE_DEFAULTS, aoStrength: 1.1 }).ok).toBe(false);
+  });
 });

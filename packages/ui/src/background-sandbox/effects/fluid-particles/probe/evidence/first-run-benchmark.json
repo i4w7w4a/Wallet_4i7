@@ -1,0 +1,8 @@
+{
+  "run": "initial full isolated probe before AO/shadow default adjustment",
+  "browser": "Playwright headless Chromium on this Windows host",
+  "note": "The renderer name was not captured in this first run. The follow-up on the same host and browser launch path reported ANGLE Vulkan SwiftShader. These values do not establish hardware or mobile FPS.",
+  "frames": 30,
+  "cpuSubmissionMs": { "p50": 4.4000000059604645, "p95": 6.699999988079071 },
+  "frameIntervalMs": { "p50": 2316.600000000006, "p95": 2433.2000000000044 }
+}

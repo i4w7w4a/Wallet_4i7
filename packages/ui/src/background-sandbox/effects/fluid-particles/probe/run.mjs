@@ -56,10 +56,32 @@ try {
     if (width === 390) await page.screenshot({ path: resolve(output, "particles-portrait.png"), fullPage: true });
     if (width === 960) await page.screenshot({ path: resolve(output, "particles-wide.png"), fullPage: true });
   }
-  results.benchmark = await page.evaluate(() => window.particleProbe.benchmark(30));
+  if (process.env.PARTICLE_QUICK !== "1") results.benchmark = await page.evaluate(() => window.particleProbe.benchmark(30));
+  results.lifecycle = await page.evaluate(() => {
+    const p = window.particleProbe;
+    const before = p.statistics().resources;
+    const released = p.dispose().resources;
+    const repeatDispose = p.dispose().resources;
+    p.open();
+    const reopened = p.statistics().resources;
+    p.dispose(); p.open();
+    return { before, released, repeatDispose, reopened, secondReopen: p.statistics().resources };
+  });
+  assert.deepEqual(results.lifecycle.released, results.lifecycle.repeatDispose, "dispose must be idempotent");
+  assert.deepEqual(results.lifecycle.before, results.lifecycle.reopened, "one reopen must not leak GPU resources");
+  assert.deepEqual(results.lifecycle.before, results.lifecycle.secondReopen, "repeated reopen must not accumulate GPU resources");
+  results.context = await page.evaluate(() => window.particleProbe.lossRestore());
+  assert.equal(results.context.supported, true);
+  assert.equal(results.context.restored, true);
+  assert.equal(results.context.failureCode, "context-lost");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForFunction(() => window.particleProbe?.statistics().diagnostics?.targetCount === 18);
+  results.context.reloaded = await page.evaluate(() => window.particleProbe.statistics());
+  assert.equal(results.context.reloaded.error, 0);
   results.errors = errors;
   await writeFile(resolve(output, "results.json"), JSON.stringify(results, null, 2));
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ ok: true, output, budget: results.sizes.map(({ diagnostics }) => diagnostics.allocatedBytes),
-    benchmark: results.benchmark.cpuSubmissionMs, interval: results.benchmark.frameIntervalMs }, null, 2));
+    renderer: results.initial.renderer, benchmark: results.benchmark?.cpuSubmissionMs,
+    interval: results.benchmark?.frameIntervalMs, lifecycle: results.lifecycle, context: results.context }, null, 2));
 } finally { await browser.close(); }

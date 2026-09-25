@@ -10,6 +10,22 @@ const status = document.querySelector("#status")!;
 const renderer = new Renderer({ canvas, webgl: 2, dpr: 1, depth: false, stencil: false,
   antialias: false, preserveDrawingBuffer: true });
 const gl = renderer.gl as OGLRenderingContext & WebGL2RenderingContext;
+const live = new Map<string, Set<unknown>>();
+for (const [create, remove, kind] of [
+  ["createTexture", "deleteTexture", "textures"], ["createFramebuffer", "deleteFramebuffer", "framebuffers"],
+  ["createRenderbuffer", "deleteRenderbuffer", "renderbuffers"], ["createProgram", "deleteProgram", "programs"],
+  ["createShader", "deleteShader", "shaders"], ["createBuffer", "deleteBuffer", "buffers"],
+  ["createVertexArray", "deleteVertexArray", "vaos"],
+] as const) {
+  const objects = new Set<unknown>();
+  live.set(kind, objects);
+  const methods = gl as unknown as Record<string, (...args: unknown[]) => unknown>;
+  const allocate = methods[create].bind(gl);
+  const release = methods[remove].bind(gl);
+  methods[create] = (...args) => { const value = allocate(...args); if (value) objects.add(value); return value; };
+  methods[remove] = (...args) => { objects.delete(args[0]); return release(...args); };
+}
+const resources = () => Object.fromEntries([...live.entries()].map(([kind, objects]) => [kind, objects.size]));
 const copy = new Program(gl, { vertex: `#version 300 es
   in vec2 position; out vec2 uv; void main(){ uv=position*0.5+0.5; gl_Position=vec4(position,0.,1.); }`,
 fragment: `#version 300 es
@@ -34,7 +50,12 @@ function geometry(): MaterialTargetGeometry {
     pixelWidth: viewport.pixelWidth, pixelHeight: viewport.pixelHeight, dpr: viewport.dpr,
     radiusCss: 0, borderWidthCss: 0, mask: { kind: "rounded-rect" } };
 }
-function statistics() { return { diagnostics: pass?.getDiagnostics?.(), error: gl.getError(), viewport, params }; }
+function statistics() {
+  const debug = gl.getExtension("WEBGL_debug_renderer_info");
+  return { diagnostics: pass?.getDiagnostics?.(), error: gl.getError(), viewport, params,
+    resources: resources(), userAgent: navigator.userAgent,
+    renderer: gl.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : gl.RENDERER) as string };
+}
 function present() {
   renderer.render({ scene: mesh, clear: true, update: false, sort: false, frustumCull: false });
 }
@@ -106,6 +127,31 @@ const probe = {
   update(patch: Partial<ParticleParams>) { params = { ...params, ...patch }; pass!.update(params); render(0); return capture(); },
   reset(seed = 147) { pass!.reset(seed); time = 0; render(0); return capture(); },
   dispose() { stop(); pass?.dispose(); pass = null; return statistics(); },
+  async lossRestore() {
+    stop();
+    const extension = gl.getExtension("WEBGL_lose_context");
+    if (!extension) return { supported: false };
+    return await new Promise<{ supported: boolean; restored: boolean; failureCode: string | null }>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("context restoration timed out")), 5000);
+      let failureCode: string | null = null;
+      canvas.addEventListener("webglcontextlost", event => {
+        event.preventDefault();
+        const init = { params, seed: 147, viewport, geometry: geometry(), quality: "detail" as const,
+          limits, prepared: null };
+        const plan = particleDefinition.plan(init);
+        const failed = plan.ok ? particleDefinition.create(gl, { ...init, plan: plan.value }) : plan;
+        failureCode = failed.ok ? null : failed.error.code;
+        if (failed.ok) failed.value.dispose();
+        pass?.dispose(); pass = null;
+        setTimeout(() => extension.restoreContext(), 50);
+      }, { once: true });
+      canvas.addEventListener("webglcontextrestored", () => {
+        clearTimeout(timeout);
+        resolve({ supported: true, restored: true, failureCode });
+      }, { once: true });
+      extension.loseContext();
+    });
+  },
   async benchmark(frames = 30) {
     stop();
     const cpu: number[] = [];

@@ -9,13 +9,16 @@ export interface ParticleParams {
   pointerForce: number;
   particleSize: number;
   initialFill: number;
+  aoStrength: number;
+  shadowStrength: number;
   camera: "front" | "isometric" | "high";
 }
 
 export const PARTICLE_DEFAULTS: Readonly<ParticleParams> = Object.freeze({
   particleColor: "#408CFF", backgroundColor: "#F5FAFF", timeScale: 0.08,
   flipRatio: 0.99, gravity: 40, pointerForce: 3, particleSize: 1,
-  initialFill: 0.375, camera: "isometric",
+  initialFill: 0.375, aoStrength: 0.35, shadowStrength: 0.35,
+  camera: "isometric",
 });
 
 export const PARTICLE_BOUNDS = Object.freeze({
@@ -25,6 +28,8 @@ export const PARTICLE_BOUNDS = Object.freeze({
   pointerForce: { min: 0, max: 8, step: 0.1 },
   particleSize: { min: 0.6, max: 1.4, step: 0.05 },
   initialFill: { min: 0.2, max: 0.65, step: 0.025 },
+  aoStrength: { min: 0, max: 0.9, step: 0.05 },
+  shadowStrength: { min: 0, max: 0.9, step: 0.05 },
 });
 
 export function parseParticleParams(input: unknown): ParticleParams | null {
@@ -50,6 +55,7 @@ export function parseParticleParams(input: unknown): ParticleParams | null {
     timeScale: value.timeScale as number, flipRatio: value.flipRatio as number,
     gravity: value.gravity as number, pointerForce: value.pointerForce as number,
     particleSize: value.particleSize as number, initialFill: value.initialFill as number,
+    aoStrength: value.aoStrength as number, shadowStrength: value.shadowStrength as number,
     camera: value.camera,
   };
 }
@@ -65,6 +71,8 @@ export const particleSchema: ParameterSchema<ParticleParams> = {
     { key: "flipRatio", kind: "range", group: "physics", label: "Характер течения", description: "0.5 ближе к PIC, 0.99 ближе к FLIP.", ...PARTICLE_BOUNDS.flipRatio },
     { key: "gravity", kind: "range", group: "physics", label: "Гравитация", ...PARTICLE_BOUNDS.gravity },
     { key: "pointerForce", kind: "range", group: "physics", label: "Сила курсора", description: "Реакция на движение fine pointer; без захвата прокрутки и drag.", ...PARTICLE_BOUNDS.pointerForce },
+    { key: "aoStrength", kind: "range", group: "light", label: "Затенение между сферами", description: "Сила исходного сферического ambient occlusion; 0 сохраняет геометрию без затемнения.", ...PARTICLE_BOUNDS.aoStrength },
+    { key: "shadowStrength", kind: "range", group: "light", label: "Глубина теней", description: "Сила теней исходной depth map; снижена в спокойных вариантах для читаемого цвета.", ...PARTICLE_BOUNDS.shadowStrength },
     { key: "camera", kind: "select", group: "precise", label: "Камера", options: [
       { value: "front", label: "Фронт" }, { value: "isometric", label: "Объём" }, { value: "high", label: "Сверху" },
     ] },

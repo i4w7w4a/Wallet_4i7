@@ -1,0 +1,517 @@
+{
+  "initial": {
+    "diagnostics": {
+      "targetCount": 18,
+      "allocatedBytes": 16148512,
+      "passesPerFrame": 5,
+      "quality": "standard · 960×640; 30720 particles; grid 32×16×16",
+      "notes": [
+        "3D PIC/FLIP: particle↔MAC grid, 50 Jacobi iterations, RK2 advection; 69 solver draws and five rendering draws when dt>0.",
+        "80 triangles per sphere matches the effective upstream geometry; spherical AO and 256² shadow map retained.",
+        "RGBA16F G-buffer and bounded internal resolution replace source fullscreen RGBA32F; driver overhead excluded.",
+        "No implicit orbit, wheel or page drag capture. Initial fill applies on Restart; JSON stores no GPU field.",
+        "Simulation time is capped to one 1/60 step per host frame, then scaled; no catch-up or endless motion guarantee."
+      ]
+    },
+    "error": 0,
+    "viewport": {
+      "cssWidth": 960,
+      "cssHeight": 640,
+      "pixelWidth": 960,
+      "pixelHeight": 640,
+      "dpr": 1
+    },
+    "params": {
+      "particleColor": "#408CFF",
+      "backgroundColor": "#F5FAFF",
+      "timeScale": 0.08,
+      "flipRatio": 0.99,
+      "gravity": 40,
+      "pointerForce": 3,
+      "particleSize": 1,
+      "initialFill": 0.375,
+      "aoStrength": 0.35,
+      "shadowStrength": 0.35,
+      "camera": "isometric"
+    },
+    "resources": {
+      "textures": 18,
+      "framebuffers": 4,
+      "renderbuffers": 1,
+      "programs": 17,
+      "shaders": 2,
+      "buffers": 5,
+      "vaos": 3
+    },
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "image": {
+      "hash": 3946845821,
+      "coloredPixels": 43578,
+      "bounds": {
+        "x0": 255,
+        "y0": 213,
+        "x1": 494,
+        "y1": 444
+      },
+      "width": 960,
+      "height": 640
+    }
+  },
+  "behavior": {
+    "first": {
+      "hash": 3946845821,
+      "coloredPixels": 43578,
+      "bounds": {
+        "x0": 255,
+        "y0": 213,
+        "x1": 494,
+        "y1": 444
+      },
+      "width": 960,
+      "height": 640
+    },
+    "replay": {
+      "hash": 3946845821,
+      "coloredPixels": 43578,
+      "bounds": {
+        "x0": 255,
+        "y0": 213,
+        "x1": 494,
+        "y1": 444
+      },
+      "width": 960,
+      "height": 640
+    },
+    "recolor": {
+      "hash": 3561314504,
+      "coloredPixels": 0,
+      "bounds": null,
+      "width": 960,
+      "height": 640
+    },
+    "paused": {
+      "targetCount": 18,
+      "allocatedBytes": 16148512,
+      "passesPerFrame": 5,
+      "quality": "standard · 960×640; 30720 particles; grid 32×16×16",
+      "notes": [
+        "3D PIC/FLIP: particle↔MAC grid, 50 Jacobi iterations, RK2 advection; 69 solver draws and five rendering draws when dt>0.",
+        "80 triangles per sphere matches the effective upstream geometry; spherical AO and 256² shadow map retained.",
+        "RGBA16F G-buffer and bounded internal resolution replace source fullscreen RGBA32F; driver overhead excluded.",
+        "No implicit orbit, wheel or page drag capture. Initial fill applies on Restart; JSON stores no GPU field.",
+        "Simulation time is capped to one 1/60 step per host frame, then scaled; no catch-up or endless motion guarantee."
+      ]
+    },
+    "flowing": {
+      "targetCount": 18,
+      "allocatedBytes": 16148512,
+      "passesPerFrame": 74,
+      "quality": "standard · 960×640; 30720 particles; grid 32×16×16",
+      "notes": [
+        "3D PIC/FLIP: particle↔MAC grid, 50 Jacobi iterations, RK2 advection; 69 solver draws and five rendering draws when dt>0.",
+        "80 triangles per sphere matches the effective upstream geometry; spherical AO and 256² shadow map retained.",
+        "RGBA16F G-buffer and bounded internal resolution replace source fullscreen RGBA32F; driver overhead excluded.",
+        "No implicit orbit, wheel or page drag capture. Initial fill applies on Restart; JSON stores no GPU field.",
+        "Simulation time is capped to one 1/60 step per host frame, then scaled; no catch-up or endless motion guarantee."
+      ]
+    },
+    "afterStep": {
+      "hash": 2148980056,
+      "coloredPixels": 43980,
+      "bounds": {
+        "x0": 255,
+        "y0": 213,
+        "x1": 494,
+        "y1": 444
+      },
+      "width": 960,
+      "height": 640
+    },
+    "stats": {
+      "diagnostics": {
+        "targetCount": 18,
+        "allocatedBytes": 16148512,
+        "passesPerFrame": 74,
+        "quality": "standard · 960×640; 30720 particles; grid 32×16×16",
+        "notes": [
+          "3D PIC/FLIP: particle↔MAC grid, 50 Jacobi iterations, RK2 advection; 69 solver draws and five rendering draws when dt>0.",
+          "80 triangles per sphere matches the effective upstream geometry; spherical AO and 256² shadow map retained.",
+          "RGBA16F G-buffer and bounded internal resolution replace source fullscreen RGBA32F; driver overhead excluded.",
+          "No implicit orbit, wheel or page drag capture. Initial fill applies on Restart; JSON stores no GPU field.",
+          "Simulation time is capped to one 1/60 step per host frame, then scaled; no catch-up or endless motion guarantee."
+        ]
+      },
+      "error": 0,
+      "viewport": {
+        "cssWidth": 960,
+        "cssHeight": 640,
+        "pixelWidth": 960,
+        "pixelHeight": 640,
+        "dpr": 1
+      },
+      "params": {
+        "particleColor": "#408CFF",
+        "backgroundColor": "#F5FAFF",
+        "timeScale": 0.08,
+        "flipRatio": 0.99,
+        "gravity": 40,
+        "pointerForce": 3,
+        "particleSize": 1,
+        "initialFill": 0.375,
+        "aoStrength": 0.35,
+        "shadowStrength": 0.35,
+        "camera": "isometric"
+      },
+      "resources": {
+        "textures": 18,
+        "framebuffers": 4,
+        "renderbuffers": 1,
+        "programs": 17,
+        "shaders": 2,
+        "buffers": 5,
+        "vaos": 3
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  "sizes": [
+    {
+      "diagnostics": {
+        "targetCount": 18,
+        "allocatedBytes": 6630432,
+        "passesPerFrame": 74,
+        "quality": "standard · 320×568; 30720 particles; grid 32×16×16",
+        "notes": [
+          "3D PIC/FLIP: particle↔MAC grid, 50 Jacobi iterations, RK2 advection; 69 solver draws and five rendering draws when dt>0.",
+          "80 triangles per sphere matches the effective upstream geometry; spherical AO and 256² shadow map retained.",
+          "RGBA16F G-buffer and bounded internal resolution replace source fullscreen RGBA32F; driver overhead excluded.",
+          "No implicit orbit, wheel or page drag capture. Initial fill applies on Restart; JSON stores no GPU field.",
+          "Simulation time is capped to one 1/60 step per host frame, then scaled; no catch-up or endless motion guarantee."
+        ]
+      },
+      "error": 0,
+      "viewport": {
+        "cssWidth": 320,
+        "cssHeight": 568,
+        "pixelWidth": 320,
+        "pixelHeight": 568,
+        "dpr": 1
+      },
+      "params": {
+        "particleColor": "#408CFF",
+        "backgroundColor": "#F5FAFF",
+        "timeScale": 0.08,
+        "flipRatio": 0.99,
+        "gravity": 40,
+        "pointerForce": 3,
+        "particleSize": 1,
+        "initialFill": 0.375,
+        "aoStrength": 0.35,
+        "shadowStrength": 0.35,
+        "camera": "isometric"
+      },
+      "resources": {
+        "textures": 18,
+        "framebuffers": 4,
+        "renderbuffers": 1,
+        "programs": 17,
+        "shaders": 2,
+        "buffers": 5,
+        "vaos": 3
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "image": {
+        "hash": 1161756256,
+        "coloredPixels": 14332,
+        "bounds": {
+          "x0": 36,
+          "y0": 225,
+          "x1": 168,
+          "y1": 358
+        },
+        "width": 320,
+        "height": 568
+      }
+    },
+    {
+      "diagnostics": {
+        "targetCount": 18,
+        "allocatedBytes": 9873232,
+        "passesPerFrame": 74,
+        "quality": "standard · 390×844; 30720 particles; grid 32×16×16",
+        "notes": [
+          "3D PIC/FLIP: particle↔MAC grid, 50 Jacobi iterations, RK2 advection; 69 solver draws and five rendering draws when dt>0.",
+          "80 triangles per sphere matches the effective upstream geometry; spherical AO and 256² shadow map retained.",
+          "RGBA16F G-buffer and bounded internal resolution replace source fullscreen RGBA32F; driver overhead excluded.",
+          "No implicit orbit, wheel or page drag capture. Initial fill applies on Restart; JSON stores no GPU field.",
+          "Simulation time is capped to one 1/60 step per host frame, then scaled; no catch-up or endless motion guarantee."
+        ]
+      },
+      "error": 0,
+      "viewport": {
+        "cssWidth": 390,
+        "cssHeight": 844,
+        "pixelWidth": 390,
+        "pixelHeight": 844,
+        "dpr": 1
+      },
+      "params": {
+        "particleColor": "#408CFF",
+        "backgroundColor": "#F5FAFF",
+        "timeScale": 0.08,
+        "flipRatio": 0.99,
+        "gravity": 40,
+        "pointerForce": 3,
+        "particleSize": 1,
+        "initialFill": 0.375,
+        "aoStrength": 0.35,
+        "shadowStrength": 0.35,
+        "camera": "isometric"
+      },
+      "resources": {
+        "textures": 18,
+        "framebuffers": 4,
+        "renderbuffers": 1,
+        "programs": 17,
+        "shaders": 2,
+        "buffers": 5,
+        "vaos": 3
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "image": {
+        "hash": 889574180,
+        "coloredPixels": 22337,
+        "bounds": {
+          "x0": 41,
+          "y0": 349,
+          "x1": 205,
+          "y1": 516
+        },
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "diagnostics": {
+        "targetCount": 18,
+        "allocatedBytes": 16148512,
+        "passesPerFrame": 74,
+        "quality": "standard · 960×640; 30720 particles; grid 32×16×16",
+        "notes": [
+          "3D PIC/FLIP: particle↔MAC grid, 50 Jacobi iterations, RK2 advection; 69 solver draws and five rendering draws when dt>0.",
+          "80 triangles per sphere matches the effective upstream geometry; spherical AO and 256² shadow map retained.",
+          "RGBA16F G-buffer and bounded internal resolution replace source fullscreen RGBA32F; driver overhead excluded.",
+          "No implicit orbit, wheel or page drag capture. Initial fill applies on Restart; JSON stores no GPU field.",
+          "Simulation time is capped to one 1/60 step per host frame, then scaled; no catch-up or endless motion guarantee."
+        ]
+      },
+      "error": 0,
+      "viewport": {
+        "cssWidth": 960,
+        "cssHeight": 640,
+        "pixelWidth": 960,
+        "pixelHeight": 640,
+        "dpr": 1
+      },
+      "params": {
+        "particleColor": "#408CFF",
+        "backgroundColor": "#F5FAFF",
+        "timeScale": 0.08,
+        "flipRatio": 0.99,
+        "gravity": 40,
+        "pointerForce": 3,
+        "particleSize": 1,
+        "initialFill": 0.375,
+        "aoStrength": 0.35,
+        "shadowStrength": 0.35,
+        "camera": "isometric"
+      },
+      "resources": {
+        "textures": 18,
+        "framebuffers": 4,
+        "renderbuffers": 1,
+        "programs": 17,
+        "shaders": 2,
+        "buffers": 5,
+        "vaos": 3
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "image": {
+        "hash": 2148980056,
+        "coloredPixels": 43980,
+        "bounds": {
+          "x0": 255,
+          "y0": 213,
+          "x1": 494,
+          "y1": 444
+        },
+        "width": 960,
+        "height": 640
+      }
+    },
+    {
+      "diagnostics": {
+        "targetCount": 18,
+        "allocatedBytes": 15303712,
+        "passesPerFrame": 74,
+        "quality": "standard · 960×600; 30720 particles; grid 32×16×16",
+        "notes": [
+          "3D PIC/FLIP: particle↔MAC grid, 50 Jacobi iterations, RK2 advection; 69 solver draws and five rendering draws when dt>0.",
+          "80 triangles per sphere matches the effective upstream geometry; spherical AO and 256² shadow map retained.",
+          "RGBA16F G-buffer and bounded internal resolution replace source fullscreen RGBA32F; driver overhead excluded.",
+          "No implicit orbit, wheel or page drag capture. Initial fill applies on Restart; JSON stores no GPU field.",
+          "Simulation time is capped to one 1/60 step per host frame, then scaled; no catch-up or endless motion guarantee."
+        ]
+      },
+      "error": 0,
+      "viewport": {
+        "cssWidth": 1440,
+        "cssHeight": 900,
+        "pixelWidth": 1440,
+        "pixelHeight": 900,
+        "dpr": 1
+      },
+      "params": {
+        "particleColor": "#408CFF",
+        "backgroundColor": "#F5FAFF",
+        "timeScale": 0.08,
+        "flipRatio": 0.99,
+        "gravity": 40,
+        "pointerForce": 3,
+        "particleSize": 1,
+        "initialFill": 0.375,
+        "aoStrength": 0.35,
+        "shadowStrength": 0.35,
+        "camera": "isometric"
+      },
+      "resources": {
+        "textures": 18,
+        "framebuffers": 4,
+        "renderbuffers": 1,
+        "programs": 17,
+        "shaders": 2,
+        "buffers": 5,
+        "vaos": 3
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "image": {
+        "hash": 4062681701,
+        "coloredPixels": 87602,
+        "bounds": {
+          "x0": 403,
+          "y0": 299,
+          "x1": 740,
+          "y1": 625
+        },
+        "width": 1440,
+        "height": 900
+      }
+    }
+  ],
+  "lifecycle": {
+    "before": {
+      "textures": 18,
+      "framebuffers": 4,
+      "renderbuffers": 1,
+      "programs": 17,
+      "shaders": 2,
+      "buffers": 5,
+      "vaos": 3
+    },
+    "released": {
+      "textures": 0,
+      "framebuffers": 0,
+      "renderbuffers": 0,
+      "programs": 1,
+      "shaders": 2,
+      "buffers": 1,
+      "vaos": 0
+    },
+    "repeatDispose": {
+      "textures": 0,
+      "framebuffers": 0,
+      "renderbuffers": 0,
+      "programs": 1,
+      "shaders": 2,
+      "buffers": 1,
+      "vaos": 0
+    },
+    "reopened": {
+      "textures": 18,
+      "framebuffers": 4,
+      "renderbuffers": 1,
+      "programs": 17,
+      "shaders": 2,
+      "buffers": 5,
+      "vaos": 3
+    },
+    "secondReopen": {
+      "textures": 18,
+      "framebuffers": 4,
+      "renderbuffers": 1,
+      "programs": 17,
+      "shaders": 2,
+      "buffers": 5,
+      "vaos": 3
+    }
+  },
+  "context": {
+    "supported": true,
+    "restored": true,
+    "failureCode": "context-lost",
+    "reloaded": {
+      "diagnostics": {
+        "targetCount": 18,
+        "allocatedBytes": 16148512,
+        "passesPerFrame": 5,
+        "quality": "standard · 960×640; 30720 particles; grid 32×16×16",
+        "notes": [
+          "3D PIC/FLIP: particle↔MAC grid, 50 Jacobi iterations, RK2 advection; 69 solver draws and five rendering draws when dt>0.",
+          "80 triangles per sphere matches the effective upstream geometry; spherical AO and 256² shadow map retained.",
+          "RGBA16F G-buffer and bounded internal resolution replace source fullscreen RGBA32F; driver overhead excluded.",
+          "No implicit orbit, wheel or page drag capture. Initial fill applies on Restart; JSON stores no GPU field.",
+          "Simulation time is capped to one 1/60 step per host frame, then scaled; no catch-up or endless motion guarantee."
+        ]
+      },
+      "error": 0,
+      "viewport": {
+        "cssWidth": 960,
+        "cssHeight": 640,
+        "pixelWidth": 960,
+        "pixelHeight": 640,
+        "dpr": 1
+      },
+      "params": {
+        "particleColor": "#408CFF",
+        "backgroundColor": "#F5FAFF",
+        "timeScale": 0.08,
+        "flipRatio": 0.99,
+        "gravity": 40,
+        "pointerForce": 3,
+        "particleSize": 1,
+        "initialFill": 0.375,
+        "aoStrength": 0.35,
+        "shadowStrength": 0.35,
+        "camera": "isometric"
+      },
+      "resources": {
+        "textures": 18,
+        "framebuffers": 4,
+        "renderbuffers": 1,
+        "programs": 17,
+        "shaders": 2,
+        "buffers": 5,
+        "vaos": 3
+      },
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  },
+  "errors": []
+}

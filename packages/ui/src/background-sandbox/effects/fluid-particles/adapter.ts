@@ -446,6 +446,7 @@ class ParticleEffect implements MaterialPass<ParticleParams> {
       u_inverseViewMatrix: camera.inverseViewMatrix, u_shadowResolution: [a.shadow.width, a.shadow.height],
       u_lightProjectionViewMatrix: camera.lightProjectionViewMatrix,
       u_particleColor: rgb(this.params.particleColor), u_backgroundColor: rgb(this.params.backgroundColor),
+      u_aoStrength: this.params.aoStrength, u_shadowStrength: this.params.shadowStrength,
     }, [["u_renderingTexture", t.rendering], ["u_occlusionTexture", t.occlusion], ["u_shadowDepthTexture", t.shadowDepth]], this.renderFbo!);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.output!.buffer);

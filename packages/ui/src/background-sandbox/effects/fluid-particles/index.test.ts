@@ -18,6 +18,8 @@ function request(maxRenderTargetBytes: number): MaterialInit<ParticleParams, nul
 describe("fluid-particles material contract", () => {
   it("keeps an explicit source-speed comparison beside a slow starting composition", () => {
     expect(particleDefinition.presets.find(preset => preset.id === "particles-source")?.params.timeScale).toBe(1);
+    expect(particleDefinition.presets.find(preset => preset.id === "particles-source")?.params.aoStrength).toBe(0.7);
+    expect(particleDefinition.presets.find(preset => preset.id === "particles-source")?.params.shadowStrength).toBe(0.8);
     expect(particleDefinition.presets.some(preset => preset.params.timeScale <= 0.08)).toBe(true);
   });
 
