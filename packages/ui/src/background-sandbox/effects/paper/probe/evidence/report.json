@@ -1,0 +1,900 @@
+{
+  "head": "64a41fb749ab8f4c61c6fa9149c82081f1e83eb4",
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "tests": [
+    {
+      "kind": "liquid-metal",
+      "target": "fill",
+      "screenshot": "liquid-metal-fill.png",
+      "opened": {
+        "capture": {
+          "width": 132,
+          "height": 119,
+          "hash": 3210139853,
+          "visible": 15472,
+          "meanAlpha": 250.47491723962312,
+          "premulViolations": 0,
+          "center": [
+            250,
+            242,
+            193,
+            255
+          ],
+          "error": 0
+        },
+        "plan": {
+          "attachmentBytes": 62832,
+          "textureBytes": 62836,
+          "passesPerFrame": 1,
+          "quality": "Paper GLSL300 · single RGBA8 pass"
+        },
+        "preparedBytes": 62832,
+        "maskDimensions": [
+          [
+            132,
+            119
+          ]
+        ],
+        "noiseDimensions": null,
+        "resources": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        }
+      },
+      "behavior": {
+        "before": {
+          "width": 132,
+          "height": 119,
+          "hash": 3210139853,
+          "visible": 15472,
+          "meanAlpha": 250.47491723962312,
+          "premulViolations": 0,
+          "center": [
+            250,
+            242,
+            193,
+            255
+          ],
+          "error": 0
+        },
+        "paused": {
+          "width": 132,
+          "height": 119,
+          "hash": 3210139853,
+          "visible": 15472,
+          "meanAlpha": 250.47491723962312,
+          "premulViolations": 0,
+          "center": [
+            250,
+            242,
+            193,
+            255
+          ],
+          "error": 0
+        },
+        "moving": {
+          "width": 132,
+          "height": 119,
+          "hash": 3634764512,
+          "visible": 15472,
+          "meanAlpha": 250.47491723962312,
+          "premulViolations": 0,
+          "center": [
+            52,
+            53,
+            66,
+            255
+          ],
+          "error": 0
+        },
+        "changed": {
+          "width": 132,
+          "height": 119,
+          "hash": 3318332020,
+          "visible": 15472,
+          "meanAlpha": 250.47491723962312,
+          "premulViolations": 0,
+          "center": [
+            57,
+            58,
+            71,
+            255
+          ],
+          "error": 0
+        },
+        "resourcesBefore": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "resourcesAfter": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "smaller": {
+          "width": 66,
+          "height": 59,
+          "hash": 2984164805,
+          "visible": 3834,
+          "meanAlpha": 249.95839753466873,
+          "premulViolations": 0,
+          "center": [
+            53,
+            54,
+            67,
+            255
+          ],
+          "error": 0
+        },
+        "restoredSize": {
+          "width": 132,
+          "height": 118,
+          "hash": 2520045262,
+          "visible": 15152,
+          "meanAlpha": 247.05033384694403,
+          "premulViolations": 0,
+          "center": [
+            53,
+            53,
+            66,
+            255
+          ],
+          "error": 0
+        },
+        "diagnostics": {
+          "targetCount": 1,
+          "allocatedBytes": 125136,
+          "passesPerFrame": 1,
+          "quality": "balanced",
+          "notes": [
+            "One host-owned WebGL2 context/RAF; one RGBA8 material pass.",
+            "Mask/noise prepared before GPU mount; render changes uniforms only.",
+            "Paper seed is recipe metadata; source motion itself is deterministic."
+          ]
+        },
+        "afterDispose": {
+          "textures": 0,
+          "framebuffers": 0,
+          "programs": 0,
+          "shaders": 0,
+          "buffers": 0,
+          "vaos": 0
+        },
+        "error": 0
+      }
+    },
+    {
+      "kind": "liquid-metal",
+      "target": "icon",
+      "screenshot": "liquid-metal-icon.png",
+      "opened": {
+        "capture": {
+          "width": 32,
+          "height": 32,
+          "hash": 1882045326,
+          "visible": 163,
+          "meanAlpha": 25.4140625,
+          "premulViolations": 0,
+          "center": [
+            16,
+            16,
+            22,
+            135
+          ],
+          "error": 0
+        },
+        "plan": {
+          "attachmentBytes": 4096,
+          "textureBytes": 4100,
+          "passesPerFrame": 1,
+          "quality": "Paper GLSL300 · single RGBA8 pass"
+        },
+        "preparedBytes": 4096,
+        "maskDimensions": [
+          [
+            32,
+            32
+          ]
+        ],
+        "noiseDimensions": null,
+        "resources": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        }
+      },
+      "behavior": {
+        "before": {
+          "width": 32,
+          "height": 32,
+          "hash": 1882045326,
+          "visible": 163,
+          "meanAlpha": 25.4140625,
+          "premulViolations": 0,
+          "center": [
+            16,
+            16,
+            22,
+            135
+          ],
+          "error": 0
+        },
+        "paused": {
+          "width": 32,
+          "height": 32,
+          "hash": 1882045326,
+          "visible": 163,
+          "meanAlpha": 25.4140625,
+          "premulViolations": 0,
+          "center": [
+            16,
+            16,
+            22,
+            135
+          ],
+          "error": 0
+        },
+        "moving": {
+          "width": 32,
+          "height": 32,
+          "hash": 2805285022,
+          "visible": 163,
+          "meanAlpha": 25.4140625,
+          "premulViolations": 0,
+          "center": [
+            28,
+            28,
+            35,
+            135
+          ],
+          "error": 0
+        },
+        "changed": {
+          "width": 32,
+          "height": 32,
+          "hash": 1781356968,
+          "visible": 163,
+          "meanAlpha": 25.4140625,
+          "premulViolations": 0,
+          "center": [
+            32,
+            32,
+            39,
+            135
+          ],
+          "error": 0
+        },
+        "resourcesBefore": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "resourcesAfter": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "smaller": {
+          "width": 16,
+          "height": 16,
+          "hash": 1485807595,
+          "visible": 51,
+          "meanAlpha": 25.45703125,
+          "premulViolations": 0,
+          "center": [
+            29,
+            30,
+            36,
+            131
+          ],
+          "error": 0
+        },
+        "restoredSize": {
+          "width": 32,
+          "height": 32,
+          "hash": 1781356968,
+          "visible": 163,
+          "meanAlpha": 25.4140625,
+          "premulViolations": 0,
+          "center": [
+            32,
+            32,
+            39,
+            135
+          ],
+          "error": 0
+        },
+        "diagnostics": {
+          "targetCount": 1,
+          "allocatedBytes": 8192,
+          "passesPerFrame": 1,
+          "quality": "balanced",
+          "notes": [
+            "One host-owned WebGL2 context/RAF; one RGBA8 material pass.",
+            "Mask/noise prepared before GPU mount; render changes uniforms only.",
+            "Paper seed is recipe metadata; source motion itself is deterministic."
+          ]
+        },
+        "afterDispose": {
+          "textures": 0,
+          "framebuffers": 0,
+          "programs": 0,
+          "shaders": 0,
+          "buffers": 0,
+          "vaos": 0
+        },
+        "error": 0
+      }
+    },
+    {
+      "kind": "pulsing-border",
+      "target": "border",
+      "screenshot": "pulsing-border-border.png",
+      "opened": {
+        "capture": {
+          "width": 132,
+          "height": 119,
+          "hash": 1486615542,
+          "visible": 2490,
+          "meanAlpha": 33.71339444868857,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "plan": {
+          "attachmentBytes": 62832,
+          "textureBytes": 65536,
+          "passesPerFrame": 1,
+          "quality": "Paper GLSL300 · single RGBA8 pass"
+        },
+        "preparedBytes": 65536,
+        "maskDimensions": [],
+        "noiseDimensions": [
+          128,
+          128
+        ],
+        "resources": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        }
+      },
+      "behavior": {
+        "before": {
+          "width": 132,
+          "height": 119,
+          "hash": 1486615542,
+          "visible": 2490,
+          "meanAlpha": 33.71339444868857,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "paused": {
+          "width": 132,
+          "height": 119,
+          "hash": 1486615542,
+          "visible": 2490,
+          "meanAlpha": 33.71339444868857,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "moving": {
+          "width": 132,
+          "height": 119,
+          "hash": 3973332536,
+          "visible": 2488,
+          "meanAlpha": 33.44314998726763,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "changed": {
+          "width": 132,
+          "height": 119,
+          "hash": 3417383782,
+          "visible": 2488,
+          "meanAlpha": 33.44314998726763,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "resourcesBefore": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "resourcesAfter": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "smaller": {
+          "width": 66,
+          "height": 59,
+          "hash": 2855631614,
+          "visible": 756,
+          "meanAlpha": 43.10888546481767,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "restoredSize": {
+          "width": 132,
+          "height": 118,
+          "hash": 4041424163,
+          "visible": 2476,
+          "meanAlpha": 33.41101694915254,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "diagnostics": {
+          "targetCount": 1,
+          "allocatedBytes": 127840,
+          "passesPerFrame": 1,
+          "quality": "balanced",
+          "notes": [
+            "One host-owned WebGL2 context/RAF; one RGBA8 material pass.",
+            "Mask/noise prepared before GPU mount; render changes uniforms only.",
+            "Paper seed is recipe metadata; source motion itself is deterministic."
+          ]
+        },
+        "afterDispose": {
+          "textures": 0,
+          "framebuffers": 0,
+          "programs": 0,
+          "shaders": 0,
+          "buffers": 0,
+          "vaos": 0
+        },
+        "error": 0
+      }
+    },
+    {
+      "kind": "gem-smoke",
+      "target": "fill",
+      "screenshot": "gem-smoke-fill.png",
+      "opened": {
+        "capture": {
+          "width": 132,
+          "height": 119,
+          "hash": 2991771122,
+          "visible": 15520,
+          "meanAlpha": 247.9996180290298,
+          "premulViolations": 0,
+          "center": [
+            103,
+            135,
+            186,
+            255
+          ],
+          "error": 0
+        },
+        "plan": {
+          "attachmentBytes": 62832,
+          "textureBytes": 62836,
+          "passesPerFrame": 1,
+          "quality": "Paper GLSL300 · single RGBA8 pass"
+        },
+        "preparedBytes": 62832,
+        "maskDimensions": [
+          [
+            132,
+            119
+          ]
+        ],
+        "noiseDimensions": null,
+        "resources": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        }
+      },
+      "behavior": {
+        "before": {
+          "width": 132,
+          "height": 119,
+          "hash": 2991771122,
+          "visible": 15520,
+          "meanAlpha": 247.9996180290298,
+          "premulViolations": 0,
+          "center": [
+            103,
+            135,
+            186,
+            255
+          ],
+          "error": 0
+        },
+        "paused": {
+          "width": 132,
+          "height": 119,
+          "hash": 2991771122,
+          "visible": 15520,
+          "meanAlpha": 247.9996180290298,
+          "premulViolations": 0,
+          "center": [
+            103,
+            135,
+            186,
+            255
+          ],
+          "error": 0
+        },
+        "moving": {
+          "width": 132,
+          "height": 119,
+          "hash": 3064855067,
+          "visible": 15520,
+          "meanAlpha": 247.99675324675326,
+          "premulViolations": 0,
+          "center": [
+            115,
+            138,
+            183,
+            255
+          ],
+          "error": 0
+        },
+        "changed": {
+          "width": 132,
+          "height": 119,
+          "hash": 2760023534,
+          "visible": 15520,
+          "meanAlpha": 247.97402597402598,
+          "premulViolations": 0,
+          "center": [
+            246,
+            62,
+            110,
+            255
+          ],
+          "error": 0
+        },
+        "resourcesBefore": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "resourcesAfter": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "smaller": {
+          "width": 66,
+          "height": 59,
+          "hash": 1776735960,
+          "visible": 3846,
+          "meanAlpha": 246.74011299435028,
+          "premulViolations": 0,
+          "center": [
+            245,
+            56,
+            106,
+            255
+          ],
+          "error": 0
+        },
+        "restoredSize": {
+          "width": 132,
+          "height": 118,
+          "hash": 1989366484,
+          "visible": 15372,
+          "meanAlpha": 246.5415382639959,
+          "premulViolations": 0,
+          "center": [
+            246,
+            64,
+            112,
+            255
+          ],
+          "error": 0
+        },
+        "diagnostics": {
+          "targetCount": 1,
+          "allocatedBytes": 125136,
+          "passesPerFrame": 1,
+          "quality": "balanced",
+          "notes": [
+            "One host-owned WebGL2 context/RAF; one RGBA8 material pass.",
+            "Mask/noise prepared before GPU mount; render changes uniforms only.",
+            "Paper seed is recipe metadata; source motion itself is deterministic."
+          ]
+        },
+        "afterDispose": {
+          "textures": 0,
+          "framebuffers": 0,
+          "programs": 0,
+          "shaders": 0,
+          "buffers": 0,
+          "vaos": 0
+        },
+        "error": 0
+      }
+    },
+    {
+      "kind": "heatmap",
+      "target": "fill",
+      "screenshot": "heatmap-fill.png",
+      "opened": {
+        "capture": {
+          "width": 132,
+          "height": 119,
+          "hash": 626807510,
+          "visible": 5512,
+          "meanAlpha": 33.329704609116376,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "plan": {
+          "attachmentBytes": 62832,
+          "textureBytes": 62836,
+          "passesPerFrame": 1,
+          "quality": "Paper GLSL300 · single RGBA8 pass"
+        },
+        "preparedBytes": 62832,
+        "maskDimensions": [
+          [
+            132,
+            119
+          ]
+        ],
+        "noiseDimensions": null,
+        "resources": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        }
+      },
+      "behavior": {
+        "before": {
+          "width": 132,
+          "height": 119,
+          "hash": 626807510,
+          "visible": 5512,
+          "meanAlpha": 33.329704609116376,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "paused": {
+          "width": 132,
+          "height": 119,
+          "hash": 626807510,
+          "visible": 5512,
+          "meanAlpha": 33.329704609116376,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "moving": {
+          "width": 132,
+          "height": 119,
+          "hash": 758781840,
+          "visible": 5512,
+          "meanAlpha": 31.913483575248282,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "changed": {
+          "width": 132,
+          "height": 119,
+          "hash": 1468447781,
+          "visible": 2881,
+          "meanAlpha": 16.032403870639165,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "resourcesBefore": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "resourcesAfter": {
+          "textures": 2,
+          "framebuffers": 1,
+          "programs": 1,
+          "shaders": 2,
+          "buffers": 1,
+          "vaos": 1
+        },
+        "smaller": {
+          "width": 66,
+          "height": 59,
+          "hash": 1012140875,
+          "visible": 735,
+          "meanAlpha": 16.67026194144838,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "error": 0
+        },
+        "restoredSize": {
+          "width": 132,
+          "height": 118,
+          "hash": 3018782672,
+          "visible": 2935,
+          "meanAlpha": 16.465780688238315,
+          "premulViolations": 0,
+          "center": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "error": 0
+        },
+        "diagnostics": {
+          "targetCount": 1,
+          "allocatedBytes": 125136,
+          "passesPerFrame": 1,
+          "quality": "balanced",
+          "notes": [
+            "One host-owned WebGL2 context/RAF; one RGBA8 material pass.",
+            "Mask/noise prepared before GPU mount; render changes uniforms only.",
+            "Paper seed is recipe metadata; source motion itself is deterministic."
+          ]
+        },
+        "afterDispose": {
+          "textures": 0,
+          "framebuffers": 0,
+          "programs": 0,
+          "shaders": 0,
+          "buffers": 0,
+          "vaos": 0
+        },
+        "error": 0
+      }
+    }
+  ],
+  "context": {
+    "supported": true,
+    "lostFailure": "context-lost",
+    "restored": true,
+    "postRestore": {
+      "width": 132,
+      "height": 119,
+      "hash": 3210139853,
+      "visible": 15472,
+      "meanAlpha": 250.47491723962312,
+      "premulViolations": 0,
+      "center": [
+        250,
+        242,
+        193,
+        255
+      ],
+      "error": 0
+    }
+  },
+  "finalResources": {
+    "textures": 0,
+    "framebuffers": 0,
+    "programs": 0,
+    "shaders": 0,
+    "buffers": 0,
+    "vaos": 0
+  },
+  "consoleErrors": [],
+  "readbackWarnings": [
+    "[.WebGL-0x279c001d7400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x279c001d7400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x279c001d7400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x279c001d7400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+  ],
+  "testedAt": "2026-09-25T03:31:31.492Z"
+}
