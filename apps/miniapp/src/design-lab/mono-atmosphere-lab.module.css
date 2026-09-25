@@ -1,7 +1,7 @@
 .lab { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; background: #151718; color: #eaebe8; font-family: Arial, sans-serif; color-scheme: dark; }
 .lab *, .lab *::before, .lab *::after { box-sizing: border-box; }
 .shellSlot { height: 100%; min-height: 0; overflow: hidden; }
-.tools { display: flex; align-items: center; gap: 3px; min-width: 0; white-space: nowrap; }
+.tools { display: flex; align-items: center; gap: 3px; width: max-content; flex: 0 0 max-content; white-space: nowrap; }
 .compare { display: flex; align-items: center; gap: 2px; margin-inline: 2px; }
 .control { min-height: 44px; min-width: 44px; padding: 7px 10px; border: 1px solid #596365; border-radius: 7px; background: #1b2021; color: #e3e8e7; font: inherit; font-size: 12px; cursor: pointer; }
 .control:hover { background: #303839; border-color: #a0afad; }
@@ -10,7 +10,7 @@
 .primary { background: #d1ded5; color: #16231b; border-color: #d1ded5; font-weight: 600; }
 .primary:hover { background: #e7f0e9; }
 .compare .control { padding-inline: 0; width: 44px; }
-.productAction { display: inline-flex; margin-inline: 6px 2px; }
+.productAction { position: sticky; left: 0; z-index: 2; display: inline-flex; padding-inline: 6px 2px; background: #151718; box-shadow: 8px 0 8px rgb(21 23 24 / 88%); }
 .productAction button { min-height: 44px; padding: 8px 12px; border: 1px solid #d3e6d7; border-radius: 7px; background: #d1ded5; color: #17251b; font: 600 12px/1.2 Arial, sans-serif; white-space: nowrap; cursor: pointer; }
 .productAction button:hover { background: #e7f0e9; }
 .productAction button:disabled { opacity: .5; cursor: default; }
@@ -64,6 +64,7 @@
 .diagnostics { display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 12px; }
 .diagnostics dd { margin: 0; }
 @media (max-width: 980px) {
+  .tools > :not(.productAction) :is(button, a) { scroll-margin-inline-start: 205px; }
   .stageFoot { gap: 2px 8px; }
   .resetNote { display: none; }
   .scrim { padding: 10px; }
