@@ -95,7 +95,14 @@ try {
       sample("down", [0.5, 0.5], [0, 0], 1), sample("move", [0.5, 0.46], [0, -0.04], 1), sample("cancel", [0.5, 0.46], [0, 0], 0),
     ] });
     const canceled = p.capture();
-    return { tapBase, tap, tapPasses, dragBase, drag, dragPasses, cancelBase, canceled, cancelPasses, error: p.error() };
+    const scrollBase = p.reset();
+    const scrollPasses = p.render(0, { uv: [0.501, 0.58], inside: true, down: true, samples: [
+      sample("down", [0.5, 0.6], [0, 0], 1), sample("move", [0.501, 0.58], [0.001, -0.02], 1),
+    ] });
+    const scrolling = p.capture();
+    p.render(0, { uv: [0.501, 0.58], inside: false, down: false, samples: [sample("cancel", [0.501, 0.58], [0, 0], 0)] });
+    return { tapBase, tap, tapPasses, dragBase, drag, dragPasses, cancelBase, canceled, cancelPasses,
+      scrollBase, scrolling, scrollPasses, error: p.error() };
   });
   assert.equal(results.touchGestures.tapPasses.passesPerFrame, 4);
   assert.notEqual(results.touchGestures.tap.hash, results.touchGestures.tapBase.hash);
@@ -103,6 +110,8 @@ try {
   assert.notEqual(results.touchGestures.drag.hash, results.touchGestures.dragBase.hash);
   assert.equal(results.touchGestures.cancelPasses.passesPerFrame, 0);
   assert.equal(results.touchGestures.canceled.hash, results.touchGestures.cancelBase.hash);
+  assert.equal(results.touchGestures.scrollPasses.passesPerFrame, 0);
+  assert.equal(results.touchGestures.scrolling.hash, results.touchGestures.scrollBase.hash);
   assert.equal(results.touchGestures.error, 0);
 
   results.controls = await page.evaluate(() => {

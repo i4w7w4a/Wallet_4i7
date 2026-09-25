@@ -19,13 +19,13 @@ describe("Fluid v2 scene gestures", () => {
   it("keeps a short touch drag when down, move and up share one host frame time", () => {
     const host = new PointerInput();
     host.push({ id: 9, phase: "down", uv: [0.4, 0.5], time: 8, buttons: 1, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
-    host.push({ id: 9, phase: "move", uv: [0.41, 0.5], time: 8, buttons: 1, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
-    host.push({ id: 9, phase: "up", uv: [0.41, 0.5], time: 8, buttons: 0, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
+    host.push({ id: 9, phase: "move", uv: [0.42, 0.5], time: 8, buttons: 1, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
+    host.push({ id: 9, phase: "up", uv: [0.42, 0.5], time: 8, buttons: 0, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
 
-    const splats = new FluidV2PointerInput().consume(host.drain(), 1, true);
+    const splats = new FluidV2PointerInput().consume(host.drain(), 0.46, true);
     expect(splats).toHaveLength(1);
-    expect(splats[0]).toMatchObject({ kind: "drag", x: 0.41, y: 0.5, dy: 0 });
-    expect(splats[0]?.dx).toBeCloseTo(0.01);
+    expect(splats[0]).toMatchObject({ kind: "drag", x: 0.42, y: 0.5, dy: 0 });
+    expect(splats[0]?.dx).toBeCloseTo(0.0092);
   });
 
   it("discards a touch gesture canceled by native scrolling before the frame drains", () => {
@@ -62,5 +62,25 @@ describe("Fluid v2 scene gestures", () => {
     ambient.push(touchDown);
     ambient.push({ ...touchDown, phase: "up", buttons: 0 });
     expect(new FluidV2PointerInput().consume(ambient.drain(), 1, false)).toEqual([]);
+  });
+
+  it("reserves a vertical touch start for page scroll before pointercancel arrives", () => {
+    const host = new PointerInput();
+    host.push({ id: 21, phase: "down", uv: [0.5, 0.6], time: 14, buttons: 1, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
+    host.push({ id: 21, phase: "move", uv: [0.501, 0.58], time: 14, buttons: 1, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
+    const input = new FluidV2PointerInput();
+
+    expect(input.consume(host.drain(), 0.46, true)).toEqual([]);
+    host.push({ id: 21, phase: "cancel", uv: [0.501, 0.58], time: 14.01, buttons: 0, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
+    expect(input.consume(host.drain(), 0.46, true)).toEqual([]);
+  });
+
+  it("does not mistake a substantial undecided diagonal touch movement for a tap", () => {
+    const host = new PointerInput();
+    host.push({ id: 22, phase: "down", uv: [0.5, 0.5], time: 15, buttons: 1, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
+    host.push({ id: 22, phase: "move", uv: [0.53, 0.515], time: 15, buttons: 1, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
+    host.push({ id: 22, phase: "up", uv: [0.53, 0.515], time: 15, buttons: 0, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
+
+    expect(new FluidV2PointerInput().consume(host.drain(), 0.46, true)).toEqual([]);
   });
 });
