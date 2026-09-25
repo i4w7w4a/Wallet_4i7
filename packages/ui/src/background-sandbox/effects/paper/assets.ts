@@ -1,17 +1,10 @@
 import type { MaterialAssetId, MaterialMaskSource } from "../../material-contract";
+import { MATERIAL_ICON_PATHS } from "../../material-icon-assets";
 import { createPaperMaskCache, prepareHeatmapMaskAsync, preparePoissonMaskAsync, resolvePaperMaskSize, type PaperMask } from "./masks";
 
 export type PaperAssetId = "strict-rectangle" | "rounded-rectangle" | MaterialAssetId;
 export type PaperMaskKind = "metal" | "gem" | "heatmap";
 export type RasterPaperAsset = Readonly<{ width: number; height: number; rgba: Uint8Array }>;
-
-// Exact SVG paths from MonoScene ACTIONS. The original DOM icons remain live.
-const ACTION_PATHS: Readonly<Record<MaterialAssetId, string>> = {
-  "mono.quick.send": "M5 18 19 4M8 4h11v11",
-  "mono.quick.receive": "M19 6 5 20M16 20H5V9",
-  "mono.quick.swap": "M4 8h16m0 0-4-4m4 4-4 4M20 16H4m0 0 4-4m-4 4 4 4",
-  "mono.quick.buy": "M12 4v16M4 12h16",
-};
 
 function validate(width: number, height: number, padding: number): void {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
@@ -60,7 +53,7 @@ export function rasterizePaperAsset(id: PaperAssetId, width: number, height: num
   ctx.lineWidth = 1.35;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.stroke(new Path2D(ACTION_PATHS[id]));
+  ctx.stroke(new Path2D(MATERIAL_ICON_PATHS[id]));
   return { width, height, rgba: new Uint8Array(ctx.getImageData(0, 0, width, height).data) };
 }
 
