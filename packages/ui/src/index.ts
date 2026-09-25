@@ -51,14 +51,23 @@ export {
 export type { PreferenceStorage, ThemeConfig } from "@wallet/core";
 export type {
   EffectId, Vec2, Config, BackgroundRecipe, ValidationIssue, ParseResult,
-  ParameterValue, ParameterControl, ParameterSchema, Viewport,
+  ParameterValue, ParameterGroup, ParameterControl, ParameterSchema, Viewport,
   PointerPhase, PointerSample, PointerFrame, Frame, FrameTexture,
   GpuLimits, EffectDiagnostics, GpuFailure, CreateResult,
   Effect, EffectInit, EffectProvenance, EffectPreset, Definition,
 } from "./background-sandbox/contracts";
 export type {
+  MaterialEffectId, MaterialCapability, MaterialEffectVersion, MaterialAssetId,
+  MaterialQualityProfile, MaterialAlphaMode, MaterialRecipeV2, NormalizedBackgroundMaterial,
+  ButtonTargetId, ButtonMaterialLayer, MaterialMask, MaterialTargetBinding, MaterialTargetGeometry,
+  MaterialMaskSource, PreparedMaterialAsset, PreparedMaterialAssets, MaterialPrepareRequest,
+  MaterialResourcePlan, MaterialInit, MaterialFrameTexture, MaterialPass,
+  MaterialDefinition, MaterialDescriptorV2,
+} from "./background-sandbox/material-contract";
+export type {
   BackgroundMaterialDescriptor, BackgroundPresentation, BackgroundRuntimeStatus,
   BackgroundStageRequest, BackgroundStageRenderer, BackgroundSandboxBindings,
+  MaterialCatalogV2, MaterialStageRequestV2, ButtonStageRequest, ButtonWorkshopBindings,
 } from "./background-sandbox/host-contract";
 export { BackgroundGpuSurface } from "./background-sandbox/background-gpu-surface";
 export { createMonoOpticalHost, type MonoSharedOpticalHost } from "./mono/mono-optical-host";

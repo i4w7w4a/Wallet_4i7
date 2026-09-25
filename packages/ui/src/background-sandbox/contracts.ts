@@ -27,16 +27,21 @@ export type ParseResult<T> =
   | Readonly<{ ok: true; value: T }>
   | Readonly<{ ok: false; issues: readonly ValidationIssue[] }>;
 
-export type ParameterValue = number | boolean | string;
+/** Color lists are complete normalized snapshots, never mutable palette patches. */
+export type ParameterValue = number | boolean | string | readonly string[];
+export type ParameterGroup = "color" | "motion" | "surface" | "light" | "physics" | "precise";
 export type ParameterControl<K extends string = string> = Readonly<{
   key: K;
   label: string;
   description?: string;
+  /** Inspector organization only; not persisted in a recipe. */
+  group?: ParameterGroup;
 }> & (
   | Readonly<{ kind: "range"; min: number; max: number; step: number; unit?: string }>
   | Readonly<{ kind: "select"; options: readonly Readonly<{ value: string; label: string }>[] }>
   | Readonly<{ kind: "toggle" }>
   | Readonly<{ kind: "color" }>
+  | Readonly<{ kind: "color-list"; minItems: number; maxItems: number }>
 );
 
 /** Defaults, controls, and strict parsing share the adapter's single set of bounds. */

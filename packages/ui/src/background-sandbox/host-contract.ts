@@ -3,6 +3,10 @@ import type {
   BackgroundRecipe, EffectDiagnostics, EffectId, EffectProvenance,
   ParameterControl, ParameterValue, ParseResult,
 } from "./contracts";
+import type {
+  MaterialCapability, MaterialDescriptorV2, MaterialQualityProfile, MaterialRecipeV2,
+  MaterialTargetBinding, NormalizedBackgroundMaterial,
+} from "./material-contract";
 
 /** UI facade. Concrete adapter parameter types remain inside the typed registry. */
 export interface BackgroundMaterialDescriptor {
@@ -51,4 +55,37 @@ export interface BackgroundSandboxBindings {
   readonly fittingAvailable: boolean;
   readonly fittingUnavailableReason?: string;
   parseRecipe(input: unknown): ParseResult<BackgroundRecipe>;
+  /** Optional v2 facade; v1 callers and storage remain valid without it. */
+  readonly materialCatalogV2?: MaterialCatalogV2;
+  readonly renderMaterialStageV2?: (request: MaterialStageRequestV2) => ReactNode;
+}
+
+/** Static catalog of real installed v2 adapters. Explicit copy returns an independent snapshot. */
+export interface MaterialCatalogV2 {
+  readonly materials: readonly MaterialDescriptorV2[];
+  parseRecipe(input: unknown): ParseResult<MaterialRecipeV2>;
+  copyForTarget(input: unknown, capability: MaterialCapability): ParseResult<MaterialRecipeV2>;
+}
+export type MaterialStageRequestV2 = Readonly<{
+  recipe: NormalizedBackgroundMaterial;
+  presentation: BackgroundPresentation;
+  quality: MaterialQualityProfile;
+  paused: boolean;
+  restartKey: number;
+  onStatus?: (status: BackgroundRuntimeStatus) => void;
+}>;
+/** Separate button-lab renderer. Its state and storage belong to the button workshop. */
+export type ButtonStageRequest = Readonly<{
+  bindings: readonly MaterialTargetBinding[];
+  width: 320 | 390 | 430 | 480;
+  quality: MaterialQualityProfile;
+  paused: boolean;
+  restartKey: number;
+  /** Only an explicitly copied full snapshot; the two workshop drafts never share a reference. */
+  previewBackground?: NormalizedBackgroundMaterial;
+  onStatus?: (status: BackgroundRuntimeStatus) => void;
+}>;
+export interface ButtonWorkshopBindings {
+  readonly materialCatalog: MaterialCatalogV2;
+  readonly renderStage: (request: ButtonStageRequest) => ReactNode;
 }
