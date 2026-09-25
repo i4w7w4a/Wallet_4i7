@@ -18,7 +18,7 @@ export interface VaultGridParams {
 }
 
 export const VAULT_GRID_BOUNDS = Object.freeze({
-  cellSize: Object.freeze({ min: 36, max: 128, step: 2 }),
+  cellSize: Object.freeze({ min: 36, max: 256, step: 2 }),
   lineWidth: Object.freeze({ min: 1, max: 10, step: 0.5 }),
   bevel: Object.freeze({ min: 0.5, max: 12, step: 0.5 }),
   depth: Object.freeze({ min: 0.1, max: 2, step: 0.05 }),
@@ -36,22 +36,22 @@ export const VAULT_GRID_PATTERNS = Object.freeze([
 ] as const);
 
 export const VAULT_GRID_DEFAULTS: Readonly<VaultGridParams> = Object.freeze({
-  pattern: "tile", cellSize: 62, lineWidth: 4, bevel: 6, depth: 1.25,
-  roughness: 0.38, lightAngle: -35, lightElevation: 45, lightStrength: 1.1,
-  baseColor: "#111820", metalColor: "#69727c", drift: 0,
+  pattern: "tile", cellSize: 160, lineWidth: 2, bevel: 12, depth: 1.35,
+  roughness: 0.34, lightAngle: 0, lightElevation: 32, lightStrength: 1.3,
+  baseColor: "#171e26", metalColor: "#4f5963", drift: 0,
 });
 
 export const VAULT_GRID_PRESETS = Object.freeze([
   { id: "graphite-plates", label: "Графит · плиты с фаской", params: VAULT_GRID_DEFAULTS },
   { id: "brushed-steel-ribs", label: "Сталь · ортогональные рёбра", params: Object.freeze<VaultGridParams>({
-    pattern: "rib", cellSize: 48, lineWidth: 8, bevel: 3, depth: 1.4,
-    roughness: 0.28, lightAngle: -65, lightElevation: 40, lightStrength: 1.2,
-    baseColor: "#202a2e", metalColor: "#acb8bd", drift: 0.006,
+    pattern: "rib", cellSize: 104, lineWidth: 4, bevel: 4, depth: 1.05,
+    roughness: 0.42, lightAngle: 15, lightElevation: 38, lightStrength: 1.15,
+    baseColor: "#252d34", metalColor: "#69757e", drift: 0,
   }) },
   { id: "warm-etched-alloy", label: "Тёплый сплав · гравировка", params: Object.freeze<VaultGridParams>({
-    pattern: "engraved", cellSize: 72, lineWidth: 2, bevel: 1.5, depth: 0.9,
-    roughness: 0.52, lightAngle: -42, lightElevation: 55, lightStrength: 1,
-    baseColor: "#30251e", metalColor: "#9d8062", drift: 0,
+    pattern: "engraved", cellSize: 144, lineWidth: 1.5, bevel: 2.5, depth: 0.65,
+    roughness: 0.55, lightAngle: -12, lightElevation: 40, lightStrength: 1.05,
+    baseColor: "#2c2925", metalColor: "#766e63", drift: 0,
   }) },
 ] as const);
 

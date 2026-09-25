@@ -84,7 +84,13 @@ void main() {
   specular *= mix(0.72, 0.10, u_roughness) * u_lightStrength;
 
   float coverage;
-  if (u_mode < 0.5) coverage = mix(0.12, 1.0, clamp(height, 0.0, 1.0));
+  if (u_mode < 0.5) {
+    // The plate keeps its metal color across the bevel. Darken only the thin
+    // seam; the normal and side light, not a dark square outline, reveal relief.
+    float halfLine = 0.5 * u_lineWidth;
+    float aa = max(0.35, 0.45 / u_dpr);
+    coverage = mix(0.12, 1.0, smoothstep(halfLine - aa, halfLine + aa, gridEdge(p)));
+  }
   else if (u_mode < 1.5) coverage = mix(0.20, 1.0, clamp(height, 0.0, 1.0));
   else coverage = 1.0 - clamp((1.0 - height) * 1.2, 0.0, 1.0);
 

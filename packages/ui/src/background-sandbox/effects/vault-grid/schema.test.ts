@@ -59,6 +59,16 @@ describe("vault-grid parameter parsing", () => {
     expect(patterns).toEqual(["tile", "rib", "engraved"]);
   });
 
+  it("keeps the built-in geometry broad and seams restrained at phone width", () => {
+    const [plates, ribs, engraving] = VAULT_GRID_PRESETS.map(({ params }) => params);
+    expect(390 / plates!.cellSize).toBeLessThanOrEqual(3);
+    expect(plates!.lineWidth / plates!.cellSize).toBeLessThanOrEqual(0.02);
+    expect(390 / ribs!.cellSize).toBeLessThanOrEqual(5);
+    expect(ribs!.lineWidth / ribs!.cellSize).toBeLessThanOrEqual(0.06);
+    expect(390 / engraving!.cellSize).toBeLessThanOrEqual(4);
+    expect(engraving!.lineWidth / engraving!.cellSize).toBeLessThanOrEqual(0.02);
+  });
+
   it("exposes every working material parameter through grouped typed controls", () => {
     expect(vaultGridSchema.controls.map((control) => control.key).sort()).toEqual(Object.keys(valid).sort());
     expect(vaultGridSchema.controls.every((control) => Boolean(control.group))).toBe(true);
