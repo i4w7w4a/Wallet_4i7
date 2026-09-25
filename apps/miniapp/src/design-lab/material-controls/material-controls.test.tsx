@@ -11,7 +11,7 @@ const starting: MaterialRecipeV2 = { kind: "novex-material", version: 2, effectI
   seed: 13, params: { tone: "#33669980", colors: ["#112233", "#223344"], flow: .5, drift: .2, contour: .4,
     shape: "square", highlight: .6, glow: true, viscosity: .3, detail: .7 } satisfies Params, assetIds: [] };
 const controls: readonly ParameterControl[] = [
-  { key: "tone", label: "Основной цвет", kind: "color", group: "color" },
+  { key: "tone", label: "Основной цвет", kind: "color", group: "color", description: "Тон главной поверхности." },
   { key: "colors", label: "Палитра", kind: "color-list", group: "color", minItems: 1, maxItems: 3 },
   { key: "flow", label: "Течение", kind: "range", group: "motion", min: 0, max: 1, step: .1 },
   { key: "drift", label: "Дрейф", kind: "range", group: "motion", min: 0, max: 1, step: .1 },
@@ -59,7 +59,7 @@ function Host({ disabled = false, capability, onGesture, onAction, onRecipe }: {
     onAction={onAction} onGestureStart={() => onGesture?.("start")} onGestureCommit={() => onGesture?.("commit")} />;
 }
 
-it("organizes every descriptor control in six independently opened, labelled groups", () => {
+it("keeps all six categories reachable with only one group open at a time", () => {
   render(<Host />);
   expect(document.querySelectorAll('input[type="range"]')).toHaveLength(6);
   for (const label of ["Цвет", "Движение", "Форма / поверхность", "Свет", "Физика", "Точно"]) {
@@ -70,12 +70,19 @@ it("organizes every descriptor control in six independently opened, labelled gro
   expect(color).toHaveAttribute("aria-pressed", "true");
   expect(motion).toHaveAttribute("aria-pressed", "false");
   fireEvent.click(motion);
-  expect(color).toHaveAttribute("aria-pressed", "true");
+  expect(color).toHaveAttribute("aria-pressed", "false");
   expect(motion).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("slider", { name: "Течение" })).toHaveValue("0.5");
   fireEvent.click(color);
-  expect(color).toHaveAttribute("aria-pressed", "false");
-  expect(motion).toHaveAttribute("aria-pressed", "true");
+  expect(color).toHaveAttribute("aria-pressed", "true");
+  expect(motion).toHaveAttribute("aria-pressed", "false");
+});
+
+it("reveals long parameter guidance only after an explicit request", () => {
+  render(<Host />);
+  expect(screen.queryByText("Тон главной поверхности.")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Описание «Основной цвет»" }));
+  expect(screen.getByText("Тон главной поверхности.")).toBeInTheDocument();
 });
 
 it("edits a bounded list as whole validated snapshots and preserves untouched colors", () => {
@@ -121,6 +128,7 @@ it("commits a range gesture once and disables fields without hiding their values
   expect(phases).toEqual(["start", "commit"]);
   view.rerender(<Host disabled />);
   expect(screen.getByRole("slider", { name: "Течение" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Цвет" }));
   expect(screen.getByRole("button", { name: "Добавить цвет в Палитра" })).toBeDisabled();
 });
 

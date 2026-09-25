@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import type { MaterialAction, MaterialCapability, MaterialDescriptorV2, MaterialRecipeV2, ParameterControl, ParameterGroup, ParameterValue } from "@wallet/ui";
-import { MonoLabSliderRow } from "../../mono-preview/mono-lab-controls";
+import { MonoLabIconButton, MonoLabSliderRow } from "../../mono-preview/mono-lab-controls";
 import styles from "./material-controls.module.css";
 
 export type MaterialControlsProps = {
@@ -60,7 +60,8 @@ export function MaterialControls({ descriptor, recipe, capability, disabled = fa
   const rows = descriptor.readControls(recipe, capability);
   const available = GROUPS.filter(group => rows.some(row => (row.control.group ?? "precise") === group.id) ||
     (group.id === "physics" && !!onAction && !!descriptor.actions?.length));
-  const [opened, setOpened] = useState<readonly ParameterGroup[]>(available.length ? [available[0]!.id] : []);
+  const [opened, setOpened] = useState<ParameterGroup | null>(available[0]?.id ?? null);
+  const [helpKey, setHelpKey] = useState<string | null>(null);
   const [error, setError] = useState<{ key: string; message: string } | null>(null);
   const [actionCount, setActionCount] = useState<MaterialAction["count"]>(1);
 
@@ -77,7 +78,11 @@ export function MaterialControls({ descriptor, recipe, capability, disabled = fa
   }
   function field(control: ParameterControl, value: ParameterValue, unavailable?: boolean) {
     const locked = disabled || !!unavailable;
-    const hint = control.description ? <small className={styles.hint}>{control.description}</small> : null;
+    const hint = control.description ? <>
+      <MonoLabIconButton label={`Описание «${control.label}»`} className={styles.helpButton}
+        aria-expanded={helpKey === control.key} onClick={() => setHelpKey(current => current === control.key ? null : control.key)}>?</MonoLabIconButton>
+      {helpKey === control.key && <small className={styles.hint}>{control.description}</small>}
+    </> : null;
     let input;
     if (control.kind === "range" && typeof value === "number") input = <MonoLabSliderRow
       label={control.label} value={value} min={control.min} max={control.max} step={control.step} unit={control.unit}
@@ -114,14 +119,15 @@ export function MaterialControls({ descriptor, recipe, capability, disabled = fa
   }
   return <div className={styles.root}>
     <div className={styles.tabs} role="group" aria-label="Группы параметров">
-      {available.map(group => <button type="button" key={group.id} title={group.label}
-        aria-label={group.label} aria-controls={`${id}-${group.id}`} aria-pressed={opened.includes(group.id)}
-        onClick={() => setOpened(current => current.includes(group.id) ? current.filter(item => item !== group.id) : [...current, group.id])}>
-        <span aria-hidden="true">{group.icon}</span><span>{group.label}</span>
-      </button>)}
+      {available.map(group => <MonoLabIconButton key={group.id} label={group.label} className={styles.category}
+        aria-controls={`${id}-${group.id}`} aria-pressed={opened === group.id}
+        onClick={() => { setOpened(current => current === group.id ? null : group.id); setHelpKey(null); }}>
+        {group.icon}
+      </MonoLabIconButton>)}
     </div>
     {available.map(group => <section className={styles.panel} key={group.id} id={`${id}-${group.id}`}
-      role="region" aria-label={`${group.label} · параметры`} hidden={!opened.includes(group.id)}>
+      role="region" aria-label={`${group.label} · параметры`} hidden={opened !== group.id}>
+      <h3>{group.label}</h3>
       {rows.filter(row => (row.control.group ?? "precise") === group.id).map(({ control, value, disabled: unavailable }) => field(control, value, unavailable))}
       {group.id === "physics" && onAction && descriptor.actions?.map(action => <div className={styles.action} key={action.kind}>
         <label>Число всплесков<select value={actionCount} disabled={disabled}
