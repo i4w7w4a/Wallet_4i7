@@ -144,3 +144,19 @@ ORACLE один выполняет общий gate: typecheck/lint/build, focuse
 После общей примерки остановиться на visual review. Выдать две работающие ссылки одного origin, полный cumulative HEAD, включения/исключения и известные ограничения. Основной сайт и GitHub default остаются прежними. До фактического запуска ссылки не обещать как работающие.
 
 GitHub Issues новой волны ещё не созданы: предыдущая запись блокирована 403 GitHub App. Не обходить отказ и не придумывать номера; локальный packet/реестр позволяют работать. Task IDs новых окон, exact ABI и промежуточные handoff добавляются после реального создания, без повторного запуска уже сданных задач.
+
+## Фактический запуск исполнителей
+
+Frozen requirements checkpoint: `e33b3e75d41a30f6c34bd526caf856754afdcae5`. Записи реестра после него не меняют базу задач и не требуют перебазирования каждого автора.
+
+| Пакет | Задача | Реальный task ID | Worktree под `C:/Users/iwwa/.codex/worktrees/` | Ветка |
+| --- | --- | --- | --- | --- |
+| M1 | Фоны — Fluid: течение и инерция | `01a0d217-15e5-7700-a163-7123faf7d15f` | `0a8a/5-wallet-foundation` | `codex/mono-materials-fluid-v2` |
+| M2 | Фоны — объёмные частицы David Li | `01a0d663-c045-7492-aeec-72f38d61ef31` | `aa9e/5-wallet-foundation` | `codex/mono-materials-particles` |
+| M3 | Материалы — Liquid Metal, Gem Smoke, Heatmap и рамки | `01a0d663-d8af-7fe1-b07f-ca303353b6d7` | `908b/5-wallet-foundation` | `codex/mono-materials-paper` |
+| M4 | Фоны — строгие металлические формы | `01a0d663-dc2f-7fe0-880f-39b08a8c565d` | `32f4/5-wallet-foundation` | `codex/mono-materials-vault` |
+| M5 | Фоны — песочница и библиотека проб | `01a0d216-ff4d-7b90-8bbc-8b63a3c422b9` | `a522/5-wallet-foundation` | `codex/mono-materials-background-ui` |
+| M6 | Кнопки — отдельная мастерская материалов | `01a0d663-dd5a-7503-adbc-ff7775492254` | `1144/5-wallet-foundation` | `codex/mono-materials-buttons` |
+| M0 | ORACLE — единая сборка Novex Wallet | `01a0cfcc-f35e-7a50-a624-6dda3022b4fb` | Новый integration worktree подтверждается bootstrap handoff | Отдельная новая integration-ветка |
+
+Для всех dispatch явно задано `gpt-6-sol` / `max`. Все шесть авторов подтвердили чистый старт на requirements checkpoint и раздельное владение. Общий ABI ещё не получен; до него разрешена независимая pure/source подготовка. Статус запуска не означает завершение реализации или доступный preview. Старые wave1 ветки сохранены.
