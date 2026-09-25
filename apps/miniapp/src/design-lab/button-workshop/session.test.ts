@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { createButtonSession } from "./session";
+import { createButtonDocument, editButtonBinding } from "./model";
 import { ACCEPTED_KEY, LIBRARY_KEY, WORKSPACE_KEY } from "./storage";
 
 const ACTIONS = ["send", "receive", "exchange", "buy"] as const;
@@ -118,4 +119,36 @@ test("recovery storage failure reports an error without rejecting the flush or l
   await expect(editor.flushRecovery()).resolves.toBeUndefined();
   expect(editor.getSnapshot().recoveryError).not.toBe("");
   expect(editor.shownDocument().actions.send.fill).toEqual(metal);
+});
+
+test("a new edge-first draft cannot rewrite an existing saved workspace", async () => {
+  const store = memoryStorage();
+  const oldDraft = editButtonBinding(createButtonDocument<typeof ACTIONS[number], Recipe>(ACTIONS), ACTIONS, "all", "fill", metal);
+  const old = createButtonSession(ACTIONS, parseRecipe, oldDraft);
+  old.connect(store, lock);
+  await old.flushRecovery();
+  const saved = store.values.get(WORKSPACE_KEY)!;
+  const edgeDraft = editButtonBinding(createButtonDocument<typeof ACTIONS[number], Recipe>(ACTIONS), ACTIONS, "all", "border", border);
+  const current = createButtonSession(ACTIONS, parseRecipe, edgeDraft);
+  current.connect(store, lock);
+  expect(current.shownDocument().actions.send.fill).toEqual(metal);
+  expect(current.shownDocument().actions.send.border).toBeNull();
+  await current.flushRecovery();
+  expect(store.values.get(WORKSPACE_KEY)).toBe(saved);
+});
+
+test("accepted bindings remain the draft when only recovery workspace is missing", async () => {
+  const store = memoryStorage();
+  const oldDraft = editButtonBinding(createButtonDocument<typeof ACTIONS[number], Recipe>(ACTIONS), ACTIONS, "all", "fill", metal);
+  const old = createButtonSession(ACTIONS, parseRecipe, oldDraft);
+  old.connect(store, lock);
+  expect(await old.apply()).toBe(true);
+  store.values.delete(WORKSPACE_KEY);
+  const edgeDraft = editButtonBinding(createButtonDocument<typeof ACTIONS[number], Recipe>(ACTIONS), ACTIONS, "all", "border", border);
+  const current = createButtonSession(ACTIONS, parseRecipe, edgeDraft);
+  current.connect(store, lock);
+  expect(current.shownDocument().actions.send.fill).toEqual(metal);
+  expect(current.shownDocument().actions.send.border).toBeNull();
+  expect(current.getSnapshot().accepted.actions.send.fill).toEqual(metal);
+  expect(current.getSnapshot().workspace.selection.layer).toBe("fill");
 });

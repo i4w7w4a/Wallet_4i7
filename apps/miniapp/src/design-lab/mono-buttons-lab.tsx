@@ -7,7 +7,7 @@ import { MATERIAL_BORDER_BOUNDS, MATERIAL_RADIUS_BOUNDS,
 import { SandboxDialog } from "./background-sandbox/dialog";
 import { MaterialControls } from "./material-controls";
 import { createButtonBinding, replaceBindingRecipe, parseButtonBinding,
-  buttonDocumentBindings, BUTTON_LAYERS, BUTTON_TARGETS } from "./button-workshop/binding";
+  buttonDocumentBindings, BUTTON_TARGETS } from "./button-workshop/binding";
 import { boundedButtonJson, parseButtonImport } from "./button-workshop/codec";
 import { createButtonDocument, editButtonBinding, isButtonSlotDirty } from "./button-workshop/model";
 import { createButtonSession } from "./button-workshop/session";
@@ -19,7 +19,8 @@ import styles from "./mono-buttons-lab.module.css";
 const ACTION_LABEL: Readonly<Record<ButtonTargetId, string>> = {
   "quick.send": "Отправить", "quick.receive": "Получить", "quick.swap": "Обменять", "quick.buy": "Купить",
 };
-const LAYER_LABEL: Readonly<Record<ButtonMaterialLayer, string>> = { fill: "Поверхность", icon: "Иконка", border: "Рамка" };
+const LAYER_LABEL: Readonly<Record<ButtonMaterialLayer, string>> = { fill: "Поверхность", icon: "Иконка", border: "Кромка" };
+const EDITOR_LAYERS: readonly ButtonMaterialLayer[] = ["border", "fill", "icon"];
 const WIDTHS = [320, 390, 430, 480] as const;
 type Dialog = "library" | "name" | "guard" | "more" | "import" | "export" | "material-import" | "material-export" | null;
 type Transition = { label: string; action(): void };
@@ -36,7 +37,7 @@ function valueOrThrow<T>(result: { ok: true; value: T } | { ok: false; issues: r
 function capability(layer: ButtonMaterialLayer) { return `button-${layer}` as const; }
 function startingButtonDraft(catalog: ButtonWorkshopBindings["materialCatalog"]) {
   let draft = createButtonDocument<ButtonTargetId, MaterialTargetBinding>(BUTTON_TARGETS);
-  for (const [effectId, layer] of [["liquid-metal", "fill"], ["pulsing-border", "border"]] as const) {
+  for (const [effectId, layer] of [["pulsing-border", "border"]] as const) {
     const material = catalog.materials.find(item => item.id === effectId && item.capabilities.includes(capability(layer)));
     const recipe = material?.presets[0]?.recipe;
     if (!recipe) continue;
@@ -76,6 +77,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
   const [importText, setImportText] = useState("");
   const [importPreview, setImportPreview] = useState<ReturnType<typeof editor.shownDocument> | null>(null);
   const [materialPreview, setMaterialPreview] = useState<MaterialRecipeV2 | null>(null);
+  const [materialPreviewLayer, setMaterialPreviewLayer] = useState<ButtonMaterialLayer>("fill");
   const [notice, setNotice] = useState("");
   const [runtimeStatus, setRuntimeStatus] = useState("");
   const onRuntimeStatus = useCallback((status: { message: string }) => setRuntimeStatus(status.message), []);
@@ -105,6 +107,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
       try {
         const recipe = parseBackgroundToButtonsTransfer(raw, catalog);
         setMaterialPreview(recipe);
+        setMaterialPreviewLayer("fill");
         setDialog("material-import");
         setNotice("");
       } catch (error) { setNotice((error as Error).message); }
@@ -139,16 +142,17 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
     if (!slot.present.source) { startSave(true, transition); return; }
     if (await editor.save()) { transition?.action(); close(); }
   }
-  function changeMaterial(recipe: MaterialRecipeV2 | null) {
+  function changeMaterial(recipe: MaterialRecipeV2 | null, layer: ButtonMaterialLayer = selection.layer): boolean {
     try {
-      if (recipe === null) { editor.edit(selection.target, selection.layer, null); setNotice(""); return; }
-      editor.edit(selection.target, selection.layer, target => {
+      if (recipe === null) { editor.edit(selection.target, layer, null); setNotice(""); return true; }
+      editor.edit(selection.target, layer, target => {
         const currentState = editor.getSnapshot();
-        const current = currentState.workspace.slots[currentState.workspace.activeSlot]!.present.document.actions[target][selection.layer];
-        return current ? replaceBindingRecipe(current, recipe, catalog) : createButtonBinding(target, selection.layer, recipe, catalog);
+        const current = currentState.workspace.slots[currentState.workspace.activeSlot]!.present.document.actions[target][layer];
+        return current ? replaceBindingRecipe(current, recipe, catalog) : createButtonBinding(target, layer, recipe, catalog);
       });
       setNotice("");
-    } catch (error) { setNotice((error as Error).message); }
+      return true;
+    } catch (error) { setNotice((error as Error).message); return false; }
   }
   function changeBinding(mutator: (binding: MaterialTargetBinding) => MaterialTargetBinding) {
     try {
@@ -169,7 +173,8 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
   function prepareMaterial(raw: string) {
     try {
       const value = boundedButtonJson(raw, 64 * 1024);
-      setMaterialPreview(valueOrThrow(catalog.copyForTarget(value, capability(selection.layer)))); setNotice("");
+      setMaterialPreview(valueOrThrow(catalog.copyForTarget(value, capability(selection.layer))));
+      setMaterialPreviewLayer(selection.layer); setNotice("");
     } catch (error) { setMaterialPreview(null); setNotice((error as Error).message); }
   }
 
@@ -223,7 +228,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
           <p className={styles.note}>Материалы не меняют опубликованные настройки MONO. <a href="/design-lab" target="_blank" rel="noopener noreferrer">Motion Lab ↗</a> настраивает прежний отклик на нажатие.</p>
         </div>
         <aside className={styles.inspector} aria-label="Инспектор кнопок">
-          <div className={styles.inspectorHeading}><h2>Материал кнопки</h2><span>Слот {state.workspace.activeSlot + 1}</span></div>
+          <div className={styles.inspectorHeading}><h2>{LAYER_LABEL[selection.layer]} · {selection.target === "all" ? "Все четыре" : ACTION_LABEL[selection.target]}</h2><span>Слот {state.workspace.activeSlot + 1}</span></div>
           <div className={styles.slots} role="group" aria-label="Независимые слоты">{[0, 1, 2].map(index =>
             <button className={styles.control} type="button" key={index} aria-label={`Слот ${index + 1}`}
               aria-pressed={state.workspace.activeSlot === index} disabled={state.saving} onClick={() => editor.selectSlot(index)}>{index + 1}{isButtonSlotDirty(state.workspace.slots[index]!) ? " ·" : ""}</button>)}</div>
@@ -232,9 +237,12 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
             {BUTTON_TARGETS.map(target => <button className={styles.control} key={target} type="button"
               aria-pressed={selection.target === target} onClick={() => editor.selectTarget(target)}>{ACTION_LABEL[target]}</button>)}
           </div>
-          <div className={styles.layers} role="tablist" aria-label="Слой кнопки">{BUTTON_LAYERS.map(layer =>
+          <div className={styles.layers} role="tablist" aria-label="Слой кнопки">{EDITOR_LAYERS.map(layer =>
             <button className={styles.control} type="button" role="tab" key={layer} aria-selected={selection.layer === layer}
               onClick={() => editor.selectLayer(layer)}>{LAYER_LABEL[layer]}</button>)}</div>
+          <p className={styles.layerCue}>{selection.layer === "border" ? "Кромка и боковая грань. Свет идёт по краю; знак и подпись остаются читаемыми." :
+            selection.layer === "fill" ? "Поверхность всей кнопки. Яркий материал может уменьшить контраст знака — сравните с кромкой." :
+              "Материал только внутри контура знака. Поверхность и кромка сохраняют свои настройки."}</p>
           <label className={styles.field}>Материал<select aria-label="Материал" value={sharedEffect} disabled={disabled}
             onChange={event => {
               const chosen = available.find(item => item.id === event.currentTarget.value);
@@ -253,7 +261,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
               recipe={first.recipe} capability={capability(selection.layer)} disabled={disabled} onChange={changeMaterial}
               onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} onError={setNotice} />}
             {first && <div className={styles.geometry}>
-              {selection.layer !== "icon" && <label className={styles.field}>Радиус поверхности <output>{first.radiusCss} px</output>
+              {selection.layer !== "icon" && <label className={styles.field}>Скругление {selection.layer === "border" ? "кромки" : "поверхности"} <output>{first.radiusCss} px</output>
                 <input type="range" min={MATERIAL_RADIUS_BOUNDS.min} max={MATERIAL_RADIUS_BOUNDS.max} step="0.5" value={first.radiusCss} disabled={disabled}
                   onPointerDown={editor.beginGesture} onPointerUp={editor.endGesture} onKeyDown={editor.beginGesture} onKeyUp={editor.endGesture}
                   onChange={event => changeBinding(binding => ({ ...binding, radiusCss: Number(event.currentTarget.value) }))} /></label>}
@@ -263,10 +271,11 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
                   onChange={event => changeBinding(binding => ({ ...binding, borderWidthCss: Number(event.currentTarget.value) }))} /></label>}
               <label className={styles.toggle}><input type="checkbox" checked={first.enabled} disabled={disabled}
                 onChange={event => changeBinding(binding => ({ ...binding, enabled: event.currentTarget.checked }))} />Материал включён</label>
-              <button className={styles.control} type="button" disabled={disabled} onClick={() => changeMaterial(null)}>Убрать материал слоя</button>
+              <p className={styles.note}>Выключение скрывает эффект, сохраняя все параметры. Сброс меняет только этот слой и отменяется через Undo.</p>
               <button className={styles.control} type="button" disabled={disabled || !descriptor.presets[0]} onClick={() => {
                 if (descriptor.presets[0]) changeMaterial(descriptor.presets[0].recipe);
-              }}>По умолчанию</button>
+              }}>Сбросить материал слоя</button>
+              <button className={styles.quietControl} type="button" disabled={disabled} onClick={() => changeMaterial(null)}>Очистить слой · можно отменить</button>
             </div>}
           </>}
           {!descriptor && <p className={styles.note}>Выберите материал для выбранного слоя. Контуры, иконки и поверхность меняются независимо.</p>}
@@ -331,12 +340,14 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
         }}>Открыть мастерскую фонов с копией ↗</a>
         {notice && <p role="alert">{notice}</p>}
       </div>}
-      {dialog === "material-import" && <div className={styles.dialogBody}><p>Проверьте полный recipe из мастерской фонов. Выбранный слой изменится только после команды ниже; текущую правку можно вернуть через Undo.</p>
+      {dialog === "material-import" && <div className={styles.dialogBody}><p>Проверьте полный recipe из мастерской фонов. Изменится {LAYER_LABEL[materialPreviewLayer].toLowerCase()} · {selection.target === "all" ? "все четыре" : ACTION_LABEL[selection.target]}; текущую правку можно вернуть через Undo. Apply и Save остаются отдельными.</p>
         <textarea aria-label="Импорт материала" rows={8} maxLength={65537} value={importText}
           onChange={event => { setImportText(event.currentTarget.value); setMaterialPreview(null); }} />
         <button className={styles.control} type="button" onClick={() => prepareMaterial(importText)}>Проверить материал</button>
         {materialPreview && <div><p>{catalog.materials.find(item => item.id === materialPreview.effectId)?.label ?? materialPreview.effectId} · совместим с выбранным слоем.</p>
-          <button className={styles.control} type="button" onClick={() => { changeMaterial(materialPreview); close(); }}>Взять в черновик</button></div>}
+          <button className={styles.control} type="button" onClick={() => {
+            if (changeMaterial(materialPreview, materialPreviewLayer)) { editor.selectLayer(materialPreviewLayer); close(); }
+          }}>Взять в черновик</button></div>}
         {notice && <p role="alert">{notice}</p>}
       </div>}
     </SandboxDialog>}

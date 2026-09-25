@@ -36,7 +36,7 @@ export function createButtonDocument<A extends string, R>(actionIds: readonly A[
 export function createButtonWorkspace<A extends string, R>(actionIds: readonly A[], initialDraft?: ButtonLabDocument<A, R>): ButtonLabWorkspace<A, R> {
   const initial = initialDraft ? copyButtonValue(initialDraft) : createButtonDocument<A, R>(actionIds);
   const slot = (): ButtonLabSlot<A, R> => ({ present: { document: copyButtonValue(initial), baseline: copyButtonValue(initial), source: null }, past: [], future: [] });
-  return { version: 1, activeSlot: 0, selection: { target: "all", layer: "fill" }, slots: [slot(), slot(), slot()], pinned: null };
+  return { version: 1, activeSlot: 0, selection: { target: "all", layer: "border" }, slots: [slot(), slot(), slot()], pinned: null };
 }
 
 export function editButtonBinding<A extends string, R>(document: ButtonLabDocument<A, R>, actionIds: readonly A[],

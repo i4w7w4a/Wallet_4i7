@@ -115,6 +115,13 @@ export function createButtonSession<A extends string, R>(actionIds: readonly A[]
       try {
         workspaceRaw = storage.getItem(WORKSPACE_KEY);
         if (workspaceRaw !== null) publish({ workspace: parseButtonWorkspace(workspaceRaw, actionIds, parseRecipe), recovered: true });
+        else if (acceptedRaw !== null && !state.acceptedUnavailable) {
+          // A missing recovery key must not replace a previously accepted preview with new defaults.
+          const recovered = createButtonWorkspace(actionIds, state.accepted);
+          const visibleLayer = (["border", "fill", "icon"] as const).find(layer =>
+            actionIds.some(action => state.accepted.actions[action][layer] !== null)) ?? "border";
+          publish({ workspace: { ...recovered, selection: { target: "all", layer: visibleLayer } } });
+        }
       } catch (error) { recoveryBlocked = true; publish({ recoveryError: message(error), recoveryUnavailable: true }); }
       publish({ ready: true, writeAvailable: !!runLocked });
       if (workspaceRaw === null && !recoveryBlocked) queueRecovery();

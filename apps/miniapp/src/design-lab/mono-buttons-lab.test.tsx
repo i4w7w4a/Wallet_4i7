@@ -16,7 +16,7 @@ function descriptor(id: "liquid-metal" | "pulsing-border", label: string, capabi
     readControls() { return []; }, updateParameter(value) { return { ok: true, value }; } };
 }
 const materials = [descriptor("liquid-metal", "Liquid Metal", ["background", "button-fill", "button-icon"], metal),
-  descriptor("pulsing-border", "Pulsing Border", ["button-border"], border)];
+  descriptor("pulsing-border", "Pulsing Border", ["background", "button-border"], border)];
 const bindings: ButtonWorkshopBindings = {
   materialCatalog: {
     materials,
@@ -38,12 +38,15 @@ afterEach(() => cleanup());
 test("separate button lab sends four real target bindings and keeps icon edits individual", () => {
   render(<MonoButtonsLab bindings={bindings} />);
   const stage = screen.getByTestId("button-stage");
-  expect(stage.textContent?.split("|")).toHaveLength(8);
-  expect(stage).toHaveTextContent("quick.send:fill:liquid-metal");
+  expect(stage.textContent?.split("|")).toHaveLength(4);
+  expect(stage).not.toHaveTextContent(":fill:");
   expect(stage).toHaveTextContent("quick.buy:border:pulsing-border");
+  expect(screen.getByRole("tab", { name: "Кромка" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByRole("heading", { name: /Кромка · Все четыре/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("tab", { name: "Поверхность" }));
   fireEvent.change(screen.getByRole("combobox", { name: "Материал" }), { target: { value: "liquid-metal" } });
   expect(stage.textContent?.split("|")).toHaveLength(8);
-  fireEvent.click(screen.getByRole("tab", { name: "Рамка" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Кромка" }));
   fireEvent.change(screen.getByRole("combobox", { name: "Материал" }), { target: { value: "pulsing-border" } });
   expect(stage.textContent?.split("|")).toHaveLength(8);
   fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
@@ -58,10 +61,10 @@ test("Apply and Cancel affect only local accepted bindings", async () => {
   render(<MonoButtonsLab bindings={bindings} />);
   fireEvent.click(screen.getByRole("button", { name: "Применить" }));
   await screen.findByText(/Применено в локальной примерке/);
-  fireEvent.click(screen.getByRole("tab", { name: "Рамка" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Кромка" }));
   fireEvent.change(screen.getByRole("combobox", { name: "Материал" }), { target: { value: "" } });
   fireEvent.click(screen.getByRole("button", { name: "Отменить пробу" }));
-  expect(screen.getByTestId("button-stage").textContent?.split("|")).toHaveLength(8);
+  expect(screen.getByTestId("button-stage").textContent?.split("|")).toHaveLength(4);
   expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toBeNull();
 });
 
@@ -75,6 +78,8 @@ test("incoming background material shows a preview and requires a local draft de
   expect(localStorage.getItem("wallet4i7.button-sandbox.accepted.v1")).toBeNull();
   fireEvent.click(within(dialog).getByRole("button", { name: "Взять в черновик" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByTestId("button-stage").textContent?.split("|")).toHaveLength(8);
+  expect(screen.getByTestId("button-stage")).toHaveTextContent("quick.send:fill:liquid-metal");
   expect(localStorage.getItem("wallet4i7.button-sandbox.accepted.v1")).toBeNull();
 });
 
@@ -89,7 +94,7 @@ test("selected button sends a compatible full material to the separate backgroun
   link.addEventListener("click", event => event.preventDefault());
   fireEvent.click(link);
   expect(JSON.parse(sessionStorage.getItem("wallet4i7.material-copy.buttons-to-background.v1")!)).toEqual({
-    version: 1, target: "background", recipe: metal,
+    version: 1, target: "background", recipe: border,
   });
 });
 
@@ -111,11 +116,11 @@ test("named Save, Open and reload keep a complete accepted preview and separate 
   fireEvent.click(within(dialog).getByRole("button", { name: "Открыть" }));
   dialog = screen.getByRole("dialog", { name: "Несохранённая проба" });
   fireEvent.click(within(dialog).getByRole("button", { name: "Отбросить и перейти" }));
-  expect(screen.getByTestId("button-stage").textContent?.split("|")).toHaveLength(8);
+  expect(screen.getByTestId("button-stage").textContent?.split("|")).toHaveLength(4);
   await waitFor(() => expect(localStorage.getItem("wallet4i7.button-sandbox.workspace.v1")).not.toBeNull());
   view.unmount();
   render(<MonoButtonsLab bindings={bindings} />);
-  expect(screen.getByTestId("button-stage").textContent?.split("|")).toHaveLength(8);
+  expect(screen.getByTestId("button-stage").textContent?.split("|")).toHaveLength(4);
   expect(screen.getByRole("heading", { name: "Metal and border" })).toBeInTheDocument();
   expect(JSON.parse(localStorage.getItem("wallet4i7.button-sandbox.library.v1")!).trials).toHaveLength(1);
 });

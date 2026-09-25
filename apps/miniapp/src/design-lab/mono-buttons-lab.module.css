@@ -29,20 +29,26 @@
 .applyBar span { margin-right: auto; color: #bfcdc8; font-size: 11px; }
 .inspector { background: #1b2322; border: 1px solid #41504d; border-radius: 12px; padding: 16px; min-width: 0; }
 .inspectorHeading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.inspectorHeading h2 { margin: 0; font-weight: 500; font-size: 15px; }
+.inspectorHeading h2 { margin: 0; font-weight: 600; font-size: 16px; line-height: 1.3; }
 .inspectorHeading span { color: #b7c5c0; font-size: 11px; }
 .slots { margin-bottom: 14px; }
 .slots button { flex: 1; }
 .targets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 12px 0; }
 .targets button:first-child { grid-column: 1 / -1; }
-.layers { margin: 16px 0; }
-.layers button { flex: 1; padding-inline: 5px; font-size: 11px; }
+.layers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 17px 0 9px; }
+.layers button { min-height: 52px; padding-inline: 5px; font-size: 12px; font-weight: 600; }
+.layers button[aria-selected="true"] { border-color: #cfebd8; background: #40544a; color: #f6fff8; box-shadow: inset 0 1px #e9fff044; }
+.layerCue { min-height: 58px; padding: 8px 10px; border-left: 2px solid #8cafa0; margin: 0 0 14px; background: #22302b; color: #cbdcd2; font-size: 11px; line-height: 1.55; }
 .field { display: grid; gap: 7px; margin: 14px 0; color: #d1ddd7; font-size: 12px; }
 .field input[type="range"] { padding: 0; }
 .field output { color: #adbeb7; }
 .description, .note { color: #adbfba; font-size: 11px; line-height: 1.65; }
 .description { margin: 16px 0; }
 .geometry { border-top: 1px solid #43514d; margin-top: 16px; padding-top: 4px; }
+.geometry > button { width: 100%; margin: 5px 0; }
+.quietControl { min-height: 44px; padding: 9px 12px; border: 1px solid #465651; border-radius: 7px; background: transparent; color: #b8c9bf; font: inherit; cursor: pointer; }
+.quietControl:hover { border-color: #839a8e; color: #f0faf3; }
+.quietControl:disabled { opacity: .45; cursor: default; }
 .toggle { display: flex; align-items: center; gap: 10px; min-height: 44px; }
 .toggle input { width: 20px; height: 20px; }
 .parameters { display: grid; gap: 2px; }
