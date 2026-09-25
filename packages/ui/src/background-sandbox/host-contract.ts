@@ -4,7 +4,7 @@ import type {
   ParameterControl, ParameterValue, ParseResult,
 } from "./contracts";
 import type {
-  MaterialCapability, MaterialDescriptorV2, MaterialQualityProfile, MaterialRecipeV2,
+  MaterialAction, MaterialCapability, MaterialDescriptorV2, MaterialEffectId, MaterialQualityProfile, MaterialRecipeV2,
   MaterialTargetBinding, NormalizedBackgroundMaterial,
 } from "./material-contract";
 
@@ -33,7 +33,7 @@ export type BackgroundPresentation =
 export type BackgroundRuntimeStatus = Readonly<{
   phase: "idle" | "initializing" | "running" | "paused" | "fallback" | "lost" | "disposed";
   message: string;
-  effectId?: EffectId;
+  effectId?: EffectId | MaterialEffectId;
   diagnostics?: EffectDiagnostics;
 }>;
 
@@ -72,6 +72,8 @@ export type MaterialStageRequestV2 = Readonly<{
   quality: MaterialQualityProfile;
   paused: boolean;
   restartKey: number;
+  /** Monotone local request ID prevents replay on ordinary React renders. Never persist. */
+  transientAction?: Readonly<{ requestId: number; action: MaterialAction }>;
   onStatus?: (status: BackgroundRuntimeStatus) => void;
 }>;
 /** Separate button-lab renderer. Its state and storage belong to the button workshop. */

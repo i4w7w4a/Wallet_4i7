@@ -15,6 +15,17 @@ export type MaterialAssetId =
   | "mono.quick.send" | "mono.quick.receive" | "mono.quick.swap" | "mono.quick.buy";
 export type MaterialQualityProfile = "economy" | "balanced" | "detail";
 export type MaterialAlphaMode = "opaque" | "premultiplied";
+/** A command acts on the live field only. It never enters params, trials or workspace. */
+export type MaterialAction = Readonly<{
+  kind: "seeded-splats";
+  count: 1 | 2 | 3 | 4 | 5 | 6;
+}>;
+export type MaterialActionDescriptor = Readonly<{
+  kind: MaterialAction["kind"];
+  label: string;
+  minCount: 1;
+  maxCount: 6;
+}>;
 
 /** Versioned, full artistic data. Runtime quality and simulated pixels never enter this value. */
 export type MaterialRecipeV2<
@@ -115,6 +126,8 @@ export interface MaterialPass<P> {
   update(params: Readonly<P>): void;
   resize(viewport: Viewport, geometry: MaterialTargetGeometry): void;
   render(frame: Frame, geometry: MaterialTargetGeometry): MaterialFrameTexture;
+  /** Optional bounded operation on existing GPU state; this does not call reset. */
+  invokeAction?(action: MaterialAction): void;
   reset(seed: number): void;
   dispose(): void;
   getDiagnostics?(): EffectDiagnostics;
@@ -132,6 +145,7 @@ export interface MaterialDefinition<
   readonly description: string;
   readonly capabilities: readonly MaterialCapability[];
   readonly schema: ParameterSchema<P>;
+  readonly actions?: readonly MaterialActionDescriptor[];
   readonly presets: readonly EffectPreset<P>[];
   readonly assetIds: readonly MaterialAssetId[];
   readonly provenance: EffectProvenance;
@@ -148,6 +162,7 @@ export interface MaterialDescriptorV2 {
   readonly label: string;
   readonly description: string;
   readonly capabilities: readonly MaterialCapability[];
+  readonly actions?: readonly MaterialActionDescriptor[];
   readonly provenance: EffectProvenance;
   readonly presets: readonly Readonly<{ id: string; label: string; recipe: MaterialRecipeV2 }>[];
   parseRecipe(input: unknown): ParseResult<MaterialRecipeV2>;

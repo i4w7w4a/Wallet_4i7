@@ -58,7 +58,8 @@ export type {
 } from "./background-sandbox/contracts";
 export type {
   MaterialEffectId, MaterialCapability, MaterialEffectVersion, MaterialAssetId,
-  MaterialQualityProfile, MaterialAlphaMode, MaterialRecipeV2, NormalizedBackgroundMaterial,
+  MaterialQualityProfile, MaterialAlphaMode, MaterialAction, MaterialActionDescriptor,
+  MaterialRecipeV2, NormalizedBackgroundMaterial,
   ButtonTargetId, ButtonMaterialLayer, MaterialMask, MaterialTargetBinding, MaterialTargetGeometry,
   MaterialMaskSource, PreparedMaterialSource, PreparedMaterialAsset, PreparedMaterialAssets, MaterialPrepareRequest,
   MaterialResourcePlan, MaterialInit, MaterialFrameTexture, MaterialPass,
@@ -73,3 +74,7 @@ export { BackgroundGpuSurface } from "./background-sandbox/background-gpu-surfac
 export { createMonoOpticalHost, type MonoSharedOpticalHost } from "./mono/mono-optical-host";
 export { createMonoOpticalOverlay } from "./mono/mono-optical-overlay";
 export { backgroundMaterials, backgroundMaterialDescriptors, parseBackgroundRecipe } from "./background-sandbox/registry";
+export {
+  BUTTON_MASK_ASSETS, MATERIAL_RADIUS_BOUNDS, MATERIAL_BORDER_BOUNDS,
+  parseTargetBinding, parseTargetBindings, createTargetBinding,
+} from "./background-sandbox/target-binding";
