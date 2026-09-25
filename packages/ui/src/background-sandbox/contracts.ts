@@ -63,6 +63,7 @@ export type PointerPhase = "enter" | "move" | "down" | "up" | "leave" | "cancel"
 export type PointerSample = Readonly<{
   id: number;
   phase: PointerPhase;
+  pointerType?: "mouse" | "pen" | "touch";
   /** UV origin is bottom-left. Initial/re-entry/resize samples have zero delta. */
   uv: Vec2;
   delta: Vec2;

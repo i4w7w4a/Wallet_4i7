@@ -52,7 +52,8 @@ export function MaterialSceneSurface({ background = null, edgeFinish, bindings =
   useEffect(() => { backend.current?.update(input); }, [input]);
   return <div ref={root} data-material-scene data-gpu-phase={status.phase}
     style={{ position: "relative", width: "100%", height: children ? "auto" : "100%",
-      minHeight: children ? "100%" : 1, overflow: "hidden", backgroundColor: fallback }}>
+      minHeight: children ? "100%" : 1, overflow: "hidden", backgroundColor: fallback,
+      touchAction: background ? "pan-y" : "auto" }}>
     {children && <div style={{ position: "relative", zIndex: 1 }}>{children}</div>}
     {!children && (status.phase === "fallback" || status.phase === "lost") && <div role="status"
       style={{ position: "absolute", inset: 0, display: "grid", placeContent: "center",

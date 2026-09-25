@@ -3,6 +3,7 @@ import type { PointerFrame, PointerSample, Vec2, Viewport } from "./contracts";
 export class ActiveClock {
   private lastMs: number | null = null;
   private elapsed = 0;
+  private lastSampleTime = 0;
 
   get time() { return this.elapsed; }
 
@@ -12,11 +13,19 @@ export class ActiveClock {
     }
     const dt = this.lastMs === null ? 0 : Math.min(0.064, (nowMs - this.lastMs) / 1000);
     this.lastMs = nowMs;
-    this.elapsed += dt;
+    this.elapsed = Math.max(this.elapsed + dt, this.lastSampleTime);
     return { time: this.elapsed, dt };
   }
 
-  pause() { this.lastMs = null; }
+  /** Pointer events between RAFs need ordered active timestamps without counting hidden time. */
+  sampleTime(nowMs: number): number {
+    const sinceFrame = this.lastMs !== null && Number.isFinite(nowMs)
+      ? Math.max(0, Math.min(0.064, (nowMs - this.lastMs) / 1000)) : 0;
+    this.lastSampleTime = Math.max(this.elapsed + sinceFrame, this.lastSampleTime + 0.0001);
+    return this.lastSampleTime;
+  }
+
+  pause() { this.lastMs = null; this.lastSampleTime = this.elapsed; }
   reset() { this.elapsed = 0; this.pause(); }
 }
 
@@ -37,9 +46,11 @@ export class PointerInput {
     if (this.owner !== null && sample.id !== this.owner) return;
     const uv: Vec2 = [Math.min(1, Math.max(0, sample.uv[0])), Math.min(1, Math.max(0, sample.uv[1]))];
     const departing = sample.phase === "leave" || sample.phase === "cancel";
-    const arriving = !this.inside || sample.phase === "enter";
+    const ending = departing || sample.phase === "up";
+    const arriving = !this.inside || sample.phase === "enter" ||
+      (sample.phase === "down" && this.owner === null);
     const delta: Vec2 = arriving || departing ? [0, 0] : [uv[0] - this.uv[0], uv[1] - this.uv[1]];
-    this.owner = departing ? null : sample.id;
+    this.owner = ending ? null : sample.id;
     this.uv = uv;
     this.inside = !departing;
     if (departing || sample.phase === "up" || (sample.buttons & 1) === 0) this.down = false;

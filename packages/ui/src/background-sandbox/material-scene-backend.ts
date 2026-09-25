@@ -11,6 +11,7 @@ import type {
 import { MaterialCompositor, type MaterialDrawMode } from "./material-compositor";
 import { planMaterialSceneBudget } from "./material-scene-budget";
 import { materialSceneStructureKey } from "./material-scene-state";
+import { materialPointerPhase } from "./material-scene-pointer";
 import { resolveMaterialTargetGeometry } from "./material-target-geometry";
 import { rasterizeMaterialIcon } from "./material-icon-assets";
 import { materialBindingsV2, materialCatalogV2 } from "./registry-v2";
@@ -129,12 +130,12 @@ export class MaterialSceneBackend {
       this.mutationObserver.observe(root, { childList: true, subtree: true });
       this.canvas.addEventListener("webglcontextlost", this.contextLost);
       this.canvas.addEventListener("webglcontextrestored", this.contextRestored);
-      root.addEventListener("pointerenter", this.handlePointer);
-      root.addEventListener("pointermove", this.handlePointer);
-      root.addEventListener("pointerdown", this.handlePointer);
-      root.addEventListener("pointerup", this.handlePointer);
-      root.addEventListener("pointerleave", this.handlePointer);
-      root.addEventListener("pointercancel", this.handlePointer);
+      root.addEventListener("pointerenter", this.handlePointer, { passive: true });
+      root.addEventListener("pointermove", this.handlePointer, { passive: true });
+      root.addEventListener("pointerdown", this.handlePointer, { passive: true });
+      root.addEventListener("pointerup", this.handlePointer, { passive: true });
+      root.addEventListener("pointerleave", this.handlePointer, { passive: true });
+      root.addEventListener("pointercancel", this.handlePointer, { passive: true });
       document.addEventListener("visibilitychange", this.visibilityChanged);
       this.subscribeOverlay();
       void this.select();
@@ -349,20 +350,23 @@ export class MaterialSceneBackend {
     if (this.input.paused) this.draw(); else this.schedule();
   }
   private readonly visibilityChanged = () => {
-    if (document.visibilityState === "hidden") this.stop();
+    if (document.visibilityState === "hidden") { this.pointer.reset(); this.stop(); }
     else { this.draw(); this.schedule(); }
   };
   private readonly handlePointer = (event: PointerEvent) => {
     if (!this.input.background || !this.input.hostActive || this.input.paused) return;
     const phase = event.type.slice("pointer".length) as PointerPhase;
     const target = event.target;
-    if (phase !== "leave" && phase !== "cancel" && target instanceof Element &&
-        target.closest("button,a,input,select,textarea,[role='button']")) return;
+    const overControl = target instanceof Element && Boolean(target.closest(
+      "button,a,input,select,textarea,summary,[contenteditable=true],[role='button'],[role='slider']"));
+    const routedPhase = materialPointerPhase(phase, overControl);
+    if (!routedPhase) return;
     const rect = this.root.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
-    this.pointer.push({ id: event.pointerId, phase,
+    this.pointer.push({ id: event.pointerId, phase: routedPhase,
+      pointerType: event.pointerType === "touch" || event.pointerType === "pen" ? event.pointerType : "mouse",
       uv: [(event.clientX - rect.left) / rect.width, 1 - (event.clientY - rect.top) / rect.height],
-      time: this.clock.time, buttons: event.buttons });
+      time: this.clock.sampleTime(event.timeStamp), buttons: routedPhase === "cancel" ? 0 : event.buttons });
     this.invalidate();
   };
   private readonly contextLost = (event: Event) => {
@@ -395,7 +399,7 @@ export class MaterialSceneBackend {
         this.lastActionId = next.transientAction.requestId;
         this.passes.find(entry => entry.key === "background")?.pass.invokeAction?.(next.transientAction.action);
       }
-      if (next.paused || !next.hostActive) this.stop();
+      if (next.paused || !next.hostActive) { this.pointer.reset(); this.stop(); }
       else this.schedule();
       if (next.paused || next.restartKey !== before.restartKey || before.overlay !== next.overlay) this.draw();
     } catch (error) { this.fail(error); }

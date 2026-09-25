@@ -21,6 +21,20 @@ describe("active host time", () => {
     clock.reset();
     expect(clock.advance(8000)).toEqual({ time: 0, dt: 0 });
   });
+
+  it("timestamps multiple pointer samples between RAF frames in active time", () => {
+    const clock = new ActiveClock();
+    clock.advance(1000);
+    const down = clock.sampleTime(1002);
+    const move = clock.sampleTime(1003);
+    const up = clock.sampleTime(1003);
+    expect(down).toBeGreaterThan(0);
+    expect(move).toBeGreaterThan(down);
+    expect(up).toBeGreaterThan(move);
+    expect(clock.advance(1016).time).toBeGreaterThanOrEqual(up);
+    clock.pause();
+    expect(clock.advance(900000).dt).toBe(0);
+  });
 });
 
 describe("host pointer collection", () => {
@@ -55,6 +69,18 @@ describe("host pointer collection", () => {
     input.reset();
     input.push({ id: 3, phase: "move", uv: [0.1, 0.2], time: 11, buttons: 0 });
     expect(input.drain().samples[0]?.delta).toEqual([0, 0]);
+  });
+
+  it("releases ownership on up so two separate touch taps reach the effect", () => {
+    const input = new PointerInput();
+    input.push({ id: 11, phase: "down", uv: [0.2, 0.5], time: 0.01, buttons: 1, pointerType: "touch" });
+    input.push({ id: 11, phase: "up", uv: [0.2, 0.5], time: 0.02, buttons: 0, pointerType: "touch" });
+    input.push({ id: 12, phase: "down", uv: [0.8, 0.5], time: 0.03, buttons: 1, pointerType: "touch" });
+    input.push({ id: 12, phase: "up", uv: [0.8, 0.5], time: 0.04, buttons: 0, pointerType: "touch" });
+    const samples = input.drain().samples;
+    expect(samples.map(sample => sample.phase)).toEqual(["down", "up", "down", "up"]);
+    expect(samples[2]?.delta).toEqual([0, 0]);
+    expect(input.drain().down).toBe(false);
   });
 });
 
