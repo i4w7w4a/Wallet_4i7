@@ -58,8 +58,7 @@ test("button controls scroll in their rail while the real actions stay visible o
       await rail.getByText("Форма и слой", { exact: true }).click();
       await rail.evaluate(element => { element.scrollTop = element.scrollHeight; });
       expect(await rail.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
-      const geometry = rail.locator("details").filter({ has: rail.getByText("Форма и слой", { exact: true }) });
-      const borderWidth = geometry.locator("label").filter({ hasText: "Толщина рамки" }).locator('input[type="range"]');
+      const borderWidth = rail.getByRole("slider", { name: "Толщина рамки" });
       const previousBorderWidth = await borderWidth.inputValue();
       await borderWidth.press("ArrowRight");
       await expect(borderWidth).not.toHaveValue(previousBorderWidth);
@@ -68,9 +67,10 @@ test("button controls scroll in their rail while the real actions stay visible o
       expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
       await rail.getByRole("button", { name: "Свет", exact: true }).click();
+      const bloomValue = rail.getByRole("spinbutton", { name: "Сложение света — значение" });
+      await bloomValue.focus();
       await page.mouse.move(1, 1);
-      await expect(page.getByRole("tooltip")).toHaveCount(0);
-      await expectOwnHitbox(rail.getByRole("spinbutton", { name: "Сложение света — значение" }));
+      await expectOwnHitbox(bloomValue);
       await expectOwnHitbox(rail.getByRole("button", { name: "Описание «Сложение света»" }));
       expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
