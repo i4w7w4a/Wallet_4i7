@@ -99,7 +99,7 @@ try {
   for (const [key, image] of Object.entries(results.controls.light)) assert.notEqual(image.hash, results.controls.lightBase.hash, `${key} must change lit pixels`);
   assert.notEqual(results.controls.colorList.hash, results.controls.baseline.hash);
   assert.notEqual(results.controls.lowAmbient.hash, results.controls.highAmbient.hash, "ambient rate must add bounded pigment");
-  assert.equal(results.controls.transparent.alpha, 0);
+  assert.ok(results.controls.transparent.alpha < results.controls.baseline.alpha, "transparent base must lower canvas alpha while dyed pixels remain visible");
 
   results.benchmarks = [];
   for (const [width, height, dpr, profile] of [[390, 844, 1.5, "balanced"], [960, 640, 1, "detail"]]) {
@@ -119,17 +119,23 @@ try {
   await page.locator("canvas").screenshot({ path: resolve(evidence, "fluid-v2-portrait.png") });
 
   await page.setViewportSize({ width: 390, height: 700 });
-  await page.evaluate(() => window.scrollTo(0, 0));
+  const touchStart = await page.evaluate(() => {
+    const canvas = document.querySelector("canvas");
+    canvas.scrollIntoView({ block: "start" });
+    const bounds = canvas.getBoundingClientRect();
+    return { x: Math.round(bounds.left + bounds.width / 2), y: Math.round(Math.min(bounds.bottom - 20, 620)), scrollY };
+  });
+  assert.ok(touchStart.y > 360, "canvas must have enough visible room for the touch-scroll probe");
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true });
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 190, y: 620 }] });
-  for (const y of [560, 500, 440, 380, 320, 260]) {
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 190, y }] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: touchStart.x, y: touchStart.y }] });
+  for (const offset of [60, 120, 180, 240, 300, 360]) {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: touchStart.x, y: touchStart.y - offset }] });
     await page.evaluate(() => new Promise(requestAnimationFrame));
   }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   results.touch = await page.evaluate(() => ({ scrollY, touchAction: getComputedStyle(document.querySelector("canvas")).touchAction }));
-  assert.ok(results.touch.scrollY > 0, "touch on the probe stage must preserve native page scrolling");
+  assert.ok(results.touch.scrollY > touchStart.scrollY, "touch on the probe stage must preserve native page scrolling");
   await cdp.detach();
 
   results.failure = await page.evaluate(() => window.fluidV2Probe.failure());
