@@ -145,6 +145,8 @@ export interface MaterialDefinition<
   readonly description: string;
   readonly capabilities: readonly MaterialCapability[];
   readonly schema: ParameterSchema<P>;
+  /** Pure inspector state. Disabled controls remain present in the normalized recipe. */
+  isControlDisabled?(params: Readonly<P>, key: Extract<keyof P, string>): boolean;
   readonly actions?: readonly MaterialActionDescriptor[];
   readonly presets: readonly EffectPreset<P>[];
   readonly assetIds: readonly MaterialAssetId[];
