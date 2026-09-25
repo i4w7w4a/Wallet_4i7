@@ -24,6 +24,7 @@ afterEach(() => {
 
 it("shows the supplied Novex identity while preserving the account name and demo state", async () => {
   render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: /Пресет оформления:/ })).toBeEnabled());
 
   const header = within(document.querySelector<HTMLElement>(".mono-app-header")!);
   expect(header.getByRole("img", { name: "Novex Wallet" })).toBeVisible();

@@ -30,6 +30,7 @@ afterEach(() => {
 describe("MONO shape lab", () => {
   it("live-edits only the selected control group without writing before Apply", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    await waitWorkingReady();
     openShape();
 
     const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
@@ -63,6 +64,7 @@ describe("MONO shape lab", () => {
 
   it("resets both groups of the active direction without applying them", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    await waitWorkingReady();
     openShape();
 
     const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
@@ -82,6 +84,7 @@ describe("MONO shape lab", () => {
   it("restores only an explicitly applied candidate after remount", async () => {
     const snapshot = await new MockWalletRepository().getSnapshot();
     const first = render(<MonoPreview snapshot={snapshot} />);
+    await waitWorkingReady();
     openShape();
     let lab = within(screen.getByRole("group", { name: "Настройка формы" }));
     let radius = lab.getByRole("slider", { name: "Радиус формы" });
@@ -106,6 +109,7 @@ describe("MONO shape lab", () => {
     expect(localStorage.getItem(WORKING_KEY)).not.toBeNull();
     second.unmount();
     render(<MonoPreview snapshot={snapshot} />);
+    await waitWorkingReady();
     preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
 
     await waitFor(() => {
@@ -125,6 +129,7 @@ describe("MONO shape lab", () => {
       },
     }));
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    await waitWorkingReady();
     openShape();
 
     const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
@@ -140,6 +145,7 @@ describe("MONO shape lab", () => {
 
   it("keeps the last valid draft while exact input is incomplete or out of bounds", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    await waitWorkingReady();
     openShape();
 
     const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
@@ -230,6 +236,7 @@ describe("MONO shape lab", () => {
 
   it("associates the range and exact value with independent labels", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    await waitWorkingReady();
     openShape();
 
     const range = screen.getByRole("slider", { name: "Радиус формы" });
