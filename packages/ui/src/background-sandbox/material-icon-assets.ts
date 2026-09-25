@@ -1,4 +1,4 @@
-import type { ButtonTargetId, MaterialAssetId } from "./material-contract";
+import type { ButtonTargetId, MaterialAssetId, MaterialMaskSource } from "./material-contract";
 import { BUTTON_MASK_ASSETS } from "./target-binding";
 
 /** The four existing MONO action strokes are the entire material icon allowlist. */
@@ -11,4 +11,26 @@ export const MATERIAL_ICON_PATHS: Readonly<Record<MaterialAssetId, string>> = Ob
 
 export function monoActionIconPath(targetId: ButtonTargetId): string {
   return MATERIAL_ICON_PATHS[BUTTON_MASK_ASSETS[targetId]];
+}
+
+/** Bounded top-down coverage is shared with adapter preparation and the host clip. */
+export function rasterizeMaterialIcon(assetId: MaterialAssetId, width: number, height: number): MaterialMaskSource {
+  if (!Object.hasOwn(MATERIAL_ICON_PATHS, assetId) || !Number.isInteger(width) || !Number.isInteger(height) ||
+      width < 1 || height < 1 || width > 256 || height > 256) throw new RangeError("Invalid MONO icon mask size or asset.");
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) throw new Error("MONO action mask requires Canvas 2D.");
+  const unit = Math.min(width, height) / 24;
+  ctx.translate(width * 0.5 - unit * 12, height * 0.5 - unit * 12);
+  ctx.scale(unit, unit);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1.35;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.stroke(new Path2D(MATERIAL_ICON_PATHS[assetId]));
+  const rgba = ctx.getImageData(0, 0, width, height).data;
+  const coverage = new Uint8Array(width * height);
+  for (let pixel = 0; pixel < coverage.length; pixel++) coverage[pixel] = rgba[pixel * 4 + 3]!;
+  return { assetId, width, height, coverage };
 }

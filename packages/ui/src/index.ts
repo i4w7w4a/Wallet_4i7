@@ -71,11 +71,13 @@ export type {
   MaterialCatalogV2, MaterialStageRequestV2, ButtonStageRequest, ButtonWorkshopBindings,
 } from "./background-sandbox/host-contract";
 export { BackgroundGpuSurface } from "./background-sandbox/background-gpu-surface";
+export { MaterialSceneSurface } from "./background-sandbox/material-scene-surface";
 export { createMonoOpticalHost, type MonoSharedOpticalHost } from "./mono/mono-optical-host";
 export { createMonoOpticalOverlay } from "./mono/mono-optical-overlay";
 export { backgroundMaterials, backgroundMaterialDescriptors, parseBackgroundRecipe } from "./background-sandbox/registry";
+export { materialBindingsV2, materialCatalogV2 } from "./background-sandbox/registry-v2";
 export {
   BUTTON_MASK_ASSETS, MATERIAL_RADIUS_BOUNDS, MATERIAL_BORDER_BOUNDS,
   parseTargetBinding, parseTargetBindings, createTargetBinding,
 } from "./background-sandbox/target-binding";
-export { MATERIAL_ICON_PATHS, monoActionIconPath } from "./background-sandbox/material-icon-assets";
+export { MATERIAL_ICON_PATHS, monoActionIconPath, rasterizeMaterialIcon } from "./background-sandbox/material-icon-assets";

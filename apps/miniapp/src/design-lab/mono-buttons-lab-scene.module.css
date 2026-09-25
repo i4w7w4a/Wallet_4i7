@@ -1,0 +1,12 @@
+.frame.frame { min-height: 0; outline: 1px solid #45474a; }
+.frame :global(.mono-nav) { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; transform: none; }
+.frame :global(.mono-page[data-mono-theme][data-mono-background]) { background: transparent; }
+.frame :global(.mono-actions) { background: transparent; }
+.frame :global(.mono-actions__item[data-material-fill-presented="true"]) {
+  background: transparent; box-shadow: none;
+}
+.frame :global(.mono-actions__item[data-material-icon-presented="true"] .mono-actions__icon svg) {
+  opacity: 0;
+}
+.frame :global(.mono-actions__item[data-material-border-presented="true"]) { border-left-color: transparent; }
+.frame :global(.mono-promo-frame:has([data-optics="shared-webgl"])) { background: transparent; }

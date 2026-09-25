@@ -172,4 +172,24 @@ describe("v2 material catalog", () => {
       params: { pattern: "rib", baseColor: "#FFFFFF", drift: 0.2 } });
     expect(events).toEqual(["create:8192:true", "update:0.2"]);
   });
+
+  it("passes only host-approved icon coverage to adapter preparation", async () => {
+    let received: unknown;
+    const runtimeDefinition: MaterialDefinition<"vault-grid", Params> = {
+      ...definition,
+      capabilities: ["button-icon"],
+      async prepare(request) { received = request.maskSource; return { ok: true, value: null }; },
+    };
+    const source = { assetId: "mono.quick.send" as const, width: 2, height: 2,
+      coverage: new Uint8Array([0, 255, 255, 0]) };
+    const geometry = { capability: "button-icon" as const, x: 0, y: 0, width: 2, height: 2,
+      pixelWidth: 2, pixelHeight: 2, dpr: 1, radiusCss: 0, borderWidthCss: 0,
+      mask: { kind: "icon" as const, assetId: source.assetId } };
+    const result = await bindMaterialV2(runtimeDefinition).prepare(
+      { ...bindMaterialV2(runtimeDefinition).descriptor.presets[0]!.recipe },
+      geometry, "balanced", 1024, new AbortController().signal, source);
+
+    expect(result.ok).toBe(true);
+    expect(received).toBe(source);
+  });
 });

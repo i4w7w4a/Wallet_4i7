@@ -2,7 +2,7 @@ import type { OGLRenderingContext } from "ogl";
 import type { CreateResult, GpuLimits, ParseResult, ParameterValue, Viewport } from "./contracts";
 import type {
   MaterialDefinition, MaterialDescriptorV2, MaterialEffectId, MaterialPass, MaterialQualityProfile, MaterialRecipeV2,
-  MaterialResourcePlan, MaterialTargetGeometry,
+  MaterialMaskSource, MaterialResourcePlan, MaterialTargetGeometry,
 } from "./material-contract";
 
 export type PreparedMaterialMountV2 = Readonly<{
@@ -19,7 +19,7 @@ export type MaterialBindingV2 = Readonly<{
   descriptor: MaterialDescriptorV2;
   fallback: Readonly<{ color: string; label: string }>;
   prepare(recipe: unknown, geometry: MaterialTargetGeometry, quality: MaterialQualityProfile,
-    maxCpuBytes: number, signal: AbortSignal): Promise<CreateResult<PreparedMaterialMountV2>>;
+    maxCpuBytes: number, signal: AbortSignal, maskSource?: MaterialMaskSource): Promise<CreateResult<PreparedMaterialMountV2>>;
 }>;
 
 const KEYS = ["kind", "version", "effectId", "effectVersion", "seed", "params", "assetIds"];
@@ -107,16 +107,21 @@ export function bindMaterialV2<I extends MaterialEffectId, P extends object, A>(
   };
   return {
     descriptor, fallback: definition.fallback,
-    async prepare(input, geometry, quality, maxCpuBytes, signal) {
+    async prepare(input, geometry, quality, maxCpuBytes, signal, maskSource) {
       const parsed = parseRecipe(input);
       if (!parsed.ok) return { ok: false, error: {
         code: "invalid-config", message: parsed.issues.map(issue => issue.message).join(" "),
+      } };
+      if (!definition.capabilities.includes(geometry.capability) || !Number.isSafeInteger(maxCpuBytes) || maxCpuBytes < 0 ||
+          (maskSource && (geometry.mask.kind !== "icon" || maskSource.assetId !== geometry.mask.assetId ||
+            maskSource.coverage.length !== maskSource.width * maskSource.height))) return { ok: false, error: {
+        code: "invalid-config", message: "Материал или маска не соответствуют выбранной цели.",
       } };
       if (signal.aborted) return { ok: false, error: { code: "invalid-config", message: "Подготовка материала отменена." } };
       try {
         const prepared = definition.prepare
           ? await definition.prepare({ params: parsed.value.params, seed: parsed.value.seed,
-            geometry, quality, maxCpuBytes }, signal)
+            geometry, quality, maxCpuBytes, maskSource }, signal)
           : { ok: true as const, value: null as A };
         if (!prepared.ok) return prepared;
         if (signal.aborted) return { ok: false, error: { code: "invalid-config", message: "Подготовка материала отменена." } };
