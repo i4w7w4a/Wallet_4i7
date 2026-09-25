@@ -66,8 +66,12 @@ export type MaterialMaskSource = Readonly<{
   height: number;
   coverage: Uint8Array;
 }>;
+export type PreparedMaterialSource =
+  | Readonly<{ kind: "icon"; assetId: MaterialAssetId }>
+  | Readonly<{ kind: "geometry"; key: string }>;
 export type PreparedMaterialAsset = Readonly<{
-  assetId: MaterialAssetId;
+  /** A geometry mask has no icon asset ID; its cache key includes size/radius/version. */
+  source: PreparedMaterialSource;
   width: number;
   height: number;
   rgba: Uint8Array;

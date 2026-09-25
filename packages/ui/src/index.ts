@@ -60,7 +60,7 @@ export type {
   MaterialEffectId, MaterialCapability, MaterialEffectVersion, MaterialAssetId,
   MaterialQualityProfile, MaterialAlphaMode, MaterialRecipeV2, NormalizedBackgroundMaterial,
   ButtonTargetId, ButtonMaterialLayer, MaterialMask, MaterialTargetBinding, MaterialTargetGeometry,
-  MaterialMaskSource, PreparedMaterialAsset, PreparedMaterialAssets, MaterialPrepareRequest,
+  MaterialMaskSource, PreparedMaterialSource, PreparedMaterialAsset, PreparedMaterialAssets, MaterialPrepareRequest,
   MaterialResourcePlan, MaterialInit, MaterialFrameTexture, MaterialPass,
   MaterialDefinition, MaterialDescriptorV2,
 } from "./background-sandbox/material-contract";
