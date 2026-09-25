@@ -204,6 +204,9 @@ export class MaterialSceneBackend {
   private async select(): Promise<void> {
     if (this.disposed || this.lost) return;
     const generation = ++this.generation;
+    // Record the requested structure before asynchronous CPU preparation. React
+    // can deliver the same props again while a Paper mask is still preparing.
+    this.structureKey = materialSceneStructureKey(this.input.background, this.input.bindings, this.input.quality);
     this.abort?.abort();
     const abort = new AbortController(); this.abort = abort;
     this.loading = true;
@@ -245,7 +248,6 @@ export class MaterialSceneBackend {
         throw error;
       }
       this.passes = next;
-      this.structureKey = materialSceneStructureKey(this.input.background, this.input.bindings, this.input.quality);
       this.loading = false;
       this.clock.reset(); this.pointer.reset();
       this.applyCurrentRecipes();

@@ -1,6 +1,6 @@
 .frame.frame { min-height: 0; outline: 1px solid #45474a; }
 .frame :global(.mono-nav) { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; transform: none; }
-.frame :global(.mono-page[data-mono-theme][data-mono-background]) { background: transparent; }
+.frame.frame :global(.mono-page[data-mono-theme][data-mono-background]) { background: transparent; }
 .frame :global(.mono-actions) { background: transparent; }
 .frame :global(.mono-actions__item[data-material-fill-presented="true"]) {
   background: transparent; box-shadow: none;
