@@ -18,6 +18,17 @@ async function expectActionsInsidePreview(preview: Locator) {
   })).toBe(true);
 }
 
+async function expectCanvasMatchesVisiblePhone(preview: Locator, phoneWidth: number) {
+  await expect.poll(() => preview.locator("canvas[data-material-canvas]").evaluate(canvas => {
+    const viewport = canvas.closest("[data-material-scrollport]");
+    const width = canvas.closest("[data-material-scene]");
+    if (!viewport || !width) return null;
+    const a = canvas.getBoundingClientRect(), v = viewport.getBoundingClientRect(), w = width.getBoundingClientRect();
+    return { canvasWidth: Math.round(a.width), phoneWidth: Math.round(w.width),
+      heightMatches: Math.abs(a.height - v.height) <= 1, topMatches: Math.abs(a.top - v.top) <= 1 };
+  })).toEqual({ canvasWidth: phoneWidth, phoneWidth, heightMatches: true, topMatches: true });
+}
+
 test("button controls scroll in their rail while the real actions stay visible on desktop", async ({ browser }) => {
   for (const viewport of [{ width: 1366, height: 600 }, { width: 1440, height: 900 }]) {
     const context = await browser.newContext({ baseURL: String(test.info().project.use.baseURL), viewport,
@@ -31,6 +42,15 @@ test("button controls scroll in their rail while the real actions stay visible o
       await expectActionsInsidePreview(preview);
       expect(await page.evaluate(() => window.scrollY)).toBe(0);
       const previewScroll = await preview.evaluate(element => element.scrollTop);
+      await expect(preview.locator("canvas[data-material-canvas]")).toHaveCount(1);
+      await expectCanvasMatchesVisiblePhone(preview, 390);
+      await preview.evaluate(element => { element.scrollTop = 0; });
+      await expectCanvasMatchesVisiblePhone(preview, 390);
+      await preview.evaluate(element => { element.scrollTop = Math.min(80, element.scrollHeight - element.clientHeight); });
+      expect(await preview.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+      await expectCanvasMatchesVisiblePhone(preview, 390);
+      await preview.evaluate((element, top) => { element.scrollTop = top; }, previewScroll);
+      await expectActionsInsidePreview(preview);
 
       await expectOwnHitbox(rail.locator('input[type="text"][aria-label$="HEX"]').first());
       await rail.getByRole("button", { name: "Форма / поверхность" }).click();
@@ -55,6 +75,7 @@ test("button controls scroll in their rail while the real actions stay visible o
         await left.getByRole("button", { name: "480", exact: true }).click();
         const frameWidth = await preview.locator(".mono-preview-frame").evaluate(element => element.getBoundingClientRect().width);
         expect(Math.round(frameWidth)).toBe(480);
+        await expectCanvasMatchesVisiblePhone(preview, 480);
         await expectActionsInsidePreview(preview);
       }
     } finally { await context.close(); }

@@ -308,7 +308,7 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
             <span>{state.comparing ? `A · ${state.workspace.pinned?.name}` : "B · действия MONO"}</span>
             <MonoLabIconButton label="К кнопкам" onClick={() => { if (stageRef.current) focusButtonActions(stageRef.current); }}>⌖</MonoLabIconButton>
           </div>
-          <section ref={stageRef} className={styles.stageScroll} aria-label="Реальные кнопки MONO">
+          <section ref={stageRef} className={styles.stageScroll} data-material-scrollport aria-label="Реальные кнопки MONO">
             <div className={styles.stage} style={{ width: `min(100%, ${width}px)` }}>
               {!state.ready ? <p>Подготовка мастерской…</p> : state.recoveryUnavailable ? <div className={styles.unavailable}>
                 <p>Черновики не прочитаны. Исходные данные в хранилище сохранены.</p><p>{state.recoveryError}</p>
