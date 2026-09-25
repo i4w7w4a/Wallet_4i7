@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import styles from "./material-workbench.module.css";
 
 export type MaterialWorkbenchProps = {
@@ -16,7 +16,7 @@ export type MaterialWorkbenchProps = {
 };
 
 type Drawer = "left" | "right" | null;
-const COMPACT_QUERY = "(max-width: 980px), (max-height: 620px)";
+const COMPACT_QUERY = "(max-width: 980px)";
 const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex]:not([tabindex="-1"])';
 
 function compactSnapshot() { return typeof window !== "undefined" && !!window.matchMedia?.(COMPACT_QUERY).matches; }
@@ -27,7 +27,16 @@ function subscribeCompact(change: () => void) {
   return () => query.removeEventListener("change", change);
 }
 function focusable(panel: HTMLElement) {
-  return [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(node => !node.closest("[hidden], [inert]"));
+  return [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(node => {
+    if (node.closest("[hidden], [inert]")) return false;
+    const closed = node.closest("details:not([open])");
+    if (closed && !closed.querySelector(":scope > summary")?.contains(node)) return false;
+    for (let ancestor: HTMLElement | null = node; ancestor && panel.contains(ancestor); ancestor = ancestor.parentElement) {
+      const appearance = window.getComputedStyle(ancestor);
+      if (appearance.display === "none" || appearance.visibility === "hidden") return false;
+    }
+    return true;
+  });
 }
 
 export function MaterialWorkbench({ activeLab, title, status, toolbar, left, right, children, footer, modalOpen = false }: MaterialWorkbenchProps) {
@@ -39,16 +48,22 @@ export function MaterialWorkbench({ activeLab, title, status, toolbar, left, rig
   const rightRef = useRef<HTMLElement>(null);
   const leftLauncher = useRef<HTMLButtonElement>(null);
   const rightLauncher = useRef<HTMLButtonElement>(null);
+  const focusPending = useRef<Drawer>(null);
+  const closeDrawer = useCallback((side: "left" | "right") => {
+    setDrawer(null);
+    (side === "left" ? leftLauncher.current : rightLauncher.current)?.focus();
+  }, []);
 
   useEffect(() => {
-    if (!modalOpen && compact) return;
+    if (compact) return;
     let active = true;
     queueMicrotask(() => { if (active) setDrawer(null); });
     return () => { active = false; };
-  }, [modalOpen, compact]);
+  }, [compact]);
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || focusPending.current !== open) return;
+    focusPending.current = null;
     const panel = open === "left" ? leftRef.current : rightRef.current;
     (panel && focusable(panel)[0] || panel)?.focus();
   }, [open]);
@@ -60,8 +75,7 @@ export function MaterialWorkbench({ activeLab, title, status, toolbar, left, rig
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault(); event.stopPropagation();
-        setDrawer(null);
-        (open === "left" ? leftLauncher.current : rightLauncher.current)?.focus();
+        closeDrawer(open);
       } else if (event.key === "Tab") {
         const options = focusable(panel);
         const first = options[0], last = options.at(-1);
@@ -75,7 +89,7 @@ export function MaterialWorkbench({ activeLab, title, status, toolbar, left, rig
     };
     document.addEventListener("keydown", keydown);
     return () => document.removeEventListener("keydown", keydown);
-  }, [open]);
+  }, [open, closeDrawer]);
 
   const leftClosed = compact && open !== "left";
   const rightClosed = compact && open !== "right";
@@ -90,19 +104,25 @@ export function MaterialWorkbench({ activeLab, title, status, toolbar, left, rig
       <div className={styles.toolbar} role="toolbar" aria-label="Действия пробы">{toolbar}</div>
       <div className={styles.launchers}>
         <button ref={leftLauncher} type="button" aria-label="Материалы" aria-controls={`${id}-left`}
-          aria-expanded={open === "left"} disabled={modalOpen} onClick={() => setDrawer(current => current === "left" ? null : "left")}>
+          aria-expanded={open === "left"} disabled={modalOpen} onClick={() => {
+            if (open === "left") closeDrawer("left");
+            else { focusPending.current = "left"; setDrawer("left"); }
+          }}>
           <span aria-hidden="true">▤</span></button>
         <button ref={rightLauncher} type="button" aria-label="Настройки" aria-controls={`${id}-right`}
-          aria-expanded={open === "right"} disabled={modalOpen} onClick={() => setDrawer(current => current === "right" ? null : "right")}>
+          aria-expanded={open === "right"} disabled={modalOpen} onClick={() => {
+            if (open === "right") closeDrawer("right");
+            else { focusPending.current = "right"; setDrawer("right"); }
+          }}>
           <span aria-hidden="true">☷</span></button>
       </div>
     </header>
     <div className={styles.body}>
-      {open && <div className={styles.scrim} aria-hidden="true" onClick={() => setDrawer(null)} />}
+      {open && <div className={styles.scrim} data-workbench-scrim aria-hidden="true" onClick={() => closeDrawer(open)} />}
       <aside ref={leftRef} id={`${id}-left`} className={`${styles.rail} ${styles.left}`} data-workbench-rail="left"
         role={open === "left" ? "dialog" : undefined} aria-label="Материалы"
         aria-modal={open === "left" ? true : undefined} aria-hidden={leftClosed || undefined} inert={leftClosed} tabIndex={open === "left" ? -1 : undefined}>
-        {left}<button className={styles.close} type="button" aria-label="Закрыть материалы" onClick={() => { setDrawer(null); leftLauncher.current?.focus(); }}>Закрыть</button>
+        {left}<button className={styles.close} type="button" aria-label="Закрыть материалы" onClick={() => closeDrawer("left")}>Закрыть</button>
       </aside>
       <main className={styles.center} role="region" aria-label="Сцена" inert={!!open}>
         <div className={styles.scene}>{children}</div>
@@ -111,7 +131,7 @@ export function MaterialWorkbench({ activeLab, title, status, toolbar, left, rig
       <aside ref={rightRef} id={`${id}-right`} className={`${styles.rail} ${styles.right}`} data-workbench-rail="right"
         role={open === "right" ? "dialog" : undefined} aria-label="Настройки"
         aria-modal={open === "right" ? true : undefined} aria-hidden={rightClosed || undefined} inert={rightClosed} tabIndex={open === "right" ? -1 : undefined}>
-        {right}<button className={styles.close} type="button" aria-label="Закрыть настройки" onClick={() => { setDrawer(null); rightLauncher.current?.focus(); }}>Закрыть</button>
+        {right}<button className={styles.close} type="button" aria-label="Закрыть настройки" onClick={() => closeDrawer("right")}>Закрыть</button>
       </aside>
     </div>
   </div>;

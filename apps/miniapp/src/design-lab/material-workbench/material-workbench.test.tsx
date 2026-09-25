@@ -13,7 +13,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 function shell(modalOpen = false) {
   return <MaterialWorkbench activeLab="background" title="Проба Павла" status="Изменено"
     toolbar={<button type="button">Сохранить пробу</button>}
-    left={<button type="button">Выбрать материал</button>}
+    left={<><button type="button" style={{ display: "none" }}>Скрытый контроль</button><button type="button">Выбрать материал</button></>}
     right={<button type="button">Настроить краситель</button>}
     footer={<p>Локальный черновик</p>} modalOpen={modalOpen}>
     <div>Живая сцена</div>
@@ -53,14 +53,26 @@ it("opens one mobile rail as a focus-trapped dialog and returns focus on Escape"
   expect(launcher).toHaveFocus();
 });
 
-it("suppresses its drawer when the caller opens a separate modal", async () => {
+it("returns focus to the drawer launcher when its scrim is clicked", () => {
+  compact = true;
+  render(shell());
+  const launcher = screen.getByRole("button", { name: "Материалы" });
+  fireEvent.click(launcher);
+  fireEvent.click(document.querySelector("[data-workbench-scrim]")!);
+  expect(screen.queryByRole("dialog", { name: "Материалы" })).toBeNull();
+  expect(launcher).toHaveFocus();
+});
+
+it("suspends its drawer during a caller modal, then restores it without stealing focus", async () => {
   compact = true;
   const view = render(shell());
   fireEvent.click(screen.getByRole("button", { name: "Настройки" }));
-  expect(screen.getByRole("dialog", { name: "Настройки" })).toBeInTheDocument();
+  const railControl = within(screen.getByRole("dialog", { name: "Настройки" })).getByRole("button", { name: "Настроить краситель" });
   view.rerender(shell(true));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Настройки" })).toBeNull());
   expect(screen.getByRole("button", { name: "Настройки" })).toBeDisabled();
   view.rerender(shell(false));
-  expect(screen.queryByRole("dialog", { name: "Настройки" })).toBeNull();
+  expect(screen.getByRole("dialog", { name: "Настройки" })).toBeInTheDocument();
+  act(() => railControl.focus());
+  expect(railControl).toHaveFocus();
 });
