@@ -18,9 +18,10 @@ type Props = {
   preset: QuickActionFeedback;
   onActivate: () => void;
   materialTargetId?: ButtonTargetId;
+  materialRadiusCss?: number;
 };
 
-export function MonoQuickActionFeedback({ label, path, preset, onActivate, materialTargetId }: Props) {
+export function MonoQuickActionFeedback({ label, path, preset, onActivate, materialTargetId, materialRadiusCss }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [keyboardPressed, setKeyboardPressed] = useState(false);
   const effectId = preset.effectId;
@@ -60,6 +61,7 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, mater
   const style = {
     "--press-depth": `${config.pressDepth}px`,
     "--settle-ms": `${config.settleMs}ms`,
+    ...(materialRadiusCss === undefined ? {} : { "--mono-button-radius": `${materialRadiusCss}px` }),
   } as CSSProperties;
   const labelStyle: CSSProperties | undefined = effectId === "magnetic"
     ? {

@@ -33,3 +33,12 @@ it("extracts only the selected button layer and target from a full lab document"
   expect(buttonPatchFromLab(document, { target: "all", layer: "fill" }).value.bindings)
     .toEqual([sendFill.value, receiveFill.value]);
 });
+
+it("carries explicit frame mode even when the selected layer has no bindings", () => {
+  const legacy = createButtonDocument(BUTTON_TARGETS);
+  expect(buttonPatchFromLab(legacy, { target: "all", layer: "border" }).value).toEqual({ version: 1, bindings: [] });
+  const separate = { version: 2 as const, frameMode: "separate" as const, actions: legacy.actions };
+  expect(buttonPatchFromLab(separate, { target: "all", layer: "border" }).value).toEqual({
+    version: 2, frameMode: "separate", bindings: [],
+  });
+});

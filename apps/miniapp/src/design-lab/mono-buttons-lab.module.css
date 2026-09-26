@@ -37,6 +37,11 @@
 .layerTab { border-color: #596a63; background: #202b24; color: #e7eee8; }
 .layerTab[aria-selected="true"] { border-color: #d0e3d7; background: #35483b; color: #f8fff9; }
 .layerCue { margin: 8px 0 12px; color: #b8c9bc; font-size: 11px; }
+.frameChoices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.frameChoice { min-width: 0; min-height: 44px; padding: 5px 3px; border: 1px solid #596a63; border-radius: 6px; background: #202b24; color: #e7eee8; font: 10px/1.2 Arial, sans-serif; cursor: pointer; }
+.frameChoice[aria-pressed="true"] { border-color: #d0e3d7; background: #35483b; color: #f8fff9; }
+.frameChoice:disabled { opacity: .45; cursor: default; }
+.frameHint { color: #b7c9bd; font-size: 11px; line-height: 1.45; margin: 6px 0 10px; }
 .field { display: grid; gap: 4px; margin: 10px 0; color: #d1ddd4; font-size: 12px; }
 .field :is(input, select), .stageHead select { width: 100%; min-height: 44px; border: 1px solid #60716a; border-radius: 6px; background: #151d19; color: #e8f0e9; padding: 7px 9px; font: inherit; }
 .field input[type="range"] { padding: 0; }

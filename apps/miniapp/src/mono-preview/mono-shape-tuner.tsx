@@ -21,6 +21,7 @@ export function MonoShapeTuner({
   onOpenMotionLab,
   motionLabStatus,
   buttonLabHref,
+  separateActions = false,
 }: {
   values: Record<MonoShapeGroup, number>;
   dirty: boolean;
@@ -32,8 +33,10 @@ export function MonoShapeTuner({
   onOpenMotionLab?: (anchor: HTMLAnchorElement) => void;
   motionLabStatus?: string;
   buttonLabHref?: "/design-lab/buttons";
+  separateActions?: boolean;
 }) {
   const [group, setGroup] = useState<MonoShapeGroup>("quick-actions");
+  const shellInactive = separateActions && group === "quick-actions";
   const radius = values[group];
   const [exactEdit, setExactEdit] = useState<{
     group: MonoShapeGroup;
@@ -70,12 +73,14 @@ export function MonoShapeTuner({
           <output htmlFor="mono-shape-radius">{radius} px</output>
         </span>
         <input id="mono-shape-radius" type="range"
+          disabled={shellInactive}
           min={MONO_SHAPE_RADIUS_BOUNDS.min} max={MONO_SHAPE_RADIUS_BOUNDS.max}
           step={MONO_SHAPE_RADIUS_BOUNDS.step} value={radius}
           onChange={(event) => onChange(group, Number(event.currentTarget.value))} />
         <label className="mono-shape-tuner__exact-field">
           <span>Точное значение</span>
           <input className="mono-shape-tuner__exact" type="number" inputMode="numeric"
+            disabled={shellInactive}
             min={MONO_SHAPE_RADIUS_BOUNDS.min} max={MONO_SHAPE_RADIUS_BOUNDS.max}
             step={MONO_SHAPE_RADIUS_BOUNDS.step} value={exactRadius}
             aria-label="Радиус: точное значение"
@@ -83,6 +88,7 @@ export function MonoShapeTuner({
             onBlur={() => setExactEdit(null)} />
         </label>
       </div>
+      {shellInactive && <p>Общая оболочка отключена. Радиус отдельных кнопок настраивается в мастерской кнопок.</p>}
       <div className="mono-shape-tuner__actions">
         <button type="button" onClick={onDefault}>По умолчанию</button>
         <button type="button" aria-disabled={!dirty} onClick={() => { if (dirty) onCancel(); }}>Отменить пробу формы</button>

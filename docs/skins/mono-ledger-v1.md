@@ -17,10 +17,10 @@ ID: `mono-ledger-v1`
 - `tide` мягко набирает энергию по сглаженной скорости жеста и оставляет до шести конечных DOM/CSS-импульсов, `strata` локально отталкивает редкие элементы, `iris` даёт тонкий холодно-тёплый перелив. Это background motion, не настоящая рефракция пикселей: shader glass остаётся только на Promo.
 - Все design controls находятся в двух fixed sibling rails вне телефона. Секции сворачиваются независимо, master control скрывает весь chrome без смещения preview, а compact layout показывает rails как dismissible drawers.
 - Кнопки `320 / 390 / 430 / 480` задают реальную ширину container, а не визуальный scale. Внутренняя композиция реагирует через container queries/`cqw`, fixed nav следует той же ширине, а узкий host clamp-ит profile без overflow.
-- Секция `Форма` live-редактирует радиус оболочки быстрых действий и верхних углов нижнего меню. Пробы независимы для Ledger/Frost/Mercury; Reset возвращает обе группы активного направления, Apply обновляет выбранный рабочий пресет, Cancel возвращает принятую форму. Product appearance не меняется.
+- Секция `Форма` live-редактирует радиус общей оболочки быстрых действий и верхних углов нижнего меню. При выбранном в мастерской режиме отдельных кнопок радиус общей оболочки отключён; радиусы кнопок задаются их материалами. Пробы независимы для Ledger/Frost/Mercury; Reset возвращает обе группы активного направления, Apply обновляет выбранный рабочий пресет, Cancel возвращает принятую форму. Product appearance не меняется.
 - Повторявшаяся правая полоса Promo на снимке была светлой CSS-рамкой `#cacaca` поверх inset-рамки; hover теперь оставляет border прозрачным. Отдельно WebGL resize берёт `clientWidth/clientHeight` вместо временно масштабированного DOMRect, чтобы предотвратить возможный укороченный canvas.
 - Fine-pointer controls имеют раздельные monochrome hover/press responses без layout shift: `90 ms enter / 190 ms settle / 80 ms press`.
-- Переключатель видимости баланса работает локально в прототипе. Быстрые действия, периоды графика и нижняя навигация пока визуальные элементы, а не продуктовые команды.
+- Переключатель видимости баланса работает локально в прототипе. Нижняя навигация открывает Обзор, Активы, Историю и Профиль; раздел и приватность хранятся в host-сессии вне appearance. История честно сообщает, что источник операций не подключён. Быстрые действия остаются демо и не совершают операции.
 
 Реализация: [сцена](../../apps/miniapp/src/mono-preview/mono-preview.tsx), [workbench chrome](../../apps/miniapp/src/mono-preview/mono-workbench.css), [Shape Lab](../../apps/miniapp/src/mono-preview/mono-shape-tuner.tsx), [shape candidate](../../apps/miniapp/src/mono-preview/mono-shape-preview.ts), [Material Lab](../../apps/miniapp/src/mono-preview/mono-glass-tuner.tsx), [Tide motion model](../../apps/miniapp/src/mono-preview/mono-tide-motion.ts), [motion layer](../../apps/miniapp/src/mono-preview/mono-motion.css), [pointer atmosphere](../../apps/miniapp/src/mono-preview/mono-atmosphere.css), [interaction layer](../../apps/miniapp/src/mono-preview/mono-interactions.css), [шрифты](../../apps/miniapp/src/mono-preview/mono-fonts.css), [оптический эффект](../../packages/ui/src/mono/mono-optical-glass.tsx).
 
@@ -372,17 +372,17 @@ Cross-field rules важнее независимых sliders. Чем сильн
 
 ## 8. Dashboard composition
 
-В `/mono` уже показаны header, hero/график, quick actions, Promo, assets и визуальная нижняя навигация. Portfolio, Bottom Sheet и настоящие product intents ниже — целевая интеграция, не часть текущего прототипа.
+В `/mono` уже показаны header, hero/график, quick actions, Promo, assets и работающая нижняя навигация по четырём разделам. Portfolio, Bottom Sheet и настоящие product intents ниже — целевая интеграция, не часть текущего прототипа.
 
 - **ProfileHeader** — компактная спокойная control group вместо трёх светящихся шаров.
 - **BalanceHero** — открытая matte zone; сумма главный объект без glow.
 - **Chart** — тонкая white/gray line; направление подтверждено знаком и подписью.
 - **Period selector** — минимальный segmented control; active инвертирован.
-- **Quick Actions** — единая четырёхколоночная rail вместо четырёх тяжёлых sci-fi tiles.
+- **Quick Actions** — по умолчанию единая четырёхколоночная rail; мастерская кнопок может явно выбрать четыре отдельные поверхности без общей рамки.
 - **Promo** — единственный крупный liquid focal object.
 - **Assets** — одна continuous surface с divider lines.
 - **Portfolio** — grayscale segments различаются luminance/pattern/label, не hue.
-- **Bottom navigation** — статическая smoked graphite rail без рефракции. В текущем `/mono` активность показана светлым текстом; инвертированная active-плоскость и border sweep при смене остаются целевым рецептом, не готовой функцией.
+- **Bottom navigation** — smoked graphite rail без рефракции с реальными кнопками разделов и видимым активным состоянием. Инвертированная active-плоскость и border sweep при смене остаются целевым рецептом, не готовой функцией.
 - **Bottom Sheet** — плотный graphite material. Forms не лежат под живой рефракцией.
 
 ## 9. Motion personality

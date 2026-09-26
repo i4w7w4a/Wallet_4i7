@@ -3,13 +3,16 @@
 import { useMemo, type CSSProperties } from "react";
 import { MaterialSceneSurface, createMonoOpticalHost, createMonoOpticalOverlay } from "@wallet/ui";
 import type { MonoMaterialDirection } from "./mono-material-preset";
+import { actionButtonRadii } from "./mono-action-geometry";
 import { monoPaletteStyle } from "./mono-palette-tokens";
 import { MonoScene, type MonoSceneProps } from "./mono-scene";
 import styles from "./mono-product-scene.module.css";
 
 export function MonoProductScene({ material, ...scene }: MonoSceneProps & { material: MonoMaterialDirection }) {
-  if (!material.background && !material.buttons?.bindings.length) return <MonoScene {...scene} />;
-  return <ActiveMaterialScene material={material} scene={scene} />;
+  const actionFrameMode = material.buttons?.version === 2 ? material.buttons.frameMode : "group";
+  const actionRadii = actionButtonRadii(material.buttons?.bindings ?? []);
+  if (!material.background && !material.buttons?.bindings.length) return <MonoScene {...scene} actionFrameMode={actionFrameMode} actionRadii={actionRadii} />;
+  return <ActiveMaterialScene material={material} scene={{ ...scene, actionFrameMode, actionRadii }} />;
 }
 
 function ActiveMaterialScene({ material, scene }: { material: MonoMaterialDirection; scene: MonoSceneProps }) {

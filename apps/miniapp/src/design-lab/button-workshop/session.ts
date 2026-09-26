@@ -1,9 +1,9 @@
 import { boundedButtonJson, parseButtonDocument, parseButtonLibrary, parseButtonTrial, parseButtonWorkspace,
   type ButtonRecipeParser, type ButtonTrialLibrary } from "./codec";
 import { buttonFrameForTrial, copyButtonValue, createButtonDocument, createButtonWorkspace, editButtonBinding,
-  editButtonSlot, finishButtonGesture, openButtonFrame, selectButtonSlot, undoButtonSlot,
+  editButtonFrameMode, editButtonSlot, finishButtonGesture, openButtonFrame, selectButtonSlot, undoButtonSlot,
   type ButtonLabDocument, type ButtonLabFrame, type ButtonLabSlot, type ButtonLabWorkspace,
-  type ButtonLayer, type ButtonSavedTrial, type ButtonTarget } from "./model";
+  type ButtonFrameMode, type ButtonLayer, type ButtonSavedTrial, type ButtonTarget } from "./model";
 import { ACCEPTED_KEY, LIBRARY_KEY, WORKSPACE_KEY, createButtonLibrary, saveButtonTrial, writeButtonChecked,
   type ButtonStoragePort } from "./storage";
 
@@ -138,6 +138,11 @@ export function createButtonSession<A extends string, R>(actionIds: readonly A[]
         return value === null ? null : parseRecipe(value, layer, action);
       };
       changeSlot(editButtonSlot(slot(), editButtonBinding(slot().present.document, actionIds, target, layer, resolve), gesture !== null));
+    },
+    setFrameMode(mode: ButtonFrameMode) {
+      if (state.comparing || state.saving || state.recoveryUnavailable) return;
+      endGesture();
+      changeSlot(editButtonSlot(slot(), editButtonFrameMode(slot().present.document, mode)));
     },
     undo(redo = false) {
       if (state.comparing || state.saving) return;

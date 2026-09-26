@@ -46,7 +46,9 @@ export function buttonPatchFromLab(document: unknown, selection: unknown): MonoM
     return value === null ? [] : [value];
   });
   const map = createEmptyMonoMaterials();
-  map.ledger = { ...map.ledger, buttons: { version: 1, bindings } };
+  map.ledger = { ...map.ledger, buttons: parsed.version === 2 && parsed.frameMode !== "inherit"
+    ? { version: 2, frameMode: parsed.frameMode, bindings }
+    : { version: 1, bindings } };
   const value = normalizeMonoMaterialMap(map).ledger.buttons!;
   return { scope: "buttons", selection: { target, layer }, value };
 }

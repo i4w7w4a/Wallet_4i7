@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
   type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefObject } from "react";
 import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
-import { MonoOpticalGlass, monoActionIconPath, type MonoGlassSettings, type MonoPaletteConfigV1, type MonoSharedOpticalHost } from "@wallet/ui";
+import { MonoOpticalGlass, monoActionIconPath, type ButtonTargetId, type MonoGlassSettings, type MonoPaletteConfigV1, type MonoSharedOpticalHost } from "@wallet/ui";
 import { MonoLogo } from "./mono-logo";
 import { resolveMonoLogoColors, type MonoLogoPreview } from "./mono-logo-preview";
 import { monoPaletteStyle } from "./mono-palette-tokens";
@@ -14,7 +14,7 @@ import { stepTideMotion, type TideMotionState } from "./mono-tide-motion";
 import { MonoBalance } from "./mono-balance";
 import { MonoChart } from "./mono-chart";
 import { MonoAssetList } from "./mono-asset-list";
-import type { MonoSceneAppearance } from "./mono-scene-lab-contract";
+import { MONO_ASSET_LIST_DEFAULT, type MonoSceneAppearance } from "./mono-scene-lab-contract";
 import { MonoBackgroundRecipes } from "./mono-background-recipes-view";
 import type { MonoBackgroundRecipeConfig } from "./mono-background-recipes";
 import { monoTypographyStyle, type MonoTypographyConfigV1 } from "./mono-typography";
@@ -54,6 +54,8 @@ export type MonoSceneProps = {
   quickActionPreset?: ComponentProps<typeof MonoQuickActionFeedback>["preset"];
   /** Dev-only material workshop can identify the existing four DOM action targets. */
   materialTargets?: boolean;
+  actionFrameMode?: "group" | "separate";
+  actionRadii?: Partial<Record<ButtonTargetId, number>>;
   active?: boolean;
   /** Host-owned adapter replaces the legacy ambient layer and its pointer reactions. */
   atmosphere?: ReactNode;
@@ -62,8 +64,11 @@ export type MonoSceneProps = {
   opticalHost?: MonoSharedOpticalHost;
   /** Host session state survives a decorative renderer swap without entering the saved preset. */
   session?: { balanceHidden: boolean; onBalanceHiddenChange: (hidden: boolean) => void;
-    period: ChartPeriod; onPeriodChange: (period: ChartPeriod) => void };
+    period: ChartPeriod; onPeriodChange: (period: ChartPeriod) => void;
+    section?: MonoSection; onSectionChange?: (section: MonoSection) => void };
 };
+
+export type MonoSection = "overview" | "assets" | "history" | "profile";
 
 const FIELD_NODES = [
   [19, 26], [47, 21], [76, 30],
@@ -79,10 +84,10 @@ const ACTIONS = [
 ] as const;
 
 const NAV_ITEMS = [
-  { label: "Обзор", path: "m3 10 9-7 9 7v10H3V10Zm6 10v-7h6v7" },
-  { label: "Активы", path: "M4 18h16M5 14l5-5 4 3 5-7" },
-  { label: "История", path: "M4 12a8 8 0 1 0 3-6M4 4v5h5m3-2v5l3 2" },
-  { label: "Профиль", path: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" },
+  { id: "overview", label: "Обзор", path: "m3 10 9-7 9 7v10H3V10Zm6 10v-7h6v7" },
+  { id: "assets", label: "Активы", path: "M4 18h16M5 14l5-5 4 3 5-7" },
+  { id: "history", label: "История", path: "M4 12a8 8 0 1 0 3-6M4 4v5h5m3-2v5l3 2" },
+  { id: "profile", label: "Профиль", path: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" },
 ] as const;
 
 const currencyFormatter = new Intl.NumberFormat("ru-RU", {
@@ -107,12 +112,15 @@ export function MonoScene(props: MonoSceneProps) {
 
 function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady = true,
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true,
-  atmosphere, surfaceRef, typography, opticalHost, materialTargets = false, session,
+  atmosphere, surfaceRef, typography, opticalHost, materialTargets = false, actionFrameMode = "group", actionRadii, session,
 }: MonoSceneProps & { typography: ReturnType<typeof useMonoTypographyPreview> }) {
   const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
   const fullScene = Boolean(appearance.balance && appearance.chart && appearance.layout && appearance.assets);
   const [localPeriod, setLocalPeriod] = useState<ChartPeriod>("1D");
+  const [localSection, setLocalSection] = useState<MonoSection>("overview");
+  const section = session?.section ?? localSection;
+  const setSection = session?.onSectionChange ?? setLocalSection;
   const period = session?.period ?? localPeriod;
   const setPeriod = session?.onPeriodChange ?? setLocalPeriod;
   const moneyFormat = { locale: "ru-RU", currency: snapshot.balance.currency,
@@ -126,6 +134,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const setBalanceHidden = session?.onBalanceHiddenChange ?? setLocalBalanceHidden;
   const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
   const pageRef = useRef<HTMLElement>(null);
+  const previousSection = useRef(section);
   const paletteCrossfadeRef = useRef<HTMLDivElement>(null);
   const previousPaletteBackgroundRef = useRef<string | null>(null);
   const paletteAnimationRef = useRef<Animation | null>(null);
@@ -139,6 +148,14 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const chartPoints = values
     .map((value, index) => `${(index / Math.max(1, values.length - 1)) * 100},${74 - ((value - low) / span) * 54}`)
     .join(" ");
+
+  useLayoutEffect(() => {
+    if (previousSection.current === section) return;
+    previousSection.current = section;
+    const root = pageRef.current;
+    const scrollport = root?.closest<HTMLElement>("[data-material-scrollport]") ?? root?.ownerDocument.scrollingElement;
+    if (scrollport) scrollport.scrollTop = 0;
+  }, [section]);
 
   const stopAtmosphere = useCallback((clearRipples: boolean) => {
     const host = pageRef.current;
@@ -309,6 +326,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           data-mono-logo-variant={logoPreview.variant} data-mono-logo-custom={logoPreview.customColor}
           data-palette-enabled={Boolean(palette.enabled)} data-palette-ready={paletteReady} style={shapeStyle}
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
+          data-mono-section={section}
           data-mono-typography={typography.active ? "true" : "false"}
           data-mono-font-status={typography.status}
           data-mono-atmosphere-source={customAtmosphere ? "adapter" : "legacy"}
@@ -345,6 +363,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </div>
         </header>
 
+        {section === "overview" && <>
         {fullScene && appearance.balance ? <section className="mono-hero">
           <div className="mono-hero__eyebrow"><span>ЛИЧНЫЙ СЧЁТ</span><span>01 / 03</span></div>
           <div className="mono-scene-domain">
@@ -396,12 +415,13 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </div>
         </section>}
 
-        <section className="mono-actions" aria-label="Действия — визуальный прототип">
+        <section className="mono-actions" data-frame-mode={actionFrameMode} aria-label="Действия — визуальный прототип">
           {ACTIONS.map((action) => (
             <MonoQuickActionFeedback
               key={`${action.label}:${quickActionPreset?.effectId ?? "baseline"}:${quickActionPreset?.config.magneticTravel ?? 0}`}
               label={action.label} path={action.path} preset={quickActionPreset}
               materialTargetId={materialTargets ? action.id : undefined}
+              materialRadiusCss={actionFrameMode === "separate" ? actionRadii?.[action.id] : undefined}
               onActivate={() => setQuickActionStatus(`${action.label} — операция недоступна в демо.`)} />
           ))}
           <p id="mono-actions-status" className="mono-actions__status" role="status"
@@ -436,16 +456,50 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <p className="mono-assets__disclaimer">Демонстрационные данные. Операции здесь недоступны.</p>
         </section>}
         {fullScene && appearance.layout?.chartPosition === "bottom" && <div className="mono-scene-domain mono-scene-domain--chart">{chart}</div>}
+        </>}
+        {section === "assets" && <section className="mono-section-view" aria-labelledby="mono-all-assets-title">
+          <div className="mono-section-view__eyebrow">ПОРТФЕЛЬ / DEMO</div>
+          <h1 id="mono-all-assets-title">Все активы</h1>
+          <div className="mono-section-view__balance"><span>Общий баланс</span>
+            <strong>{balanceHidden ? "••••••" : `${balance} $`}</strong></div>
+          <div className="mono-section-view__assets mono-scene-domain">
+            <MonoAssetList assets={snapshot.assets} format={moneyFormat} hidden={balanceHidden}
+              appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />
+          </div>
+          <p className="mono-section-view__note">Демонстрационные данные. Операции недоступны.</p>
+        </section>}
+        {section === "history" && <section className="mono-section-view" aria-labelledby="mono-history-title">
+          <div className="mono-section-view__eyebrow">ОПЕРАЦИИ / DEMO</div>
+          <h1 id="mono-history-title">История операций</h1>
+          <div className="mono-section-view__empty"><span aria-hidden="true">↗</span>
+            <strong>История операций пока не подключена</strong>
+            <p>Эта демо-сцена не загружает операции. Быстрые действия не совершают переводы.</p></div>
+        </section>}
+        {section === "profile" && <section className="mono-section-view" aria-labelledby="mono-profile-title">
+          <div className="mono-section-view__eyebrow">АККАУНТ / DEMO</div>
+          <h1 id="mono-profile-title">Профиль</h1>
+          <div className="mono-section-view__profile"><span className="mono-section-view__avatar" aria-hidden="true">{snapshot.profile.name.slice(0, 1)}</span>
+            <div><strong>{snapshot.profile.name}</strong><small>Демонстрационный профиль</small></div></div>
+          <div className="mono-section-view__detail"><span>Адрес в демо</span><strong>{snapshot.profile.shortAddress}</strong></div>
+          <button className="mono-section-view__privacy" type="button" aria-pressed={balanceHidden}
+            aria-label={balanceHidden ? "Показать суммы" : "Скрыть суммы"}
+            onClick={() => setBalanceHidden(!balanceHidden)}>
+            <span>Скрывать суммы</span><span>{balanceHidden ? "Включено" : "Выключено"}</span>
+          </button>
+          <p className="mono-section-view__note">Данные и действия этого экрана служат только для визуальной примерки.</p>
+        </section>}
       </div>
 
-      <div className="mono-nav" aria-label="Предпросмотр нижней навигации">
-        {NAV_ITEMS.map((item, index) => (
-          <div className="mono-nav__item" data-active={index === 0 ? "true" : "false"} key={item.label}>
+      <nav className="mono-nav" aria-label="Разделы кошелька">
+        {NAV_ITEMS.map(item => (
+          <button className="mono-nav__item" type="button" data-active={section === item.id ? "true" : "false"}
+            aria-current={section === item.id ? "page" : undefined} key={item.id}
+            onClick={() => setSection(item.id)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d={item.path} /></svg>
             <span>{item.label}</span>
-          </div>
+          </button>
         ))}
-      </div>
+      </nav>
         </main>
   );
 }

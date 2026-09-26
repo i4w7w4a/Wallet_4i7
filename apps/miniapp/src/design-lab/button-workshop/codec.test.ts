@@ -25,6 +25,15 @@ test("roundtrip retains fill, icon and border for all four actual targets", () =
   expect(parseButtonImport(JSON.stringify(document), ACTIONS, parseRecipe)).toEqual(document);
 });
 
+test("explicit frame mode roundtrips as v2 while legacy v1 keeps its exact shape", () => {
+  const legacy = createButtonWorkspace<Action, Recipe>(ACTIONS).slots[0].present.document;
+  const separate = { ...legacy, version: 2, frameMode: "separate" };
+  expect(parseButtonDocument(legacy, ACTIONS, parseRecipe)).toEqual(legacy);
+  expect(parseButtonImport(JSON.stringify(separate), ACTIONS, parseRecipe)).toEqual(separate);
+  expect(() => parseButtonDocument({ ...separate, frameMode: "unknown" }, ACTIONS, parseRecipe)).toThrow();
+  expect(() => parseButtonDocument({ ...legacy, frameMode: "separate" }, ACTIONS, parseRecipe)).toThrow();
+});
+
 test("codec refuses unknown targets, extra fields and an incompatible layer", () => {
   const document = createButtonWorkspace<Action, Recipe>(ACTIONS).slots[0].present.document;
   expect(() => parseButtonDocument({ ...document, actions: { ...document.actions, evil: document.actions.send } }, ACTIONS, parseRecipe)).toThrow();

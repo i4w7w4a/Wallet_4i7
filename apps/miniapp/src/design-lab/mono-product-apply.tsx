@@ -64,7 +64,8 @@ function patchLabel(patch: MonoMaterialPatch | null): string {
   const target = { "quick.send": "Отправить", "quick.receive": "Получить",
     "quick.swap": "Обменять", "quick.buy": "Купить" };
   const action = patch.value.bindings.length === 0 ? `Снять ${layer.toLowerCase()}` : layer;
-  return `${action} · ${patch.selection.target === "all" ? "Все четыре кнопки" : target[patch.selection.target]}`;
+  const frame = patch.value.version === 2 ? ` · ${patch.value.frameMode === "group" ? "Общий блок" : "Отдельные кнопки"}` : "";
+  return `${action} · ${patch.selection.target === "all" ? "Все четыре кнопки" : target[patch.selection.target]}${frame}`;
 }
 
 /** Explicit product transfer, separate from a workshop's own accepted preview. */

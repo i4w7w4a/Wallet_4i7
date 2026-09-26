@@ -2,7 +2,10 @@
 export type ButtonLayer = "fill" | "icon" | "border";
 export type ButtonTarget<A extends string> = A | "all";
 export type ButtonLayers<R> = Record<ButtonLayer, R | null>;
-export type ButtonLabDocument<A extends string, R> = { version: 1; actions: Record<A, ButtonLayers<R>> };
+export type ButtonFrameMode = "inherit" | "group" | "separate";
+export type ButtonLabDocument<A extends string, R> =
+  | { version: 1; actions: Record<A, ButtonLayers<R>> }
+  | { version: 2; frameMode: ButtonFrameMode; actions: Record<A, ButtonLayers<R>> };
 export type ButtonTrialBinding = { id: string; name: string; revision: number };
 export type ButtonLabFrame<A extends string, R> = {
   document: ButtonLabDocument<A, R>;
@@ -49,6 +52,16 @@ export function editButtonBinding<A extends string, R>(document: ButtonLabDocume
     next.actions[action][layer] = copyButtonValue(value);
   }
   return next;
+}
+
+export function buttonFrameMode<A extends string, R>(document: ButtonLabDocument<A, R>): ButtonFrameMode {
+  return document.version === 2 ? document.frameMode : "inherit";
+}
+
+export function editButtonFrameMode<A extends string, R>(document: ButtonLabDocument<A, R>, mode: ButtonFrameMode): ButtonLabDocument<A, R> {
+  if (mode !== "inherit" && mode !== "group" && mode !== "separate") throw new Error("Неизвестный режим ряда кнопок.");
+  if (buttonFrameMode(document) === mode) return document;
+  return { version: 2, frameMode: mode, actions: copyButtonValue(document.actions) };
 }
 
 export function editButtonSlot<A extends string, R>(slot: ButtonLabSlot<A, R>, document: ButtonLabDocument<A, R>, transient = false): ButtonLabSlot<A, R> {

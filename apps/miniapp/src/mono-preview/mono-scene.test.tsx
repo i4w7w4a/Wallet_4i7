@@ -1,11 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 import { createRef } from "react";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockWalletRepository } from "@wallet/core";
 import { MONO_GLASS_DEFAULTS, normalizeMonoPaletteConfig } from "@wallet/ui";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { MonoScene, type MonoScenePresentation } from "./mono-scene";
+import { MonoProductScene } from "./mono-product-scene";
 import { createMonoExtendedAppearance } from "./mono-preset-envelope";
 import { normalizeMonoBackgroundRecipe } from "./mono-background-recipes";
 import * as fontLoader from "./mono-font-loader";
@@ -96,6 +97,51 @@ it("renders supplied appearance and trusted account data without editor or stora
   expect(write).not.toHaveBeenCalled();
   expect(document.documentElement.dataset.monoTheme).toBe("dark");
   expect(JSON.stringify(presentation)).toBe(original);
+});
+
+it("opens four distinct wallet sections while keeping privacy and demo actions honest", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const { container } = render(<MonoScene snapshot={snapshot} appearance={appearance()} />);
+  const nav = screen.getByRole("navigation", { name: "Разделы кошелька" });
+  expect(screen.getByRole("button", { name: "Обзор" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("button", { name: "Отправить — демо, операция недоступна" })).toBeInTheDocument();
+  fireEvent.click(within(nav).getByRole("button", { name: "Активы" }));
+  expect(within(nav).getByRole("button", { name: "Активы" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("heading", { name: "Все активы" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Отправить — демо, операция недоступна" })).toBeNull();
+  fireEvent.click(within(nav).getByRole("button", { name: "История" }));
+  expect(screen.getByRole("heading", { name: "История операций" })).toBeInTheDocument();
+  expect(screen.getByText(/история операций пока не подключена/i)).toBeInTheDocument();
+  fireEvent.click(within(nav).getByRole("button", { name: "Профиль" }));
+  expect(screen.getByRole("heading", { name: "Профиль" })).toBeInTheDocument();
+  expect(screen.getByText(snapshot.profile.shortAddress)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Скрыть суммы" }));
+  fireEvent.click(within(nav).getByRole("button", { name: "Активы" }));
+  expect(screen.getAllByText("Значения скрыты")).toHaveLength(snapshot.assets.length);
+  expect(container.querySelectorAll("canvas").length).toBeLessThanOrEqual(1);
+});
+
+it("lets the host own section state across a scene remount", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const onSectionChange = vi.fn();
+  const session = { balanceHidden: false, onBalanceHiddenChange: vi.fn(),
+    period: "1D" as const, onPeriodChange: vi.fn(),
+    section: "history" as const, onSectionChange };
+  const view = render(<MonoScene snapshot={snapshot} appearance={appearance()} session={session} />);
+  expect(screen.getByRole("heading", { name: "История операций" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
+  expect(onSectionChange).toHaveBeenCalledWith("assets");
+  view.unmount();
+  render(<MonoScene snapshot={snapshot} appearance={appearance()} session={{ ...session, section: "assets" }} />);
+  expect(screen.getByRole("heading", { name: "Все активы" })).toBeInTheDocument();
+});
+
+it("renders a frame-only separate product without a material renderer", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const { container } = render(<MonoProductScene snapshot={snapshot} appearance={appearance()}
+    material={{ background: null, buttons: { version: 2, frameMode: "separate", bindings: [] } }} />);
+  expect(container.querySelector(".mono-actions")).toHaveAttribute("data-frame-mode", "separate");
+  expect(container.querySelector("[data-mono-product-material]")).toBeNull();
 });
 
 it("updates presentation in place while preserving transient privacy and a single optical canvas", async () => {

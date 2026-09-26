@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { webcrypto } from "node:crypto";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockWalletRepository } from "@wallet/core";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoPreview } from "./mono-preview";
@@ -22,7 +22,7 @@ async function start() {
   await waitFor(() => expect(screen.getByRole("button", { name: "Пресет оформления: А" })).toBeEnabled());
   return result;
 }
-const tool = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
+const tool = (name: string) => fireEvent.click(within(screen.getByRole("toolbar", { name: "Инструменты оформления" })).getByRole("button", { name }));
 const storedLibrary = () => JSON.parse(localStorage.getItem(MONO_WORKING_PRESETS_KEY)!) as MonoWorkingLibrary;
 
 function seedHiddenChart() {

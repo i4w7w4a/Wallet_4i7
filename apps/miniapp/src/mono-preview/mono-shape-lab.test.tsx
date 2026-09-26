@@ -4,6 +4,7 @@ import { MockWalletRepository } from "@wallet/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MonoPreview } from "./mono-preview";
+import { MonoShapeTuner } from "./mono-shape-tuner";
 
 const SHAPE_STORAGE_KEY = "wallet4i7.mono.shape-preview.v1";
 const WORKING_KEY = "wallet4i7.mono.working-presets.v2";
@@ -28,6 +29,14 @@ afterEach(() => {
 });
 
 describe("MONO shape lab", () => {
+  it("explains that the common shell radius is inactive for separate buttons", () => {
+    render(<MonoShapeTuner values={{ "quick-actions": 12, "bottom-navigation": 0 }} dirty={false} status=""
+      separateActions onChange={() => {}} onDefault={() => {}} onCancel={() => {}} onApply={() => {}} />);
+    expect(screen.getByRole("slider", { name: "Радиус формы" })).toBeDisabled();
+    expect(screen.getByText(/отдельных кнопок.*мастерской/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Нижнее меню" }));
+    expect(screen.getByRole("slider", { name: "Радиус формы" })).toBeEnabled();
+  });
   it("live-edits only the selected control group without writing before Apply", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
     await waitWorkingReady();

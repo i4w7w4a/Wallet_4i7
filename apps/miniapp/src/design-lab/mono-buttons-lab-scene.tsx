@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, type CSSProperties } from "react";
-import type { WalletSnapshot } from "@wallet/core";
+import { useMemo, useState, type CSSProperties } from "react";
+import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
 import { MONO_GLASS_DEFAULTS, MaterialSceneSurface, createMonoOpticalHost,
   createMonoOpticalOverlay, materialCatalogV2, normalizeMonoPaletteConfig,
   type ButtonStageRequest, type ButtonWorkshopBindings } from "@wallet/ui";
-import { MonoScene, type MonoScenePresentation } from "../mono-preview/mono-scene";
+import { MonoScene, type MonoScenePresentation, type MonoSceneProps, type MonoSection } from "../mono-preview/mono-scene";
+import { actionButtonRadii } from "../mono-preview/mono-action-geometry";
 import { MONO_LOGO_PREVIEW_DEFAULTS } from "../mono-preview/mono-logo-preview";
 import { createMonoShapeDefaults } from "../mono-preview/mono-shape-preview";
 import { MONO_SCENE_DEFAULT } from "../mono-preview/mono-scene-lab-contract";
@@ -22,8 +23,8 @@ const APPEARANCE: MonoScenePresentation = {
   logo: MONO_LOGO_PREVIEW_DEFAULTS,
 };
 
-function ButtonStage({ request, snapshot, hostActive }: {
-  request: ButtonStageRequest; snapshot: WalletSnapshot; hostActive: boolean;
+function ButtonStage({ request, snapshot, hostActive, session }: {
+  request: ButtonStageRequest; snapshot: WalletSnapshot; hostActive: boolean; session: NonNullable<MonoSceneProps["session"]>;
 }) {
   const opticalHost = useMemo(() => createMonoOpticalHost(), []);
   const overlay = useMemo(() => createMonoOpticalOverlay(opticalHost), [opticalHost]);
@@ -36,16 +37,22 @@ function ButtonStage({ request, snapshot, hostActive }: {
     <div className={`mono-preview-frame ${styles.frame}`} style={{ "--mono-preview-width": `${request.width}px` } as CSSProperties}>
       <MonoScene snapshot={snapshot} appearance={APPEARANCE} viewport={request.width}
         active={hostActive && !request.paused} atmosphere={null} opticalHost={opticalHost.binding}
-        materialTargets />
+        materialTargets actionFrameMode={request.frameMode} actionRadii={actionButtonRadii(request.bindings)} session={session} />
     </div>
   </MaterialSceneSurface>;
 }
 
 export function MonoButtonsLabWithScene({ snapshot }: { snapshot: WalletSnapshot }) {
   const hostActive = useMonoSceneActivity();
+  const [section, setSection] = useState<MonoSection>("overview");
+  const [balanceHidden, setBalanceHidden] = useState(snapshot.balance.hidden);
+  const [period, setPeriod] = useState<ChartPeriod>("1D");
+  const session = useMemo(() => ({ section, onSectionChange: setSection,
+    balanceHidden, onBalanceHiddenChange: setBalanceHidden, period, onPeriodChange: setPeriod }),
+    [section, balanceHidden, period]);
   const bindings = useMemo<ButtonWorkshopBindings>(() => ({
     materialCatalog: materialCatalogV2,
-    renderStage(request) { return <ButtonStage request={request} snapshot={snapshot} hostActive={hostActive} />; },
-  }), [hostActive, snapshot]);
-  return <MonoButtonsLab bindings={bindings} />;
+    renderStage(request) { return <ButtonStage request={request} snapshot={snapshot} hostActive={hostActive} session={session} />; },
+  }), [hostActive, snapshot, session]);
+  return <MonoButtonsLab bindings={bindings} onShowActions={() => setSection("overview")} />;
 }

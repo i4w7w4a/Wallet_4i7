@@ -52,6 +52,7 @@ import {
   type MonoShapeMap,
 } from "./mono-shape-preview";
 import { MonoProductScene } from "./mono-product-scene";
+import type { MonoSection } from "./mono-scene";
 import { useMonoSceneActivity } from "./mono-scene-activity";
 import { MonoToolDock, MONO_TOOL_LABELS, type MonoToolId } from "./mono-tool-dock";
 import { MonoInspectorShell } from "./mono-inspector-shell";
@@ -217,6 +218,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const hostActive = useMonoSceneActivity();
   const [sceneBalanceHidden, setSceneBalanceHidden] = useState(snapshot.balance.hidden);
   const [scenePeriod, setScenePeriod] = useState<ChartPeriod>("1D");
+  const [sceneSection, setSceneSection] = useState<MonoSection>("overview");
   const [initialDocument] = useState(() => createMonoWorkingDocument(MONO_LOGO_PREVIEW_DEFAULTS));
   const quickActionLaunchRef = useRef<ApplyLaunch | null>(null);
   const quickActionKnownSessionsRef = useRef<string[]>([]);
@@ -1155,6 +1157,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           {activeTool === "typography" && <><MonoTypographyTuner value={fontCandidate ?? draftAppearance[preset].typography} onChange={updateTypography} />
             {fontError && <p role="alert">{fontError}</p>}</>}
           {activeTool === "shape" && <div className="mono-workbench__shape">          <MonoShapeTuner values={draftShapes[preset]} dirty={shapeDirty} status={shapeStatus}
+            separateActions={activeMaterials.buttons?.version === 2 && activeMaterials.buttons.frameMode === "separate"}
             onChange={updateShape} onDefault={resetShape} onCancel={cancelShape} onApply={applyShape}
             onOpenMotionLab={process.env.NODE_ENV === "development" && workingReady ? openQuickActionMotionLab : undefined}
             buttonLabHref="/design-lab/buttons"
@@ -1235,7 +1238,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         }} viewport={viewport} ready={workingReady} paletteReady={colorLab.ready}
           active={hostActive}
           session={{ balanceHidden: sceneBalanceHidden, onBalanceHiddenChange: setSceneBalanceHidden,
-            period: scenePeriod, onPeriodChange: setScenePeriod }}
+            period: scenePeriod, onPeriodChange: setScenePeriod,
+            section: sceneSection, onSectionChange: setSceneSection }}
           paletteTransitionEnabled={colorLab.workspace.compare === null} quickActionPreset={quickActionPreset} />
       </div>
       <dialog ref={trialDialogRef} className="mono-trial-guard" aria-label="Неприменённые пробы"

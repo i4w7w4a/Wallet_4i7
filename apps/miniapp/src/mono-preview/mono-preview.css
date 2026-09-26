@@ -738,7 +738,9 @@
 }
 
 .mono-nav__item {
+  appearance: none;
   display: flex;
+  min-width: 0;
   min-height: 48px;
   flex-direction: column;
   align-items: center;
@@ -746,6 +748,11 @@
   gap: 3px;
   color: var(--mono-palette-textMuted-ff, #858585);
   font-size: 10px;
+  font-family: inherit;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
 }
 
 .mono-nav__item[data-active="true"] {
@@ -782,7 +789,7 @@
   background: var(--mono-palette-canvas-ff, #313131);
 }
 
-.mono-page[data-mono-preset="frost"] .mono-actions,
+.mono-page[data-mono-preset="frost"] .mono-actions:not([data-frame-mode="separate"]),
 .mono-page[data-mono-preset="frost"] .mono-assets__list {
   box-shadow: inset 0 1px var(--mono-palette-borderSubtle-12, #ffffff12);
 }

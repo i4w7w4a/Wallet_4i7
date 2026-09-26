@@ -74,3 +74,45 @@ it("merges only the selected button layer and target, including an explicit clea
       value: { version: 1, bindings: [] } } });
   expect(cleared.records[0].document.materials.ledger.buttons?.bindings).toEqual([receiveFill, sendBorder]);
 });
+
+it("keeps explicit separate mode through later layer edits and clearing the last binding", async () => {
+  const document = createMonoWorkingDocument();
+  document.appearance.ledger.logo.hue = 73;
+  const library: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1, document }] };
+  const metal = materialCatalogV2.materials.find(item => item.id === "liquid-metal")!.presets[0]!.recipe;
+  const created = createTargetBinding("quick.send", "fill", metal, materialCatalogV2);
+  if (!created.ok) throw new Error("Installed fixture is invalid");
+  const separate = applyMonoMaterialPatch(library, { targetId: "mine", direction: "ledger",
+    expectedGeneration: 1, expectedRevision: 1,
+    patch: { scope: "buttons", selection: { target: "quick.send", layer: "fill" },
+      value: { version: 2, frameMode: "separate", bindings: [created.value] } } });
+  const cleared = applyMonoMaterialPatch(separate, { targetId: "mine", direction: "ledger",
+    expectedGeneration: 2, expectedRevision: 2,
+    patch: { scope: "buttons", selection: { target: "quick.send", layer: "fill" },
+      value: { version: 1, bindings: [] } } });
+  expect(cleared.records[0].document.materials.ledger.buttons).toEqual({
+    version: 2, frameMode: "separate", bindings: [],
+  });
+  expect(cleared.records[0].document.appearance.ledger.logo.hue).toBe(73);
+  const restored = await previewMonoWorkingImport(exportMonoWorkingPreset("Мой", cleared.records[0].document));
+  expect(restored.document.materials.ledger.buttons).toEqual(cleared.records[0].document.materials.ledger.buttons);
+});
+
+it("switches to a common frame without removing bindings in other layers", () => {
+  const document = createMonoWorkingDocument();
+  const metal = materialCatalogV2.materials.find(item => item.id === "liquid-metal")!.presets[0]!.recipe;
+  const created = createTargetBinding("quick.send", "fill", metal, materialCatalogV2);
+  if (!created.ok) throw new Error("Installed fixture is invalid");
+  document.materials.ledger = { background: null,
+    buttons: { version: 2, frameMode: "separate", bindings: [created.value] } };
+  const library: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1, document }] };
+  const updated = applyMonoMaterialPatch(library, { targetId: "mine", direction: "ledger",
+    expectedGeneration: 1, expectedRevision: 1,
+    patch: { scope: "buttons", selection: { target: "all", layer: "border" },
+      value: { version: 2, frameMode: "group", bindings: [] } } });
+  expect(updated.records[0].document.materials.ledger.buttons).toEqual({
+    version: 2, frameMode: "group", bindings: [created.value],
+  });
+});

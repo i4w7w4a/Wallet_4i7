@@ -30,7 +30,7 @@ export function applyMonoMaterialPatch(library: MonoWorkingLibrary, request: {
     const { selection, value: selected } = request.patch;
     if ((selection.target !== "all" && !Object.hasOwn(BUTTON_MASK_ASSETS, selection.target)) ||
       (selection.layer !== "fill" && selection.layer !== "icon" && selection.layer !== "border") ||
-      selected.version !== 1 || !Array.isArray(selected.bindings) ||
+      (selected.version !== 1 && selected.version !== 2) || !Array.isArray(selected.bindings) ||
       selected.bindings.some(binding => binding.layer !== selection.layer ||
         (selection.target !== "all" && binding.targetId !== selection.target))) {
       throw new MonoWorkingStoreError("Выбранный слой кнопки не совпадает с материалом.", "invalid");
@@ -38,7 +38,11 @@ export function applyMonoMaterialPatch(library: MonoWorkingLibrary, request: {
     const retained = prior.buttons?.bindings.filter(binding =>
       binding.layer !== selection.layer ||
       (selection.target !== "all" && binding.targetId !== selection.target)) ?? [];
-    value = { version: 1, bindings: [...retained, ...selected.bindings] };
+    const frameMode = selected.version === 2 ? selected.frameMode :
+      prior.buttons?.version === 2 ? prior.buttons.frameMode : null;
+    value = frameMode === null
+      ? { version: 1, bindings: [...retained, ...selected.bindings] }
+      : { version: 2, frameMode, bindings: [...retained, ...selected.bindings] };
   }
   const materials = normalizeMonoMaterialMap({ ...target.document.materials,
     [request.direction]: { ...prior, [request.patch.scope]: structuredClone(value) } });

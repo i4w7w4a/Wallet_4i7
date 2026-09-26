@@ -101,7 +101,7 @@ export function createMonoAppearanceFromDocument(document: MonoWorkingDocument, 
   const presets = ["ledger", "frost", "mercury"] as const;
   const direction = preset ?? presets[document.palette.activeSlotId - 1];
   const materials = document.materials[direction];
-  if (materials.background || (materials.buttons?.bindings.length ?? 0) > 0)
+  if (materials.background || (materials.buttons?.bindings.length ?? 0) > 0 || materials.buttons?.version === 2)
     throw new MonoShareError("invalid", "Материалы этого направления пока не входят в ссылку просмотра. Экспортируйте полный рабочий пресет JSON.");
   const selected = document.palette.slots[presets.indexOf(direction)].present;
   const config = { ...structuredClone(selected.config), seed: "mono-share", actionCounter: 0 };

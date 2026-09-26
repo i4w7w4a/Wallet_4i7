@@ -188,7 +188,7 @@
   color: var(--mono-palette-textDisabled-ff, #f9f6f0);
 }
 
-:is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-actions,
+:is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-actions:not([data-frame-mode="separate"]),
 :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-assets__list {
   border-color: var(--mono-palette-borderSubtle-ff, #afb8b6);
   background: linear-gradient(155deg, var(--mono-palette-surfaceRaised-ff, #fcfaf5), var(--mono-palette-surfaceBase-ff, #f0eee8) 92%);

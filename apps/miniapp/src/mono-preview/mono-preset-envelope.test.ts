@@ -14,6 +14,8 @@ describe("allowlisted complete MONO appearance", () => {
     expect(() => createMonoAppearanceFromDocument(document, "frost")).not.toThrow();
     document.materials.ledger = { background: null, buttons: { version: 1, bindings: [] } };
     expect(() => createMonoAppearanceFromDocument(document, "ledger")).not.toThrow();
+    document.materials.ledger = { background: null, buttons: { version: 2, frameMode: "separate", bindings: [] } };
+    expect(() => createMonoAppearanceFromDocument(document, "ledger")).toThrow(/материал.*ссылк/i);
   });
 
   it("provides a complete snapshot with the approved positive Ledger optics", () => {

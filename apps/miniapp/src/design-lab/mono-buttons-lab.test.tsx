@@ -25,7 +25,7 @@ const bindings: ButtonWorkshopBindings = {
     copyForTarget(input, capability) { const value = input as MaterialRecipeV2; return materials.some(item => item.id === value.effectId && item.capabilities.includes(capability))
       ? { ok: true, value: structuredClone(value) } : { ok: false, issues: [{ code: "incompatible", message: "Материал не подходит." }] }; },
   },
-  renderStage(request) { return <output data-testid="button-stage">{request.bindings.map(item => `${item.targetId}:${item.layer}:${item.recipe.effectId}`).join("|")}</output>; },
+  renderStage(request) { return <output data-testid="button-stage" data-frame-mode={request.frameMode}>{request.bindings.map(item => `${item.targetId}:${item.layer}:${item.recipe.effectId}`).join("|")}</output>; },
 };
 
 beforeEach(() => {
@@ -187,6 +187,18 @@ test("secondary geometry stays collapsed until the editor asks for it", () => {
   fireEvent.click(toggle);
   expect(toggle.parentElement).toHaveAttribute("open");
   expect(within(controls).getByText(/Скругление кромки/)).toBeInTheDocument();
+});
+
+test("frame choice previews immediately and is undone in one step", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const choices = screen.getByRole("group", { name: "Форма ряда действий" });
+  expect(screen.getByTestId("button-stage")).toHaveAttribute("data-frame-mode", "group");
+  fireEvent.click(within(choices).getByRole("button", { name: "Отдельные кнопки" }));
+  expect(screen.getByTestId("button-stage")).toHaveAttribute("data-frame-mode", "separate");
+  expect(within(choices).getByRole("button", { name: "Отдельные кнопки" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Отменить" }));
+  expect(screen.getByTestId("button-stage")).toHaveAttribute("data-frame-mode", "group");
+  expect(within(choices).getByRole("button", { name: "Не менять в MONO" })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("geometry sliders expose their layer-specific names to assistive technology", () => {

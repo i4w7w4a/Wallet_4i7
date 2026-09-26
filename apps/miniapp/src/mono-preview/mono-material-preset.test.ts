@@ -19,3 +19,11 @@ it("accepts installed background and button material only in their selected dire
   expect(parsed.ledger).toEqual({ background: null, buttons: null });
   expect(parsed.mercury).toEqual({ background: null, buttons: null });
 });
+
+it("retains a frame-only separate button material and rejects unknown frame modes", () => {
+  const materials = createEmptyMonoMaterials();
+  materials.ledger = { background: null, buttons: { version: 2, frameMode: "separate", bindings: [] } };
+  expect(normalizeMonoMaterialMap(materials).ledger.buttons).toEqual(materials.ledger.buttons);
+  expect(() => normalizeMonoMaterialMap({ ...materials, ledger: { background: null,
+    buttons: { version: 2, frameMode: "unsupported", bindings: [] } } })).toThrow();
+});

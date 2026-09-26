@@ -12,7 +12,8 @@ import { MonoLabIconButton } from "../mono-preview/mono-lab-controls";
 import { createButtonBinding, replaceBindingRecipe, parseButtonBinding,
   buttonDocumentBindings, BUTTON_TARGETS } from "./button-workshop/binding";
 import { boundedButtonJson, parseButtonImport } from "./button-workshop/codec";
-import { createButtonDocument, editButtonBinding, isButtonSlotDirty } from "./button-workshop/model";
+import { buttonFrameMode, createButtonDocument, editButtonBinding, isButtonSlotDirty,
+  type ButtonFrameMode } from "./button-workshop/model";
 import { createButtonSession } from "./button-workshop/session";
 import { focusButtonActions } from "./button-workshop/scene-focus";
 import { ACCEPTED_KEY, LIBRARY_KEY, WORKSPACE_KEY } from "./button-workshop/storage";
@@ -56,7 +57,7 @@ function startingButtonDraft(catalog: ButtonWorkshopBindings["materialCatalog"])
 }
 
 /** The scene is supplied by ORACLE. This component owns only the separate button editor. */
-export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings }) {
+export function MonoButtonsLab({ bindings, onShowActions }: { bindings: ButtonWorkshopBindings; onShowActions?: () => void }) {
   const catalog = bindings.materialCatalog;
   const [editor] = useState(() => createButtonSession<ButtonTargetId, MaterialTargetBinding>(BUTTON_TARGETS,
     (input, layer, target) => parseButtonBinding(input, layer, target, catalog), startingButtonDraft(catalog)));
@@ -213,8 +214,10 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
   }
 
   const shown = editor.shownDocument();
+  const frameMode = buttonFrameMode(document);
+  const previewFrameMode = buttonFrameMode(shown) === "separate" ? "separate" : "group";
   const stageBindings = useMemo(() => buttonDocumentBindings(shown, catalog), [shown, catalog]);
-  const stage = bindings.renderStage({ bindings: stageBindings, width, quality, paused, restartKey: state.restartKey,
+  const stage = bindings.renderStage({ bindings: stageBindings, frameMode: previewFrameMode, width, quality, paused, restartKey: state.restartKey,
     onStatus: onRuntimeStatus });
   const disabled = state.saving || !state.ready || state.recoveryUnavailable || state.comparing;
 
@@ -266,6 +269,14 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
               aria-selected={selection.layer === layer} onClick={() => editor.selectLayer(layer)}>{LAYER_ICON[layer]}</MonoLabIconButton>)}</div>
           <p className={styles.layerCue}>{selection.layer === "border" ? "Материал по краю кнопки." :
             selection.layer === "fill" ? "Материал всей поверхности." : "Материал внутри знака."}</p>
+          <div className={styles.frameChoices} role="group" aria-label="Форма ряда действий">
+            {(["inherit", "group", "separate"] as const satisfies readonly ButtonFrameMode[]).map(mode =>
+              <button className={styles.frameChoice} type="button" key={mode} disabled={disabled}
+                aria-pressed={frameMode === mode} onClick={() => editor.setFrameMode(mode)}>
+                {{ inherit: "Не менять в MONO", group: "Общий блок", separate: "Отдельные кнопки" }[mode]}
+              </button>)}
+          </div>
+          {frameMode === "inherit" && <p className={styles.frameHint}>В примерке — исходный общий вид. При переносе в MONO форма ряда рабочего пресета сохранится.</p>}
           <label className={styles.field}>Материал<select aria-label="Материал" value={sharedEffect} disabled={disabled}
             onChange={event => {
               const chosen = available.find(item => item.id === event.currentTarget.value);
@@ -313,7 +324,11 @@ export function MonoButtonsLab({ bindings }: { bindings: ButtonWorkshopBindings 
         <div className={styles.previewColumn}>
           <div className={styles.stageHead}>
             <span>{state.comparing ? `A · ${state.workspace.pinned?.name}` : "B · действия MONO"}</span>
-            <MonoLabIconButton label="К кнопкам" onClick={() => { if (stageRef.current) focusButtonActions(stageRef.current); }}>⌖</MonoLabIconButton>
+            <MonoLabIconButton label="К кнопкам" onClick={() => {
+              onShowActions?.();
+              if (onShowActions) requestAnimationFrame(() => { if (stageRef.current) focusButtonActions(stageRef.current); });
+              else if (stageRef.current) focusButtonActions(stageRef.current);
+            }}>⌖</MonoLabIconButton>
           </div>
           <section ref={stageRef} className={styles.stageScroll} data-material-scrollport aria-label="Реальные кнопки MONO">
             <div className={styles.stage} style={{ width: `min(100%, ${width}px)` }}>

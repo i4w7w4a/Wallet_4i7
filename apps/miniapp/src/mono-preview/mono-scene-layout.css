@@ -49,6 +49,68 @@ html[data-mono-prepaint-theme="light"] .mono-scene-loading:not([data-mono-theme]
 }
 .mono-scene-domain--chart { margin-top: 26px; }
 
+.mono-page .mono-actions[data-frame-mode="separate"] {
+  gap: 6px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mono-page .mono-actions[data-frame-mode="separate"] .mono-actions__item {
+  min-height: 79px;
+  padding-bottom: 0;
+  border: 1px solid var(--mono-rule);
+  border-radius: var(--mono-button-radius, 12px);
+  background: var(--mono-surface);
+}
+.mono-page .mono-actions[data-frame-mode="separate"] .mono-actions__item + .mono-actions__item {
+  border-left-color: var(--mono-rule);
+}
+.mono-page .mono-actions[data-frame-mode="separate"] .mono-actions__item[data-material-fill-presented="true"] {
+  background: transparent;
+}
+.mono-page .mono-actions[data-frame-mode="separate"] .mono-actions__item[data-material-border-presented="true"] {
+  border-color: transparent;
+}
+.mono-page .mono-actions[data-frame-mode="separate"] .mono-actions__status {
+  position: static;
+  grid-column: 1 / -1;
+  min-height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.mono-section-view { display: grid; align-content: start; gap: 17px; min-height: min(650px, 80dvh); padding-top: 44px; color: var(--mono-text); }
+.mono-section-view__eyebrow { color: var(--mono-text-muted); font: 600 10px/1.4 var(--mono-font-mono); letter-spacing: .14em; }
+.mono-section-view h1 { margin: 0 0 8px; font-size: clamp(28px, 8cqw, 38px); line-height: 1.1; letter-spacing: -.04em; }
+.mono-section-view__balance, .mono-section-view__detail, .mono-section-view__privacy,
+.mono-section-view__profile, .mono-section-view__empty {
+  border: 1px solid var(--mono-rule);
+  border-radius: 14px;
+  background: var(--mono-surface);
+}
+.mono-section-view__balance { display: grid; gap: 7px; padding: 20px; }
+.mono-section-view__balance span, .mono-section-view__detail span { color: var(--mono-text-secondary); font-size: 11px; }
+.mono-section-view__balance strong { font-size: clamp(28px, 8cqw, 39px); font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.mono-section-view__assets { margin-top: 10px; }
+.mono-section-view__note { margin: 0; color: var(--mono-text-secondary); font-size: 11px; line-height: 1.5; }
+.mono-section-view__empty { display: grid; justify-items: start; gap: 12px; padding: 28px 24px; }
+.mono-section-view__empty > span { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--mono-rule-strong); border-radius: 50%; font-size: 23px; }
+.mono-section-view__empty strong { font-size: 18px; }
+.mono-section-view__empty p { margin: 0; color: var(--mono-text-secondary); font-size: 12px; line-height: 1.5; }
+.mono-section-view__profile { display: flex; align-items: center; gap: 13px; padding: 18px; }
+.mono-section-view__avatar { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--mono-rule-strong); border-radius: 50%; font-size: 20px; }
+.mono-section-view__profile strong, .mono-section-view__profile small { display: block; }
+.mono-section-view__profile strong { font-size: 15px; }
+.mono-section-view__profile small { margin-top: 3px; color: var(--mono-text-secondary); font-size: 11px; }
+.mono-section-view__detail, .mono-section-view__privacy { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 15px 18px; }
+.mono-section-view__detail strong { font: 600 13px/1.3 var(--mono-font-mono); }
+.mono-section-view__privacy { width: 100%; color: var(--mono-text); font: inherit; text-align: left; cursor: pointer; }
+.mono-section-view__privacy span:last-child { color: var(--mono-text-secondary); font-size: 11px; }
+.mono-section-view__privacy:hover, .mono-section-view__privacy:focus-visible { border-color: var(--mono-rule-strong); }
+
 .mono-preview-frame .mono-hero__amount { font-size: clamp(42px, 11.5cqw, 58px); }
 .mono-preview-frame .mono-page[data-mono-preset="frost"] .mono-hero__amount { font-size: clamp(41px, 10.8cqw, 54px); }
 .mono-preview-frame .mono-page[data-mono-preset="mercury"] .mono-hero__amount { font-size: clamp(45px, 12cqw, 61px); }

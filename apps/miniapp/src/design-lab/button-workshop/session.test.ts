@@ -152,3 +152,29 @@ test("accepted bindings remain the draft when only recovery workspace is missing
   expect(current.getSnapshot().accepted.actions.send.fill).toEqual(metal);
   expect(current.getSnapshot().workspace.selection.layer).toBe("fill");
 });
+
+test("frame mode is one undoable edit per slot and persists without rewriting legacy accepted data", async () => {
+  const store = memoryStorage();
+  const legacy = createButtonDocument<typeof ACTIONS[number], Recipe>(ACTIONS);
+  store.values.set(ACCEPTED_KEY, JSON.stringify(legacy));
+  const editor = createButtonSession(ACTIONS, parseRecipe);
+  editor.connect(store, lock);
+  expect(editor.shownDocument()).toEqual(legacy);
+  expect(store.values.get(ACCEPTED_KEY)).toBe(JSON.stringify(legacy));
+  editor.setFrameMode("separate");
+  expect(editor.shownDocument()).toMatchObject({ version: 2, frameMode: "separate" });
+  editor.undo();
+  expect(editor.shownDocument()).toEqual(legacy);
+  editor.undo(true);
+  editor.selectSlot(1);
+  expect(editor.shownDocument()).toEqual(legacy);
+  editor.selectSlot(0);
+  expect(editor.shownDocument()).toMatchObject({ version: 2, frameMode: "separate" });
+  await editor.flushRecovery();
+  const reloaded = createButtonSession(ACTIONS, parseRecipe);
+  reloaded.connect(store, lock);
+  expect(reloaded.shownDocument()).toMatchObject({ version: 2, frameMode: "separate" });
+  expect(store.values.get(ACCEPTED_KEY)).toBe(JSON.stringify(legacy));
+  expect(await reloaded.apply()).toBe(true);
+  expect(JSON.parse(store.values.get(ACCEPTED_KEY)!)).toMatchObject({ version: 2, frameMode: "separate" });
+});

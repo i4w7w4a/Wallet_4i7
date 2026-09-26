@@ -7,10 +7,10 @@ export type MonoMaterialBackground = Readonly<{
   recipe: MaterialRecipeV2;
   edgeFinish: BackgroundEdgeFinishV1;
 }>;
-export type MonoMaterialButtons = Readonly<{
-  version: 1;
-  bindings: readonly MaterialTargetBinding[];
-}>;
+export type MonoMaterialButtons = Readonly<
+  | { version: 1; bindings: readonly MaterialTargetBinding[] }
+  | { version: 2; frameMode: "group" | "separate"; bindings: readonly MaterialTargetBinding[] }
+>;
 export type MonoMaterialDirection = Readonly<{
   background: MonoMaterialBackground | null;
   buttons: MonoMaterialButtons | null;
@@ -49,11 +49,15 @@ function parseBackground(value: unknown): MonoMaterialBackground | null {
 
 function parseButtons(value: unknown): MonoMaterialButtons | null {
   if (value === null) return null;
-  const input = exact(value, ["version", "bindings"]);
-  if (input.version !== 1) throw new Error("Версия материала кнопок не поддерживается.");
+  const version = value && typeof value === "object" && !Array.isArray(value) ? (value as { version?: unknown }).version : undefined;
+  if (version !== 1 && version !== 2) throw new Error("Версия материала кнопок не поддерживается.");
+  const input = exact(value, version === 1 ? ["version", "bindings"] : ["version", "frameMode", "bindings"]);
+  if (version === 2 && input.frameMode !== "group" && input.frameMode !== "separate")
+    throw new Error("Неизвестный режим ряда кнопок.");
   const parsed = parseTargetBindings(input.bindings, materialCatalogV2);
   if (!parsed.ok) throw new Error(parsed.issues.map(issue => issue.message).join(" "));
-  return { version: 1, bindings: parsed.value };
+  return version === 1 ? { version: 1, bindings: parsed.value } :
+    { version: 2, frameMode: input.frameMode as "group" | "separate", bindings: parsed.value };
 }
 
 /** A material extension is all-or-nothing. Unknown fields and effects must never disappear on read. */
