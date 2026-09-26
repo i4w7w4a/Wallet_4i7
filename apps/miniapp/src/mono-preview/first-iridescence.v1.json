@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "actions": {
+    "quick.send": {
+      "fill": null,
+      "icon": null,
+      "border": {
+        "targetId": "quick.send",
+        "layer": "border",
+        "recipe": {
+          "kind": "novex-material",
+          "version": 2,
+          "effectId": "pulsing-border",
+          "effectVersion": 1,
+          "seed": 0,
+          "params": {
+            "fit": "cover",
+            "scale": 1.15,
+            "rotation": 221,
+            "originX": 0.5,
+            "originY": 0.5,
+            "offsetX": -0.19,
+            "offsetY": 0.38,
+            "worldWidth": 0,
+            "worldHeight": 0,
+            "speed": 2,
+            "phaseMs": 120000,
+            "colorBack": "#000000",
+            "colors": [
+              "#0dc1fd",
+              "#d915ef",
+              "#ff3f2ecc"
+            ],
+            "roundness": 0.14,
+            "thickness": 0.79,
+            "marginLeft": 0,
+            "marginRight": 0,
+            "marginTop": 0,
+            "marginBottom": 0,
+            "aspectRatio": "square",
+            "softness": 1,
+            "intensity": 0.2,
+            "bloom": 0.25,
+            "spots": 1,
+            "spotSize": 0.78,
+            "pulse": 1,
+            "smoke": 0.3,
+            "smokeSize": 0.94
+          },
+          "assetIds": []
+        },
+        "mask": {
+          "kind": "rounded-rect"
+        },
+        "radiusCss": 0,
+        "borderWidthCss": 1.5,
+        "enabled": true
+      }
+    },
+    "quick.receive": {
+      "fill": null,
+      "icon": null,
+      "border": {
+        "targetId": "quick.receive",
+        "layer": "border",
+        "recipe": {
+          "kind": "novex-material",
+          "version": 2,
+          "effectId": "pulsing-border",
+          "effectVersion": 1,
+          "seed": 0,
+          "params": {
+            "fit": "cover",
+            "scale": 1.15,
+            "rotation": 221,
+            "originX": 0.5,
+            "originY": 0.5,
+            "offsetX": -0.19,
+            "offsetY": 0.38,
+            "worldWidth": 0,
+            "worldHeight": 0,
+            "speed": 2,
+            "phaseMs": 120000,
+            "colorBack": "#000000",
+            "colors": [
+              "#0dc1fd",
+              "#d915ef",
+              "#ff3f2ecc"
+            ],
+            "roundness": 0.14,
+            "thickness": 0.79,
+            "marginLeft": 0,
+            "marginRight": 0,
+            "marginTop": 0,
+            "marginBottom": 0,
+            "aspectRatio": "square",
+            "softness": 1,
+            "intensity": 0.2,
+            "bloom": 0.25,
+            "spots": 1,
+            "spotSize": 0.78,
+            "pulse": 1,
+            "smoke": 0.3,
+            "smokeSize": 0.94
+          },
+          "assetIds": []
+        },
+        "mask": {
+          "kind": "rounded-rect"
+        },
+        "radiusCss": 0,
+        "borderWidthCss": 1.5,
+        "enabled": true
+      }
+    },
+    "quick.swap": {
+      "fill": null,
+      "icon": null,
+      "border": {
+        "targetId": "quick.swap",
+        "layer": "border",
+        "recipe": {
+          "kind": "novex-material",
+          "version": 2,
+          "effectId": "pulsing-border",
+          "effectVersion": 1,
+          "seed": 0,
+          "params": {
+            "fit": "cover",
+            "scale": 1.15,
+            "rotation": 221,
+            "originX": 0.5,
+            "originY": 0.5,
+            "offsetX": -0.19,
+            "offsetY": 0.38,
+            "worldWidth": 0,
+            "worldHeight": 0,
+            "speed": 2,
+            "phaseMs": 120000,
+            "colorBack": "#000000",
+            "colors": [
+              "#0dc1fd",
+              "#d915ef",
+              "#ff3f2ecc"
+            ],
+            "roundness": 0.14,
+            "thickness": 0.79,
+            "marginLeft": 0,
+            "marginRight": 0,
+            "marginTop": 0,
+            "marginBottom": 0,
+            "aspectRatio": "square",
+            "softness": 1,
+            "intensity": 0.2,
+            "bloom": 0.25,
+            "spots": 1,
+            "spotSize": 0.78,
+            "pulse": 1,
+            "smoke": 0.3,
+            "smokeSize": 0.94
+          },
+          "assetIds": []
+        },
+        "mask": {
+          "kind": "rounded-rect"
+        },
+        "radiusCss": 0,
+        "borderWidthCss": 1.5,
+        "enabled": true
+      }
+    },
+    "quick.buy": {
+      "fill": null,
+      "icon": null,
+      "border": {
+        "targetId": "quick.buy",
+        "layer": "border",
+        "recipe": {
+          "kind": "novex-material",
+          "version": 2,
+          "effectId": "pulsing-border",
+          "effectVersion": 1,
+          "seed": 0,
+          "params": {
+            "fit": "cover",
+            "scale": 1.15,
+            "rotation": 221,
+            "originX": 0.5,
+            "originY": 0.5,
+            "offsetX": -0.19,
+            "offsetY": 0.38,
+            "worldWidth": 0,
+            "worldHeight": 0,
+            "speed": 2,
+            "phaseMs": 120000,
+            "colorBack": "#000000",
+            "colors": [
+              "#0dc1fd",
+              "#d915ef",
+              "#ff3f2ecc"
+            ],
+            "roundness": 0.14,
+            "thickness": 0.79,
+            "marginLeft": 0,
+            "marginRight": 0,
+            "marginTop": 0,
+            "marginBottom": 0,
+            "aspectRatio": "square",
+            "softness": 1,
+            "intensity": 0.2,
+            "bloom": 0.25,
+            "spots": 1,
+            "spotSize": 0.78,
+            "pulse": 1,
+            "smoke": 0.3,
+            "smokeSize": 0.94
+          },
+          "assetIds": []
+        },
+        "mask": {
+          "kind": "rounded-rect"
+        },
+        "radiusCss": 0,
+        "borderWidthCss": 1.5,
+        "enabled": true
+      }
+    }
+  }
+}

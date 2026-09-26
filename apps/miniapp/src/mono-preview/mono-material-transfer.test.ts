@@ -116,3 +116,24 @@ it("switches to a common frame without removing bindings in other layers", () =>
     version: 2, frameMode: "group", bindings: [created.value],
   });
 });
+
+it("keeps stored border and fill bindings when an icon-only frame is applied", () => {
+  const document = createMonoWorkingDocument();
+  const metal = materialCatalogV2.materials.find(item => item.id === "liquid-metal")!.presets[0]!.recipe;
+  const border = materialCatalogV2.materials.find(item => item.id === "pulsing-border")!.presets[0]!.recipe;
+  const fill = createTargetBinding("quick.send", "fill", metal, materialCatalogV2);
+  const edge = createTargetBinding("quick.send", "border", border, materialCatalogV2);
+  const icon = createTargetBinding("quick.send", "icon", metal, materialCatalogV2);
+  if (!fill.ok || !edge.ok || !icon.ok) throw new Error("Installed fixture is invalid");
+  document.materials.ledger = { ...document.materials.ledger,
+    buttons: { version: 1, bindings: [fill.value, edge.value] } };
+  const library: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1, document }] };
+  const updated = applyMonoMaterialPatch(library, { targetId: "mine", direction: "ledger",
+    expectedGeneration: 1, expectedRevision: 1,
+    patch: { scope: "buttons", selection: { target: "quick.send", layer: "icon" },
+      value: { version: 2, frameMode: "icons", bindings: [icon.value] } } });
+  expect(updated.records[0].document.materials.ledger.buttons).toEqual({
+    version: 2, frameMode: "icons", bindings: [fill.value, edge.value, icon.value],
+  });
+});

@@ -64,7 +64,8 @@ function patchLabel(patch: MonoMaterialPatch | null): string {
   const target = { "quick.send": "Отправить", "quick.receive": "Получить",
     "quick.swap": "Обменять", "quick.buy": "Купить" };
   const action = patch.value.bindings.length === 0 ? `Снять ${layer.toLowerCase()}` : layer;
-  const frame = patch.value.version === 2 ? ` · ${patch.value.frameMode === "group" ? "Общий блок" : "Отдельные кнопки"}` : "";
+  const frame = patch.value.version === 2 ? ` · ${{ group: "Общий блок", separate: "Отдельные кнопки",
+    icons: "Иконки + подписи" }[patch.value.frameMode]}` : "";
   return `${action} · ${patch.selection.target === "all" ? "Все четыре кнопки" : target[patch.selection.target]}${frame}`;
 }
 

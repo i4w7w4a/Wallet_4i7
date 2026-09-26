@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, expect, test } from "vitest";
 import type { ButtonWorkshopBindings, MaterialCapability, MaterialDescriptorV2, MaterialRecipeV2 } from "@wallet/ui";
 import { MonoButtonsLab } from "./mono-buttons-lab";
+import { createFirstButtonDocument } from "../mono-preview/mono-first-button-preset";
 
 const metal: MaterialRecipeV2<"liquid-metal"> = { kind: "novex-material", version: 2, effectId: "liquid-metal", effectVersion: 1,
   seed: 1, params: { colorTint: "#aabbcc" }, assetIds: [] };
@@ -96,7 +97,7 @@ test("selected button sends a compatible full material to the separate backgroun
   link.addEventListener("click", event => event.preventDefault());
   fireEvent.click(link);
   expect(JSON.parse(sessionStorage.getItem("wallet4i7.material-copy.buttons-to-background.v1")!)).toEqual({
-    version: 1, target: "background", recipe: border,
+    version: 1, target: "background", recipe: createFirstButtonDocument().actions["quick.send"].border.recipe,
   });
 });
 
@@ -187,6 +188,22 @@ test("secondary geometry stays collapsed until the editor asks for it", () => {
   fireEvent.click(toggle);
   expect(toggle.parentElement).toHaveAttribute("open");
   expect(within(controls).getByText(/Скругление кромки/)).toBeInTheDocument();
+});
+
+test("named first starter uses the owner's saved border recipe without rewriting the library", () => {
+  const inspecting: ButtonWorkshopBindings = { ...bindings,
+    renderStage(request) { return <output data-testid="owner-stage" data-bindings={JSON.stringify(request.bindings)} />; },
+  };
+  render(<MonoButtonsLab bindings={inspecting} />);
+  const first = JSON.parse(screen.getByTestId("owner-stage").getAttribute("data-bindings")!);
+  expect(first).toHaveLength(4);
+  expect(first[0]).toMatchObject({ radiusCss: 0, borderWidthCss: 1.5,
+    recipe: { effectId: "pulsing-border", params: { rotation: 221, scale: 1.15,
+      colors: ["#0dc1fd", "#d915ef", "#ff3f2ecc"] } } });
+  fireEvent.click(screen.getByRole("button", { name: "Открыть" }));
+  expect(within(screen.getByRole("dialog", { name: "Библиотека кнопок" }))
+    .getByRole("button", { name: "Открыть Первый · перелив" })).toBeInTheDocument();
+  expect(localStorage.getItem("wallet4i7.button-sandbox.library.v1")).toBeNull();
 });
 
 test("frame choice previews immediately and is undone in one step", () => {

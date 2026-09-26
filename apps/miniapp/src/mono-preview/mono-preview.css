@@ -789,7 +789,7 @@
   background: var(--mono-palette-canvas-ff, #313131);
 }
 
-.mono-page[data-mono-preset="frost"] .mono-actions:not([data-frame-mode="separate"]),
+.mono-page[data-mono-preset="frost"] .mono-actions[data-frame-mode="group"],
 .mono-page[data-mono-preset="frost"] .mono-assets__list {
   box-shadow: inset 0 1px var(--mono-palette-borderSubtle-12, #ffffff12);
 }

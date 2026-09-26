@@ -27,6 +27,7 @@ import { MonoPresetLibrary } from "./mono-preset-library";
 import { MonoShapeTuner } from "./mono-shape-tuner";
 import { MONO_QUICK_ACTION_DEFAULT } from "./mono-quick-action-feedback";
 import { MonoWorkingPresetBar } from "./mono-working-preset-bar";
+import { createFirstMonoWorkingDocument, FIRST_BUTTON_PRESET_NAME } from "./mono-first-button-preset";
 import { saveMonoPalettePrepaint } from "./mono-palette-prepaint";
 import { MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY, loadMonoPaletteLibrary,
   loadMonoPaletteActive, readMonoPaletteWorkspace, saveMonoPaletteWorkspace } from "./mono-palette-storage";
@@ -323,7 +324,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     ? "Принятые настройки не изменены."
     : current.startsWith("Сначала примените")
     ? workingTimerRef.current !== null ? "Сохраняется…"
-      : workingLibraryRef.current ? "Сохранено в этом браузере" : "Исходный образец · первое изменение создаст копию"
+      : workingLibraryRef.current ? "Сохранено в этом браузере" : `${FIRST_BUTTON_PRESET_NAME} · первое изменение создаст копию`
     : current);
 
   const selectWorking = (id: string) => {
@@ -459,14 +460,14 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
   };
 
-  const importWorking = (imported: MonoWorkingImport) => {
-    if (!workingReadyRef.current || workingBlockedRef.current || !trialsSettled(() => { importWorking(imported); })) return false;
+  const importWorking = (imported: MonoWorkingImport, exactName?: string) => {
+    if (!workingReadyRef.current || workingBlockedRef.current || !trialsSettled(() => { importWorking(imported, exactName); })) return false;
     colorLab.end();
     if (!flushWorking()) return false;
     const current = workingLibraryRef.current;
     const id = crypto.randomUUID();
     const document = structuredClone(imported.document);
-    const name = imported.kind === "palette-only" ? "Импорт палитры" : `${imported.name} · импорт`;
+    const name = exactName ?? (imported.kind === "palette-only" ? "Импорт палитры" : `${imported.name} · импорт`);
     const next: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1",
       generation: savedGenerationRef.current + 1, activeId: id,
       records: [...(current?.records ?? []), { id, name: name.slice(0, 80), revision: 1, document }] };
@@ -688,6 +689,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             library = { ...library, records: [...library.records, ...legacyRecords] };
             saveMonoWorkingLibrary(localStorage, library, 0);
             document = library.records.find(record => record.id === library!.activeId)!.document;
+          } else {
+            document = createFirstMonoWorkingDocument(loadMonoLogoPreview(localStorage));
           }
         }
         if (!alive) return;
@@ -702,7 +705,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       restoreAppearance(document);
         setBackground(document.background);
         loadManagedWorkspace(document.palette);
-        setWorkingStatus(library ? "Сохранено в этом браузере" : "Исходный образец · первое изменение создаст копию");
+        setWorkingStatus(library ? "Сохранено в этом браузере" : `${FIRST_BUTTON_PRESET_NAME} · первое изменение создаст копию`);
         workingReadyRef.current = true;
         setWorkingReady(true);
       } catch (error) {
@@ -1091,7 +1094,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         <a className="mono-rail__lab-entry" href="/design-lab">Design Lab · Фоны и кнопки ↗</a>
         <MonoWorkingPresetBar key={workingLibrary?.activeId ?? "baseline"}
           ready={workingReady}
-          activeName={workingLibrary?.records.find(record => record.id === workingLibrary.activeId)?.name ?? "Исходный образец"}
+          activeName={workingLibrary?.records.find(record => record.id === workingLibrary.activeId)?.name ??
+            (workingReady && !workingBlockedRef.current ? FIRST_BUTTON_PRESET_NAME : "Исходный образец")}
           activeId={workingLibrary?.activeId ?? null}
           choices={workingLibrary?.records.map(record => ({ id: record.id, name: record.name,
             legacyPalette: record.source?.kind === "legacy-palette" })) ?? []}
@@ -1099,10 +1103,14 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           onExport={() => {
             colorLab.end();
             const name = workingLibraryRef.current?.records.find(record => record.id === workingLibraryRef.current?.activeId)?.name
-              ?? "Исходный образец";
+              ?? FIRST_BUTTON_PRESET_NAME;
             return exportMonoWorkingPreset(name, workingDocumentRef.current);
           }}
           onImport={importWorking}
+          starterName={FIRST_BUTTON_PRESET_NAME}
+          onStarter={() => workingLibraryRef.current
+            ? importWorking({ kind: "full", name: FIRST_BUTTON_PRESET_NAME, document: createFirstMonoWorkingDocument() }, FIRST_BUTTON_PRESET_NAME)
+            : !workingBlockedRef.current}
           onOpenArchive={() => {
             selectTool("color");
             colorLab.setVariantsOpen(true);
@@ -1157,7 +1165,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           {activeTool === "typography" && <><MonoTypographyTuner value={fontCandidate ?? draftAppearance[preset].typography} onChange={updateTypography} />
             {fontError && <p role="alert">{fontError}</p>}</>}
           {activeTool === "shape" && <div className="mono-workbench__shape">          <MonoShapeTuner values={draftShapes[preset]} dirty={shapeDirty} status={shapeStatus}
-            separateActions={activeMaterials.buttons?.version === 2 && activeMaterials.buttons.frameMode === "separate"}
+            separateActions={activeMaterials.buttons?.version === 2 && activeMaterials.buttons.frameMode !== "group"}
             onChange={updateShape} onDefault={resetShape} onCancel={cancelShape} onApply={applyShape}
             onOpenMotionLab={process.env.NODE_ENV === "development" && workingReady ? openQuickActionMotionLab : undefined}
             buttonLabHref="/design-lab/buttons"

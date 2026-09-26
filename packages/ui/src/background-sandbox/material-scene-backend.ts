@@ -12,7 +12,8 @@ import { MaterialCompositor, type MaterialDrawMode } from "./material-compositor
 import { planMaterialSceneBudget } from "./material-scene-budget";
 import { materialSceneStructureKey } from "./material-scene-state";
 import { materialPointerPhase } from "./material-scene-pointer";
-import { resolveMaterialTargetGeometry } from "./material-target-geometry";
+import { resolveMaterialHostClip, resolveMaterialTargetGeometry,
+  type MaterialHostClip } from "./material-target-geometry";
 import { rasterizeMaterialIcon } from "./material-icon-assets";
 import { materialBindingsV2, materialCatalogV2 } from "./registry-v2";
 import { parseTargetBindings } from "./target-binding";
@@ -116,6 +117,7 @@ export class MaterialSceneBackend {
     Object.assign(this.canvas.style, { position: "absolute", left: "0", top: "0", display: "block", pointerEvents: "none" });
     root.prepend(this.canvas);
     try {
+      if (typeof WebGL2RenderingContext === "undefined") throw new Error("Для материалов нужен WebGL2.");
       this.renderer = new Renderer({ canvas: this.canvas, webgl: 2, alpha: true, premultipliedAlpha: true,
         antialias: false, depth: false, dpr: 1 });
       if (!this.renderer.isWebgl2) throw new Error("Для материалов нужен WebGL2.");
@@ -307,6 +309,7 @@ export class MaterialSceneBackend {
     try {
       const timing = now === undefined ? { time: this.clock.time, dt: 0 } : this.clock.advance(now);
       const backgroundPointer = this.pointer.drain();
+      const hostClips = new Map<HTMLElement, MaterialHostClip | undefined>();
       this.compositor.clear();
       for (const entry of this.passes) {
         const geometry = entry.button && entry.layer
@@ -319,7 +322,8 @@ export class MaterialSceneBackend {
         const texture: MaterialFrameTexture = entry.pass.render(frame, geometry);
         const mode: MaterialDrawMode = entry.key === "background" ? "background" : entry.layer!;
         const drawn = this.compositor.draw(texture, geometry, mode, texture.alphaMode === "opaque",
-          entry.iconTexture, entry.key === "background" ? this.input.edgeFinish : undefined);
+          entry.iconTexture, entry.key === "background" ? this.input.edgeFinish : undefined,
+          entry.button ? this.currentButtonHostClip(entry.button, hostClips) : undefined);
         if (drawn && entry.button && entry.layer) entry.button.setAttribute(`data-material-${entry.layer}-presented`, "true");
       }
       if (this.input.overlay) {
@@ -345,6 +349,25 @@ export class MaterialSceneBackend {
     if (!element) return null;
     return resolveMaterialTargetGeometry(this.canvas.getBoundingClientRect(), element.getBoundingClientRect(),
       this.viewport, `button-${entry.layer}`, entry.geometry.mask, entry.geometry.radiusCss, entry.geometry.borderWidthCss);
+  }
+
+  private currentButtonHostClip(button: HTMLElement,
+    cache: Map<HTMLElement, MaterialHostClip | undefined>): MaterialHostClip | undefined {
+    const row = button.closest<HTMLElement>(".mono-actions");
+    if (!row || row.dataset.frameMode === "icons") return undefined;
+    const separate = row.dataset.frameMode === "separate";
+    const host = separate ? button : row;
+    if (cache.has(host)) return cache.get(host);
+    const style = getComputedStyle(host);
+    const borderCss = separate ? 0 : Number.parseFloat(style.borderTopWidth) || 0;
+    const radiusCss = Number.parseFloat(style.borderTopLeftRadius) || 0;
+    const statusTop = separate ? undefined : row.querySelector<HTMLElement>(".mono-actions__status")?.getBoundingClientRect().top;
+    const clip = resolveMaterialHostClip(this.canvas.getBoundingClientRect(), host.getBoundingClientRect(), {
+      layoutWidth: host.offsetWidth, layoutHeight: host.offsetHeight, radiusCss, borderCss,
+      box: separate ? "border" : "padding", statusTop,
+    }) ?? undefined;
+    cache.set(host, clip);
+    return clip;
   }
 
   private readonly tick = (now: number) => {

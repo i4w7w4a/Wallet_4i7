@@ -2,7 +2,7 @@ import { Geometry, Mesh, Program, type OGLRenderingContext, type Renderer, type 
 import type { FrameTexture, Viewport } from "./contracts";
 import type { BackgroundEdgeFinishV1, MaterialTargetGeometry } from "./material-contract";
 import { normalizeBackgroundEdgeFinish } from "./material-edge-finish";
-import { materialScissorRect } from "./material-target-geometry";
+import { materialScissorRect, type MaterialHostClip } from "./material-target-geometry";
 
 const VERTEX = `#version 300 es
 in vec2 position;
@@ -21,6 +21,10 @@ uniform float uBorder;
 uniform float uKind;
 uniform float uOpaque;
 uniform vec3 uEdgeFinish;
+uniform vec4 uHostRegion;
+uniform float uHostRadius;
+uniform float uHostBottom;
+uniform float uHostEnabled;
 in vec2 vUv;
 out vec4 fragColor;
 
@@ -33,9 +37,15 @@ float roundedCoverage(vec2 point, vec2 size, float radius) {
 }
 
 void main() {
-  vec2 local = vUv * uViewport - uRegion.xy;
+  vec2 canvasPoint = vUv * uViewport;
+  vec2 local = canvasPoint - uRegion.xy;
   vec2 uv = local / uRegion.zw;
   vec4 color = texture(uSource, clamp(uv, vec2(0.0), vec2(1.0)));
+  float hostCoverage = 1.0;
+  if (uHostEnabled > 0.5) {
+    hostCoverage = roundedCoverage(canvasPoint - uHostRegion.xy, uHostRegion.zw, uHostRadius);
+    hostCoverage *= step(uHostBottom, canvasPoint.y);
+  }
   if (uKind > 4.5) {
     float core = texture(uMask, clamp(uv, vec2(0.0), vec2(1.0))).a;
     vec2 reach = vec2(2.0) / max(uRegion.zw, vec2(1.0));
@@ -44,7 +54,7 @@ void main() {
     outer = max(outer, texture(uMask, clamp(uv - vec2(reach.x, 0.0), vec2(0.0), vec2(1.0))).a);
     outer = max(outer, texture(uMask, clamp(uv + vec2(0.0, reach.y), vec2(0.0), vec2(1.0))).a);
     outer = max(outer, texture(uMask, clamp(uv - vec2(0.0, reach.y), vec2(0.0), vec2(1.0))).a);
-    fragColor = vec4(vec3(0.0), max(outer - core, 0.0) * 0.82);
+    fragColor = vec4(vec3(0.0), max(outer - core, 0.0) * 0.82 * hostCoverage);
     return;
   }
   float coverage = 1.0;
@@ -58,6 +68,7 @@ void main() {
       coverage = texture(uMask, clamp(uv, vec2(0.0), vec2(1.0))).a;
     }
   }
+  coverage *= hostCoverage;
   color.rgb *= coverage;
   color.a = mix(color.a, 1.0, uOpaque) * coverage;
   if (uKind < 0.5 && uEdgeFinish.x > 0.0) {
@@ -86,6 +97,8 @@ export class MaterialCompositor {
     uRadius: { value: number }; uBorder: { value: number };
     uKind: { value: number }; uOpaque: { value: number };
     uEdgeFinish: { value: Float32Array };
+    uHostRegion: { value: Float32Array }; uHostRadius: { value: number };
+    uHostBottom: { value: number }; uHostEnabled: { value: number };
   };
   private disposed = false;
 
@@ -98,6 +111,8 @@ export class MaterialCompositor {
       uRegion: { value: new Float32Array([0, 0, viewport.cssWidth, viewport.cssHeight]) },
       uRadius: { value: 0 }, uBorder: { value: 0 }, uKind: { value: 0 }, uOpaque: { value: 1 },
       uEdgeFinish: { value: new Float32Array(3) },
+      uHostRegion: { value: new Float32Array(4) }, uHostRadius: { value: 0 },
+      uHostBottom: { value: 0 }, uHostEnabled: { value: 0 },
     };
     this.program = new Program(gl, { vertex: VERTEX, fragment: FRAGMENT, uniforms: this.uniforms,
       transparent: true, depthTest: false, depthWrite: false, cullFace: false });
@@ -123,7 +138,8 @@ export class MaterialCompositor {
   }
 
   draw(source: FrameTexture, target: MaterialTargetGeometry, mode: MaterialDrawMode,
-    opaque: boolean, iconMask?: Texture, edgeFinish?: BackgroundEdgeFinishV1): boolean {
+    opaque: boolean, iconMask?: Texture, edgeFinish?: BackgroundEdgeFinishV1,
+    hostClip?: MaterialHostClip): boolean {
     if (this.disposed) return false;
     const clip = materialScissorRect(target, this.viewport);
     if (!clip) return false;
@@ -135,6 +151,11 @@ export class MaterialCompositor {
     this.uniforms.uBorder.value = target.borderWidthCss;
     this.uniforms.uKind.value = KIND[mode];
     this.uniforms.uOpaque.value = opaque ? 1 : 0;
+    this.uniforms.uHostEnabled.value = hostClip ? 1 : 0;
+    this.uniforms.uHostRegion.value.set(hostClip
+      ? [hostClip.x, hostClip.y, hostClip.width, hostClip.height] : [0, 0, 0, 0]);
+    this.uniforms.uHostRadius.value = hostClip?.radiusCss ?? 0;
+    this.uniforms.uHostBottom.value = hostClip?.contentBottomY ?? 0;
     const finish = normalizeBackgroundEdgeFinish(mode === "background" ? edgeFinish : undefined);
     this.uniforms.uEdgeFinish.value.set([finish.sideDarkening, finish.inset, finish.softness]);
     this.renderer.enable(gl.SCISSOR_TEST);

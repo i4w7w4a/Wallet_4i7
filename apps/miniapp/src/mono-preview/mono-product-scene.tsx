@@ -3,7 +3,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { MaterialSceneSurface, createMonoOpticalHost, createMonoOpticalOverlay } from "@wallet/ui";
 import type { MonoMaterialDirection } from "./mono-material-preset";
-import { actionButtonRadii } from "./mono-action-geometry";
+import { actionButtonRadii, visibleActionBindings } from "./mono-action-geometry";
 import { monoPaletteStyle } from "./mono-palette-tokens";
 import { MonoScene, type MonoSceneProps } from "./mono-scene";
 import styles from "./mono-product-scene.module.css";
@@ -11,11 +11,13 @@ import styles from "./mono-product-scene.module.css";
 export function MonoProductScene({ material, ...scene }: MonoSceneProps & { material: MonoMaterialDirection }) {
   const actionFrameMode = material.buttons?.version === 2 ? material.buttons.frameMode : "group";
   const actionRadii = actionButtonRadii(material.buttons?.bindings ?? []);
-  if (!material.background && !material.buttons?.bindings.length) return <MonoScene {...scene} actionFrameMode={actionFrameMode} actionRadii={actionRadii} />;
-  return <ActiveMaterialScene material={material} scene={{ ...scene, actionFrameMode, actionRadii }} />;
+  const bindings = visibleActionBindings(actionFrameMode, material.buttons?.bindings ?? []);
+  if (!material.background && !bindings.length) return <MonoScene {...scene} actionFrameMode={actionFrameMode} actionRadii={actionRadii} />;
+  return <ActiveMaterialScene material={material} bindings={bindings} scene={{ ...scene, actionFrameMode, actionRadii }} />;
 }
 
-function ActiveMaterialScene({ material, scene }: { material: MonoMaterialDirection; scene: MonoSceneProps }) {
+function ActiveMaterialScene({ material, bindings, scene }: { material: MonoMaterialDirection;
+  bindings: ReturnType<typeof visibleActionBindings>; scene: MonoSceneProps }) {
   const opticalHost = useMemo(() => createMonoOpticalHost(), []);
   const overlay = useMemo(() => createMonoOpticalOverlay(opticalHost), [opticalHost]);
   const { appearance } = scene;
@@ -26,7 +28,6 @@ function ActiveMaterialScene({ material, scene }: { material: MonoMaterialDirect
     : appearance.preset === "frost" ? "#0a0a0a" : appearance.preset === "mercury" ? "#000000" : "#050505";
   const palette = appearance.palette.enabled ? monoPaletteStyle(appearance.palette.config.themes[theme]) : {};
   const style = { ...palette, "--mono-product-canvas": fallback } as CSSProperties;
-  const bindings = material.buttons?.bindings ?? [];
   return <div className={styles.stage} style={style} data-mono-product-material
     data-mono-effect-background={hasBackgroundMaterial}
     data-mono-theme={theme} data-mono-background={appearance.environment.background}>

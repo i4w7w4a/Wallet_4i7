@@ -80,7 +80,7 @@ export type MaterialStageRequestV2 = Readonly<{
 /** Separate button-lab renderer. Its state and storage belong to the button workshop. */
 export type ButtonStageRequest = Readonly<{
   bindings: readonly MaterialTargetBinding[];
-  frameMode?: "group" | "separate";
+  frameMode?: "group" | "separate" | "icons";
   width: 320 | 390 | 430 | 480;
   quality: MaterialQualityProfile;
   paused: boolean;

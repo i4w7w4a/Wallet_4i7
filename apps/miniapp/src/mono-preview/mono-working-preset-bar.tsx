@@ -3,7 +3,7 @@ import { previewMonoWorkingImport, type MonoWorkingImport } from "./mono-working
 
 export type MonoWorkingPresetChoice = { id: string; name: string; legacyPalette: boolean };
 
-export function MonoWorkingPresetBar({ activeName, activeId, choices, ready, status, onExport, onImport, onOpenArchive, onSelect, onCreate, onCopy, onRename, onRetry }: {
+export function MonoWorkingPresetBar({ activeName, activeId, choices, ready, status, onExport, onImport, onOpenArchive, onSelect, onCreate, onCopy, onRename, onRetry, starterName, onStarter }: {
   activeName: string;
   activeId: string | null;
   choices: MonoWorkingPresetChoice[];
@@ -17,6 +17,8 @@ export function MonoWorkingPresetBar({ activeName, activeId, choices, ready, sta
   onCopy: (name: string) => boolean;
   onRename: (name: string) => boolean;
   onRetry: () => boolean;
+  starterName: string;
+  onStarter: () => boolean;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -76,6 +78,11 @@ export function MonoWorkingPresetBar({ activeName, activeId, choices, ready, sta
       onClick={onRetry}>Повторить сохранение</button>}
     <div id="mono-working-preset-choices" className="mono-working-preset__panel" hidden={!pickerOpen}
       role="group" aria-label="Пресеты">
+      <button type="button" aria-label={`Открыть ${starterName}`} aria-pressed={activeId === null && activeName === starterName}
+        onClick={() => { if (onStarter()) setPickerOpen(false); }}>
+        <span aria-hidden="true">{activeId === null && activeName === starterName ? "✓" : ""}</span>
+        <span>{starterName}<small> · встроенный</small></span>
+      </button>
       {choices.map(choice => <button key={choice.id} type="button" aria-label={`Выбрать ${choice.name}`}
         aria-pressed={choice.id === activeId} onClick={() => { if (onSelect(choice.id)) setPickerOpen(false); }}>
         <span aria-hidden="true">{choice.id === activeId ? "✓" : ""}</span>

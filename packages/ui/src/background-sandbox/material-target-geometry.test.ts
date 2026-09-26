@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveMaterialTargetGeometry, materialScissorRect } from "./material-target-geometry";
+import { resolveMaterialHostClip, resolveMaterialTargetGeometry, materialScissorRect } from "./material-target-geometry";
 
 describe("live material target geometry", () => {
   it("projects a real DOM target into bottom-left scene coordinates and bounded physical pixels", () => {
@@ -45,5 +45,41 @@ describe("live material target geometry", () => {
       mask: { kind: "rounded-rect" as const } };
 
     expect(materialScissorRect(geometry, viewport)).toEqual({ x: 0, y: 10, width: 40, height: 40 });
+  });
+});
+
+describe("explicit action host silhouette", () => {
+  const canvas = { left: 481, top: 112, width: 390, height: 751 };
+
+  it("clips group passes to the live padding edge and stops before its status row", () => {
+    expect(resolveMaterialHostClip(canvas,
+      { left: 501, top: 446, width: 350, height: 81 },
+      { layoutWidth: 350, layoutHeight: 81, radiusCss: 12, borderCss: 1,
+        box: "padding", statusTop: 508 })).toEqual({
+      x: 21, y: 337, width: 348, height: 79, radiusCss: 11, contentBottomY: 355,
+    });
+  });
+
+  it("keeps the host clip aligned during a uniform ancestor transform and scroll", () => {
+    const clip = resolveMaterialHostClip(canvas,
+      { left: 501, top: 411, width: 315, height: 72.9 },
+      { layoutWidth: 350, layoutHeight: 81, radiusCss: 12, borderCss: 1,
+        box: "padding", statusTop: 466.8 });
+    expect(clip).not.toBeNull();
+    expect(clip!.x).toBeCloseTo(20.9);
+    expect(clip!.y).toBeCloseTo(380);
+    expect(clip!.width).toBeCloseTo(313.2);
+    expect(clip!.height).toBeCloseTo(71.1);
+    expect(clip!.radiusCss).toBeCloseTo(9.9);
+    expect(clip!.contentBottomY).toBeCloseTo(396.2);
+  });
+
+  it("uses the outer DOM button radius for separate fill and border passes", () => {
+    expect(resolveMaterialHostClip(canvas,
+      { left: 501, top: 446, width: 87, height: 79 },
+      { layoutWidth: 87, layoutHeight: 79, radiusCss: 24, borderCss: 1,
+        box: "border" })).toEqual({
+      x: 20, y: 338, width: 87, height: 79, radiusCss: 24, contentBottomY: 338,
+    });
   });
 });

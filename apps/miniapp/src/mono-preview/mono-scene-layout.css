@@ -82,6 +82,93 @@ html[data-mono-prepaint-theme="light"] .mono-scene-loading:not([data-mono-theme]
   background: transparent;
 }
 
+/* Icon-only actions keep the full button hit area and live text, without plaques. */
+.mono-page .mono-actions[data-frame-mode="icons"] {
+  gap: 6px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item,
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item[data-control-effect="material"],
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item:hover,
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item:active,
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item[data-key-pressed="true"] {
+  min-height: 79px;
+  padding-bottom: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: none;
+}
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item + .mono-actions__item {
+  border-left: 0;
+}
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__status {
+  position: static;
+  grid-column: 1 / -1;
+  min-height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item:focus-visible {
+  outline: 2px solid var(--mono-text);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item:focus-visible .mono-actions__label {
+  color: var(--mono-text);
+}
+/* A live vector stroke keeps icon contrast when a chosen GPU recipe is very dark or pale. */
+.mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item[data-material-icon-presented="true"] .mono-actions__icon svg {
+  opacity: 0.6;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item:hover,
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item[data-control-effect="material"]:active,
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item[data-control-effect="material"][data-key-pressed="true"] {
+    background: transparent;
+    box-shadow: none;
+  }
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item:hover .mono-actions__icon {
+    color: var(--mono-text);
+    transform: translateY(-1px);
+    transition-duration: 90ms;
+  }
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item:hover .mono-actions__label {
+    color: var(--mono-text);
+    transform: none;
+    transition-duration: 90ms;
+  }
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item:active .mono-actions__icon,
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item[data-key-pressed="true"] .mono-actions__icon {
+    transform: translateY(1px);
+    transition-duration: 80ms;
+  }
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item:active .mono-actions__label,
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item[data-key-pressed="true"] .mono-actions__label {
+    transform: none;
+  }
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__icon,
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__label {
+    transition: transform 190ms cubic-bezier(0.2, 0, 0, 1), color 190ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item[data-material-icon-presented="true"] .mono-actions__icon {
+    transform: none;
+  }
+}
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item .mono-actions__icon,
+  .mono-page .mono-actions[data-frame-mode="icons"] .mono-actions__item .mono-actions__label {
+    transform: none !important;
+    transition-duration: 0.01ms;
+  }
+}
+
 .mono-section-view { display: grid; align-content: start; gap: 17px; min-height: min(650px, 80dvh); padding-top: 44px; color: var(--mono-text); }
 .mono-section-view__eyebrow { color: var(--mono-text-muted); font: 600 10px/1.4 var(--mono-font-mono); letter-spacing: .14em; }
 .mono-section-view h1 { margin: 0 0 8px; font-size: clamp(28px, 8cqw, 38px); line-height: 1.1; letter-spacing: -.04em; }

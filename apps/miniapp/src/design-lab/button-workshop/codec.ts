@@ -35,7 +35,7 @@ export function parseButtonDocument<A extends string, R>(input: unknown, actionI
   const version = input && typeof input === "object" && !Array.isArray(input) ? (input as { version?: unknown }).version : undefined;
   if (version !== 1 && version !== 2) throw new Error("Версия ButtonLabDocument не поддерживается.");
   const data = exactButtonObject(input, version === 1 ? ["version", "actions"] : ["version", "frameMode", "actions"]);
-  if (version === 2 && data.frameMode !== "inherit" && data.frameMode !== "group" && data.frameMode !== "separate")
+  if (version === 2 && data.frameMode !== "inherit" && data.frameMode !== "group" && data.frameMode !== "separate" && data.frameMode !== "icons")
     throw new Error("Неизвестный режим ряда кнопок.");
   if (actionIds.length !== 4 || new Set(actionIds).size !== 4) throw new Error("Нужны четыре действия MONO.");
   const actions = exactButtonObject(data.actions, actionIds);
@@ -49,7 +49,7 @@ export function parseButtonDocument<A extends string, R>(input: unknown, actionI
     };
   }
   return version === 1 ? { version: 1, actions: parsed } :
-    { version: 2, frameMode: data.frameMode as "inherit" | "group" | "separate", actions: parsed };
+    { version: 2, frameMode: data.frameMode as "inherit" | "group" | "separate" | "icons", actions: parsed };
 }
 
 export function parseButtonImport<A extends string, R>(raw: string, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>): ButtonLabDocument<A, R> {

@@ -54,7 +54,7 @@ export type MonoSceneProps = {
   quickActionPreset?: ComponentProps<typeof MonoQuickActionFeedback>["preset"];
   /** Dev-only material workshop can identify the existing four DOM action targets. */
   materialTargets?: boolean;
-  actionFrameMode?: "group" | "separate";
+  actionFrameMode?: "group" | "separate" | "icons";
   actionRadii?: Partial<Record<ButtonTargetId, number>>;
   active?: boolean;
   /** Host-owned adapter replaces the legacy ambient layer and its pointer reactions. */

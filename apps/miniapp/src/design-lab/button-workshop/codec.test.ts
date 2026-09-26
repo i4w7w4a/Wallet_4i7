@@ -32,6 +32,8 @@ test("explicit frame mode roundtrips as v2 while legacy v1 keeps its exact shape
   expect(parseButtonImport(JSON.stringify(separate), ACTIONS, parseRecipe)).toEqual(separate);
   expect(() => parseButtonDocument({ ...separate, frameMode: "unknown" }, ACTIONS, parseRecipe)).toThrow();
   expect(() => parseButtonDocument({ ...legacy, frameMode: "separate" }, ACTIONS, parseRecipe)).toThrow();
+  const icons = { ...legacy, version: 2, frameMode: "icons" };
+  expect(parseButtonImport(JSON.stringify(icons), ACTIONS, parseRecipe)).toEqual(icons);
 });
 
 test("codec refuses unknown targets, extra fields and an incompatible layer", () => {

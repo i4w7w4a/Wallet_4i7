@@ -2,7 +2,7 @@
 export type ButtonLayer = "fill" | "icon" | "border";
 export type ButtonTarget<A extends string> = A | "all";
 export type ButtonLayers<R> = Record<ButtonLayer, R | null>;
-export type ButtonFrameMode = "inherit" | "group" | "separate";
+export type ButtonFrameMode = "inherit" | "group" | "separate" | "icons";
 export type ButtonLabDocument<A extends string, R> =
   | { version: 1; actions: Record<A, ButtonLayers<R>> }
   | { version: 2; frameMode: ButtonFrameMode; actions: Record<A, ButtonLayers<R>> };
@@ -59,7 +59,7 @@ export function buttonFrameMode<A extends string, R>(document: ButtonLabDocument
 }
 
 export function editButtonFrameMode<A extends string, R>(document: ButtonLabDocument<A, R>, mode: ButtonFrameMode): ButtonLabDocument<A, R> {
-  if (mode !== "inherit" && mode !== "group" && mode !== "separate") throw new Error("Неизвестный режим ряда кнопок.");
+  if (mode !== "inherit" && mode !== "group" && mode !== "separate" && mode !== "icons") throw new Error("Неизвестный режим ряда кнопок.");
   if (buttonFrameMode(document) === mode) return document;
   return { version: 2, frameMode: mode, actions: copyButtonValue(document.actions) };
 }

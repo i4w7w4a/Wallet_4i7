@@ -3,6 +3,35 @@ import type { MaterialCapability, MaterialMask, MaterialTargetGeometry } from ".
 
 export type RectMeasure = Readonly<{ left: number; top: number; width: number; height: number }>;
 export type MaterialScissorRect = Readonly<{ x: number; y: number; width: number; height: number }>;
+export type MaterialHostClip = Readonly<{
+  x: number; y: number; width: number; height: number; radiusCss: number; contentBottomY: number;
+}>;
+
+/** Explicit DOM silhouette for action passes, measured in the same canvas coordinates as targets. */
+export function resolveMaterialHostClip(root: RectMeasure, host: RectMeasure, options: {
+  layoutWidth: number; layoutHeight: number; radiusCss: number; borderCss: number;
+  box: "padding" | "border"; statusTop?: number;
+}): MaterialHostClip | null {
+  if (![root.left, root.top, root.width, root.height, host.left, host.top, host.width, host.height,
+    options.layoutWidth, options.layoutHeight, options.radiusCss, options.borderCss,
+    ...(options.statusTop === undefined ? [] : [options.statusTop])].every(Number.isFinite) ||
+    root.width <= 0 || root.height <= 0 || host.width <= 0 || host.height <= 0 ||
+    options.layoutWidth <= 0 || options.layoutHeight <= 0 || options.radiusCss < 0 || options.borderCss < 0) return null;
+  const scaleX = host.width / options.layoutWidth;
+  const scaleY = host.height / options.layoutHeight;
+  const insetX = options.box === "padding" ? options.borderCss * scaleX : 0;
+  const insetY = options.box === "padding" ? options.borderCss * scaleY : 0;
+  const width = host.width - 2 * insetX;
+  const height = host.height - 2 * insetY;
+  if (width <= 0 || height <= 0) return null;
+  const x = host.left - root.left + insetX;
+  const y = root.top + root.height - host.top - host.height + insetY;
+  const radiusCss = Math.min(Math.min(width, height) * 0.5,
+    Math.max(0, options.radiusCss - (options.box === "padding" ? options.borderCss : 0)) * Math.min(scaleX, scaleY));
+  const contentBottomY = options.statusTop === undefined ? y :
+    Math.min(y + height, Math.max(y, root.top + root.height - options.statusTop));
+  return { x, y, width, height, radiusCss, contentBottomY };
+}
 
 /** The pass may keep its full local UV; only visible canvas pixels are composited. */
 export function materialScissorRect(geometry: MaterialTargetGeometry, viewport: Viewport): MaterialScissorRect | null {

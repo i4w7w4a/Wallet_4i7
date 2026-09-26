@@ -128,7 +128,7 @@ html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] 
 
 html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-labbar__variants, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-labbar__variants { background: var(--mono-palette-surfaceBase-ff, #1a1c21); border-color: var(--mono-palette-borderSubtle-ff, #3a3b43); }
 html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-labbar__variants button:not([aria-pressed="true"]):hover, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-labbar__variants button:not([aria-pressed="true"]):hover { background: var(--mono-palette-surfaceBase-ff, #30343c); }
-html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-actions:not([data-frame-mode="separate"]), html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-actions:not([data-frame-mode="separate"]),
+html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-actions[data-frame-mode="group"], html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-actions[data-frame-mode="group"],
 html:not([data-mono-prepaint-theme="light"]) .mono-page[data-mono-theme="dark"] .mono-assets__list, html[data-mono-prepaint-theme="dark"] .mono-page:not([data-mono-theme="light"]) .mono-assets__list {
   box-shadow: inset 0 1px var(--mono-palette-borderSubtle-0d, #ffffff0d), 0 13px 28px var(--mono-palette-borderSubtle-33, #0003);
 }

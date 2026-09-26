@@ -10,6 +10,7 @@ import { createMonoPaletteWorkspace } from "./mono-palette-workspace";
 import { MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY, saveMonoPaletteLibrary, saveMonoPaletteWorkspace } from "./mono-palette-storage";
 import { exportMonoPalettePreset, importMonoPalettePreset } from "./mono-preset-codec";
 import { createMonoWorkingDocument, MONO_WORKING_PRESETS_KEY, saveMonoWorkingLibrary } from "./mono-working-presets";
+import { FIRST_BUTTON_PRESET_NAME } from "./mono-first-button-preset";
 
 const WORKING_KEY = MONO_WORKING_PRESETS_KEY;
 const selectTool = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
@@ -27,6 +28,25 @@ beforeEach(() => {
     matches: query.includes("reduced-motion"), media: query,
     addEventListener() {}, removeEventListener() {},
   }));
+});
+
+it("opens the named starter on clean storage and offers it without replacing an existing selection", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const first = render(<MonoPreview snapshot={snapshot} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: `Пресет оформления: ${FIRST_BUTTON_PRESET_NAME}` })).toBeEnabled());
+  expect(localStorage.getItem(WORKING_KEY)).toBeNull();
+  expect(document.querySelectorAll('.mono-actions__item[data-material-target]')).toHaveLength(4);
+  first.unmount();
+
+  const existing = { version: 2 as const, skinId: "mono-ledger-v1" as const, generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1, document: createMonoWorkingDocument() }] };
+  saveMonoWorkingLibrary(localStorage, existing, 0);
+  const saved = localStorage.getItem(WORKING_KEY);
+  render(<MonoPreview snapshot={snapshot} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Пресет оформления: Мой" })).toBeEnabled());
+  expect(localStorage.getItem(WORKING_KEY)).toBe(saved);
+  fireEvent.click(screen.getByRole("button", { name: "Пресет оформления: Мой" }));
+  expect(screen.getByRole("button", { name: `Открыть ${FIRST_BUTTON_PRESET_NAME}` })).toBeInTheDocument();
 });
 
 it("opens the exact working record and direction named by a product Apply link", async () => {
@@ -555,7 +575,7 @@ it("renames a working preset without changing its stable ID or color", async () 
 it("creates a named working preset from the built-in MONO defaults", async () => {
   render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
   await waitFor(() => expect(screen.getByRole("button", { name: "Включить палитру" })).toBeEnabled());
-  fireEvent.click(screen.getByRole("button", { name: /Пресет оформления: Исходный образец/ }));
+  fireEvent.click(screen.getByRole("button", { name: `Пресет оформления: ${FIRST_BUTTON_PRESET_NAME}` }));
   fireEvent.click(screen.getByRole("button", { name: "Создать пресет" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Название пресета" }), { target: { value: "Чистый" } });
   fireEvent.click(screen.getByRole("button", { name: "Сохранить пресет" }));

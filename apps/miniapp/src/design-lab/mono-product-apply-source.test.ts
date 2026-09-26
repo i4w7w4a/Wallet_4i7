@@ -41,4 +41,8 @@ it("carries explicit frame mode even when the selected layer has no bindings", (
   expect(buttonPatchFromLab(separate, { target: "all", layer: "border" }).value).toEqual({
     version: 2, frameMode: "separate", bindings: [],
   });
+  const icons = { version: 2 as const, frameMode: "icons" as const, actions: legacy.actions };
+  expect(buttonPatchFromLab(icons, { target: "all", layer: "icon" }).value).toEqual({
+    version: 2, frameMode: "icons", bindings: [],
+  });
 });

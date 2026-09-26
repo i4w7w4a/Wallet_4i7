@@ -15,6 +15,7 @@ export default defineConfig([
     "**/.superpowers/**",
     "**/.worktrees/**",
     "**/.next/**",
+    "**/.next-review/**",
     "**/coverage/**",
     "**/playwright-report/**",
     "**/test-results/**",
