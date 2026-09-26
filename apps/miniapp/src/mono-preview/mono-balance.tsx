@@ -11,13 +11,14 @@ export type MonoBalanceProps = {
   change24h?: number;
   hidden: boolean;
   onHiddenChange?: (hidden: boolean) => void;
+  blinkEnabled?: boolean;
   appearance: Readonly<MonoBalanceAppearance>;
   label?: string;
 };
 
 const FRACTION_SCALE = { small: 0.42, medium: 0.56, large: 1 } as const;
 
-export function MonoBalance({ value, format, change24h, hidden, onHiddenChange, appearance, label = "Общий баланс" }: MonoBalanceProps) {
+export function MonoBalance({ value, format, change24h, hidden, onHiddenChange, blinkEnabled = true, appearance, label = "Общий баланс" }: MonoBalanceProps) {
   const titleId = useId();
   const money = hidden ? null : formatMonoMoney(value, format);
   const fractionScale = FRACTION_SCALE[appearance.fractionSize];
@@ -33,6 +34,7 @@ export function MonoBalance({ value, format, change24h, hidden, onHiddenChange, 
     <div className="mono-balance__heading">
       <h1 id={titleId}>{label}</h1>
       {onHiddenChange && <button type="button" className="mono-balance__privacy"
+        data-eye-blink={blinkEnabled && !hidden}
         aria-label={hidden ? "Показать баланс" : "Скрыть баланс"} aria-pressed={hidden}
         onClick={() => onHiddenChange(!hidden)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />

@@ -59,6 +59,7 @@ import { MonoToolDock, MONO_TOOL_LABELS, type MonoToolId } from "./mono-tool-doc
 import { MonoInspectorShell } from "./mono-inspector-shell";
 import { MonoLabSection } from "./mono-lab-controls";
 import { MonoBalanceControls, MonoAssetListControls, MonoChartControls } from "./mono-scene-lab-controls";
+import { MonoNavigationControls } from "./mono-interface-controls";
 import { MonoBackgroundRecipeControls } from "./mono-background-recipes-controls";
 import { MonoTypographyTuner } from "./mono-typography-tuner";
 import { loadMonoTypography } from "./mono-font-loader";
@@ -78,8 +79,8 @@ type MonoBackground = "iris" | "tide" | "strata";
 type MonoViewport = 320 | 390 | 430 | 480;
 type MonoRail = "quick" | "fine";
 const TOOL_SLICES: Record<MonoToolId, ReadonlyArray<keyof MonoExtendedAppearance>> = {
-  balance: ["balance"], assets: ["assets"], chart: ["chart", "layout"], typography: ["typography"],
-  logo: ["logo"], environment: ["background"], shape: [], optics: [], color: [],
+  balance: ["balance", "eye"], assets: ["assets"], chart: ["chart", "layout"], typography: ["typography"],
+  navigation: ["navigation"], logo: ["logo"], environment: ["background"], shape: [], optics: [], color: [],
 };
 
 function workingSaveError(error: unknown): string {
@@ -1158,7 +1159,11 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           onCancel={activeTool === "color" ? undefined : () => cancelTool(activeTool)}
           note={activeTool === "color" ? "Прямые правки сохраняются в рабочем пресете. Импорт палитры применяется отдельно."
             : activeTool === "typography" && fontCandidate ? fontError || "Загрузка шрифтов…" : undefined}>
-          {activeTool === "balance" && <MonoBalanceControls value={draftAppearance[preset].balance} onChange={value => updateAppearance("balance", value)} />}
+          {activeTool === "balance" && <><MonoBalanceControls value={draftAppearance[preset].balance} onChange={value => updateAppearance("balance", value)} />
+            <label className="mono-workbench__eye-toggle"><input type="checkbox" checked={draftAppearance[preset].eye.blinkEnabled}
+              onChange={event => updateAppearance("eye", { blinkEnabled: event.currentTarget.checked })} />Моргание глаза</label></>}
+          {activeTool === "navigation" && <MonoNavigationControls value={draftAppearance[preset].navigation}
+            onChange={value => updateAppearance("navigation", value)} />}
           {activeTool === "assets" && <MonoAssetListControls value={draftAppearance[preset].assets} onChange={value => updateAppearance("assets", value)} />}
           {activeTool === "chart" && <MonoChartControls value={draftAppearance[preset].chart} layout={draftAppearance[preset].layout}
             onChange={value => updateAppearance("chart", value)} onLayoutChange={value => updateAppearance("layout", value)} />}

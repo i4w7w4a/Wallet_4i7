@@ -143,12 +143,6 @@
   box-shadow: 0 0 0 1px var(--mono-palette-borderSubtle-b3, #f8f7ecb3);
 }
 
-:is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header__signal {
-  border-color: var(--mono-palette-borderSubtle-ff, #aeb6b7);
-  background: var(--mono-palette-surfaceBase-87, #f8f7f187);
-  color: var(--mono-palette-textSecondary-ff, #414e54);
-}
-:is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header__signal-dot { background: var(--mono-palette-surfaceBase-ff, #43585d); }
 :is(.mono-page[data-mono-theme="light"], html[data-mono-prepaint-theme="light"] .mono-page) .mono-app-header__mark {
   --mono-logo-ink: #1e1b4b;
   --mono-logo-primary: #4338ca;

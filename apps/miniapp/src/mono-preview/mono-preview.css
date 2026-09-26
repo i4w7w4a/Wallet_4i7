@@ -280,27 +280,6 @@
   white-space: nowrap;
 }
 
-.mono-app-header__signal {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex: 0 0 auto;
-  padding: 6px 8px;
-  border: 1px solid var(--mono-palette-borderSubtle-ff, #373737);
-  border-radius: 100px;
-  color: var(--mono-palette-textSecondary-ff, #aeaeae);
-  font-family: var(--mono-font-mono);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-}
-
-.mono-app-header__signal-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--mono-palette-surfaceBase-ff, #cfcfcf);
-}
-
 .mono-hero {
   margin-top: 24px;
 }
@@ -640,12 +619,6 @@
   font-size: 20px;
   font-weight: var(--mono-font-weight-strong);
   letter-spacing: -0.025em;
-}
-
-.mono-assets__heading span {
-  color: var(--mono-text-muted);
-  font-family: var(--mono-font-mono);
-  font-size: 11px;
 }
 
 .mono-assets__list {

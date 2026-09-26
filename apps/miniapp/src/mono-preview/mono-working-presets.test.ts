@@ -5,6 +5,7 @@ import { createMonoPaletteWorkspace } from "./mono-palette-workspace";
 import { createMonoShapeDefaults } from "./mono-shape-preview";
 import { createLegacyPaletteWorkingRecords, createMonoWorkingDocument, loadMonoWorkingLibrary, previewMonoWorkingImport, exportMonoWorkingPreset, saveMonoWorkingLibrary } from "./mono-working-presets";
 import { exportMonoPalettePreset, importMonoPalettePreset } from "./mono-preset-codec";
+import { legacyMonoExtendedAppearance } from "./mono-preset-envelope";
 
 const legacyKey = "wallet4i7.mono.working-presets.v1";
 const currentKey = "wallet4i7.mono.working-presets.v2";
@@ -33,7 +34,7 @@ function memoryStorage(entries: [string, string][]) {
 describe("full working preset migration", () => {
   it("starts each direction with an independent empty material scope", () => {
     const document = createMonoWorkingDocument();
-    expect(document.version).toBe(3);
+    expect(document.version).toBe(4);
     expect(document.materials).toEqual({
       ledger: { background: null, buttons: null },
       frost: { background: null, buttons: null },
@@ -45,11 +46,14 @@ describe("full working preset migration", () => {
     const previous = createMonoWorkingDocument() as unknown as Record<string, unknown>;
     previous.version = 2;
     delete previous.materials;
+    const appearance = previous.appearance as ReturnType<typeof createMonoWorkingDocument>["appearance"];
+    previous.appearance = Object.fromEntries(Object.entries(appearance).map(([preset, value]) =>
+      [preset, legacyMonoExtendedAppearance(value)]));
     const raw = JSON.stringify({ version: 2, skinId: "mono-ledger-v1", generation: 7,
       activeId: "kept", records: [{ id: "kept", name: "Сохранённый", revision: 4, document: previous }] });
     const storage = memoryStorage([[currentKey, raw]]);
     const library = loadMonoWorkingLibrary(storage)!;
-    expect(library.records[0].document.version).toBe(3);
+    expect(library.records[0].document.version).toBe(4);
     expect(library.records[0].document.materials.frost).toEqual({ background: null, buttons: null });
     expect(library.records[0].revision).toBe(4);
     expect(storage.getItem(currentKey)).toBe(raw);
@@ -59,7 +63,7 @@ describe("full working preset migration", () => {
     const before = legacyFixture(), raw = JSON.stringify(before);
     const storage = memoryStorage([[legacyKey, raw], [logoKey, JSON.stringify(logo)]]);
     const result = loadMonoWorkingLibrary(storage)!;
-    expect(result.records[0].document).toMatchObject({ version: 3, ...before.records[0].document });
+    expect(result.records[0].document).toMatchObject({ ...before.records[0].document, version: 4 });
     expect(result.records[0].document).toHaveProperty("appearance.frost.logo", logo);
     expect(result.records[0].document).toHaveProperty("appearance.frost.background", null);
     expect(result.records[0].document).toHaveProperty("appearance.frost.typography", null);
@@ -118,7 +122,7 @@ describe("full working preset migration", () => {
     const legacy = legacyFixture().records[0];
     const imported = await previewMonoWorkingImport(JSON.stringify({ kind: "mono-working-preset", version: 1,
       skinId: "mono-ledger-v1", name: legacy.name, document: legacy.document }));
-    expect(imported.document).toMatchObject({ version: 3, ...legacy.document });
+    expect(imported.document).toMatchObject({ ...legacy.document, version: 4 });
     const restored = await previewMonoWorkingImport(exportMonoWorkingPreset(imported.name, imported.document));
     expect(restored.document).toEqual(imported.document);
   });

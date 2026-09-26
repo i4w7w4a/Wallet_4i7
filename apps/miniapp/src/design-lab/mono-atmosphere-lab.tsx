@@ -312,7 +312,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
     {state.ready && !state.writeAvailable && <p role="alert">Сохранение недоступно: браузер не поддерживает Web Locks. Черновик доступен для экспорта JSON.</p>}
     {(state.saveError || state.libraryError || state.externalChange || notice) && <p role="alert">{state.saveError || state.libraryError || notice || "Хранилище изменено в другой вкладке. Откройте библиотеку заново перед сохранением."}</p>}
   </div>;
-  return <div className={styles.lab} data-atmosphere-lab data-background-sandbox>
+  return <div className={styles.lab} data-atmosphere-lab data-background-sandbox data-mono-selection-surface>
     <div className={styles.shellSlot} inert={dialog !== null} aria-hidden={dialog !== null || undefined}>
       <MaterialWorkbench activeLab="background" title={title} status={saveStatus} toolbar={toolbar} left={left} right={right} footer={footer} modalOpen={dialog !== null || productDialogOpen}>
         <div className={styles.previewColumn}>

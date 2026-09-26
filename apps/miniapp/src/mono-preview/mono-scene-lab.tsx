@@ -100,7 +100,7 @@ export function MonoSceneLab({ snapshot, formatProbe = false }: { snapshot: Wall
     <div className="mono-scene-lab__frame" data-mono-scene-preview>
       <main className="mono-scene-lab__scene">
         <header className="mono-scene-lab__header"><MonoLogo /><span>{snapshot.profile.name}</span><small>DEMO</small></header>
-        <div className="mono-scene-lab__account"><span>ЛИЧНЫЙ СЧЁТ</span><span>01 / 03</span></div>
+        <div className="mono-scene-lab__account"><span>ЛИЧНЫЙ СЧЁТ</span></div>
         <MonoBalance value={snapshot.balance.amount} change24h={snapshot.balance.change24h} format={format}
           hidden={hidden} onHiddenChange={setHidden} appearance={appearance.balance} />
         {appearance.layout.chartPosition === "top" && chart}

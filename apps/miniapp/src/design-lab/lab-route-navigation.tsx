@@ -8,7 +8,7 @@ export function enabledLabIds(): readonly LabId[] {
 }
 
 export function LabRouteNavigation({ active }: { active: LabId }) {
-  return <div style={{ background: "#151718", padding: "12px max(12px, env(safe-area-inset-right)) 0" }}>
+  return <div data-mono-selection-surface style={{ background: "#151718", padding: "12px max(12px, env(safe-area-inset-right)) 0" }}>
     <div style={{ maxWidth: 1680, margin: "0 auto" }}>
       <LabNavigation active={active} enabled={enabledLabIds()} />
     </div>

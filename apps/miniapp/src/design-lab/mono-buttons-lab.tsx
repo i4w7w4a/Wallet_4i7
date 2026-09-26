@@ -215,7 +215,7 @@ export function MonoButtonsLab({ bindings, onShowActions }: { bindings: ButtonWo
     onStatus: onRuntimeStatus });
   const disabled = state.saving || !state.ready || state.recoveryUnavailable || state.comparing;
 
-  return <div className={styles.lab} data-button-workshop>
+  return <div className={styles.lab} data-button-workshop data-mono-selection-surface>
     <div inert={dialog !== null} aria-hidden={dialog !== null || undefined}>
       <MaterialWorkbench activeLab="buttons" title={title} status={saveStatus} modalOpen={dialog !== null || productDialogOpen}
         toolbar={<>

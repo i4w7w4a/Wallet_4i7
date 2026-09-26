@@ -24,7 +24,7 @@ describe("allowlisted complete MONO appearance", () => {
     expect(result.appearance.environment).toEqual({ theme: "dark", background: "iris" });
     expect(result.appearance).toHaveProperty("background", null);
     expect(result.appearance).toHaveProperty("typography", null);
-    expect(Object.keys(result.appearance).sort()).toEqual(["assets", "background", "balance", "chart", "environment", "layout", "logo", "optics", "palette", "preset", "shape", "typography"]);
+    expect(Object.keys(result.appearance).sort()).toEqual(["assets", "background", "balance", "chart", "environment", "eye", "layout", "logo", "navigation", "optics", "palette", "preset", "shape", "typography"]);
     expect(normalizeMonoAppearanceEnvelope(result)).toEqual(result);
   });
 

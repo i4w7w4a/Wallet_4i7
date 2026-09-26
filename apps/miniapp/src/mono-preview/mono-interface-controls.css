@@ -1,0 +1,15 @@
+.mono-interface-controls { display: grid; gap: 17px; color: #d6dce5; font-family: var(--mono-font-ui, sans-serif); }
+.mono-interface-controls__field { display: grid; gap: 8px; font-size: 12px; }
+.mono-interface-controls__field > span { display: flex; justify-content: space-between; gap: 8px; }
+.mono-interface-controls__choices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.mono-interface-controls__choices button { display: grid; min-width: 0; min-height: 58px; place-items: center; gap: 2px; padding: 6px 2px; border: 1px solid #4c5665; border-radius: 8px; background: #161b22; color: #d4dce8; cursor: pointer; }
+.mono-interface-controls__choices button[aria-pressed="true"] { border-color: #afc0d5; background: #263343; color: #fff; }
+.mono-interface-controls__choices button > span { font-size: 16px; line-height: 1; }
+.mono-interface-controls__choices small { font-size: 9px; line-height: 1.1; }
+.mono-interface-controls__hint { margin: -10px 0 0; color: #aeb9c8; font-size: 11px; line-height: 1.45; }
+.mono-interface-controls output { color: #dce6f4; font-variant-numeric: tabular-nums; }
+.mono-interface-controls input[type="range"] { width: 100%; min-height: 44px; margin: 0; accent-color: #d2dae7; cursor: pointer; }
+.mono-interface-controls__check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 12px; cursor: pointer; }
+.mono-interface-controls__check input { width: 20px; height: 20px; accent-color: #d2dae7; }
+.mono-interface-controls :is(input, button):focus-visible { outline: 2px solid #e1e9f2; outline-offset: 3px; }
+.mono-interface-controls :disabled { opacity: .48; cursor: default; }

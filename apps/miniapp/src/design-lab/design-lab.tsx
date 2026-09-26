@@ -228,7 +228,7 @@ export function DesignLab({ launch = null }: { launch?: ApplyLaunch | null }) {
   const previewStyle: PreviewStyle = { "--preview-width": `${preset.previewWidth}px` };
 
   return (
-    <main className={styles.lab}>
+    <main className={styles.lab} data-mono-selection-surface>
       <header className={styles.header}>
         <div className={styles.brand}>NOVEX <small>DESIGN RESEARCH</small></div>
         <div className={styles.headerCode}>MOTION LAB / 001</div>

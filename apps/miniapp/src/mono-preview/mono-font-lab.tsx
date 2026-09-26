@@ -65,7 +65,7 @@ export function MonoFontLab({ snapshot }: { snapshot: WalletSnapshot }) {
     catch { setCopied(false); }
   }
 
-  return <main className="mono-font-lab">
+  return <main className="mono-font-lab" data-mono-selection-surface>
     <header className="mono-font-lab-header">
       <div><a className="mono-font-back" href="/mono">↖ Novex / Design Lab</a><h1>Тон задаёт шрифт.</h1><p>Одна композиция. Согласованные роли.</p></div>
       <span className="mono-font-edition">TYPE STUDY <span>01 / MONO</span></span>

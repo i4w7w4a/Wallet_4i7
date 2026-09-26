@@ -62,6 +62,9 @@
 .mono-inspector-shell__body .mono-logo-options { border: 0; margin: 0; padding: 0; }
 .mono-inspector-shell__body .mono-environment { padding: 4px 0; }
 .mono-workbench :is(.mono-workbench__directions button,.mono-workbench__widths button,.mono-workbench__extras summary):focus-visible { outline: 2px solid #cfdef5; outline-offset: 2px; }
+.mono-workbench__eye-toggle { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 14px; color: #d6dce5; font-size: 12px; cursor: pointer; }
+.mono-workbench__eye-toggle input { width: 20px; height: 20px; accent-color: #d2dae7; }
+.mono-workbench__eye-toggle input:focus-visible { outline: 2px solid #e1e9f2; outline-offset: 3px; }
 .mono-trial-guard {
   width: min(420px, calc(100vw - 32px)); padding: 24px; border: 1px solid #617084; border-radius: 16px;
   background: #151d27; color: #eef3f9; box-shadow: 0 24px 100px #0009; font-family: var(--mono-font-ui);

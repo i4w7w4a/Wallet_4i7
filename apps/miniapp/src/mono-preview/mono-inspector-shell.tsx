@@ -4,10 +4,10 @@ import { MONO_TOOL_LABELS, type MonoToolId } from "./mono-tool-dock";
 import "./mono-inspector-shell.css";
 
 const APPLY_LABELS: Partial<Record<MonoToolId, string>> = {
-  shape: "Применить форму", optics: "Применить оптику",
+  shape: "Применить форму", optics: "Применить оптику", navigation: "Применить нижнее меню",
 };
 const CANCEL_LABELS: Partial<Record<MonoToolId, string>> = {
-  shape: "Отменить пробу формы", optics: "Отменить пробу оптики",
+  shape: "Отменить пробу формы", optics: "Отменить пробу оптики", navigation: "Отменить пробу нижнего меню",
 };
 
 export function MonoInspectorShell({ tool, children, dirty = false, busy = false,

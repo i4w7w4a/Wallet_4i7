@@ -20,7 +20,7 @@ export function MonoAssetList({ assets, format, hidden, appearance, onAssetSelec
   const quantityFormatter = new Intl.NumberFormat(format.locale, { maximumFractionDigits: quantityPrecision });
   return <section className="mono-asset-list" aria-labelledby={headingId}
     data-variant={appearance.variant} data-density={appearance.density} data-separators={appearance.separators}>
-    <div className="mono-asset-list__heading"><h2 id={headingId}>Активы</h2><span>{assets.length.toString().padStart(2, "0")}</span></div>
+    <div className="mono-asset-list__heading"><h2 id={headingId}>Активы</h2></div>
     <ul className="mono-asset-list__items">
       {assets.map((asset) => {
         const content = <>

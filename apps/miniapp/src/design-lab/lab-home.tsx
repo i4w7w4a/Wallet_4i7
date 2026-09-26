@@ -3,7 +3,7 @@ import styles from "./lab-navigation.module.css";
 
 export function LabHome({ enabled = ["home"] }: { enabled?: readonly LabId[] }) {
   const workshops = LAB_ITEMS.filter(item => item.id !== "home" && enabled.includes(item.id));
-  return <main className={styles.home}>
+  return <main className={styles.home} data-mono-selection-surface>
     <div className={styles.shell}>
       <LabNavigation active="home" enabled={enabled} />
       <header className={styles.intro}>

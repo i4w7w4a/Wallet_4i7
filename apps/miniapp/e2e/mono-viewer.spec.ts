@@ -4,8 +4,13 @@ import { normalizeMonoPaletteConfig } from "../../../packages/ui/src/mono/mono-p
 import { encodeMonoSharePayload } from "../src/mono-preview/mono-share-transport";
 import type { MonoAppearanceEnvelope } from "../src/mono-preview/mono-preset-envelope";
 
+type LegacyShareEnvelope = Omit<MonoAppearanceEnvelope, "version" | "appearance"> & {
+  version: 1;
+  appearance: Omit<MonoAppearanceEnvelope["appearance"], "eye" | "navigation">;
+};
+
 // An independent public fixture, not a copy of a browser's editor storage.
-const appearance: MonoAppearanceEnvelope = {
+const appearance: LegacyShareEnvelope = {
   kind: "mono-appearance", version: 1, skinId: "mono-ledger-v1",
   appearance: {
     preset: "ledger", palette: { enabled: true, config: normalizeMonoPaletteConfig({ seed: "mono-share" }) },

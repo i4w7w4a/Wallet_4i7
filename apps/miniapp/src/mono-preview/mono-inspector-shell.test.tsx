@@ -6,11 +6,11 @@ import { MonoInspectorShell } from "./mono-inspector-shell";
 
 afterEach(cleanup);
 
-it("exposes nine named tools and selects a tool without committing its trial", () => {
+it("exposes ten named tools and selects a tool without committing its trial", () => {
   const select = vi.fn();
   render(<MonoToolDock selected="color" onSelect={select} dirtyTools={["shape"]} />);
   expect(screen.getByRole("toolbar", { name: "Инструменты оформления" })).toBeVisible();
-  expect(screen.getAllByRole("button")).toHaveLength(9);
+  expect(screen.getAllByRole("button")).toHaveLength(10);
   expect(screen.getByRole("button", { name: "Цвет" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("button", { name: "Форма и кнопки" })).toHaveAttribute("data-dirty", "true");
   expect(screen.getByRole("button", { name: "Форма и кнопки" })).toHaveAccessibleDescription("Есть неприменённая проба");
@@ -30,9 +30,25 @@ it("supports arrow navigation with one tab stop and skips unavailable tools", ()
   const color = screen.getByRole("button", { name: "Цвет" });
   color.focus();
   fireEvent.keyDown(color, { key: "ArrowRight" });
-  expect(screen.getByRole("button", { name: "Логотип" })).toHaveFocus();
-  expect(select).toHaveBeenCalledWith("logo");
+  expect(screen.getByRole("button", { name: "Нижнее меню" })).toHaveFocus();
+  expect(select).toHaveBeenCalledWith("navigation");
   expect(screen.getAllByRole("button").filter(button => button.tabIndex === 0)).toHaveLength(1);
+});
+
+it("keeps vertical keyboard navigation in its column with an incomplete final row", () => {
+  const select = vi.fn();
+  render(<MonoToolDock selected="balance" onSelect={select} unavailableTools={["typography"]} />);
+  const balance = screen.getByRole("button", { name: "Баланс" });
+  const optics = screen.getByRole("button", { name: "Оптика" });
+  balance.focus();
+  fireEvent.keyDown(balance, { key: "ArrowUp" });
+  expect(optics).toHaveFocus();
+  expect(select).toHaveBeenLastCalledWith("optics");
+  fireEvent.keyDown(optics, { key: "ArrowDown" });
+  expect(balance).toHaveFocus();
+  fireEvent.keyDown(balance, { key: "ArrowDown" });
+  expect(screen.getByRole("button", { name: "Нижнее меню" })).toHaveFocus();
+  expect(select).toHaveBeenLastCalledWith("navigation");
 });
 
 it("only commits a dirty slice through explicit Apply and keeps Cancel separate", () => {

@@ -29,10 +29,14 @@ it("shows the supplied Novex identity while preserving the account name and demo
   const header = within(document.querySelector<HTMLElement>(".mono-app-header")!);
   expect(header.getByRole("img", { name: "Novex Wallet" })).toBeVisible();
   expect(header.getByText("Демо пользователь")).toBeVisible();
-  expect(header.getByLabelText("Визуальный прототип, демо-данные")).toHaveTextContent("DEMO");
+  const profile = header.getByRole("button", { name: "Открыть профиль" });
+  expect(profile).toBeVisible();
   expect(header.queryByText(/WALLET_4I7|^W$/)).not.toBeInTheDocument();
   expect(screen.getByText("NOVEX WALLET / PRIVATE")).toBeVisible();
   expect(document.querySelector(".mono-promo__seal")).not.toHaveTextContent("4i7");
+  fireEvent.click(profile);
+  expect(screen.getByRole("heading", { name: "Профиль" })).toBeVisible();
+  expect(screen.getByText("Демонстрационный профиль")).toBeVisible();
 });
 
 it("switches between a bare logo and a plaque without changing the account header", async () => {

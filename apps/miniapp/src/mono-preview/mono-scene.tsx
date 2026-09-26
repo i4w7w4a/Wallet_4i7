@@ -19,6 +19,8 @@ import { MonoBackgroundRecipes } from "./mono-background-recipes-view";
 import type { MonoBackgroundRecipeConfig } from "./mono-background-recipes";
 import { monoTypographyStyle, type MonoTypographyConfigV1 } from "./mono-typography";
 import { useMonoTypographyPreview } from "./mono-typography-preview";
+import { MONO_EYE_DEFAULT, MONO_NAVIGATION_DEFAULT, type MonoEyeAppearance,
+  type MonoNavigationAppearance } from "./mono-interface-appearance";
 
 import "./mono-fonts.css";
 import "./mono-font-candidates.css";
@@ -30,6 +32,7 @@ import "./mono-environment.css";
 import "./mono-theme.css";
 import "./mono-scene-layout.css";
 import "./mono-typography-scene.css";
+import "./mono-interface.css";
 
 /** Normalized presentation only. Storage envelopes and editor history stay at the host. */
 export type MonoScenePresentation = {
@@ -41,6 +44,8 @@ export type MonoScenePresentation = {
   logo: MonoLogoPreview;
   typography?: MonoTypographyConfigV1 | null;
   background?: MonoBackgroundRecipeConfig | null;
+  eye?: MonoEyeAppearance;
+  navigation?: MonoNavigationAppearance;
 } & Partial<MonoSceneAppearance>;
 
 export type MonoSceneProps = {
@@ -57,6 +62,7 @@ export type MonoSceneProps = {
   actionFrameMode?: "group" | "separate" | "icons";
   actionRadii?: Partial<Record<ButtonTargetId, number>>;
   active?: boolean;
+  effectsDisabled?: boolean;
   /** Host-owned adapter replaces the legacy ambient layer and its pointer reactions. */
   atmosphere?: ReactNode;
   surfaceRef?: RefObject<HTMLElement | null>;
@@ -111,11 +117,13 @@ export function MonoScene(props: MonoSceneProps) {
 }
 
 function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady = true,
-  paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true,
+  paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true, effectsDisabled = false,
   atmosphere, surfaceRef, typography, opticalHost, materialTargets = false, actionFrameMode = "group", actionRadii, session,
 }: MonoSceneProps & { typography: ReturnType<typeof useMonoTypographyPreview> }) {
   const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
+  const eye = appearance.eye ?? MONO_EYE_DEFAULT;
+  const navigation = appearance.navigation ?? MONO_NAVIGATION_DEFAULT;
   const fullScene = Boolean(appearance.balance && appearance.chart && appearance.layout && appearance.assets);
   const [localPeriod, setLocalPeriod] = useState<ChartPeriod>("1D");
   const [localSection, setLocalSection] = useState<MonoSection>("overview");
@@ -201,6 +209,32 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   }, [paletteStyle, paletteReady, palette.enabled, paletteTransitionEnabled, theme, background, preset]);
 
   useEffect(() => () => paletteAnimationRef.current?.cancel(), []);
+
+  useEffect(() => {
+    const surface = pageRef.current;
+    if (!surface) return;
+    const doc = surface.ownerDocument, view = doc.defaultView;
+    const staticMotion = () => { surface.dataset.monoMotion = "static"; };
+    if (!view || !active || effectsDisabled || appearance.background?.calm) { staticMotion(); return staticMotion; }
+    const reduced = view.matchMedia("(prefers-reduced-motion: reduce)");
+    const connection = (view.navigator as Navigator & { connection?: EventTarget & { readonly saveData?: boolean } }).connection;
+    let intersecting = typeof view.IntersectionObserver !== "function";
+    const sync = () => {
+      surface.dataset.monoMotion = doc.visibilityState !== "hidden" && !reduced.matches &&
+        !connection?.saveData && intersecting ? "ready" : "static";
+    };
+    const observer = typeof view.IntersectionObserver === "function" ? new view.IntersectionObserver(entries => {
+      intersecting = entries[0]?.isIntersecting ?? false;
+      sync();
+    }) : null;
+    observer?.observe(surface);
+    doc.addEventListener("visibilitychange", sync);
+    reduced.addEventListener("change", sync);
+    connection?.addEventListener("change", sync);
+    sync();
+    return () => { observer?.disconnect(); doc.removeEventListener("visibilitychange", sync);
+      reduced.removeEventListener("change", sync); connection?.removeEventListener("change", sync); staticMotion(); };
+  }, [active, effectsDisabled, appearance.background?.calm]);
 
   useEffect(() => {
     if (customAtmosphere || !active) {
@@ -316,6 +350,10 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     } : {}),
     "--mono-actions-radius": `${shape["quick-actions"]}px`,
     "--mono-nav-radius": `${shape["bottom-navigation"]}px`,
+    "--mono-nav-glow": `${navigation.glowPercent}%`,
+    "--mono-nav-glow-alpha": `${Math.round(navigation.glowPercent * 0.3)}%`,
+    "--mono-nav-softness": `${navigation.softnessPx}px`,
+    "--mono-nav-period": `${navigation.periodSeconds}s`,
     ...(typography.active ? monoTypographyStyle(typography.active) : {}),
   } as CSSProperties;
   const chart = fullScene && appearance.chart && <MonoChart values={snapshot.chart[period]} format={moneyFormat}
@@ -327,6 +365,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           data-palette-enabled={Boolean(palette.enabled)} data-palette-ready={paletteReady} style={shapeStyle}
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
           data-mono-section={section}
+          data-mono-motion="static" data-nav-indicator={navigation.indicator}
+          data-nav-shimmer={navigation.shimmerEnabled}
           data-mono-typography={typography.active ? "true" : "false"}
           data-mono-font-status={typography.status}
           data-mono-atmosphere-source={customAtmosphere ? "adapter" : "legacy"}
@@ -334,7 +374,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           onPointerLeave={customAtmosphere || !active ? undefined : restAtmosphere}>
           <div ref={paletteCrossfadeRef} className="mono-palette-crossfade" data-mono-palette-crossfade aria-hidden="true" />
           {atmosphere !== undefined ? atmosphere : appearance.background ?
-            <MonoBackgroundRecipes config={appearance.background} surfaceRef={pageRef} theme={theme} active={active} /> :
+            <MonoBackgroundRecipes config={appearance.background} surfaceRef={pageRef} theme={theme} active={active}
+              effectsDisabled={effectsDisabled} /> :
           <div className="mono-atmosphere" data-mono-atmosphere aria-hidden="true">
             <span className="mono-atmosphere__focus" />
             <span className="mono-atmosphere__ribbon" />
@@ -357,24 +398,24 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <div className="mono-app-header__person">
             <strong>{snapshot.profile.name}</strong>
           </div>
-          <div className="mono-app-header__signal" aria-label="Визуальный прототип, демо-данные">
-            <span className="mono-app-header__signal-dot" />
-            DEMO
-          </div>
+          <button className="mono-app-header__profile" type="button" aria-label="Открыть профиль"
+            aria-current={section === "profile" ? "page" : undefined}
+            onClick={() => setSection("profile")}>
+            <span aria-hidden="true">{snapshot.profile.name.trim().slice(0, 1).toLocaleUpperCase("ru-RU")}</span>
+          </button>
         </header>
 
         {section === "overview" && <>
         {fullScene && appearance.balance ? <section className="mono-hero">
-          <div className="mono-hero__eyebrow"><span>ЛИЧНЫЙ СЧЁТ</span><span>01 / 03</span></div>
+          <div className="mono-hero__eyebrow"><span>ЛИЧНЫЙ СЧЁТ</span></div>
           <div className="mono-scene-domain">
             <MonoBalance value={snapshot.balance.amount} format={moneyFormat} change24h={snapshot.balance.change24h}
-              hidden={balanceHidden} onHiddenChange={setBalanceHidden} appearance={appearance.balance} />
+              hidden={balanceHidden} onHiddenChange={setBalanceHidden} blinkEnabled={eye.blinkEnabled} appearance={appearance.balance} />
             {appearance.layout?.chartPosition === "top" && chart}
           </div>
         </section> : <section className="mono-hero" aria-labelledby="mono-balance-title">
           <div className="mono-hero__eyebrow">
             <span>ЛИЧНЫЙ СЧЁТ</span>
-            <span>01 / 03</span>
           </div>
           <div className="mono-hero__heading-row">
             <h1 id="mono-balance-title">Общий баланс</h1>
@@ -383,9 +424,11 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
               type="button"
               aria-label={balanceHidden ? "Показать баланс" : "Скрыть баланс"}
               aria-pressed={balanceHidden}
+              data-eye-blink={eye.blinkEnabled && !balanceHidden}
               onClick={() => setBalanceHidden(!balanceHidden)}
             >
-              {balanceHidden ? "○" : "◉"}
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="2.5" />{balanceHidden && <path d="m4 4 16 16" />}</svg>
             </button>
           </div>
           <div className="mono-hero__amount" aria-label={balanceHidden ? "Баланс скрыт" : `${balance} долларов США`}>
@@ -443,7 +486,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <MonoAssetList assets={snapshot.assets} format={moneyFormat} hidden={balanceHidden} appearance={appearance.assets} />
           <p className="mono-assets__disclaimer">Демонстрационные данные. Операции здесь недоступны.</p>
         </div> : <section className="mono-assets" aria-labelledby="mono-assets-title">
-          <div className="mono-assets__heading"><h2 id="mono-assets-title">Активы</h2><span>{snapshot.assets.length.toString().padStart(2, "0")}</span></div>
+          <div className="mono-assets__heading"><h2 id="mono-assets-title">Активы</h2></div>
           <div className="mono-assets__list">
             {snapshot.assets.map((asset) => (
               <div className="mono-assets__row" key={asset.symbol}>
@@ -497,6 +540,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             onClick={() => setSection(item.id)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d={item.path} /></svg>
             <span>{item.label}</span>
+            <span className="mono-nav__indicator" aria-hidden="true"><i className="mono-nav__glint" /></span>
           </button>
         ))}
       </nav>
