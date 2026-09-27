@@ -10,6 +10,7 @@ import { resolveMonoLogoColors, type MonoLogoPreview } from "./mono-logo-preview
 import { monoPaletteStyle } from "./mono-palette-tokens";
 import type { MonoShapePreset, MonoShapeSettings } from "./mono-shape-preview";
 import { MONO_QUICK_ACTION_DEFAULT, MonoQuickActionFeedback } from "./mono-quick-action-feedback";
+import { createDefaultActionArtworkMap, type MonoActionArtworkMap } from "./action-artwork/model";
 import { stepTideMotion, type TideMotionState } from "./mono-tide-motion";
 import { MonoBalance } from "./mono-balance";
 import { MonoChart } from "./mono-chart";
@@ -57,6 +58,8 @@ export type MonoSceneProps = {
   paletteReady?: boolean;
   paletteTransitionEnabled?: boolean;
   quickActionPreset?: ComponentProps<typeof MonoQuickActionFeedback>["preset"];
+  actionArtwork?: MonoActionArtworkMap;
+  artworkPreview?: { targetId: ButtonTargetId; trigger: number };
   /** Dev-only material workshop can identify the existing four DOM action targets. */
   materialTargets?: boolean;
   actionFrameMode?: "group" | "separate" | "icons";
@@ -95,6 +98,7 @@ const NAV_ITEMS = [
   { id: "history", label: "История", path: "M4 12a8 8 0 1 0 3-6M4 4v5h5m3-2v5l3 2" },
   { id: "profile", label: "Профиль", path: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" },
 ] as const;
+const DEFAULT_ACTION_ARTWORK = createDefaultActionArtworkMap();
 
 const currencyFormatter = new Intl.NumberFormat("ru-RU", {
   minimumFractionDigits: 2,
@@ -118,7 +122,8 @@ export function MonoScene(props: MonoSceneProps) {
 
 function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady = true,
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true, effectsDisabled = false,
-  atmosphere, surfaceRef, typography, opticalHost, materialTargets = false, actionFrameMode = "group", actionRadii, session,
+  atmosphere, surfaceRef, typography, opticalHost, materialTargets = false, actionFrameMode = "group", actionRadii,
+  actionArtwork = DEFAULT_ACTION_ARTWORK, artworkPreview, session,
 }: MonoSceneProps & { typography: ReturnType<typeof useMonoTypographyPreview> }) {
   const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
@@ -463,6 +468,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             <MonoQuickActionFeedback
               key={`${action.label}:${quickActionPreset?.effectId ?? "baseline"}:${quickActionPreset?.config.magneticTravel ?? 0}`}
               label={action.label} path={action.path} preset={quickActionPreset}
+              actionId={action.id} artwork={actionArtwork[action.id]} active={active && !effectsDisabled}
+              manualPreviewTrigger={artworkPreview?.targetId === action.id ? artworkPreview.trigger : 0}
               materialTargetId={materialTargets ? action.id : undefined}
               materialRadiusCss={actionFrameMode === "separate" ? actionRadii?.[action.id] : undefined}
               onActivate={() => setQuickActionStatus(`${action.label} — операция недоступна в демо.`)} />

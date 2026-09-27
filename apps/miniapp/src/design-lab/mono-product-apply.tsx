@@ -10,7 +10,7 @@ import { createMonoWorkingDocument, loadMonoWorkingLibrary, MONO_WORKING_PRESETS
   saveMonoWorkingLibrary, type MonoWorkingLibrary } from "../mono-preview/mono-working-presets";
 import type { BackgroundLabDocumentV1 } from "./background-sandbox/document-v3";
 import type { ButtonLabDocument, ButtonLabWorkspace } from "./button-workshop/model";
-import { backgroundPatchFromLab, buttonPatchFromLab } from "./mono-product-apply-source";
+import { artworkPatchFromLab, backgroundPatchFromLab, buttonPatchFromLab } from "./mono-product-apply-source";
 import styles from "./mono-product-apply.module.css";
 
 type Shared = { disabled?: boolean; onDialogChange?: (open: boolean) => void;
@@ -19,6 +19,8 @@ export type MonoProductApplyProps = Shared & (
   | { scope: "background"; document: BackgroundLabDocumentV1 }
   | { scope: "buttons"; document: ButtonLabDocument<ButtonTargetId, MaterialTargetBinding>;
       selection: ButtonLabWorkspace<ButtonTargetId, MaterialTargetBinding>["selection"] }
+  | { scope: "artwork"; document: ButtonLabDocument<ButtonTargetId, MaterialTargetBinding>;
+      selection: Pick<ButtonLabWorkspace<ButtonTargetId, MaterialTargetBinding>["selection"], "target"> }
 );
 
 type Success = { id: string; name: string; direction: MonoShapePreset };
@@ -60,6 +62,11 @@ async function rejectDirtyTarget(targetId: string): Promise<void> {
 function patchLabel(patch: MonoMaterialPatch | null): string {
   if (!patch) return "";
   if (patch.scope === "background") return "Фон";
+  if (patch.scope === "artwork") {
+    const target = { "quick.send": "Отправить", "quick.receive": "Получить",
+      "quick.swap": "Обменять", "quick.buy": "Купить" };
+    return `Иконки и свет · ${patch.selection.target === "all" ? "Все четыре кнопки" : target[patch.selection.target]}`;
+  }
   const layer = { fill: "Поверхность", icon: "Иконка", border: "Кромка" }[patch.selection.layer];
   const target = { "quick.send": "Отправить", "quick.receive": "Получить",
     "quick.swap": "Обменять", "quick.buy": "Купить" };
@@ -108,6 +115,7 @@ export function MonoProductApply(props: MonoProductApplyProps) {
     setError(""); setSuccess(null); setTargetId(""); setDirection(""); setName("");
     try {
       setPatch(props.scope === "background" ? backgroundPatchFromLab(props.document)
+        : props.scope === "artwork" ? artworkPatchFromLab(props.document, props.selection)
         : buttonPatchFromLab(props.document, props.selection));
       const nextLibrary = loadMonoWorkingLibrary(localStorage);
       setLibrary(nextLibrary);
@@ -163,7 +171,9 @@ export function MonoProductApply(props: MonoProductApplyProps) {
   };
 
   return <>
-    <button ref={launcher} type="button" disabled={props.disabled} onClick={prepare}>В рабочий пресет MONO…</button>
+    <button ref={launcher} type="button" disabled={props.disabled} onClick={prepare}>
+      {props.scope === "artwork" ? "Иконки в MONO…" : "В рабочий пресет MONO…"}
+    </button>
     {open && <dialog ref={dialog} className={styles.dialog} aria-label="Применить материал в MONO"
       onCancel={event => { event.preventDefault(); changeOpen(false); }}>
       <h2>Применить в MONO</h2>

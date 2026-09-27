@@ -1,5 +1,6 @@
 import { copyButtonValue, type ButtonLabDocument, type ButtonLabFrame, type ButtonLabSlot,
   type ButtonLabWorkspace, type ButtonLayer, type ButtonSavedTrial } from "./model";
+import { parseMonoActionArtwork, type MonoActionArtworkV1 } from "../../mono-preview/action-artwork/model";
 
 export type ButtonRecipeParser<R, A extends string = string> = (input: unknown, layer: ButtonLayer, target: A) => R;
 export type ButtonTrialLibrary<A extends string, R> = {
@@ -33,9 +34,10 @@ function trialName(value: unknown): string {
 
 export function parseButtonDocument<A extends string, R>(input: unknown, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>): ButtonLabDocument<A, R> {
   const version = input && typeof input === "object" && !Array.isArray(input) ? (input as { version?: unknown }).version : undefined;
-  if (version !== 1 && version !== 2) throw new Error("Версия ButtonLabDocument не поддерживается.");
-  const data = exactButtonObject(input, version === 1 ? ["version", "actions"] : ["version", "frameMode", "actions"]);
-  if (version === 2 && data.frameMode !== "inherit" && data.frameMode !== "group" && data.frameMode !== "separate" && data.frameMode !== "icons")
+  if (version !== 1 && version !== 2 && version !== 3) throw new Error("Версия ButtonLabDocument не поддерживается.");
+  const data = exactButtonObject(input, version === 1 ? ["version", "actions"] :
+    version === 2 ? ["version", "frameMode", "actions"] : ["version", "frameMode", "actions", "artwork"]);
+  if (version !== 1 && data.frameMode !== "inherit" && data.frameMode !== "group" && data.frameMode !== "separate" && data.frameMode !== "icons")
     throw new Error("Неизвестный режим ряда кнопок.");
   if (actionIds.length !== 4 || new Set(actionIds).size !== 4) throw new Error("Нужны четыре действия MONO.");
   const actions = exactButtonObject(data.actions, actionIds);
@@ -48,8 +50,13 @@ export function parseButtonDocument<A extends string, R>(input: unknown, actionI
       border: layers.border === null ? null : copyButtonValue(parseRecipe(layers.border, "border", action)),
     };
   }
-  return version === 1 ? { version: 1, actions: parsed } :
-    { version: 2, frameMode: data.frameMode as "inherit" | "group" | "separate" | "icons", actions: parsed };
+  if (version === 1) return { version: 1, actions: parsed };
+  const frameMode = data.frameMode as "inherit" | "group" | "separate" | "icons";
+  if (version === 2) return { version: 2, frameMode, actions: parsed };
+  const inputArtwork = exactButtonObject(data.artwork, actionIds);
+  const artwork = {} as Record<A, MonoActionArtworkV1>;
+  for (const action of actionIds) artwork[action] = parseMonoActionArtwork(inputArtwork[action]);
+  return { version: 3, frameMode, actions: parsed, artwork };
 }
 
 export function parseButtonImport<A extends string, R>(raw: string, actionIds: readonly A[], parseRecipe: ButtonRecipeParser<R, A>): ButtonLabDocument<A, R> {

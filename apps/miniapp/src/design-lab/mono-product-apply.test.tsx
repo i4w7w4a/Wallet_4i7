@@ -6,7 +6,8 @@ import { createMonoWorkingDocument, loadMonoWorkingLibrary, saveMonoWorkingLibra
   type MonoWorkingLibrary } from "../mono-preview/mono-working-presets";
 import { MonoProductApply } from "./mono-product-apply";
 import { BUTTON_TARGETS } from "./button-workshop/binding";
-import { createButtonDocument } from "./button-workshop/model";
+import { createButtonDocument, editButtonArtwork } from "./button-workshop/model";
+import { createDefaultActionArtwork } from "../mono-preview/action-artwork/model";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.unstubAllGlobals());
@@ -123,4 +124,21 @@ it("names an empty selected button layer as a clear operation before confirmatio
     selection={{ target: "quick.send", layer: "fill" }} />);
   fireEvent.click(screen.getByRole("button", { name: "В рабочий пресет MONO…" }));
   expect(screen.getByText(/Снять поверхность · Отправить/)).toBeTruthy();
+});
+
+it("applies only selected artwork through its own confirmation", async () => {
+  const library: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1,
+      document: createMonoWorkingDocument() }] };
+  saveMonoWorkingLibrary(localStorage, library, 0);
+  const draft = editButtonArtwork(createButtonDocument<ButtonTargetId, MaterialTargetBinding>(BUTTON_TARGETS),
+    BUTTON_TARGETS, "quick.send", { ...createDefaultActionArtwork(), packId: "volume-v1" });
+  render(<MonoProductApply scope="artwork" document={draft} selection={{ target: "quick.send" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Иконки в MONO…" }));
+  expect(screen.getByText(/Иконки и свет · Отправить/)).toBeTruthy();
+  expect(loadMonoWorkingLibrary(localStorage)?.records[0].document.materials.ledger.buttons).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Применить в MONO" }));
+  await waitFor(() => expect(loadMonoWorkingLibrary(localStorage)?.records[0].document.materials.ledger.buttons)
+    .toMatchObject({ version: 3, artwork: { "quick.send": { packId: "volume-v1" },
+      "quick.receive": { packId: "original" } } }));
 });

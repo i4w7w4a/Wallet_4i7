@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type PointerEvent } from "react";
 
 import { magneticOffset, type ControlFeedbackPreset } from "../design-lab/control-feedback-model";
 import type { ButtonTargetId } from "@wallet/ui";
+import { MonoActionArtwork } from "./action-artwork/mono-action-artwork";
+import type { MonoActionArtworkV1 } from "./action-artwork/model";
 
 type QuickActionFeedback = Pick<ControlFeedbackPreset, "effectId" | "config">;
 
@@ -19,13 +21,40 @@ type Props = {
   onActivate: () => void;
   materialTargetId?: ButtonTargetId;
   materialRadiusCss?: number;
+  actionId?: ButtonTargetId;
+  artwork?: MonoActionArtworkV1;
+  active?: boolean;
+  manualPreviewTrigger?: number;
 };
 
-export function MonoQuickActionFeedback({ label, path, preset, onActivate, materialTargetId, materialRadiusCss }: Props) {
+export function MonoQuickActionFeedback({ label, path, preset, onActivate, materialTargetId, materialRadiusCss,
+  actionId, artwork, active = true, manualPreviewTrigger = 0 }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [keyboardPressed, setKeyboardPressed] = useState(false);
+  const [energyTrigger, setEnergyTrigger] = useState(0);
+  const lastManualPreview = useRef(manualPreviewTrigger);
   const effectId = preset.effectId;
   const config = preset.config;
+
+  useEffect(() => {
+    if (lastManualPreview.current === manualPreviewTrigger) return;
+    const freshRequest = manualPreviewTrigger > lastManualPreview.current;
+    lastManualPreview.current = manualPreviewTrigger;
+    if (freshRequest && active && artwork && artwork.packId !== "original" &&
+        artwork.energy.enabled && artwork.energy.intensity > 0) setEnergyTrigger(value => value + 1);
+  }, [active, artwork, manualPreviewTrigger]);
+
+  const pulse = () => {
+    if (active && artwork && artwork.packId !== "original" && artwork.energy.enabled &&
+        artwork.energy.intensity > 0) setEnergyTrigger(value => value + 1);
+  };
+  const fineEnter = (event: PointerEvent<HTMLButtonElement>) => {
+    if ((event.pointerType === "mouse" || event.pointerType === "pen") &&
+        window.matchMedia("(hover: hover) and (pointer: fine)").matches) pulse();
+  };
+  const keyboardFocus = (event: FocusEvent<HTMLButtonElement>) => {
+    if (event.currentTarget.matches(":focus-visible")) pulse();
+  };
 
   useEffect(() => {
     const resetWhenHidden = () => {
@@ -77,12 +106,16 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, mater
     <button className="mono-actions__item" type="button" data-control-effect={effectId}
       data-material-target={materialTargetId}
       data-key-pressed={keyboardPressed}
-      style={style} aria-label={`${label} — демо, операция недоступна`} onClick={onActivate}
+      data-artwork-pack={artwork?.packId}
+      style={style} aria-label={`${label} — демо, операция недоступна`} onClick={() => { pulse(); onActivate(); }}
+      onPointerEnter={fineEnter} onFocus={keyboardFocus}
       onPointerMove={move} onPointerLeave={reset} onPointerCancel={reset}
       onKeyDown={keyDown} onKeyUp={() => setKeyboardPressed(false)}
       onBlur={() => { reset(); setKeyboardPressed(false); }}>
       <span className="mono-actions__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d={path} /></svg>
+        {artwork && artwork.packId !== "original" && actionId
+          ? <MonoActionArtwork key={artwork.packId} actionId={actionId} config={artwork} active={active} trigger={energyTrigger} />
+          : <svg viewBox="0 0 24 24"><path d={path} /></svg>}
       </span>
       <span className="mono-actions__label" style={labelStyle}>{label}</span>
     </button>

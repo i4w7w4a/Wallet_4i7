@@ -3,8 +3,13 @@ import type { ButtonTargetId, MaterialTargetBinding } from "@wallet/ui";
 export type MonoActionFrameMode = "group" | "separate" | "icons";
 
 /** The saved document remains complete; visibility is decided only for the active renderer. */
-export function visibleActionBindings(mode: MonoActionFrameMode, bindings: readonly MaterialTargetBinding[]): readonly MaterialTargetBinding[] {
-  return mode === "icons" ? bindings.filter(binding => binding.layer === "icon") : bindings;
+export function visibleActionBindings(mode: MonoActionFrameMode, bindings: readonly MaterialTargetBinding[],
+  artwork?: Partial<Record<ButtonTargetId, { packId: string }>>): readonly MaterialTargetBinding[] {
+  const visible = bindings.filter(binding =>
+    (mode !== "icons" || binding.layer === "icon") &&
+    (binding.layer !== "icon" || artwork?.[binding.targetId]?.packId === undefined ||
+      artwork[binding.targetId]?.packId === "original"));
+  return visible.length === bindings.length ? bindings : visible;
 }
 
 /** Match the fallback DOM silhouette to the outermost enabled material layer. */

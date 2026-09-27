@@ -1,11 +1,16 @@
 /** Editor state for the four real MonoScene quick actions. Recipes are supplied by the shared material registry. */
+import { createDefaultActionArtwork, parseMonoActionArtwork,
+  type MonoActionArtworkV1 } from "../../mono-preview/action-artwork/model";
+
 export type ButtonLayer = "fill" | "icon" | "border";
 export type ButtonTarget<A extends string> = A | "all";
 export type ButtonLayers<R> = Record<ButtonLayer, R | null>;
 export type ButtonFrameMode = "inherit" | "group" | "separate" | "icons";
 export type ButtonLabDocument<A extends string, R> =
   | { version: 1; actions: Record<A, ButtonLayers<R>> }
-  | { version: 2; frameMode: ButtonFrameMode; actions: Record<A, ButtonLayers<R>> };
+  | { version: 2; frameMode: ButtonFrameMode; actions: Record<A, ButtonLayers<R>> }
+  | { version: 3; frameMode: ButtonFrameMode; actions: Record<A, ButtonLayers<R>>;
+      artwork: Record<A, MonoActionArtworkV1> };
 export type ButtonTrialBinding = { id: string; name: string; revision: number };
 export type ButtonLabFrame<A extends string, R> = {
   document: ButtonLabDocument<A, R>;
@@ -55,13 +60,29 @@ export function editButtonBinding<A extends string, R>(document: ButtonLabDocume
 }
 
 export function buttonFrameMode<A extends string, R>(document: ButtonLabDocument<A, R>): ButtonFrameMode {
-  return document.version === 2 ? document.frameMode : "inherit";
+  return document.version === 1 ? "inherit" : document.frameMode;
+}
+
+export function buttonArtworkMap<A extends string, R>(document: ButtonLabDocument<A, R>, actionIds: readonly A[]): Record<A, MonoActionArtworkV1> {
+  return document.version === 3 ? copyButtonValue(document.artwork) :
+    Object.fromEntries(actionIds.map(action => [action, createDefaultActionArtwork()])) as Record<A, MonoActionArtworkV1>;
+}
+
+export function editButtonArtwork<A extends string, R>(document: ButtonLabDocument<A, R>, actionIds: readonly A[],
+  target: ButtonTarget<A>, artwork: MonoActionArtworkV1 | ((action: A) => MonoActionArtworkV1)): ButtonLabDocument<A, R> {
+  if (target !== "all" && !actionIds.includes(target as A)) throw new Error("Неизвестная кнопка.");
+  const next = buttonArtworkMap(document, actionIds);
+  for (const action of target === "all" ? actionIds : [target as A])
+    next[action] = parseMonoActionArtwork(typeof artwork === "function" ? artwork(action) : artwork);
+  return { version: 3, frameMode: buttonFrameMode(document), actions: copyButtonValue(document.actions), artwork: next };
 }
 
 export function editButtonFrameMode<A extends string, R>(document: ButtonLabDocument<A, R>, mode: ButtonFrameMode): ButtonLabDocument<A, R> {
   if (mode !== "inherit" && mode !== "group" && mode !== "separate" && mode !== "icons") throw new Error("Неизвестный режим ряда кнопок.");
   if (buttonFrameMode(document) === mode) return document;
-  return { version: 2, frameMode: mode, actions: copyButtonValue(document.actions) };
+  return document.version === 3
+    ? { ...copyButtonValue(document), frameMode: mode }
+    : { version: 2, frameMode: mode, actions: copyButtonValue(document.actions) };
 }
 
 export function editButtonSlot<A extends string, R>(slot: ButtonLabSlot<A, R>, document: ButtonLabDocument<A, R>, transient = false): ButtonLabSlot<A, R> {

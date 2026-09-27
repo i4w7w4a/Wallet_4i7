@@ -27,7 +27,7 @@ export type MonoAppearance = MonoExtendedAppearance & {
 };
 export type MonoAppearanceEnvelope = {
   kind: "mono-appearance";
-  version: 3;
+  version: 4;
   skinId: "mono-ledger-v1";
   appearance: MonoAppearance;
   material: MonoMaterialDirection;
@@ -80,7 +80,7 @@ export function normalizeMonoExtendedAppearance(value: unknown, schema: "legacy"
 }
 
 export function createMonoAppearanceEnvelope(preset: MonoShapePreset = "ledger"): MonoAppearanceEnvelope {
-  return { kind: "mono-appearance", version: 3, skinId: "mono-ledger-v1", appearance: {
+  return { kind: "mono-appearance", version: 4, skinId: "mono-ledger-v1", appearance: {
     ...createMonoExtendedAppearance(preset), preset,
     palette: { enabled: false, config: normalizeMonoPaletteConfig({ seed: "mono-share" }) },
     shape: createMonoShapeDefaults()[preset], optics: { ...MONO_GLASS_DEFAULTS[preset] },
@@ -95,7 +95,7 @@ function selectedMaterial(value: unknown, preset: MonoShapePreset): MonoMaterial
 
 export function normalizeMonoAppearanceEnvelope(value: unknown): MonoAppearanceEnvelope {
   const input = record(value);
-  if (input.version !== 1 && input.version !== 2 && input.version !== 3)
+  if (input.version !== 1 && input.version !== 2 && input.version !== 3 && input.version !== 4)
     throw new MonoShareError("version", "Эта версия оформления пока не поддерживается.");
   if (input.kind !== "mono-appearance" || input.skinId !== "mono-ledger-v1") throw invalid();
   const appearance = record(input.appearance), palette = record(appearance.palette), environment = record(appearance.environment);
@@ -110,18 +110,20 @@ export function normalizeMonoAppearanceEnvelope(value: unknown): MonoAppearanceE
   let config: MonoPaletteConfigV1;
   try { config = normalizeMonoPaletteConfig(palette.config); } catch { throw invalid(); }
   if (config.seed !== "mono-share" || config.actionCounter !== 0) throw invalid();
-  const result: MonoAppearanceEnvelope = { kind: "mono-appearance", version: 3, skinId: "mono-ledger-v1", appearance: {
+  const result: MonoAppearanceEnvelope = { kind: "mono-appearance", version: 4, skinId: "mono-ledger-v1", appearance: {
     ...extended, preset, palette: { enabled: palette.enabled, config },
     shape: normalizeMonoShapeMap({ [preset]: appearance.shape })[preset],
     optics: normalizeMonoGlassSettings(preset, record(appearance.optics) as Partial<MonoGlassSettings>),
     environment: { theme: environment.theme, background: environment.background },
-  }, material: input.version === 3 ? selectedMaterial(input.material, preset) : createEmptyMonoMaterials()[preset] };
+  }, material: input.version === 3 || input.version === 4
+    ? selectedMaterial(input.material, preset) : createEmptyMonoMaterials()[preset] };
+  if (input.version === 3 && result.material.buttons?.version === 3) throw invalid();
   const comparable = input.version === 1 ? { kind: result.kind, version: 1, skinId: result.skinId, appearance: {
     ...legacyMonoExtendedAppearance(result.appearance), preset: result.appearance.preset,
     palette: result.appearance.palette, shape: result.appearance.shape, optics: result.appearance.optics,
     environment: result.appearance.environment,
   } } : input.version === 2 ? { kind: result.kind, version: 2, skinId: result.skinId,
-    appearance: result.appearance } : result;
+    appearance: result.appearance } : input.version === 3 ? { ...result, version: 3 } : result;
   if (canonicalMonoAppearance(value) !== canonicalMonoAppearance(comparable)) throw invalid();
   if (palette.enabled && Object.values(config.themes).some(theme => !validateMonoPaletteApply(theme).valid))
     throw new MonoShareError("invalid", "Палитра не прошла проверку читаемости. Исправьте контраст перед созданием ссылки.");
@@ -134,7 +136,7 @@ export function createMonoAppearanceFromDocument(document: MonoWorkingDocument, 
   const direction = preset ?? presets[document.palette.activeSlotId - 1];
   const selected = document.palette.slots[presets.indexOf(direction)].present;
   const config = { ...structuredClone(selected.config), seed: "mono-share", actionCounter: 0 };
-  return normalizeMonoAppearanceEnvelope({ kind: "mono-appearance", version: 3, skinId: "mono-ledger-v1", appearance: {
+  return normalizeMonoAppearanceEnvelope({ kind: "mono-appearance", version: 4, skinId: "mono-ledger-v1", appearance: {
     ...document.appearance[direction], preset: direction, palette: { enabled: selected.paletteEnabled === true, config },
     shape: document.shapes[direction], optics: document.optics[direction],
     environment: { theme: selected.mode, background: document.background },

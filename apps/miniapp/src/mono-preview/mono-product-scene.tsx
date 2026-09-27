@@ -6,14 +6,21 @@ import type { MonoMaterialDirection } from "./mono-material-preset";
 import { actionButtonRadii, visibleActionBindings } from "./mono-action-geometry";
 import { monoPaletteStyle } from "./mono-palette-tokens";
 import { MonoScene, type MonoSceneProps } from "./mono-scene";
+import { createDefaultActionArtworkMap } from "./action-artwork/model";
 import styles from "./mono-product-scene.module.css";
 
+const DEFAULT_ACTION_ARTWORK = createDefaultActionArtworkMap();
+
 export function MonoProductScene({ material, ...scene }: MonoSceneProps & { material: MonoMaterialDirection }) {
-  const actionFrameMode = material.buttons?.version === 2 ? material.buttons.frameMode : "group";
+  const actionFrameMode = material.buttons?.version === 2 || material.buttons?.version === 3
+    ? material.buttons.frameMode : "group";
+  const actionArtwork = material.buttons?.version === 3 ? material.buttons.artwork : DEFAULT_ACTION_ARTWORK;
   const actionRadii = actionButtonRadii(material.buttons?.bindings ?? []);
-  const bindings = visibleActionBindings(actionFrameMode, material.buttons?.bindings ?? []);
-  if (!material.background && !bindings.length) return <MonoScene {...scene} actionFrameMode={actionFrameMode} actionRadii={actionRadii} />;
-  return <ActiveMaterialScene material={material} bindings={bindings} scene={{ ...scene, actionFrameMode, actionRadii }} />;
+  const bindings = visibleActionBindings(actionFrameMode, material.buttons?.bindings ?? [], actionArtwork);
+  if (!material.background && !bindings.length) return <MonoScene {...scene} actionFrameMode={actionFrameMode}
+    actionRadii={actionRadii} actionArtwork={actionArtwork} />;
+  return <ActiveMaterialScene material={material} bindings={bindings}
+    scene={{ ...scene, actionFrameMode, actionRadii, actionArtwork }} />;
 }
 
 function ActiveMaterialScene({ material, bindings, scene }: { material: MonoMaterialDirection;

@@ -4,6 +4,7 @@ import { createEmptyMonoMaterials, normalizeMonoMaterialMap } from "../mono-prev
 import type { MonoMaterialPatch } from "../mono-preview/mono-material-transfer";
 import { parseButtonBinding, BUTTON_TARGETS } from "./button-workshop/binding";
 import { parseButtonDocument } from "./button-workshop/codec";
+import { buttonArtworkMap } from "./button-workshop/model";
 
 function exact(value: unknown, keys: readonly string[]): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
@@ -46,9 +47,19 @@ export function buttonPatchFromLab(document: unknown, selection: unknown): MonoM
     return value === null ? [] : [value];
   });
   const map = createEmptyMonoMaterials();
-  map.ledger = { ...map.ledger, buttons: parsed.version === 2 && parsed.frameMode !== "inherit"
+  map.ledger = { ...map.ledger, buttons: parsed.version !== 1 && parsed.frameMode !== "inherit"
     ? { version: 2, frameMode: parsed.frameMode, bindings }
     : { version: 1, bindings } };
   const value = normalizeMonoMaterialMap(map).ledger.buttons!;
   return { scope: "buttons", selection: { target, layer }, value };
+}
+
+export function artworkPatchFromLab(document: unknown, selection: unknown): MonoMaterialPatch & { scope: "artwork" } {
+  const chosen = exact(selection, ["target"]);
+  if (chosen.target !== "all" && !BUTTON_TARGETS.includes(chosen.target as ButtonTargetId))
+    throw new Error("Выберите кнопку перед применением иконок.");
+  const parsed = parseButtonDocument<ButtonTargetId, MaterialTargetBinding>(document, BUTTON_TARGETS,
+    (input, slot, action) => parseButtonBinding(input, slot, action, materialCatalogV2));
+  return { scope: "artwork", selection: { target: chosen.target as ButtonTargetId | "all" },
+    value: buttonArtworkMap(parsed, BUTTON_TARGETS) };
 }

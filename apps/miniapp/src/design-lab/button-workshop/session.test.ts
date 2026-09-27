@@ -2,6 +2,8 @@ import { expect, test } from "vitest";
 import { createButtonSession } from "./session";
 import { createButtonDocument, editButtonBinding } from "./model";
 import { ACCEPTED_KEY, LIBRARY_KEY, WORKSPACE_KEY } from "./storage";
+import { createDefaultActionArtwork } from "../../mono-preview/action-artwork/model";
+import { parseButtonImport } from "./codec";
 
 const ACTIONS = ["send", "receive", "exchange", "buy"] as const;
 type Recipe = { effectId: string; params: { tint: string } };
@@ -33,6 +35,34 @@ test("Apply accepts only the current complete draft; Cancel restores accepted pr
   expect(editor.shownDocument().actions.send.icon).toBeNull();
   expect(editor.shownDocument().actions.buy.border).toEqual(border);
   expect(JSON.parse(store.values.get(ACCEPTED_KEY)!).actions.send.icon).toBeNull();
+});
+
+test("artwork survives slot history, Apply, Cancel, reload and full JSON import", async () => {
+  const store = memoryStorage();
+  const editor = createButtonSession(ACTIONS, parseRecipe);
+  editor.connect(store, lock);
+  const volume = { ...createDefaultActionArtwork(), packId: "volume-v1" as const };
+  const contour = { ...createDefaultActionArtwork(), packId: "contour-v1" as const };
+  editor.editArtwork("send", volume);
+  editor.selectSlot(1);
+  editor.editArtwork("receive", contour);
+  expect(editor.shownDocument().version).toBe(3);
+  editor.undo();
+  expect(editor.shownDocument().version).toBe(1);
+  editor.undo(true);
+  expect(editor.shownDocument()).toMatchObject({ artwork: { receive: contour } });
+  expect(await editor.apply()).toBe(true);
+  editor.editArtwork("receive", volume);
+  editor.cancel();
+  expect(editor.shownDocument()).toMatchObject({ artwork: { receive: contour } });
+  expect(await editor.save("Новые иконки", true)).toBe(true);
+  await editor.flushRecovery();
+  const reloaded = createButtonSession(ACTIONS, parseRecipe);
+  reloaded.connect(store, lock);
+  expect(reloaded.getSnapshot().accepted).toMatchObject({ artwork: { receive: contour } });
+  expect(reloaded.getSnapshot().workspace.slots[0].present.document).toMatchObject({ artwork: { send: volume } });
+  expect(reloaded.getSnapshot().library.trials[0].document).toMatchObject({ artwork: { receive: contour } });
+  expect(parseButtonImport(JSON.stringify(reloaded.shownDocument()), ACTIONS, parseRecipe)).toEqual(reloaded.shownDocument());
 });
 
 test("reload restores accepted bindings and three independent recovery drafts", async () => {

@@ -3,6 +3,10 @@ import { expect, it } from "vitest";
 import { createMonoWorkingDocument, exportMonoWorkingPreset, previewMonoWorkingImport,
   type MonoWorkingLibrary } from "./mono-working-presets";
 import { applyMonoMaterialPatch } from "./mono-material-transfer";
+import { createDefaultActionArtworkMap } from "./action-artwork/model";
+
+const artwork = () => { const map = createDefaultActionArtworkMap();
+  map["quick.send"].packId = "volume-v1"; return map; };
 
 it("applies background then buttons to one chosen record and direction without changing other fields", async () => {
   const first = createMonoWorkingDocument();
@@ -135,5 +139,33 @@ it("keeps stored border and fill bindings when an icon-only frame is applied", (
       value: { version: 2, frameMode: "icons", bindings: [icon.value] } } });
   expect(updated.records[0].document.materials.ledger.buttons).toEqual({
     version: 2, frameMode: "icons", bindings: [fill.value, edge.value, icon.value],
+  });
+});
+
+it("applies artwork to one action without removing its saved icon shader or another direction", () => {
+  const document = createMonoWorkingDocument();
+  const metal = materialCatalogV2.materials.find(item => item.id === "liquid-metal")!.presets[0]!.recipe;
+  const icon = createTargetBinding("quick.send", "icon", metal, materialCatalogV2);
+  const fill = createTargetBinding("quick.send", "fill", metal, materialCatalogV2);
+  if (!icon.ok || !fill.ok) throw new Error("Fixture invalid");
+  document.materials.ledger = { ...document.materials.ledger,
+    buttons: { version: 2, frameMode: "separate", bindings: [icon.value, fill.value] } };
+  document.materials.frost = { ...document.materials.frost, buttons: { version: 1, bindings: [icon.value] } };
+  const library: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1, document }] };
+  const applied = applyMonoMaterialPatch(library, { targetId: "mine", direction: "ledger",
+    expectedGeneration: 1, expectedRevision: 1,
+    patch: { scope: "artwork", selection: { target: "quick.send" }, value: artwork() } });
+  expect(applied.records[0].document.materials.ledger.buttons).toEqual({
+    version: 3, frameMode: "separate", bindings: [icon.value, fill.value], artwork: artwork(),
+  });
+  expect(applied.records[0].document.materials.frost).toEqual(library.records[0].document.materials.frost);
+  expect(library.records[0].document.materials.ledger.buttons?.version).toBe(2);
+  const laterMaterial = applyMonoMaterialPatch(applied, { targetId: "mine", direction: "ledger",
+    expectedGeneration: 2, expectedRevision: 2,
+    patch: { scope: "buttons", selection: { target: "quick.send", layer: "fill" },
+      value: { version: 1, bindings: [] } } });
+  expect(laterMaterial.records[0].document.materials.ledger.buttons).toEqual({
+    version: 3, frameMode: "separate", bindings: [icon.value], artwork: artwork(),
   });
 });

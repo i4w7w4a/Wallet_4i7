@@ -17,6 +17,7 @@
 .stage[data-mono-effect-background="false"] .content :global(.mono-promo[data-optics="shared-webgl"] > div) { z-index: auto !important; }
 .content :global(.mono-actions__item[data-material-fill-presented="true"]) { background: transparent; box-shadow: none; }
 .content :global(.mono-actions__item[data-material-fill-presented="true"] .mono-actions__icon) { color: #f7faf9; background: rgb(7 12 16 / 65%); border-radius: 6px; box-shadow: 0 0 0 1px rgb(255 255 255 / 18%); }
+.content :global(.mono-actions__item[data-material-fill-presented="true"][data-artwork-pack]:not([data-artwork-pack="original"]) .mono-actions__icon) { background: transparent; box-shadow: none; }
 .content :global(.mono-actions__item[data-material-fill-presented="true"] .mono-actions__label) { color: #f7faf9; background: rgb(7 12 16 / 78%); border-radius: 4px; padding: 2px 4px; }
 .content :global(.mono-actions__item[data-material-icon-presented="true"] .mono-actions__icon svg) { opacity: 0; }
 .content :global(.mono-actions__item[data-material-icon-presented="true"] .mono-actions__icon) { background: transparent; box-shadow: none; }

@@ -1174,7 +1174,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           {activeTool === "typography" && <><MonoTypographyTuner value={fontCandidate ?? draftAppearance[preset].typography} onChange={updateTypography} />
             {fontError && <p role="alert">{fontError}</p>}</>}
           {activeTool === "shape" && <div className="mono-workbench__shape">          <MonoShapeTuner values={draftShapes[preset]} dirty={shapeDirty} status={shapeStatus}
-            separateActions={activeMaterials.buttons?.version === 2 && activeMaterials.buttons.frameMode !== "group"}
+            separateActions={(activeMaterials.buttons?.version === 2 || activeMaterials.buttons?.version === 3)
+              && activeMaterials.buttons.frameMode !== "group"}
             onChange={updateShape} onDefault={resetShape} onCancel={cancelShape} onApply={applyShape}
             onOpenMotionLab={process.env.NODE_ENV === "development" && workingReady ? openQuickActionMotionLab : undefined}
             buttonLabHref="/design-lab/buttons"

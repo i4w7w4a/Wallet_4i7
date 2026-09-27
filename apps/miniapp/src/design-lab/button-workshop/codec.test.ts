@@ -4,6 +4,9 @@ import { createButtonWorkspace, editButtonBinding } from "./model";
 import { parseButtonDocument, parseButtonImport, parseButtonWorkspace } from "./codec";
 
 const ACTIONS = ["send", "receive", "exchange", "buy"] as const;
+const originalArtwork = () => ({ version: 1, packId: "original", energy: {
+  enabled: true, intensity: 0.35, durationMs: 700, width: 0.28,
+} });
 type Action = typeof ACTIONS[number];
 type Recipe = { effectId: "liquid-metal" | "pulsing-border"; params: { tint: string } };
 const parseRecipe = (input: unknown, layer: "fill" | "icon" | "border"): Recipe => {
@@ -34,6 +37,16 @@ test("explicit frame mode roundtrips as v2 while legacy v1 keeps its exact shape
   expect(() => parseButtonDocument({ ...legacy, frameMode: "separate" }, ACTIONS, parseRecipe)).toThrow();
   const icons = { ...legacy, version: 2, frameMode: "icons" };
   expect(parseButtonImport(JSON.stringify(icons), ACTIONS, parseRecipe)).toEqual(icons);
+});
+
+test("artwork v3 roundtrips through import and rejects unknown artwork fields", () => {
+  const legacy = createButtonWorkspace<Action, Recipe>(ACTIONS).slots[0].present.document;
+  const artwork = Object.fromEntries(ACTIONS.map(action => [action, originalArtwork()]));
+  artwork.send.packId = "volume-v1";
+  const document = { ...legacy, version: 3, frameMode: "icons", artwork };
+  expect(parseButtonImport(JSON.stringify(document), ACTIONS, parseRecipe)).toEqual(document);
+  expect(() => parseButtonDocument({ ...document, artwork: { ...artwork,
+    send: { ...artwork.send, url: "https://example.test/icon.png" } } }, ACTIONS, parseRecipe)).toThrow();
 });
 
 test("codec refuses unknown targets, extra fields and an incompatible layer", () => {

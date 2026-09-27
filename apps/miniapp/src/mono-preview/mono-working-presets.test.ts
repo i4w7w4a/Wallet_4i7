@@ -6,6 +6,7 @@ import { createMonoShapeDefaults } from "./mono-shape-preview";
 import { createLegacyPaletteWorkingRecords, createMonoWorkingDocument, loadMonoWorkingLibrary, previewMonoWorkingImport, exportMonoWorkingPreset, saveMonoWorkingLibrary } from "./mono-working-presets";
 import { exportMonoPalettePreset, importMonoPalettePreset } from "./mono-preset-codec";
 import { legacyMonoExtendedAppearance } from "./mono-preset-envelope";
+import { createDefaultActionArtworkMap } from "./action-artwork/model";
 
 const legacyKey = "wallet4i7.mono.working-presets.v1";
 const currentKey = "wallet4i7.mono.working-presets.v2";
@@ -34,7 +35,7 @@ function memoryStorage(entries: [string, string][]) {
 describe("full working preset migration", () => {
   it("starts each direction with an independent empty material scope", () => {
     const document = createMonoWorkingDocument();
-    expect(document.version).toBe(4);
+    expect(document.version).toBe(5);
     expect(document.materials).toEqual({
       ledger: { background: null, buttons: null },
       frost: { background: null, buttons: null },
@@ -53,17 +54,34 @@ describe("full working preset migration", () => {
       activeId: "kept", records: [{ id: "kept", name: "Сохранённый", revision: 4, document: previous }] });
     const storage = memoryStorage([[currentKey, raw]]);
     const library = loadMonoWorkingLibrary(storage)!;
-    expect(library.records[0].document.version).toBe(4);
+    expect(library.records[0].document.version).toBe(5);
     expect(library.records[0].document.materials.frost).toEqual({ background: null, buttons: null });
     expect(library.records[0].revision).toBe(4);
     expect(storage.getItem(currentKey)).toBe(raw);
+  });
+
+  it("reads v4 materials as Original without rewriting bytes and rejects artwork in a v4 wrapper", async () => {
+    const previous = { ...createMonoWorkingDocument(), version: 4 };
+    previous.materials.ledger = { background: null, buttons: { version: 2, frameMode: "icons", bindings: [] } };
+    const raw = JSON.stringify({ version: 2, skinId: "mono-ledger-v1", generation: 1,
+      activeId: "kept", records: [{ id: "kept", name: "Старый", revision: 1, document: previous }] });
+    const storage = memoryStorage([[currentKey, raw]]);
+    const restored = loadMonoWorkingLibrary(storage)!;
+    expect(restored.records[0].document.version).toBe(5);
+    expect(restored.records[0].document.materials.ledger.buttons?.version).toBe(2);
+    expect(storage.getItem(currentKey)).toBe(raw);
+    const newDocument = structuredClone(restored.records[0].document);
+    newDocument.materials.ledger = { background: null, buttons: { version: 3, frameMode: "icons",
+      bindings: [], artwork: createDefaultActionArtworkMap() } };
+    await expect(previewMonoWorkingImport(JSON.stringify({ kind: "mono-working-preset", version: 4,
+      skinId: "mono-ledger-v1", name: "Гибрид", document: { ...newDocument, version: 4 } }))).rejects.toThrow();
   });
 
   it("adds appearance only to a copy, retaining all legacy slots, history and accepted settings", () => {
     const before = legacyFixture(), raw = JSON.stringify(before);
     const storage = memoryStorage([[legacyKey, raw], [logoKey, JSON.stringify(logo)]]);
     const result = loadMonoWorkingLibrary(storage)!;
-    expect(result.records[0].document).toMatchObject({ ...before.records[0].document, version: 4 });
+    expect(result.records[0].document).toMatchObject({ ...before.records[0].document, version: 5 });
     expect(result.records[0].document).toHaveProperty("appearance.frost.logo", logo);
     expect(result.records[0].document).toHaveProperty("appearance.frost.background", null);
     expect(result.records[0].document).toHaveProperty("appearance.frost.typography", null);
@@ -122,7 +140,7 @@ describe("full working preset migration", () => {
     const legacy = legacyFixture().records[0];
     const imported = await previewMonoWorkingImport(JSON.stringify({ kind: "mono-working-preset", version: 1,
       skinId: "mono-ledger-v1", name: legacy.name, document: legacy.document }));
-    expect(imported.document).toMatchObject({ ...legacy.document, version: 4 });
+    expect(imported.document).toMatchObject({ ...legacy.document, version: 5 });
     const restored = await previewMonoWorkingImport(exportMonoWorkingPreset(imported.name, imported.document));
     expect(restored.document).toEqual(imported.document);
   });

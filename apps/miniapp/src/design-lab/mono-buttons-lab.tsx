@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore,
+  type ReactNode } from "react";
 import { MATERIAL_BORDER_BOUNDS, MATERIAL_RADIUS_BOUNDS,
   type ButtonMaterialLayer, type ButtonTargetId, type ButtonWorkshopBindings,
   type MaterialQualityProfile, type MaterialRecipeV2, type MaterialTargetBinding } from "@wallet/ui";
+import type { ButtonStageRequest } from "@wallet/ui";
 import { SandboxDialog } from "./background-sandbox/dialog";
 import { MaterialControls } from "./material-controls";
 import { MaterialWorkbench } from "./material-workbench";
@@ -15,7 +17,8 @@ import { createButtonBinding, replaceBindingRecipe, parseButtonBinding,
   buttonDocumentBindings, BUTTON_TARGETS } from "./button-workshop/binding";
 import { boundedButtonJson, parseButtonImport } from "./button-workshop/codec";
 import { buttonFrameMode, isButtonSlotDirty,
-  type ButtonFrameMode } from "./button-workshop/model";
+  buttonArtworkMap, type ButtonFrameMode } from "./button-workshop/model";
+import type { MonoActionArtworkMap, MonoActionArtworkV1 } from "../mono-preview/action-artwork/model";
 import { createButtonSession } from "./button-workshop/session";
 import { focusButtonActions } from "./button-workshop/scene-focus";
 import { ACCEPTED_KEY, LIBRARY_KEY, WORKSPACE_KEY } from "./button-workshop/storage";
@@ -33,6 +36,11 @@ const LAYER_LABEL: Readonly<Record<ButtonMaterialLayer, string>> = { fill: "По
 const LAYER_ICON: Readonly<Record<ButtonMaterialLayer, string>> = { fill: "▣", icon: "✧", border: "□" };
 const EDITOR_LAYERS: readonly ButtonMaterialLayer[] = ["border", "fill", "icon"];
 const WIDTHS = [320, 390, 430, 480] as const;
+export type MonoArtworkStageRequest = ButtonStageRequest & { artwork: MonoActionArtworkMap;
+  artworkPreview?: { targetId: ButtonTargetId; trigger: number } };
+type MonoArtworkBindings = Omit<ButtonWorkshopBindings, "renderStage"> & {
+  renderStage: (request: MonoArtworkStageRequest) => ReactNode;
+};
 type Dialog = "library" | "name" | "guard" | "more" | "import" | "export" | "material-import" | "material-export" | null;
 type Transition = { label: string; action(): void };
 const TITLES: Record<Exclude<Dialog, null>, string> = {
@@ -49,7 +57,7 @@ function capability(layer: ButtonMaterialLayer) { return `button-${layer}` as co
 function startingButtonDraft() { return createFirstButtonDocument(); }
 
 /** The scene is supplied by ORACLE. This component owns only the separate button editor. */
-export function MonoButtonsLab({ bindings, onShowActions }: { bindings: ButtonWorkshopBindings; onShowActions?: () => void }) {
+export function MonoButtonsLab({ bindings, onShowActions }: { bindings: MonoArtworkBindings; onShowActions?: () => void }) {
   const catalog = bindings.materialCatalog;
   const [editor] = useState(() => createButtonSession<ButtonTargetId, MaterialTargetBinding>(BUTTON_TARGETS,
     (input, layer, target) => parseButtonBinding(input, layer, target, catalog), startingButtonDraft()));
@@ -60,6 +68,13 @@ export function MonoButtonsLab({ bindings, onShowActions }: { bindings: ButtonWo
   const frameMode = buttonFrameMode(document);
   const inspectorLayer = frameMode === "icons" ? "icon" : selection.layer;
   const selectedTargets = selection.target === "all" ? BUTTON_TARGETS : [selection.target];
+  const artworkMap = buttonArtworkMap(document, BUTTON_TARGETS);
+  const selectedArtworks = selectedTargets.map(target => artworkMap[target]);
+  const firstArtwork = selectedArtworks[0]!;
+  const sharedPack = selectedArtworks.every(item => item.packId === firstArtwork.packId) ? firstArtwork.packId : "";
+  const mixedEnergy = selectedArtworks.some(item => JSON.stringify(item.energy) !== JSON.stringify(firstArtwork.energy));
+  const hiddenLegacyIcon = selectedTargets.some(target =>
+    artworkMap[target].packId !== "original" && document.actions[target].icon !== null);
   const selected = selectedTargets.map(target => document.actions[target][inspectorLayer]);
   const first = selected[0];
   const sharedEffect = first && selected.every(item => item?.recipe.effectId === first.recipe.effectId)
@@ -87,6 +102,7 @@ export function MonoButtonsLab({ bindings, onShowActions }: { bindings: ButtonWo
   const [materialPreviewLayer, setMaterialPreviewLayer] = useState<ButtonMaterialLayer>("fill");
   const [notice, setNotice] = useState("");
   const [runtimeStatus, setRuntimeStatus] = useState("");
+  const [artworkPreview, setArtworkPreview] = useState<{ targetId: ButtonTargetId; trigger: number }>();
   const stageRef = useRef<HTMLElement>(null);
   const onRuntimeStatus = useCallback((status: { message: string }) => setRuntimeStatus(status.message), []);
 
@@ -193,6 +209,13 @@ export function MonoButtonsLab({ bindings, onShowActions }: { bindings: ButtonWo
       setNotice("");
     } catch (error) { setNotice((error as Error).message); }
   }
+  function changeArtwork(mutator: (artwork: MonoActionArtworkV1) => MonoActionArtworkV1) {
+    try {
+      const current = buttonArtworkMap(editor.getSnapshot().workspace.slots[editor.getSnapshot().workspace.activeSlot]!.present.document, BUTTON_TARGETS);
+      editor.editArtwork(selection.target, (target: ButtonTargetId) => mutator(current[target]));
+      setNotice("");
+    } catch (error) { setNotice((error as Error).message); }
+  }
   function prepareImport(raw: string) {
     try {
       const parse = (input: unknown, layer: ButtonMaterialLayer, target: ButtonTargetId) => parseButtonBinding(input, layer, target, catalog);
@@ -210,8 +233,11 @@ export function MonoButtonsLab({ bindings, onShowActions }: { bindings: ButtonWo
   const shown = editor.shownDocument();
   const shownFrameMode = buttonFrameMode(shown);
   const previewFrameMode: Exclude<ButtonFrameMode, "inherit"> = shownFrameMode === "inherit" ? "group" : shownFrameMode;
-  const stageBindings = useMemo(() => visibleActionBindings(previewFrameMode, buttonDocumentBindings(shown, catalog)), [previewFrameMode, shown, catalog]);
+  const shownArtwork = useMemo(() => buttonArtworkMap(shown, BUTTON_TARGETS), [shown]);
+  const stageBindings = useMemo(() => visibleActionBindings(previewFrameMode, buttonDocumentBindings(shown, catalog), shownArtwork),
+    [previewFrameMode, shown, catalog, shownArtwork]);
   const stage = bindings.renderStage({ bindings: stageBindings, frameMode: previewFrameMode, width, quality, paused, restartKey: state.restartKey,
+    artwork: shownArtwork, artworkPreview,
     onStatus: onRuntimeStatus });
   const disabled = state.saving || !state.ready || state.recoveryUnavailable || state.comparing;
 
@@ -273,6 +299,53 @@ export function MonoButtonsLab({ bindings, onShowActions }: { bindings: ButtonWo
               </button>)}
           </div>
           {frameMode === "inherit" && <p className={styles.frameHint}>В примерке — исходный общий вид. При переносе в MONO форма ряда рабочего пресета сохранится.</p>}
+          <section className={styles.artworkPanel} aria-labelledby="mono-artwork-heading">
+            <h3 id="mono-artwork-heading">Иконки и свет</h3>
+            <label className={styles.field}>Набор знаков
+              <select aria-label="Набор иконок" title="Изменяет только выбранные действия и сохраняет материал иконки." value={sharedPack} disabled={disabled}
+                onChange={event => changeArtwork(value => ({ ...value,
+                  packId: event.currentTarget.value as MonoActionArtworkV1["packId"] }))}>
+                {sharedPack === "" && <option value="">Разные наборы</option>}
+                <option value="original">Исходные стрелки</option>
+                <option value="volume-v1">Объём · набор 1</option>
+                <option value="contour-v1">Контур · набор 2</option>
+              </select>
+            </label>
+            {hiddenLegacyIcon && <p className={styles.frameHint}>Старый материал знака сохранён. Он снова появится при выборе исходных стрелок.</p>}
+            <details className={styles.artworkEnergy}>
+              <summary>Световой импульс</summary>
+              <p className={styles.note}>Свет внутри PNG уже нарисован. Эти настройки меняют только проходящий блик.</p>
+              {mixedEnergy && <p className={styles.note}>У кнопок разные параметры. Изменение объединит только выбранный параметр.</p>}
+              <label className={styles.toggle}><input type="checkbox" checked={firstArtwork.energy.enabled}
+                disabled={disabled || sharedPack === "" || sharedPack === "original"}
+                onChange={event => changeArtwork(value => ({ ...value, energy: { ...value.energy,
+                  enabled: event.currentTarget.checked } }))} />Включить проходящий блик</label>
+              {([[
+                "intensity", "Сила света", 0, 1, 0.01,
+              ], ["durationMs", "Длительность, мс", 400, 1200, 25],
+                ["width", "Ширина луча", 0.12, 0.55, 0.01]] as const).map(([key, label, min, max, step]) =>
+                <label className={styles.field} key={key}>{label} <output>{firstArtwork.energy[key]}</output>
+                  <input type="range" aria-label={label} min={min} max={max} step={step}
+                    title={{ intensity: "Яркость проходящего блика.", durationMs: "Время одного конечного прохода.",
+                      width: "Ширина световой полосы на силуэте." }[key]}
+                    value={firstArtwork.energy[key]} disabled={disabled || sharedPack === "" || sharedPack === "original"}
+                    onPointerDown={editor.beginGesture} onPointerUp={editor.endGesture}
+                    onKeyDown={editor.beginGesture} onKeyUp={editor.endGesture}
+                    onChange={event => changeArtwork(value => ({ ...value, energy: { ...value.energy,
+                      [key]: Number(event.currentTarget.value) } }))} />
+                </label>)}
+            </details>
+            <div className={styles.artworkActions}>
+              <button className={styles.control} type="button" title={selection.target === "all" ? "Показать на кнопке «Отправить»." : "Один конечный световой проход."}
+                disabled={disabled || sharedPack === "" || sharedPack === "original" ||
+                  !firstArtwork.energy.enabled || firstArtwork.energy.intensity === 0}
+                onClick={() => setArtworkPreview(value => ({ targetId: selection.target === "all" ? "quick.send" : selection.target,
+                  trigger: (value?.trigger ?? 0) + 1 }))}>Показать свет</button>
+              <MonoProductApply scope="artwork" document={document} selection={{ target: selection.target }}
+                disabled={disabled || document.version !== 3} onDialogChange={setProductDialogOpen}
+                onNavigateToMono={() => { allowProductExit.current = true; window.setTimeout(() => { allowProductExit.current = false; }, 1500); }} />
+            </div>
+          </section>
           <label className={styles.field}>Материал<select aria-label="Материал" value={sharedEffect} disabled={disabled}
             onChange={event => {
               const chosen = available.find(item => item.id === event.currentTarget.value);

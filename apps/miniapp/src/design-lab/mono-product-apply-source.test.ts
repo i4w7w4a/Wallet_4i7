@@ -1,8 +1,9 @@
 import { DEFAULT_BACKGROUND_EDGE_FINISH, createTargetBinding, materialCatalogV2 } from "@wallet/ui";
 import { expect, it } from "vitest";
-import { createButtonDocument } from "./button-workshop/model";
+import { createButtonDocument, editButtonArtwork } from "./button-workshop/model";
+import { createDefaultActionArtwork } from "../mono-preview/action-artwork/model";
 import { BUTTON_TARGETS } from "./button-workshop/binding";
-import { backgroundPatchFromLab, buttonPatchFromLab } from "./mono-product-apply-source";
+import { artworkPatchFromLab, backgroundPatchFromLab, buttonPatchFromLab } from "./mono-product-apply-source";
 
 it("carries a complete installed v2 background and refuses unsupported lab material", () => {
   const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
@@ -44,5 +45,18 @@ it("carries explicit frame mode even when the selected layer has no bindings", (
   const icons = { version: 2 as const, frameMode: "icons" as const, actions: legacy.actions };
   expect(buttonPatchFromLab(icons, { target: "all", layer: "icon" }).value).toEqual({
     version: 2, frameMode: "icons", bindings: [],
+  });
+});
+
+it("extracts artwork separately while recipe apply never carries or clears artwork", () => {
+  const legacy = createButtonDocument(BUTTON_TARGETS);
+  const sample = { ...createDefaultActionArtwork(), packId: "volume-v1" as const };
+  const document = editButtonArtwork(legacy, BUTTON_TARGETS, "quick.send", sample);
+  expect(artworkPatchFromLab(document, { target: "quick.send" })).toMatchObject({
+    scope: "artwork", selection: { target: "quick.send" },
+    value: { "quick.send": sample, "quick.receive": { packId: "original" } },
+  });
+  expect(buttonPatchFromLab(document, { target: "quick.send", layer: "icon" }).value).toEqual({
+    version: 1, bindings: [],
   });
 });

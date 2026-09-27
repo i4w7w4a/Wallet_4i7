@@ -1,9 +1,10 @@
 import { boundedButtonJson, parseButtonDocument, parseButtonLibrary, parseButtonTrial, parseButtonWorkspace,
   type ButtonRecipeParser, type ButtonTrialLibrary } from "./codec";
-import { buttonFrameForTrial, copyButtonValue, createButtonDocument, createButtonWorkspace, editButtonBinding,
+import { buttonFrameForTrial, copyButtonValue, createButtonDocument, createButtonWorkspace, editButtonArtwork, editButtonBinding,
   editButtonFrameMode, editButtonSlot, finishButtonGesture, openButtonFrame, selectButtonSlot, undoButtonSlot,
   type ButtonLabDocument, type ButtonLabFrame, type ButtonLabSlot, type ButtonLabWorkspace,
   type ButtonFrameMode, type ButtonLayer, type ButtonSavedTrial, type ButtonTarget } from "./model";
+import type { MonoActionArtworkV1 } from "../../mono-preview/action-artwork/model";
 import { ACCEPTED_KEY, LIBRARY_KEY, WORKSPACE_KEY, createButtonLibrary, saveButtonTrial, writeButtonChecked,
   type ButtonStoragePort } from "./storage";
 
@@ -138,6 +139,10 @@ export function createButtonSession<A extends string, R>(actionIds: readonly A[]
         return value === null ? null : parseRecipe(value, layer, action);
       };
       changeSlot(editButtonSlot(slot(), editButtonBinding(slot().present.document, actionIds, target, layer, resolve), gesture !== null));
+    },
+    editArtwork(target: ButtonTarget<A>, artwork: MonoActionArtworkV1 | ((action: A) => MonoActionArtworkV1)) {
+      if (state.comparing || state.saving || state.recoveryUnavailable) return;
+      changeSlot(editButtonSlot(slot(), editButtonArtwork(slot().present.document, actionIds, target, artwork), gesture !== null));
     },
     setFrameMode(mode: ButtonFrameMode) {
       if (state.comparing || state.saving || state.recoveryUnavailable) return;

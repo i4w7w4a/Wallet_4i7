@@ -1,6 +1,7 @@
 import { BACKGROUND_EDGE_FINISH_BOUNDS, materialCatalogV2, normalizeBackgroundEdgeFinish,
   parseTargetBindings, type BackgroundEdgeFinishV1, type MaterialRecipeV2, type MaterialTargetBinding } from "@wallet/ui";
 import type { MonoShapePreset } from "./mono-shape-preview";
+import { parseMonoActionArtworkMap, type MonoActionArtworkMap } from "./action-artwork/model";
 
 export type MonoMaterialBackground = Readonly<{
   version: 1;
@@ -10,6 +11,8 @@ export type MonoMaterialBackground = Readonly<{
 export type MonoMaterialButtons = Readonly<
   | { version: 1; bindings: readonly MaterialTargetBinding[] }
   | { version: 2; frameMode: "group" | "separate" | "icons"; bindings: readonly MaterialTargetBinding[] }
+  | { version: 3; frameMode: "group" | "separate" | "icons"; bindings: readonly MaterialTargetBinding[];
+      artwork: MonoActionArtworkMap }
 >;
 export type MonoMaterialDirection = Readonly<{
   background: MonoMaterialBackground | null;
@@ -50,14 +53,17 @@ function parseBackground(value: unknown): MonoMaterialBackground | null {
 function parseButtons(value: unknown): MonoMaterialButtons | null {
   if (value === null) return null;
   const version = value && typeof value === "object" && !Array.isArray(value) ? (value as { version?: unknown }).version : undefined;
-  if (version !== 1 && version !== 2) throw new Error("Версия материала кнопок не поддерживается.");
-  const input = exact(value, version === 1 ? ["version", "bindings"] : ["version", "frameMode", "bindings"]);
-  if (version === 2 && input.frameMode !== "group" && input.frameMode !== "separate" && input.frameMode !== "icons")
+  if (version !== 1 && version !== 2 && version !== 3) throw new Error("Версия материала кнопок не поддерживается.");
+  const input = exact(value, version === 1 ? ["version", "bindings"] :
+    version === 2 ? ["version", "frameMode", "bindings"] : ["version", "frameMode", "bindings", "artwork"]);
+  if (version !== 1 && input.frameMode !== "group" && input.frameMode !== "separate" && input.frameMode !== "icons")
     throw new Error("Неизвестный режим ряда кнопок.");
   const parsed = parseTargetBindings(input.bindings, materialCatalogV2);
   if (!parsed.ok) throw new Error(parsed.issues.map(issue => issue.message).join(" "));
-  return version === 1 ? { version: 1, bindings: parsed.value } :
-    { version: 2, frameMode: input.frameMode as "group" | "separate" | "icons", bindings: parsed.value };
+  if (version === 1) return { version: 1, bindings: parsed.value };
+  const frameMode = input.frameMode as "group" | "separate" | "icons";
+  return version === 2 ? { version: 2, frameMode, bindings: parsed.value } :
+    { version: 3, frameMode, bindings: parsed.value, artwork: parseMonoActionArtworkMap(input.artwork) };
 }
 
 /** A material extension is all-or-nothing. Unknown fields and effects must never disappear on read. */

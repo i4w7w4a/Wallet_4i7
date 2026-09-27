@@ -269,3 +269,17 @@ test("preview width is applied inside a separate full-width scrollport", () => {
   expect(scrollport).not.toHaveAttribute("style");
   expect(scrollport.firstElementChild).toHaveStyle({ width: "min(100%, 390px)" });
 });
+
+test("artwork choice is one undoable edit and does not apply to MONO automatically", async () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const picker = screen.getByRole("combobox", { name: "Набор иконок" });
+  expect(picker).toHaveValue("original");
+  fireEvent.change(picker, { target: { value: "volume-v1" } });
+  expect(picker).toHaveValue("volume-v1");
+  expect(screen.getByRole("button", { name: "Иконки в MONO…" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "Отменить" }));
+  expect(picker).toHaveValue("original");
+  fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+  expect(picker).toHaveValue("volume-v1");
+  expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toBeNull();
+});

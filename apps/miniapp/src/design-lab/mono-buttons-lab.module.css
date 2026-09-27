@@ -42,6 +42,14 @@
 .frameChoice[aria-pressed="true"] { border-color: #d0e3d7; background: #35483b; color: #f8fff9; }
 .frameChoice:disabled { opacity: .45; cursor: default; }
 .frameHint { color: #b7c9bd; font-size: 11px; line-height: 1.45; margin: 6px 0 10px; }
+.artworkPanel { border: 1px solid #526259; border-radius: 7px; margin: 14px 0; padding: 10px; background: #1b2420; }
+.artworkPanel h3 { margin: 0 0 4px; font-size: 12px; font-weight: 600; }
+.artworkPanel .field { margin: 6px 0; }
+.artworkEnergy { border-top: 1px solid #405047; margin-top: 8px; }
+.artworkEnergy summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 600; }
+.artworkEnergy p { margin: 2px 0 8px; }
+.artworkActions { display: grid; gap: 5px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 9px; }
+.artworkActions > button { min-width: 0; min-height: 44px; }
 .field { display: grid; gap: 4px; margin: 10px 0; color: #d1ddd4; font-size: 12px; }
 .field :is(input, select), .stageHead select { width: 100%; min-height: 44px; border: 1px solid #60716a; border-radius: 6px; background: #151d19; color: #e8f0e9; padding: 7px 9px; font: inherit; }
 .field input[type="range"] { padding: 0; }

@@ -510,6 +510,11 @@
   place-items: center;
 }
 
+.mono-actions__item[data-artwork-pack="volume-v1"],
+.mono-actions__item[data-artwork-pack="contour-v1"] { gap: 2px; }
+.mono-actions__item[data-artwork-pack="volume-v1"] .mono-actions__icon,
+.mono-actions__item[data-artwork-pack="contour-v1"] .mono-actions__icon { width: 40px; height: 40px; }
+
 .mono-actions__icon svg,
 .mono-nav__item svg {
   display: block;

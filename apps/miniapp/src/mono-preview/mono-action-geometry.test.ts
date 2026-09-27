@@ -25,3 +25,16 @@ it("icon-only executes icons without deleting saved fill and border bindings", (
   expect(visibleActionBindings("separate", saved)).toEqual(saved);
   expect(saved).toHaveLength(3);
 });
+
+it("filters only a PNG target's legacy SVG icon binding at render time", () => {
+  const metal = materialCatalogV2.materials.find(item => item.id === "liquid-metal")!.presets[0]!.recipe;
+  const icon = createTargetBinding("quick.send", "icon", metal, materialCatalogV2);
+  const fill = createTargetBinding("quick.send", "fill", metal, materialCatalogV2);
+  const receive = createTargetBinding("quick.receive", "icon", metal, materialCatalogV2);
+  if (!icon.ok || !fill.ok || !receive.ok) throw Error("Fixture invalid");
+  const saved = [icon.value, fill.value, receive.value];
+  const artwork = { "quick.send": { packId: "volume-v1" }, "quick.receive": { packId: "original" } };
+  expect(visibleActionBindings("group", saved, artwork).map(item => `${item.targetId}:${item.layer}`))
+    .toEqual(["quick.send:fill", "quick.receive:icon"]);
+  expect(saved).toEqual([icon.value, fill.value, receive.value]);
+});
