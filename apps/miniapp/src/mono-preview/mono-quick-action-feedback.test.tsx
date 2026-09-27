@@ -35,6 +35,13 @@ it("activates only on the native completed click, once", () => {
 });
 
 it("starts light only for fine enter, completed click and a fresh manual request", () => {
+  vi.stubGlobal("PointerEvent", class extends MouseEvent {
+    readonly pointerType: string;
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init);
+      this.pointerType = init.pointerType ?? "";
+    }
+  });
   vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("pointer: fine"),
     addEventListener() {}, removeEventListener() {} }));
   const onActivate = vi.fn();
