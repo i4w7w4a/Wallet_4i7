@@ -46,10 +46,14 @@
 .artworkPanel h3 { margin: 0 0 4px; font-size: 12px; font-weight: 600; }
 .artworkPanel .field { margin: 6px 0; }
 .artworkEnergy { border-top: 1px solid #405047; margin-top: 8px; }
-.artworkEnergy summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 600; }
+.artworkEnergy summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; cursor: pointer; font-weight: 600; }
+.artworkChevron { font-size: 18px; line-height: 1; transition: transform 180ms ease; }
+.artworkEnergy[open] .artworkChevron { transform: rotate(180deg); }
 .artworkEnergy p { margin: 2px 0 8px; }
-.artworkActions { display: grid; gap: 5px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 9px; }
+.artworkActions { display: grid; gap: 5px; grid-template-columns: 44px minmax(0, 1fr); margin-top: 9px; }
 .artworkActions > button { min-width: 0; min-height: 44px; }
+.artworkPreview { border-color: #60716a; border-radius: 6px; background: #202b24; color: #e8f0e9; }
+@media (prefers-reduced-motion: reduce) { .artworkChevron { transition: none; } }
 .field { display: grid; gap: 4px; margin: 10px 0; color: #d1ddd4; font-size: 12px; }
 .field :is(input, select), .stageHead select { width: 100%; min-height: 44px; border: 1px solid #60716a; border-radius: 6px; background: #151d19; color: #e8f0e9; padding: 7px 9px; font: inherit; }
 .field input[type="range"] { padding: 0; }

@@ -313,7 +313,7 @@ export function MonoButtonsLab({ bindings, onShowActions }: { bindings: MonoArtw
             </label>
             {hiddenLegacyIcon && <p className={styles.frameHint}>Старый материал знака сохранён. Он снова появится при выборе исходных стрелок.</p>}
             <details className={styles.artworkEnergy}>
-              <summary>Световой импульс</summary>
+              <summary><span>Световой импульс</span><span className={styles.artworkChevron} aria-hidden="true">⌄</span></summary>
               <p className={styles.note}>Свет внутри PNG уже нарисован. Эти настройки меняют только проходящий блик.</p>
               {mixedEnergy && <p className={styles.note}>У кнопок разные параметры. Изменение объединит только выбранный параметр.</p>}
               <label className={styles.toggle}><input type="checkbox" checked={firstArtwork.energy.enabled}
@@ -336,11 +336,11 @@ export function MonoButtonsLab({ bindings, onShowActions }: { bindings: MonoArtw
                 </label>)}
             </details>
             <div className={styles.artworkActions}>
-              <button className={styles.control} type="button" title={selection.target === "all" ? "Показать на кнопке «Отправить»." : "Один конечный световой проход."}
+              <MonoLabIconButton label="Показать свет" tooltipPlacement="top" className={styles.artworkPreview}
                 disabled={disabled || sharedPack === "" || sharedPack === "original" ||
                   !firstArtwork.energy.enabled || firstArtwork.energy.intensity === 0}
                 onClick={() => setArtworkPreview(value => ({ targetId: selection.target === "all" ? "quick.send" : selection.target,
-                  trigger: (value?.trigger ?? 0) + 1 }))}>Показать свет</button>
+                  trigger: (value?.trigger ?? 0) + 1 }))}>▶</MonoLabIconButton>
               <MonoProductApply scope="artwork" document={document} selection={{ target: selection.target }}
                 disabled={disabled || document.version !== 3} onDialogChange={setProductDialogOpen}
                 onNavigateToMono={() => { allowProductExit.current = true; window.setTimeout(() => { allowProductExit.current = false; }, 1500); }} />

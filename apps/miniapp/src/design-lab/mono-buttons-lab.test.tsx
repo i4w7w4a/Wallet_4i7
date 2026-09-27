@@ -283,3 +283,20 @@ test("artwork choice is one undoable edit and does not apply to MONO automatical
   expect(picker).toHaveValue("volume-v1");
   expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toBeNull();
 });
+
+test("manual light preview is a compact icon control with an accessible tooltip", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  fireEvent.change(screen.getByRole("combobox", { name: "Набор иконок" }), { target: { value: "volume-v1" } });
+  const preview = screen.getByRole("button", { name: "Показать свет" });
+  expect(preview).toHaveTextContent("▶");
+  fireEvent.focus(preview);
+  expect(screen.getByRole("tooltip")).toHaveTextContent("Показать свет");
+});
+
+test("light energy section shows a disclosure affordance", () => {
+  render(<MonoButtonsLab bindings={bindings} />);
+  const summary = screen.getByText("Световой импульс", { exact: true }).closest("summary")!;
+  expect(summary).toHaveTextContent("⌄");
+  fireEvent.click(summary);
+  expect(summary.closest("details")).toHaveAttribute("open");
+});
