@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoViewer } from "./mono-viewer";
 import { createMonoAppearanceEnvelope } from "./mono-preset-envelope";
 import { createMonoShareUrl } from "./mono-share-codec";
+import { firstButtonBindings } from "./mono-first-button-preset";
 
 beforeEach(() => {
   vi.stubGlobal("Blob", Blob);
@@ -25,10 +26,23 @@ it("decodes only the URL and leaves existing editor storage untouched", async ()
   const read = vi.spyOn(Storage.prototype, "getItem");
   const write = vi.spyOn(Storage.prototype, "setItem");
   history.replaceState(null, "", url);
-  render(<MonoViewer renderScene={value => <main aria-label="Готовый кошелёк" data-theme={value.environment.theme} />} />);
+  render(<MonoViewer renderScene={value => <main aria-label="Готовый кошелёк"
+    data-theme={value.appearance.environment.theme} data-material={String(value.material.background)} />} />);
   await waitFor(() => expect(screen.getByRole("main", { name: "Готовый кошелёк" })).toHaveAttribute("data-theme", "light"));
+  expect(screen.getByRole("main", { name: "Готовый кошелёк" })).toHaveAttribute("data-material", "null");
   expect(read).not.toHaveBeenCalled();
   expect(write).not.toHaveBeenCalled();
+});
+
+it("bounds a material viewer to a viewport scrollport instead of its entire document", async () => {
+  const shared = createMonoAppearanceEnvelope();
+  shared.material = { background: null,
+    buttons: { version: 2, frameMode: "separate", bindings: firstButtonBindings() } };
+  const url = await createMonoShareUrl(shared, location.origin);
+  history.replaceState(null, "", url);
+  render(<MonoViewer renderScene={() => <main aria-label="Готовый кошелёк" />} />);
+  await waitFor(() => expect(screen.getByRole("main", { name: "Готовый кошелёк" })).toBeVisible());
+  expect(document.querySelector(".mono-viewer > .mono-preview-frame")).toHaveAttribute("data-material-scrollport", "true");
 });
 
 it("shows a usable error without rendering a default wallet for a damaged link", async () => {

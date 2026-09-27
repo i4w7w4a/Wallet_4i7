@@ -4,7 +4,7 @@ import { normalizeMonoPaletteConfig } from "../../../packages/ui/src/mono/mono-p
 import { encodeMonoSharePayload } from "../src/mono-preview/mono-share-transport";
 import type { MonoAppearanceEnvelope } from "../src/mono-preview/mono-preset-envelope";
 
-type LegacyShareEnvelope = Omit<MonoAppearanceEnvelope, "version" | "appearance"> & {
+type LegacyShareEnvelope = Omit<MonoAppearanceEnvelope, "version" | "appearance" | "material"> & {
   version: 1;
   appearance: Omit<MonoAppearanceEnvelope["appearance"], "eye" | "navigation">;
 };

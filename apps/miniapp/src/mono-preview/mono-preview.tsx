@@ -1119,6 +1119,26 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           }}
           onSelect={selectWorking} onCreate={createWorking} onCopy={copyWorking} onRename={renameWorking}
           onRetry={() => workingLibraryRef.current ? persistWorking(workingLibraryRef.current.activeId) : false} />
+        <div className="mono-workbench__share" data-share-pending={hasPendingTrials()}
+          onClickCapture={event => {
+            const action = event.target instanceof Element
+              ? event.target.closest<HTMLButtonElement>("[data-mono-share-action]") : null;
+            const kind = action?.dataset.monoShareAction;
+            if (kind !== "open" && kind !== "copy") return;
+            if (!trialsSettled(() => requestAnimationFrame(() =>
+              document.querySelector<HTMLButtonElement>(`[data-mono-share-action="${kind}"]`)?.click()))) {
+              event.preventDefault(); event.stopPropagation();
+            }
+          }}>
+          <MonoShareButton sourceKey={(activeRecord?.id ?? "baseline") + ":" + (activeRecord?.revision ?? 0)}
+            disabled={!workingReady || workingBlockedRef.current} createLink={async () => {
+              colorLab.end();
+              if (workingBlockedRef.current) throw new Error("Пресет изменён в другой вкладке. Перезагрузите MONO перед созданием ссылки.");
+              if (workingSaveFailedRef.current) throw new Error("Не удалось сохранить рабочий пресет. Повторите сохранение перед созданием ссылки.");
+              if (!flushWorking()) throw new Error("Не удалось сохранить рабочий пресет. Повторите сохранение.");
+              return createMonoShareUrl(createMonoAppearanceFromDocument(workingDocumentRef.current), window.location.origin);
+            }} />
+        </div>
         {hasPendingTrials() && <p className="mono-workbench__pending" role="status">Есть неприменённые пробы</p>}
 
         <div className="mono-workbench__directions" role="group" aria-label="Варианты дизайна">
@@ -1131,22 +1151,6 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           {VIEWPORTS.map(item => <button key={item.width} type="button" aria-label={"Экран " + item.width + " пикселей"}
             aria-pressed={viewport === item.width} onClick={() => setViewport(item.width)}>{item.width}</button>)}
         </div>
-        <details className="mono-workbench__extras"><summary>Ссылка и обмен</summary>
-          <div data-share-pending={hasPendingTrials()} onClickCapture={event => {
-            if (!(event.target instanceof Element) || !event.target.closest("[data-mono-share-create]")) return;
-            if (!trialsSettled(() => requestAnimationFrame(() => document.querySelector<HTMLButtonElement>("[data-mono-share-create]")?.click()))) {
-              event.preventDefault(); event.stopPropagation();
-            }
-          }}>
-            <MonoShareButton sourceKey={(activeRecord?.id ?? "baseline") + ":" + (activeRecord?.revision ?? 0)}
-              disabled={!workingReady} createLink={async () => {
-                colorLab.end();
-                if (!flushWorking()) throw new Error("Не удалось сохранить рабочий пресет. Повторите сохранение.");
-                return createMonoShareUrl(createMonoAppearanceFromDocument(workingDocumentRef.current), window.location.origin);
-              }} />
-          </div>
-          <p>JSON и копии — в меню ⋯ у названия пресета.</p>
-        </details>
       </aside>
       <aside id="mono-fine-rail" className="mono-rail mono-rail--fine" data-mono-rail="fine"
         aria-label="Тонкие настройки" aria-hidden={fineRailHidden} inert={fineRailHidden}

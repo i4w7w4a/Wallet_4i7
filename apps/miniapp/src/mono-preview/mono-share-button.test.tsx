@@ -1,66 +1,73 @@
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 import { MonoShareButton } from "./mono-share-button";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); Reflect.deleteProperty(navigator, "clipboard"); });
 
-it("keeps the generated immutable link available for manual copy", async () => {
-  render(<MonoShareButton sourceKey="A:1" createLink={async () => "https://wallet.example/mono/view#mono=snapshot"} />);
+const url = "https://wallet.example/mono/view#mono=snapshot";
+
+it("opens the complete viewer from one compact action without a popup or permanent form", async () => {
+  const openLink = vi.fn();
+  render(<MonoShareButton sourceKey="A:1" createLink={async () => url} openLink={openLink} />);
   expect(screen.queryByRole("textbox")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Получить ссылку" }));
-  expect(await screen.findByRole("textbox", { name: "Ссылка на оформление" })).toHaveValue("https://wallet.example/mono/view#mono=snapshot");
-  expect(screen.getByRole("link", { name: "Открыть готовый вид" })).toHaveAttribute("href", "https://wallet.example/mono/view#mono=snapshot");
+  fireEvent.click(screen.getByRole("button", { name: "Открыть кошелёк" }));
+  await waitFor(() => expect(openLink).toHaveBeenCalledExactlyOnceWith(url));
+  expect(screen.queryByRole("textbox")).toBeNull();
 });
 
-it("shows a generation failure without leaving a stale link presented as the new result", async () => {
-  const { rerender } = render(<MonoShareButton sourceKey="A:1" createLink={async () => "https://wallet.example/mono/view#mono=old"} />);
-  fireEvent.click(screen.getByRole("button", { name: "Получить ссылку" }));
+it("copies a resolved link and offers selectable text if clipboard access fails", async () => {
+  Object.defineProperty(navigator, "clipboard", { configurable: true,
+    value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) } });
+  render(<MonoShareButton sourceKey="A:1" createLink={async () => url} />);
+  fireEvent.click(screen.getByRole("button", { name: "Скопировать ссылку" }));
+  expect(await screen.findByRole("textbox", { name: "Ссылка на кошелёк" })).toHaveValue(url);
+  expect(await screen.findByRole("status")).toHaveTextContent(/выделите ссылку/i);
+});
+
+it("invalidates a prior accepted snapshot and reports bounded generation errors", async () => {
+  const { rerender } = render(<MonoShareButton sourceKey="A:1" createLink={async () => url} />);
+  fireEvent.click(screen.getByRole("button", { name: "Скопировать ссылку" }));
   await screen.findByRole("textbox");
-  rerender(<MonoShareButton sourceKey="A:1" createLink={async () => { throw new Error("Оформление слишком велико для ссылки."); }} />);
-  fireEvent.click(screen.getByRole("button", { name: "Получить ссылку" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Оформление слишком велико для ссылки.");
+  rerender(<MonoShareButton sourceKey="A:2" createLink={async () => {
+    throw new Error("Оформление слишком велико для ссылки. Сохраните полный JSON.");
+  }} />);
+  expect(screen.queryByRole("textbox")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть кошелёк" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/полный JSON/);
   expect(screen.queryByRole("textbox")).toBeNull();
 });
 
-it("allows the editor to disable sharing while accepted data is unavailable", () => {
-  render(<MonoShareButton sourceKey="A:1" disabled createLink={async () => "https://wallet.example/mono/view"} />);
-  expect(screen.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
+it("disables both actions while accepted data is unavailable", () => {
+  render(<MonoShareButton sourceKey="A:1" disabled createLink={async () => url} />);
+  expect(screen.getByRole("button", { name: "Открыть кошелёк" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Скопировать ссылку" })).toBeDisabled();
 });
 
 it("labels a loopback preview honestly instead of promising access from another phone", async () => {
   render(<MonoShareButton sourceKey="A:1" createLink={async () => "http://127.0.0.1:3126/mono/view#mono=snapshot"} />);
-  fireEvent.click(screen.getByRole("button", { name: "Получить ссылку" }));
+  fireEvent.click(screen.getByRole("button", { name: "Скопировать ссылку" }));
   expect(await screen.findByText("Локальная ссылка · на этом компьютере")).toBeVisible();
 });
 
-it.each(["A:2", "B:1"])("removes stale copy controls when the accepted source becomes %s", async nextKey => {
-  const createLink = async () => "https://wallet.example/mono/view#mono=old";
-  const { rerender } = render(<MonoShareButton sourceKey="A:1" createLink={createLink} />);
-  fireEvent.click(screen.getByRole("button", { name: "Получить ссылку" }));
-  await screen.findByRole("textbox");
-  rerender(<MonoShareButton sourceKey={nextKey} createLink={createLink} />);
-  expect(screen.queryByRole("textbox")).toBeNull();
-  expect(screen.queryByRole("button", { name: "Скопировать" })).toBeNull();
-});
-
-it("cannot display a late result from the previous accepted source", async () => {
+it("does not navigate from a late result after its accepted source changed", async () => {
   let finish!: (link: string) => void;
   const pending = new Promise<string>(resolve => { finish = resolve; });
-  const { rerender } = render(<MonoShareButton sourceKey="A:1" createLink={() => pending} />);
-  fireEvent.click(screen.getByRole("button", { name: "Получить ссылку" }));
-  rerender(<MonoShareButton sourceKey="B:1" createLink={async () => "https://wallet.example/mono/view#mono=new"} />);
-  await act(async () => { finish("https://wallet.example/mono/view#mono=old"); await pending; });
-  expect(screen.queryByRole("textbox")).toBeNull();
-  expect(screen.getByRole("button", { name: "Получить ссылку" })).toBeEnabled();
+  const openLink = vi.fn();
+  const { rerender } = render(<MonoShareButton sourceKey="A:1" createLink={() => pending} openLink={openLink} />);
+  fireEvent.click(screen.getByRole("button", { name: "Открыть кошелёк" }));
+  rerender(<MonoShareButton sourceKey="B:1" createLink={async () => "https://wallet.example/mono/view#mono=new"}
+    openLink={openLink} />);
+  await act(async () => { finish(url); await pending; });
+  expect(openLink).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "Открыть кошелёк" })).toBeEnabled();
 });
 
-it("warns for a long link without turning successful creation into an error", async () => {
-  const link = "https://wallet.example/mono/view#mono=" + "a".repeat(4100);
-  render(<MonoShareButton sourceKey="A:1" createLink={async () => link} />);
-  fireEvent.click(screen.getByRole("button", { name: "Получить ссылку" }));
+it("warns for a long, valid link and preserves the manual copy fallback", async () => {
+  const long = "https://wallet.example/mono/view#mono=" + "a".repeat(4100);
+  render(<MonoShareButton sourceKey="A:1" createLink={async () => long} />);
+  fireEvent.click(screen.getByRole("button", { name: "Скопировать ссылку" }));
   expect(await screen.findByText(/мессенджер может её обрезать/)).toBeVisible();
-  expect(screen.getByRole("textbox")).toHaveValue(link);
-  expect(screen.getByRole("button", { name: "Скопировать" })).toBeEnabled();
+  expect(screen.getByRole("textbox")).toHaveValue(long);
   expect(screen.queryByRole("alert")).toBeNull();
 });

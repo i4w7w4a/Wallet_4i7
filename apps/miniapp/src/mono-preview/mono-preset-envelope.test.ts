@@ -5,17 +5,17 @@ import { monoPaletteStyle } from "./mono-palette-tokens";
 import { createMonoAppearanceEnvelope, createMonoAppearanceFromDocument, normalizeMonoAppearanceEnvelope } from "./mono-preset-envelope";
 
 describe("allowlisted complete MONO appearance", () => {
-  it("refuses a share link when selected material data cannot roundtrip through its envelope", () => {
+  it("includes only the selected direction's material in a complete share", () => {
     const document = createMonoWorkingDocument();
     const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
     document.materials.ledger = { ...document.materials.ledger,
       background: { version: 1, recipe: fluid, edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH } };
-    expect(() => createMonoAppearanceFromDocument(document, "ledger")).toThrow(/материал.*ссылк/i);
-    expect(() => createMonoAppearanceFromDocument(document, "frost")).not.toThrow();
+    expect(createMonoAppearanceFromDocument(document, "ledger").material).toEqual(document.materials.ledger);
+    expect(createMonoAppearanceFromDocument(document, "frost").material).toEqual(document.materials.frost);
     document.materials.ledger = { background: null, buttons: { version: 1, bindings: [] } };
-    expect(() => createMonoAppearanceFromDocument(document, "ledger")).not.toThrow();
+    expect(createMonoAppearanceFromDocument(document, "ledger").material).toEqual(document.materials.ledger);
     document.materials.ledger = { background: null, buttons: { version: 2, frameMode: "separate", bindings: [] } };
-    expect(() => createMonoAppearanceFromDocument(document, "ledger")).toThrow(/материал.*ссылк/i);
+    expect(createMonoAppearanceFromDocument(document, "ledger").material).toEqual(document.materials.ledger);
   });
 
   it("provides a complete snapshot with the approved positive Ledger optics", () => {

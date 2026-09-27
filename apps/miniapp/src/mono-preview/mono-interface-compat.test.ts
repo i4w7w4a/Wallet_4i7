@@ -43,10 +43,11 @@ it("imports captured f979 full JSON, then roundtrips new fields in version 4", a
   expect((await previewMonoWorkingImport(exported)).document).toEqual(imported.document);
 });
 
-it("reads a real f979 share link and emits strict version 2 links with appearance only", async () => {
+it("reads a real f979 share link and emits strict version 3 links with selected material only", async () => {
   const oldLink = fixture("f979-share-v1.txt").trim();
   const old = await readMonoShareFragment(new URL(oldLink).hash);
-  expect(old.version).toBe(2);
+  expect(old.version).toBe(3);
+  expect(old.material).toEqual({ background: null, buttons: null });
   expect(old.appearance).toMatchObject(defaults);
   expect(old.appearance.balance.composition).toBe("compact");
   expect(old.appearance.environment).toEqual({ theme: "light", background: "strata" });
@@ -57,8 +58,8 @@ it("reads a real f979 share link and emits strict version 2 links with appearanc
   const link = await createMonoShareUrl(fresh, "https://wallet.example");
   expect((await readMonoShareFragment(new URL(link).hash)).appearance).toEqual(fresh.appearance);
   const payload = JSON.parse(await decodeMonoSharePayload(new URL(link).hash.slice("#mono=".length)));
-  expect(payload.version).toBe(2);
-  expect(Object.keys(payload).sort()).toEqual(["appearance", "kind", "skinId", "version"]);
+  expect(payload.version).toBe(3);
+  expect(Object.keys(payload).sort()).toEqual(["appearance", "kind", "material", "skinId", "version"]);
   expect(Object.keys(payload.appearance).sort()).toEqual([
     "assets", "background", "balance", "chart", "environment", "eye", "layout", "logo",
     "navigation", "optics", "palette", "preset", "shape", "typography",
