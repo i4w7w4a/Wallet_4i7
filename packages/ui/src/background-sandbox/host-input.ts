@@ -31,6 +31,9 @@ export class ActiveClock {
 
 export class PointerInput {
   private owner: number | null = null;
+  private ownerType: PointerSample["pointerType"];
+  private readonly activeTouches = new Set<number>();
+  private suppressTouches = false;
   private uv: Vec2 = [0.5, 0.5];
   private inside = false;
   private down = false;
@@ -41,8 +44,43 @@ export class PointerInput {
     this.capacity = Number.isFinite(capacity) ? Math.max(1, Math.min(64, Math.floor(capacity))) : 32;
   }
 
-  push(sample: Omit<PointerSample, "delta">) {
+  private append(sample: PointerSample) {
+    this.samples.push(sample);
+    if (this.samples.length > this.capacity) this.samples.splice(0, this.samples.length - this.capacity);
+  }
+
+  private cancelActive(time: number) {
+    if (this.owner !== null && this.down) {
+      this.append({ id: this.owner, phase: "cancel", pointerType: this.ownerType,
+        uv: this.uv, delta: [0, 0], time, buttons: 0 });
+    }
+    this.owner = null;
+    this.ownerType = undefined;
+    this.inside = false;
+    this.down = false;
+  }
+
+  /** A blocked touch still counts as a contact, so drawing cannot resume mid-pinch. */
+  push(sample: Omit<PointerSample, "delta">, blocked = false) {
     if (![sample.id, sample.time, sample.buttons, ...sample.uv].every(Number.isFinite)) return;
+    if (sample.pointerType === "touch") {
+      if (sample.phase === "down") this.activeTouches.add(sample.id);
+      if (this.activeTouches.size > 1 || (blocked && this.activeTouches.has(sample.id))) {
+        this.suppressTouches = true;
+      }
+      if (this.suppressTouches) this.cancelActive(sample.time);
+      if (sample.phase === "up" || sample.phase === "cancel" || sample.phase === "leave") {
+        this.activeTouches.delete(sample.id);
+      }
+      if (this.suppressTouches) {
+        if (this.activeTouches.size === 0) this.suppressTouches = false;
+        return;
+      }
+      if (blocked) return;
+      if (sample.phase === "down" && this.owner !== null && sample.id !== this.owner && !this.down) {
+        this.cancelActive(sample.time);
+      }
+    }
     if (this.owner !== null && sample.id !== this.owner) return;
     const uv: Vec2 = [Math.min(1, Math.max(0, sample.uv[0])), Math.min(1, Math.max(0, sample.uv[1]))];
     const departing = sample.phase === "leave" || sample.phase === "cancel";
@@ -51,12 +89,12 @@ export class PointerInput {
       (sample.phase === "down" && this.owner === null);
     const delta: Vec2 = arriving || departing ? [0, 0] : [uv[0] - this.uv[0], uv[1] - this.uv[1]];
     this.owner = ending ? null : sample.id;
+    this.ownerType = ending ? undefined : sample.pointerType;
     this.uv = uv;
     this.inside = !departing;
     if (departing || sample.phase === "up" || (sample.buttons & 1) === 0) this.down = false;
     else if (sample.phase === "down") this.down = true;
-    this.samples.push({ ...sample, uv, delta, buttons: this.down ? sample.buttons : 0 });
-    if (this.samples.length > this.capacity) this.samples.splice(0, this.samples.length - this.capacity);
+    this.append({ ...sample, uv, delta, buttons: this.down ? sample.buttons : 0 });
   }
 
   drain(): PointerFrame {
@@ -67,6 +105,9 @@ export class PointerInput {
 
   reset() {
     this.owner = null;
+    this.ownerType = undefined;
+    this.activeTouches.clear();
+    this.suppressTouches = false;
     this.inside = false;
     this.down = false;
     this.samples = [];

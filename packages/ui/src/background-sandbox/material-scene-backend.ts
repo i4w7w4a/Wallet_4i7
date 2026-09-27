@@ -11,7 +11,7 @@ import type {
 import { MaterialCompositor, type MaterialDrawMode } from "./material-compositor";
 import { planMaterialSceneBudget } from "./material-scene-budget";
 import { materialSceneStructureKey } from "./material-scene-state";
-import { materialPointerPhase } from "./material-scene-pointer";
+import { materialPointerOverControl, materialPointerPhase } from "./material-scene-pointer";
 import { resolveMaterialHostClip, resolveMaterialTargetGeometry,
   type MaterialHostClip } from "./material-target-geometry";
 import { rasterizeMaterialIcon } from "./material-icon-assets";
@@ -396,17 +396,21 @@ export class MaterialSceneBackend {
   private readonly handlePointer = (event: PointerEvent) => {
     if (!this.input.background || !this.input.hostActive || this.input.paused) return;
     const phase = event.type.slice("pointer".length) as PointerPhase;
-    const target = event.target;
-    const overControl = target instanceof Element && Boolean(target.closest(
-      "button,a,input,select,textarea,summary,[contenteditable=true],[role='button'],[role='slider']"));
-    const routedPhase = materialPointerPhase(phase, overControl);
+    const isTouch = event.pointerType === "touch";
+    const hitTest = this.root.ownerDocument.elementFromPoint;
+    const hitTarget = isTouch && typeof hitTest === "function"
+      ? hitTest.call(this.root.ownerDocument, event.clientX, event.clientY) : null;
+    const overControl = materialPointerOverControl(event.target, hitTarget, this.root) ||
+      (isTouch && typeof hitTest === "function" && !hitTarget);
+    const routedPhase = isTouch ? phase : materialPointerPhase(phase, overControl);
     if (!routedPhase) return;
     const rect = this.canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
     this.pointer.push({ id: event.pointerId, phase: routedPhase,
       pointerType: event.pointerType === "touch" || event.pointerType === "pen" ? event.pointerType : "mouse",
       uv: [(event.clientX - rect.left) / rect.width, 1 - (event.clientY - rect.top) / rect.height],
-      time: this.clock.sampleTime(event.timeStamp), buttons: routedPhase === "cancel" ? 0 : event.buttons });
+      time: this.clock.sampleTime(event.timeStamp), buttons: routedPhase === "cancel" ? 0 : event.buttons },
+    isTouch && overControl);
     this.invalidate();
   };
   private readonly contextLost = (event: Event) => {

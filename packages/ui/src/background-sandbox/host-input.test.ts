@@ -82,6 +82,15 @@ describe("host pointer collection", () => {
     expect(samples[2]?.delta).toEqual([0, 0]);
     expect(input.drain().down).toBe(false);
   });
+
+  it("lets a touch start after idle mouse hover on a hybrid device", () => {
+    const input = new PointerInput();
+    input.push({ id: 1, phase: "move", uv: [0.2, 0.5], time: 1, buttons: 0, pointerType: "mouse" });
+    input.drain();
+    input.push({ id: 2, phase: "down", uv: [0.8, 0.5], time: 2, buttons: 1, pointerType: "touch" });
+    input.push({ id: 2, phase: "up", uv: [0.8, 0.5], time: 3, buttons: 0, pointerType: "touch" });
+    expect(input.drain().samples.map(sample => sample.phase)).toEqual(["down", "up"]);
+  });
 });
 
 describe("host raster budget", () => {

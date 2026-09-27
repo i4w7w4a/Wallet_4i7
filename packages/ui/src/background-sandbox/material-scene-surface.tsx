@@ -59,7 +59,7 @@ export function MaterialSceneSurface({ background = null, edgeFinish, bindings =
     data-material-canvas-layer={canvasAboveContent ? "foreground" : "background"}
     style={{ position: "relative", width: "100%", height: children ? "auto" : "100%",
       minHeight: children ? "100%" : 1, overflow: "hidden", backgroundColor: fallback,
-      touchAction: background ? "pan-y" : "auto" }}>
+      touchAction: background ? "pan-y pinch-zoom" : "auto" }}>
     {children && <div style={{ position: "relative", zIndex: canvasAboveContent ? "auto" : 1 }}>{children}</div>}
     {!children && (status.phase === "fallback" || status.phase === "lost") && <div role="status"
       style={{ position: "absolute", inset: 0, display: "grid", placeContent: "center",

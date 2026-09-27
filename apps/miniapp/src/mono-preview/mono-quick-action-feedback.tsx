@@ -28,15 +28,18 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, mater
   const config = preset.config;
 
   useEffect(() => {
-    if (effectId !== "magnetic") return;
     const resetWhenHidden = () => {
-      if (document.visibilityState === "hidden") setOffset({ x: 0, y: 0 });
+      if (document.visibilityState === "hidden") {
+        setOffset({ x: 0, y: 0 });
+        setKeyboardPressed(false);
+      }
     };
+    document.addEventListener("visibilitychange", resetWhenHidden);
+    if (effectId !== "magnetic") return () => document.removeEventListener("visibilitychange", resetWhenHidden);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const resetWhenReduced = () => {
       if (reduced.matches) setOffset({ x: 0, y: 0 });
     };
-    document.addEventListener("visibilitychange", resetWhenHidden);
     reduced.addEventListener("change", resetWhenReduced);
     return () => {
       document.removeEventListener("visibilitychange", resetWhenHidden);
