@@ -1,0 +1,90 @@
+.artwork {
+  position: relative;
+  display: block;
+  width: 23px;
+  height: 23px;
+  flex: none;
+  isolation: isolate;
+  pointer-events: none;
+  user-select: none;
+}
+
+.image,
+.light {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: var(--art-size);
+  height: var(--art-size);
+  max-width: none;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.image { object-fit: contain; }
+
+.light {
+  overflow: hidden;
+  opacity: 1;
+  mask-image: var(--art-url);
+  mask-mode: alpha;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  -webkit-mask-image: var(--art-url);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+}
+
+.beam,
+.afterglow {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.beam {
+  top: -30%;
+  left: 0;
+  width: var(--energy-width);
+  height: 160%;
+  background: linear-gradient(90deg, transparent 0%, rgb(202 184 255 / 35%) 25%,
+    rgb(255 255 255 / 92%) 50%, rgb(174 149 255 / 30%) 75%, transparent 100%);
+}
+
+.artwork[data-motion="receive"] .beam {
+  top: 0;
+  left: -30%;
+  width: 160%;
+  height: var(--energy-width);
+  background: linear-gradient(180deg, transparent, rgb(255 255 255 / 88%) 50%, transparent);
+}
+
+.artwork[data-motion="buy"] .beam {
+  top: 0;
+  left: 0;
+  width: calc(35% + var(--energy-width));
+  height: calc(35% + var(--energy-width));
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 85%) 0%,
+    rgb(187 162 255 / 42%) 38%, transparent 73%);
+}
+
+.afterglow {
+  width: 45%;
+  height: 45%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(235 222 255 / 75%) 0%,
+    rgb(155 124 255 / 32%) 38%, transparent 72%);
+}
+
+.artwork[data-motion="send"] .afterglow { left: 54%; top: 4%; }
+.artwork[data-motion="receive"] .afterglow { left: 27%; top: 54%; }
+.artwork[data-motion="swap"] .afterglow { left: 53%; top: 28%; }
+.artwork[data-motion="buy"] .afterglow { left: 28%; top: 28%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .beam,
+  .afterglow { display: none; }
+}
