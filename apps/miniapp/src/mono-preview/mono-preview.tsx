@@ -73,6 +73,7 @@ import type { MonoTypographyConfigV1 } from "./mono-typography";
 import { createMonoAppearanceFromDocument, type MonoExtendedAppearance } from "./mono-preset-envelope";
 import { createMonoShareUrl } from "./mono-share-codec";
 import { MonoShareButton } from "./mono-share-button";
+import { MonoPublishedPresetControls } from "./mono-published-controls";
 
 import "./mono-workbench.css";
 import "./mono-shape-tuner.css";
@@ -961,6 +962,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   }, [pendingTransition]);
 
   const activeRecord = workingLibrary ? activeSevenRecord(workingLibrary) : null;
+  const selectedPublishedSlot = workingLibrary?.activeSlot ?? 1;
   const activeMaterials = workingDocumentRef.current.materials[preset];
   const materialSceneActive = Boolean(activeMaterials.background || activeMaterials.buttons?.bindings.length);
   const dirtyTools = (Object.keys(MONO_TOOL_LABELS) as MonoToolId[]).filter(toolDirty);
@@ -1027,27 +1029,40 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             requestAnimationFrame(() => document.getElementById("mono-palette-local-variants")?.scrollIntoView?.({ block: "start" }));
           }}
           onSelect={selectWorking} onCopy={copyWorking} onRename={renameWorking}
-          onRetry={() => workingLibraryRef.current ? persistWorking(workingLibraryRef.current.activeSlot) : false} />
-        <div className="mono-workbench__share" data-share-pending={hasPendingTrials()}
-          onClickCapture={event => {
-            const action = event.target instanceof Element
-              ? event.target.closest<HTMLButtonElement>("[data-mono-share-action]") : null;
-            const kind = action?.dataset.monoShareAction;
-            if (kind !== "open" && kind !== "copy") return;
-            if (!trialsSettled(() => requestAnimationFrame(() =>
-              document.querySelector<HTMLButtonElement>(`[data-mono-share-action="${kind}"]`)?.click()))) {
-              event.preventDefault(); event.stopPropagation();
-            }
-          }}>
-          <MonoShareButton sourceKey={(activeRecord?.id ?? "baseline") + ":" + (activeRecord?.revision ?? 0)}
-            disabled={!workingReady || workingBlockedRef.current} createLink={async () => {
-              colorLab.end();
-              if (workingBlockedRef.current) throw new Error("Пресет изменён в другой вкладке. Перезагрузите MONO перед созданием ссылки.");
-              if (workingSaveFailedRef.current) throw new Error("Не удалось сохранить рабочий пресет. Повторите сохранение перед созданием ссылки.");
-              if (!flushWorking()) throw new Error("Не удалось сохранить рабочий пресет. Повторите сохранение.");
-              return createMonoShareUrl(createMonoAppearanceFromDocument(workingDocumentRef.current), window.location.origin);
-            }} />
-        </div>
+          onRetry={() => workingLibraryRef.current ? persistWorking(workingLibraryRef.current.activeSlot) : false}
+          portableShare={<div className="mono-workbench__share" data-share-pending={hasPendingTrials()}
+            onClickCapture={event => {
+              const action = event.target instanceof Element
+                ? event.target.closest<HTMLButtonElement>("[data-mono-share-action]") : null;
+              const kind = action?.dataset.monoShareAction;
+              if (kind !== "open" && kind !== "copy") return;
+              if (!trialsSettled(() => requestAnimationFrame(() =>
+                document.querySelector<HTMLButtonElement>(`[data-mono-share-action="${kind}"]`)?.click()))) {
+                event.preventDefault(); event.stopPropagation();
+              }
+            }}>
+            <MonoShareButton sourceKey={(activeRecord?.id ?? "baseline") + ":" + (activeRecord?.revision ?? 0)}
+              disabled={!workingReady || workingBlockedRef.current} createLink={async () => {
+                colorLab.end();
+                if (workingBlockedRef.current) throw new Error("Пресет изменён в другой вкладке. Перезагрузите MONO перед созданием ссылки.");
+                if (workingSaveFailedRef.current) throw new Error("Не удалось сохранить рабочий пресет. Повторите сохранение перед созданием ссылки.");
+                if (!flushWorking()) throw new Error("Не удалось сохранить рабочий пресет. Повторите сохранение.");
+                return createMonoShareUrl(createMonoAppearanceFromDocument(workingDocumentRef.current), window.location.origin);
+              }} />
+          </div>} />
+        <MonoPublishedPresetControls slot={selectedPublishedSlot}
+          disabled={!workingReady || workingBlockedRef.current}
+          getSnapshot={async () => {
+            const selected = selectedPublishedSlot;
+            const current = workingLibraryRef.current;
+            if (!workingReadyRef.current || !current || current.activeSlot !== selected ||
+                workingBlockedRef.current || workingSaveFailedRef.current || hasPendingTrials()) return null;
+            colorLab.end();
+            if (!flushWorking()) return null;
+            const accepted = workingLibraryRef.current;
+            if (!accepted || accepted.activeSlot !== selected || workingSaveFailedRef.current || hasPendingTrials()) return null;
+            return createMonoAppearanceFromDocument(structuredClone(accepted.slots[selected - 1].document));
+          }} />
         {hasPendingTrials() && <p className="mono-workbench__pending" role="status">Есть неприменённые пробы</p>}
 
         <p className="mono-workbench__dock-label">Инструменты</p>

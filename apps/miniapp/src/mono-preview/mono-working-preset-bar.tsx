@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { previewMonoWorkingImport, type MonoSevenSlot, type MonoWorkingImport } from "./mono-working-presets";
 import type { MonoShapePreset } from "./mono-shape-preview";
 
@@ -20,6 +20,7 @@ type Props = {
   onExportArchive: (archiveIndex: number) => string;
   onOpenPaletteArchive: () => void;
   onRetry: () => boolean;
+  portableShare?: ReactNode;
 };
 
 const NUMBERS = [1, 2, 3, 4, 5, 6, 7] as const;
@@ -29,9 +30,9 @@ const DIRECTIONS: readonly { id: MonoShapePreset; name: string }[] = [
 
 export function MonoWorkingPresetBar({ activeSlot, choices, archive, ready, status,
   onSelect, onRename, onCopy, onImport, onRestore, onExport, onExportArchive,
-  onOpenPaletteArchive, onRetry }: Props) {
+  onOpenPaletteArchive, onRetry, portableShare }: Props) {
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [action, setAction] = useState<"rename" | "copy" | "import" | "export" | "archive" | null>(null);
+  const [action, setAction] = useState<"rename" | "copy" | "import" | "export" | "archive" | "portable" | null>(null);
   const [name, setName] = useState("");
   const [target, setTarget] = useState<MonoSevenSlot | "">("");
   const [importJson, setImportJson] = useState("");
@@ -110,6 +111,7 @@ export function MonoWorkingPresetBar({ activeSlot, choices, archive, ready, stat
         <button type="button" onClick={() => pickAction("copy")}>Копировать в другой пресет…</button>
         <button type="button" onClick={() => pickAction("import")}>Импортировать в пресет…</button>
         <button type="button" onClick={() => pickAction("export")}>Экспортировать пресет {activeSlot}</button>
+        {portableShare && <button type="button" onClick={() => pickAction("portable")}>Переносимая ссылка…</button>}
         <button type="button" onClick={() => pickAction("archive")}>Архив рабочих пресетов · {archive.length}</button>
         <button type="button" onClick={() => { onOpenPaletteArchive(); closeActions(); }}>Архив палитр и сервер</button>
       </>}
@@ -164,6 +166,7 @@ export function MonoWorkingPresetBar({ activeSlot, choices, archive, ready, stat
           onFocus={event => event.currentTarget.select()} /></label>
         <button type="button" onClick={() => download(exportJson, `mono-workspace-${activeSlot}.json`)}>Скачать JSON</button>
       </div>}
+      {action === "portable" && portableShare && <div className="mono-working-preset__subpanel">{portableShare}</div>}
       {action === "archive" && <div className="mono-working-preset__subpanel">
         <p>Исходные записи сохранены полностью. Совпадающие имена не объединены.</p>
         <div className="mono-working-preset__archive-list" role="group" aria-label="Архив рабочих пресетов">

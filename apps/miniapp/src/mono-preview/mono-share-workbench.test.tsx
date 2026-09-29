@@ -25,7 +25,11 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 async function renderReady() {
   render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
   await waitFor(() => expect(screen.getByRole("button", { name: /^Пресет 1:/ })).toBeEnabled());
-  return screen.getByRole("button", { name: "Скопировать ссылку" });
+  expect(screen.queryByRole("region", { name: "Поделиться готовым кошельком" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Действия с пресетом" }));
+  fireEvent.click(screen.getByRole("button", { name: "Переносимая ссылка…" }));
+  return within(screen.getByRole("region", { name: "Поделиться готовым кошельком" }))
+    .getByRole("button", { name: "Скопировать ссылку" });
 }
 
 it("asks before sharing a trial, then copies the accepted First snapshot after Cancel", async () => {
@@ -63,7 +67,8 @@ it("flushes an already accepted palette/theme change before encoding without app
   await renderReady();
   fireEvent.click(screen.getByRole("button", { name: "Light" }));
   // Direct palette acceptance increments revision and remounts the share actions.
-  fireEvent.click(screen.getByRole("button", { name: "Скопировать ссылку" }));
+  fireEvent.click(within(screen.getByRole("region", { name: "Поделиться готовым кошельком" }))
+    .getByRole("button", { name: "Скопировать ссылку" }));
   await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
   const envelope = share.mock.calls[0][0] as MonoAppearanceEnvelope;
   expect(envelope.appearance.environment.theme).toBe("light");
