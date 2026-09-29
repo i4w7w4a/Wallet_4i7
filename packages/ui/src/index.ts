@@ -72,6 +72,7 @@ export type {
 } from "./background-sandbox/host-contract";
 export { BackgroundGpuSurface } from "./background-sandbox/background-gpu-surface";
 export { MaterialSceneSurface } from "./background-sandbox/material-scene-surface";
+export { MATERIAL_VIEWPORT_MOTION_REBASE_EVENT } from "./background-sandbox/host-contract";
 export { DEFAULT_BACKGROUND_EDGE_FINISH, BACKGROUND_EDGE_FINISH_BOUNDS,
   normalizeBackgroundEdgeFinish } from "./background-sandbox/material-edge-finish";
 export { FLUID_VIEWPORT_RESPONSE_DEFAULTS, FLUID_VIEWPORT_RESPONSE_BOUNDS,

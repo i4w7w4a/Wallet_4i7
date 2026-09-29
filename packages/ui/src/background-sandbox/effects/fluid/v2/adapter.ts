@@ -6,7 +6,7 @@ import { createFluidActionState, drainFluidAction, queueFluidAction, type FluidA
 import { createFluidClock, stepFluidClock, type FluidClock } from "./clock";
 import { fluidHexToRgb, resolveFluidV2Colors } from "./colors";
 import { EMPTY_FLUID_VIEWPORT_MOTION, fluidV2Decay, stepFluidViewportMotion,
-  type FluidViewportMotionState } from "./dynamics";
+  type FluidViewportMotionDrive, type FluidViewportMotionState } from "./dynamics";
 import { FLUID_VIEWPORT_RESPONSE_DEFAULTS } from "../../../fluid-viewport-response";
 import { planFluidV2Allocation, type FluidSize, type FluidV2Allocation } from "./quality";
 import { FluidV2PointerInput } from "./pointer";
@@ -181,7 +181,7 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     this.displayDirty = true;
   }
 
-  private step(dt: number, motion: FluidViewportMotionState, edgeResponse: number): void {
+  private step(dt: number, motion: FluidViewportMotionDrive, edgeResponse: number): void {
     const t = this.targets!;
     const texelSize = [1 / t.velocity.read.width, 1 / t.velocity.read.height];
     const decay = fluidV2Decay(dt, this.params.velocityDissipation, this.params.dyeDissipation, this.params.pressureRetention);
@@ -251,8 +251,9 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     this.clock = step.clock;
     if (frame.viewportMotion?.reset) this.viewportMotion = EMPTY_FLUID_VIEWPORT_MOTION;
     const response = frame.viewportMotion?.response ?? FLUID_VIEWPORT_RESPONSE_DEFAULTS;
-    this.viewportMotion = stepFluidViewportMotion(this.viewportMotion,
+    const viewportStep = stepFluidViewportMotion(this.viewportMotion,
       frame.viewportMotion ?? { deltaY: 0, blockedY: 0 }, frame.dt, response);
+    this.viewportMotion = viewportStep.state;
     const drag = this.input.consume(frame.pointer, this.geometry.width / this.geometry.height, this.params.mode === "draw");
     let available = 4;
     for (const moved of drag) {
@@ -270,7 +271,7 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     for (const point of step.splats.slice(0, available)) {
       this.splat(point.x, point.y, point.dx * this.params.force / 2600, point.dy * this.params.force / 2600, point.pigment, 0.4);
     }
-    if (step.dt > 0) { this.step(step.dt, this.viewportMotion, response.edgeResponse); this.displayDirty = true; }
+    if (step.dt > 0) { this.step(step.dt, viewportStep.drive, response.edgeResponse); this.displayDirty = true; }
     if (this.displayDirty) { this.postProcess(); this.displayDirty = false; }
     return { texture: this.targets.output.texture, width: this.targets.output.width, height: this.targets.output.height,
       alphaMode: this.params.backgroundAlpha === 1 ? "opaque" : "premultiplied", colorSpace: "display-srgb" };

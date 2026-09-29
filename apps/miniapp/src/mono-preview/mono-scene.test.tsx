@@ -121,6 +121,21 @@ it("opens four distinct wallet sections while keeping privacy and demo actions h
   expect(container.querySelectorAll("canvas").length).toBeLessThanOrEqual(1);
 });
 
+it("rebases material viewport motion after a section switch resets the wallet scroll", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const { container } = render(<div data-material-scrollport>
+    <MonoScene snapshot={snapshot} appearance={appearance()} />
+  </div>);
+  const scrollport = container.querySelector<HTMLElement>("[data-material-scrollport]")!;
+  scrollport.scrollTop = 120;
+  const rebasedAt: number[] = [];
+  scrollport.addEventListener("material-viewport-motion-rebase", () => rebasedAt.push(scrollport.scrollTop));
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" }))
+    .getByRole("button", { name: "Активы" }));
+  expect(scrollport.scrollTop).toBe(0);
+  expect(rebasedAt).toEqual([0]);
+});
+
 it("lets the host own section state across a scene remount", async () => {
   const snapshot = await new MockWalletRepository().getSnapshot();
   const onSectionChange = vi.fn();

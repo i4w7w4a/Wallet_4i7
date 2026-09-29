@@ -4,7 +4,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
   type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefObject } from "react";
 import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
-import { MonoOpticalGlass, monoActionIconPath, type ButtonTargetId, type MonoGlassSettings, type MonoPaletteConfigV1, type MonoSharedOpticalHost } from "@wallet/ui";
+import { MATERIAL_VIEWPORT_MOTION_REBASE_EVENT, MonoOpticalGlass, monoActionIconPath,
+  type ButtonTargetId, type MonoGlassSettings, type MonoPaletteConfigV1, type MonoSharedOpticalHost } from "@wallet/ui";
 import { MonoLogo } from "./mono-logo";
 import { resolveMonoLogoColors, type MonoLogoPreview } from "./mono-logo-preview";
 import { monoPaletteStyle } from "./mono-palette-tokens";
@@ -167,7 +168,10 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     previousSection.current = section;
     const root = pageRef.current;
     const scrollport = root?.closest<HTMLElement>("[data-material-scrollport]") ?? root?.ownerDocument.scrollingElement;
-    if (scrollport) scrollport.scrollTop = 0;
+    if (scrollport) {
+      scrollport.scrollTop = 0;
+      scrollport.dispatchEvent(new Event(MATERIAL_VIEWPORT_MOTION_REBASE_EVENT));
+    }
   }, [section]);
 
   const stopAtmosphere = useCallback((clearRipples: boolean) => {

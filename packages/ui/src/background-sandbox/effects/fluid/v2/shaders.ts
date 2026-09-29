@@ -67,7 +67,7 @@ void main() {
     float lower = 1.0 - smoothstep(0.0, 0.12, vUv.y);
     float upper = 1.0 - smoothstep(0.0, 0.12, 1.0 - vUv.y);
     float edgeDrive = viewportBlockedY * (viewportBlockedY > 0.0 ? upper : lower);
-    carried.y += (viewportScrollY + edgeDrive) * dt * 30000.0;
+    carried.y += (viewportScrollY + edgeDrive) * dt * 6000.0;
 
     // Soft no-through response at all four visible walls while scroll is active.
     float wall = clamp(viewportEdgeResponse * viewportMotion * 8.0, 0.0, 1.0);

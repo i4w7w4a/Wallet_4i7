@@ -4,7 +4,7 @@ import { ActiveClock, PointerInput, ViewportMotionInput, resolveViewport } from 
 import { FLUID_VIEWPORT_RESPONSE_DEFAULTS, parseFluidViewportResponse,
   type FluidViewportResponseV1 } from "./fluid-viewport-response";
 import type { BackgroundOverlay } from "./overlay";
-import type { BackgroundRuntimeStatus } from "./host-contract";
+import { MATERIAL_VIEWPORT_MOTION_REBASE_EVENT, type BackgroundRuntimeStatus } from "./host-contract";
 import type {
   BackgroundEdgeFinishV1, ButtonMaterialLayer, MaterialFrameTexture, MaterialMaskSource, MaterialPass,
   MaterialQualityProfile, MaterialRecipeV2, MaterialResourcePlan, MaterialTargetBinding,
@@ -151,6 +151,7 @@ export class MaterialSceneBackend {
       if (this.viewportElement !== root) this.resizeObserver.observe(this.viewportElement);
       this.mutationObserver.observe(root, { childList: true, subtree: true });
       this.viewportElement.addEventListener("scroll", this.scrollChanged, { passive: true });
+      this.viewportElement.addEventListener(MATERIAL_VIEWPORT_MOTION_REBASE_EVENT, this.programmaticScrollReset);
       this.viewportElement.addEventListener("wheel", this.wheelChanged, { passive: true });
       this.viewportElement.addEventListener("touchstart", this.touchStarted, { passive: true });
       this.viewportElement.addEventListener("touchmove", this.touchMoved, { passive: true });
@@ -434,6 +435,10 @@ export class MaterialSceneBackend {
     this.touchScroll = null;
   }
   private readonly motionPreferenceChanged = () => { this.resetViewportMotion(); this.invalidate(); };
+  private readonly programmaticScrollReset = () => {
+    this.syncCanvasToScroll();
+    this.resetViewportMotion();
+  };
   private readonly scrollChanged = () => {
     this.syncCanvasToScroll();
     if (this.canCollectViewportMotion())
@@ -556,6 +561,7 @@ export class MaterialSceneBackend {
     this.generation++; this.abort?.abort(); this.stop();
     this.resizeObserver.disconnect(); this.mutationObserver.disconnect();
     this.viewportElement.removeEventListener("scroll", this.scrollChanged);
+    this.viewportElement.removeEventListener(MATERIAL_VIEWPORT_MOTION_REBASE_EVENT, this.programmaticScrollReset);
     this.viewportElement.removeEventListener("wheel", this.wheelChanged);
     this.viewportElement.removeEventListener("touchstart", this.touchStarted);
     this.viewportElement.removeEventListener("touchmove", this.touchMoved);

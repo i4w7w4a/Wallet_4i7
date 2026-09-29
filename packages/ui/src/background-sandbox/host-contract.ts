@@ -9,6 +9,9 @@ import type {
   MaterialTargetBinding, NormalizedBackgroundMaterial,
 } from "./material-contract";
 
+/** Fired after a wallet section changes scrollTop programmatically. */
+export const MATERIAL_VIEWPORT_MOTION_REBASE_EVENT = "material-viewport-motion-rebase";
+
 /** UI facade. Concrete adapter parameter types remain inside the typed registry. */
 export interface BackgroundMaterialDescriptor {
   readonly id: EffectId;
