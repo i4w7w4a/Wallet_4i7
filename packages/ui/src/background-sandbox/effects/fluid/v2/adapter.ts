@@ -9,7 +9,7 @@ import { EMPTY_FLUID_VIEWPORT_MOTION, fluidV2Decay, stepFluidViewportMotion,
   type FluidViewportMotionDrive, type FluidViewportMotionState } from "./dynamics";
 import { FLUID_VIEWPORT_RESPONSE_DEFAULTS } from "../../../fluid-viewport-response";
 import { planFluidV2Allocation, type FluidSize, type FluidV2Allocation } from "./quality";
-import { FluidV2PointerInput } from "./pointer";
+import { FluidV2PointerInput, consumeFluidV2SceneGestures } from "./pointer";
 import { parseFluidV2Params, type FluidV2Params } from "./schema";
 import * as v2Shaders from "./shaders";
 
@@ -254,7 +254,8 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     const viewportStep = stepFluidViewportMotion(this.viewportMotion,
       frame.viewportMotion ?? { deltaY: 0, blockedY: 0 }, frame.dt, response);
     this.viewportMotion = viewportStep.state;
-    const drag = this.input.consume(frame.pointer, this.geometry.width / this.geometry.height, this.params.mode === "draw");
+    const drag = consumeFluidV2SceneGestures(this.input, frame.pointer,
+      this.geometry.width / this.geometry.height, this.params.mode);
     let available = 4;
     for (const moved of drag) {
       if (!available) break;

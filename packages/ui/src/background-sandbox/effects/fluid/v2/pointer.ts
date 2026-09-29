@@ -71,3 +71,9 @@ export class FluidV2PointerInput {
     return splats;
   }
 }
+
+/** Both supported modes accept a deliberate touch tap; native scroll remains classified above. */
+export function consumeFluidV2SceneGestures(input: FluidV2PointerInput, pointer: PointerFrame, aspect: number,
+  mode: "draw" | "ambient"): FluidV2Gesture[] {
+  return input.consume(pointer, aspect, mode === "draw" || mode === "ambient");
+}

@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { PointerInput } from "../../../host-input";
-import { FluidV2PointerInput } from "./pointer";
+import { FluidV2PointerInput, consumeFluidV2SceneGestures } from "./pointer";
 
 describe("Fluid v2 scene gestures", () => {
+  it("routes one ambient touch tap to the same dye gesture without turning mouse clicks into taps", () => {
+    const tap = (pointerType: "touch" | "mouse") => {
+      const host = new PointerInput();
+      host.push({ id: 61, phase: "down", uv: [0.42, 0.63], time: 1,
+        buttons: 1, pointerType });
+      host.push({ id: 61, phase: "up", uv: [0.42, 0.63], time: 2,
+        buttons: 0, pointerType });
+      return consumeFluidV2SceneGestures(new FluidV2PointerInput(), host.drain(), 1, "ambient");
+    };
+    expect(tap("touch")).toEqual([{ kind: "tap", x: 0.42, y: 0.63, dx: 0, dy: 0 }]);
+    expect(tap("mouse")).toEqual([]);
+  });
+
   it("turns a same-frame tap into one dye splat", () => {
     const host = new PointerInput();
     const down = { id: 7, phase: "down" as const, uv: [0.42, 0.63] as const, time: 4, buttons: 1, pointerType: "touch" as const };
@@ -50,18 +63,12 @@ describe("Fluid v2 scene gestures", () => {
     expect(splats.reduce((sum, splat) => sum + Math.hypot(splat.dx, splat.dy), 0)).toBeLessThanOrEqual(0.060001);
   });
 
-  it("keeps a mouse click passive while a touch tap is limited to draw mode", () => {
+  it("keeps a mouse click passive in the low-level pointer classifier", () => {
     const mouse = new PointerInput();
     const mouseDown = { id: 1, phase: "down" as const, uv: [0.5, 0.5] as const, time: 1, buttons: 1, pointerType: "mouse" as const };
     mouse.push(mouseDown);
     mouse.push({ ...mouseDown, phase: "up", buttons: 0 });
     expect(new FluidV2PointerInput().consume(mouse.drain(), 1, true)).toEqual([]);
-
-    const ambient = new PointerInput();
-    const touchDown = { ...mouseDown, id: 2, pointerType: "touch" as const };
-    ambient.push(touchDown);
-    ambient.push({ ...touchDown, phase: "up", buttons: 0 });
-    expect(new FluidV2PointerInput().consume(ambient.drain(), 1, false)).toEqual([]);
   });
 
   it("preserves intentional mouse drawing", () => {
@@ -80,9 +87,9 @@ describe("Fluid v2 scene gestures", () => {
     host.push({ id: 21, phase: "move", uv: [0.501, 0.58], time: 14, buttons: 1, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
     const input = new FluidV2PointerInput();
 
-    expect(input.consume(host.drain(), 0.46, true)).toEqual([]);
+    expect(consumeFluidV2SceneGestures(input, host.drain(), 0.46, "ambient")).toEqual([]);
     host.push({ id: 21, phase: "cancel", uv: [0.501, 0.58], time: 14.01, buttons: 0, pointerType: "touch" } as Parameters<PointerInput["push"]>[0]);
-    expect(input.consume(host.drain(), 0.46, true)).toEqual([]);
+    expect(consumeFluidV2SceneGestures(input, host.drain(), 0.46, "ambient")).toEqual([]);
   });
 
   it("does not mistake a substantial undecided diagonal touch movement for a tap", () => {
@@ -132,7 +139,7 @@ describe("Fluid v2 scene gestures", () => {
     const host = new PointerInput();
     host.push({ id: 43, phase: "down", uv: [0.5, 0.5], time: 1, buttons: 1, pointerType: "touch" }, true);
     host.push({ id: 43, phase: "up", uv: [0.5, 0.5], time: 2, buttons: 0, pointerType: "touch" }, true);
-    expect(new FluidV2PointerInput().consume(host.drain(), 1, true)).toEqual([]);
+    expect(consumeFluidV2SceneGestures(new FluidV2PointerInput(), host.drain(), 1, "ambient")).toEqual([]);
   });
 
   it("stays suppressed after one finger cancels until every contact has ended", () => {
