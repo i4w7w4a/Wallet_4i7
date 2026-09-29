@@ -1,7 +1,8 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { materialCatalogV2, type BackgroundSandboxBindings, type MaterialDescriptorV2, type MaterialRecipeV2, type MaterialStageRequestV2 } from "@wallet/ui";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, FLUID_VIEWPORT_RESPONSE_DEFAULTS, materialCatalogV2, type BackgroundSandboxBindings,
+  type MaterialDescriptorV2, type MaterialRecipeV2, type MaterialStageRequestV2 } from "@wallet/ui";
 import { MonoAtmosphereLab } from "./mono-atmosphere-lab";
 import { V2_LIBRARY_KEY, V2_WORKSPACE_KEY } from "./background-sandbox/storage-v2";
 import { V3_LIBRARY_KEY, V3_WORKSPACE_KEY } from "./background-sandbox/storage-v3";
@@ -84,6 +85,71 @@ it("changes only the v2 background edge finish and restores the off state with U
   expect(requests.at(-1)?.edgeFinish).toEqual({ version: 1, sideDarkening: .55, inset: 0, softness: 0 });
   fireEvent.click(screen.getByRole("button", { name: "Отменить" }));
   expect(requests.at(-1)?.edgeFinish).toEqual({ version: 1, sideDarkening: 0, inset: 0, softness: 0 });
+});
+
+it("keeps viewport response in a compact Fluid-only section and makes one undoable edit", () => {
+  const requests: MaterialStageRequestV2[] = [];
+  render(<MonoAtmosphereLab bindings={bindings(requests)} />);
+  const toggleSection = screen.getByRole("button", { name: "Внутри экрана" });
+  expect(toggleSection).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(toggleSection);
+  const enabled = screen.getByRole("checkbox", { name: "Реагировать на прокрутку" });
+  expect(enabled).not.toBeChecked();
+  expect(screen.getByRole("slider", { name: "Сила прокрутки" })).toBeDisabled();
+  fireEvent.click(enabled);
+  const strength = screen.getByRole("slider", { name: "Сила прокрутки" });
+  expect(strength).toBeEnabled();
+  fireEvent.pointerDown(strength);
+  fireEvent.change(strength, { target: { value: "72" } });
+  fireEvent.pointerUp(strength);
+  expect(requests.at(-1)).toMatchObject({ viewportResponse: {
+    ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true, strength: 0.72 } });
+  fireEvent.click(screen.getByRole("button", { name: "Отменить" }));
+  expect(requests.at(-1)).toMatchObject({ viewportResponse: {
+    ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true } });
+  fireEvent.click(screen.getByRole("button", { name: "Отменить" }));
+  expect(requests.at(-1)).toMatchObject({ viewportResponse: FLUID_VIEWPORT_RESPONSE_DEFAULTS });
+});
+
+it("saves and reloads the Fluid viewport response without editing its recipe", async () => {
+  const requests: MaterialStageRequestV2[] = [];
+  const view = render(<MonoAtmosphereLab bindings={bindings(requests)} />);
+  const original = requests.at(-1)?.recipe;
+  fireEvent.click(screen.getByRole("button", { name: "Внутри экрана" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Реагировать на прокрутку" }));
+  fireEvent.change(screen.getByRole("slider", { name: "Инерция" }), { target: { value: "61" } });
+  fireEvent.change(screen.getByRole("slider", { name: "Отклик краёв" }), { target: { value: "24" } });
+  fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Имя пробы" }), { target: { value: "Внутри экрана" } });
+  fireEvent.click(screen.getByRole("button", { name: "Сохранить пробу" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  const saved = JSON.parse(localStorage.getItem(V3_LIBRARY_KEY)!);
+  expect(saved.trials[0].recipe).toMatchObject({ version: 2, material: original,
+    viewportResponse: { ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true, inertia: 0.61, edgeResponse: 0.24 } });
+  view.unmount();
+  render(<MonoAtmosphereLab bindings={bindings(requests)} />);
+  fireEvent.click(screen.getByRole("button", { name: "Внутри экрана" }));
+  expect(screen.getByRole("checkbox", { name: "Реагировать на прокрутку" })).toBeChecked();
+  expect(screen.getByRole("slider", { name: "Инерция" })).toHaveValue("61");
+});
+
+it("previews a v2 viewport JSON import and opens it as a new unsaved copy", () => {
+  render(<MonoAtmosphereLab bindings={bindings([])} />);
+  const imported = { kind: "novex-background-lab", version: 2, material: initial,
+    edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH,
+    viewportResponse: { ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true, strength: 0.58 } };
+  fireEvent.click(screen.getByRole("button", { name: "Дополнительно" }));
+  fireEvent.click(screen.getByRole("button", { name: "Импорт JSON" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Импорт пробы" }),
+    { target: { value: JSON.stringify(imported) } });
+  fireEvent.click(screen.getByRole("button", { name: "Проверить JSON" }));
+  expect(screen.getByRole("button", { name: "Открыть копию" })).toBeEnabled();
+  expect(localStorage.getItem(V3_LIBRARY_KEY)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть копию" }));
+  fireEvent.click(screen.getByRole("button", { name: "Внутри экрана" }));
+  expect(screen.getByRole("checkbox", { name: "Реагировать на прокрутку" })).toBeChecked();
+  expect(screen.getByRole("slider", { name: "Сила прокрутки" })).toHaveValue("58");
+  expect(localStorage.getItem(V3_LIBRARY_KEY)).toBeNull();
 });
 
 it("saves edge finish with the named trial and restores it after reload", async () => {

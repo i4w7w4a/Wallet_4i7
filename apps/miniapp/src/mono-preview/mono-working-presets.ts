@@ -188,6 +188,8 @@ export function normalizeMonoWorkingDocument(value: unknown, legacyLogo?: MonoLo
   };
   if (input.version !== 5 && Object.values(result.materials).some(direction => direction.buttons?.version === 3))
     throw new MonoWorkingStoreError("Новая версия artwork не допускается в прежнем рабочем документе.", "invalid");
+  if (input.version !== 5 && Object.values(result.materials).some(direction => direction.background?.version === 2))
+    throw new MonoWorkingStoreError("Реакция внутри экрана не допускается в прежнем рабочем документе.", "invalid");
   if (canonical(input.shapes) !== canonical(result.shapes) || canonical(input.optics) !== canonical(result.optics))
     throw new MonoWorkingStoreError("Форма или оптика рабочего пресета повреждена.", "invalid");
   if ((input.version === 3 || input.version === 4 || input.version === 5) && canonical(input.materials) !== canonical(result.materials))

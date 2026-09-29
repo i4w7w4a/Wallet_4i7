@@ -1,4 +1,4 @@
-import { DEFAULT_BACKGROUND_EDGE_FINISH, materialCatalogV2, normalizeMonoPaletteConfig, setMonoPaletteLock } from "@wallet/ui";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, FLUID_VIEWPORT_RESPONSE_DEFAULTS, materialCatalogV2, normalizeMonoPaletteConfig, setMonoPaletteLock } from "@wallet/ui";
 import { describe, expect, it } from "vitest";
 import { createMonoWorkingDocument } from "./mono-working-presets";
 import { monoPaletteStyle } from "./mono-palette-tokens";
@@ -16,6 +16,19 @@ describe("allowlisted complete MONO appearance", () => {
     expect(createMonoAppearanceFromDocument(document, "ledger").material).toEqual(document.materials.ledger);
     document.materials.ledger = { background: null, buttons: { version: 2, frameMode: "separate", bindings: [] } };
     expect(createMonoAppearanceFromDocument(document, "ledger").material).toEqual(document.materials.ledger);
+  });
+
+  it("roundtrips a Fluid viewport response within v4 while old v3 links stay strict", () => {
+    const document = createMonoWorkingDocument();
+    const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
+    const response = { ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true };
+    document.materials.ledger = { ...document.materials.ledger,
+      background: { version: 2, recipe: fluid, edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH,
+        viewportResponse: response } };
+    const envelope = createMonoAppearanceFromDocument(document);
+    expect(envelope.version).toBe(4);
+    expect(normalizeMonoAppearanceEnvelope(JSON.parse(JSON.stringify(envelope)))).toEqual(envelope);
+    expect(() => normalizeMonoAppearanceEnvelope({ ...envelope, version: 3 })).toThrow();
   });
 
   it("provides a complete snapshot with the approved positive Ledger optics", () => {

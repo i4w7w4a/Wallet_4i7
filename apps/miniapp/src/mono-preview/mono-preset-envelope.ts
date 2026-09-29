@@ -118,6 +118,7 @@ export function normalizeMonoAppearanceEnvelope(value: unknown): MonoAppearanceE
   }, material: input.version === 3 || input.version === 4
     ? selectedMaterial(input.material, preset) : createEmptyMonoMaterials()[preset] };
   if (input.version === 3 && result.material.buttons?.version === 3) throw invalid();
+  if (input.version === 3 && result.material.background?.version === 2) throw invalid();
   const comparable = input.version === 1 ? { kind: result.kind, version: 1, skinId: result.skinId, appearance: {
     ...legacyMonoExtendedAppearance(result.appearance), preset: result.appearance.preset,
     palette: result.appearance.palette, shape: result.appearance.shape, optics: result.appearance.optics,

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { DEFAULT_BACKGROUND_EDGE_FINISH, materialCatalogV2,
+import { DEFAULT_BACKGROUND_EDGE_FINISH, FLUID_VIEWPORT_RESPONSE_DEFAULTS, materialCatalogV2,
   type ButtonTargetId, type MaterialTargetBinding } from "@wallet/ui";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createMonoWorkingDocument, loadMonoSevenLibrary, migrateMonoSevenLibrary,
@@ -39,6 +39,24 @@ it("chooses one of seven numbers and patches only that number's selected directi
   expect(saved.slots[0]).toEqual(start.slots[0]);
   expect(saved.slots[1].document.materials.ledger.background).toBeNull();
   expect(screen.getByRole("link", { name: "Открыть MONO" })).toHaveAttribute("href", "/mono?slot=2");
+});
+
+it("applies the v2 viewport response only to preset 2 while preserving its other accepted data", async () => {
+  const initial = seven();
+  const priorSecond = structuredClone(initial.slots[1].document);
+  const response = { ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true, edgeResponse: 0.74 };
+  render(<MonoProductApply scope="background" document={{ ...background, version: 2, viewportResponse: response }} />);
+  fireEvent.click(screen.getByRole("button", { name: "В рабочий пресет MONO…" }));
+  expect(screen.getByText(/Фон · внутри экрана/)).toBeVisible();
+  fireEvent.change(screen.getByLabelText("Пресет 1–7"), { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Применить в MONO" }));
+  await waitFor(() => expect(loadMonoSevenLibrary(localStorage)?.slots[1].document.materials.ledger.background)
+    .toMatchObject({ version: 2, recipe: fluid, viewportResponse: response }));
+  const after = loadMonoSevenLibrary(localStorage)!;
+  expect(after.slots[0]).toEqual(initial.slots[0]);
+  expect(after.slots.slice(2)).toEqual(initial.slots.slice(2));
+  expect({ ...after.slots[1].document, materials: priorSecond.materials }).toEqual(priorSecond);
+  expect(after.slots[1].document.materials.ledger.buttons).toEqual(priorSecond.materials.ledger.buttons);
 });
 
 it("requires the seven workspaces to be restored before applying from an empty browser", () => {

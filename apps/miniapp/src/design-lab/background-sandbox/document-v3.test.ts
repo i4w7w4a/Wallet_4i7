@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { materialCatalogV2 } from "@wallet/ui";
+import { FLUID_VIEWPORT_RESPONSE_DEFAULTS, materialCatalogV2 } from "@wallet/ui";
 import { liftV2Workspace, parseBackgroundDocument } from "./document-v3";
 import { createWorkspace, editRecipe } from "./model";
 import { isV2Recipe, type SandboxRecipe } from "./recipes";
@@ -42,4 +42,17 @@ it("rejects inactive edge values on a legacy scene whose renderer cannot use the
   expect(() => parseBackgroundDocument({ kind: "novex-background-lab", version: 1, material: legacy,
     edgeFinish: { version: 1, sideDarkening: 0, inset: .1, softness: 0 } }, () => legacy))
     .toThrow(/только для материалов v2/);
+});
+
+it("keeps old v1 bytes meaningful and accepts a complete v2 viewport response only for Fluid v2", () => {
+  const old = { kind: "novex-background-lab", version: 1, material: fluid,
+    edgeFinish: { version: 1, sideDarkening: 0, inset: 0, softness: 0 } };
+  expect(parseBackgroundDocument(old, parseMaterial)).toEqual(old);
+  const response = { ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true, strength: 0.72 };
+  const current = { ...old, version: 2, viewportResponse: response };
+  expect(parseBackgroundDocument(current, parseMaterial)).toEqual(current);
+  expect(() => parseBackgroundDocument({ ...current, viewportResponse: { ...response, strength: 1.01 } }, parseMaterial)).toThrow();
+  expect(() => parseBackgroundDocument({ ...old, viewportResponse: response }, parseMaterial)).toThrow();
+  const grid = materialCatalogV2.materials.find(item => item.id === "vault-grid")!.presets[0]!.recipe;
+  expect(() => parseBackgroundDocument({ ...current, material: grid }, parseMaterial)).toThrow();
 });

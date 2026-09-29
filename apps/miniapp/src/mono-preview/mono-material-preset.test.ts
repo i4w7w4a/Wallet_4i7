@@ -1,4 +1,4 @@
-import { DEFAULT_BACKGROUND_EDGE_FINISH, createTargetBinding, materialCatalogV2 } from "@wallet/ui";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, FLUID_VIEWPORT_RESPONSE_DEFAULTS, createTargetBinding, materialCatalogV2 } from "@wallet/ui";
 import { expect, it } from "vitest";
 import { createEmptyMonoMaterials, normalizeMonoMaterialMap } from "./mono-material-preset";
 import { createDefaultActionArtworkMap } from "./action-artwork/model";
@@ -22,6 +22,22 @@ it("accepts installed background and button material only in their selected dire
   expect(parsed.frost.buttons?.bindings).toEqual([created.value]);
   expect(parsed.ledger).toEqual({ background: null, buttons: null });
   expect(parsed.mercury).toEqual({ background: null, buttons: null });
+});
+
+it("preserves v1 backgrounds and strictly accepts a v2 Fluid viewport sidecar", () => {
+  const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
+  const response = { ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true, edgeResponse: 0.71 };
+  const materials = createEmptyMonoMaterials();
+  materials.ledger = { background: { version: 2, recipe: fluid,
+    edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH, viewportResponse: response }, buttons: null };
+  expect(normalizeMonoMaterialMap(materials)).toEqual(materials);
+  expect(() => normalizeMonoMaterialMap({ ...materials, ledger: { ...materials.ledger,
+    background: { ...materials.ledger.background, viewportResponse: { ...response, inertia: Infinity } } } })).toThrow();
+  expect(() => normalizeMonoMaterialMap({ ...materials, ledger: { ...materials.ledger,
+    background: { ...materials.ledger.background, extra: true } } })).toThrow();
+  materials.ledger = { background: { version: 1, recipe: fluid,
+    edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH }, buttons: null };
+  expect(normalizeMonoMaterialMap(materials)).toEqual(materials);
 });
 
 it("retains a frame-only separate button material and rejects unknown frame modes", () => {

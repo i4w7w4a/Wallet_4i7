@@ -5,7 +5,7 @@ import type { ButtonTargetId, MaterialTargetBinding } from "@wallet/ui";
 import { applyMonoSevenMaterialPatch, type MonoMaterialPatch } from "../mono-preview/mono-material-transfer";
 import { loadMonoSevenLibrary, MONO_SEVEN_PRESETS_KEY, MONO_SEVEN_SLOTS,
   saveMonoSevenLibrary, type MonoSevenLibrary, type MonoSevenSlot } from "../mono-preview/mono-working-presets";
-import type { BackgroundLabDocumentV1 } from "./background-sandbox/document-v3";
+import type { BackgroundLabDocument } from "./background-sandbox/document-v3";
 import type { ButtonLabDocument, ButtonLabWorkspace } from "./button-workshop/model";
 import { artworkPatchFromLab, backgroundPatchFromLab, buttonPatchFromLab } from "./mono-product-apply-source";
 import styles from "./mono-product-apply.module.css";
@@ -13,7 +13,7 @@ import styles from "./mono-product-apply.module.css";
 type Shared = { disabled?: boolean; onDialogChange?: (open: boolean) => void;
   onNavigateToMono?: () => void };
 export type MonoProductApplyProps = Shared & (
-  | { scope: "background"; document: BackgroundLabDocumentV1 }
+  | { scope: "background"; document: BackgroundLabDocument }
   | { scope: "buttons"; document: ButtonLabDocument<ButtonTargetId, MaterialTargetBinding>;
       selection: ButtonLabWorkspace<ButtonTargetId, MaterialTargetBinding>["selection"] }
   | { scope: "artwork"; document: ButtonLabDocument<ButtonTargetId, MaterialTargetBinding>;
@@ -47,7 +47,8 @@ async function rejectDirtyTarget(targetId: string): Promise<void> {
 
 function patchLabel(patch: MonoMaterialPatch | null): string {
   if (!patch) return "";
-  if (patch.scope === "background") return "Фон";
+  if (patch.scope === "background") return patch.value.version === 2 && patch.value.viewportResponse.enabled
+    ? "Фон · внутри экрана" : "Фон";
   if (patch.scope === "artwork") {
     const target = { "quick.send": "Отправить", "quick.receive": "Получить",
       "quick.swap": "Обменять", "quick.buy": "Купить" };

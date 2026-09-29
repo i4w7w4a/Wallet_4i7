@@ -39,7 +39,9 @@ function ActiveMaterialScene({ material, bindings, scene }: { material: MonoMate
     data-mono-effect-background={hasBackgroundMaterial}
     data-mono-theme={theme} data-mono-background={appearance.environment.background}>
     <MaterialSceneSurface background={material.background?.recipe ?? null}
-      edgeFinish={material.background?.edgeFinish} bindings={bindings} quality="balanced"
+      edgeFinish={material.background?.edgeFinish}
+      viewportResponse={material.background?.version === 2 ? material.background.viewportResponse : undefined}
+      bindings={bindings} quality="balanced"
       paused={false} restartKey={0} hostActive={scene.active ?? true} overlay={overlay}
       canvasAboveContent={!hasBackgroundMaterial}
       emptyBackgroundColor="transparent">

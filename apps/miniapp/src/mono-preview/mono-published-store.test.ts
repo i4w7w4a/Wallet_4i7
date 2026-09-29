@@ -2,7 +2,7 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_BACKGROUND_EDGE_FINISH, materialCatalogV2 } from "@wallet/ui";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, FLUID_VIEWPORT_RESPONSE_DEFAULTS, materialCatalogV2 } from "@wallet/ui";
 import { createFirstMonoWorkingDocument } from "./mono-first-button-preset";
 import { createDefaultActionArtworkMap } from "./action-artwork/model";
 import { createMonoAppearanceEnvelope, createMonoAppearanceFromDocument } from "./mono-preset-envelope";
@@ -78,6 +78,21 @@ describe("persistent public MONO revisions", () => {
     expect(restored?.snapshot).toEqual(envelope);
     expect(restored?.snapshot.material.buttons).toEqual(document.materials.ledger.buttons);
     expect(restored?.snapshot.appearance.optics.ior).toBe(document.optics.ledger.ior);
+  });
+
+  it("keeps a published Fluid viewport response on the stable slot path after reopening", async () => {
+    const document = createFirstMonoWorkingDocument();
+    const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
+    document.materials.ledger = { ...document.materials.ledger, background: { version: 2,
+      recipe: fluid, edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH,
+      viewportResponse: { ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true, strength: 0.67 } } };
+    const snapshot = createMonoAppearanceFromDocument(document, "ledger");
+    const first = await new MonoPublishedStore(root).publish(2, 0, snapshot);
+    const restored = await new MonoPublishedStore(root).read(2);
+    expect(restored?.revision).toBe(1);
+    expect(restored?.snapshot.material.background).toEqual(document.materials.ledger.background);
+    expect(restored?.snapshot).toEqual(first.snapshot);
+    expect(await readdir(join(root, "history", "slot-2"))).toHaveLength(1);
   });
 
   it("keeps public reads available with a stranded lock and refuses writes until operator recovery", async () => {

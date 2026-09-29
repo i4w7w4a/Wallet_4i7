@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, FLUID_VIEWPORT_RESPONSE_DEFAULTS, materialCatalogV2 } from "@wallet/ui";
 import * as working from "./mono-working-presets";
 import { createDefaultActionArtworkMap } from "./action-artwork/model";
 
@@ -109,4 +110,28 @@ it("restores one archived direction into an explicit number while archiving its 
   expect(original.slots[3]).toEqual(oldTarget);
   working.saveMonoSevenLibrary(store, { ...restored, generation: original.generation + 1 }, original.generation);
   expect(working.loadMonoSevenLibrary(store)?.slots[3].document).toEqual(restored.slots[3].document);
+});
+
+it("roundtrips a viewport response only in preset 2 through v5 export/import and v3 storage", async () => {
+  const store = memory();
+  const initial = working.migrateMonoSevenLibrary(store);
+  const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
+  const response = { ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true, strength: 0.72 };
+  const next = structuredClone(initial);
+  next.generation += 1;
+  next.slots[1].revision += 1;
+  next.slots[1].document.materials.ledger = { ...next.slots[1].document.materials.ledger,
+    background: { version: 2, recipe: fluid, edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH,
+      viewportResponse: response } };
+  working.saveMonoSevenLibrary(store, next, initial.generation);
+  const restored = working.loadMonoSevenLibrary(store)!;
+  expect(restored.slots[0]).toEqual(initial.slots[0]);
+  expect(restored.slots.slice(2)).toEqual(initial.slots.slice(2));
+  expect(restored.slots[1].document.version).toBe(5);
+  expect(restored.slots[1].document.materials.ledger.background).toEqual(next.slots[1].document.materials.ledger.background);
+  const exported = working.exportMonoWorkingPreset(restored.slots[1].name, restored.slots[1].document);
+  expect((await working.previewMonoWorkingImport(exported)).document).toEqual(restored.slots[1].document);
+  const old = JSON.parse(exported);
+  old.version = 4; old.document.version = 4;
+  await expect(working.previewMonoWorkingImport(JSON.stringify(old))).rejects.toThrow();
 });

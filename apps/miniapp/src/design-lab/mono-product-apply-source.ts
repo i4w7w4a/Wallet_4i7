@@ -1,5 +1,5 @@
 import { materialCatalogV2, type ButtonMaterialLayer, type ButtonTargetId,
-  type MaterialTargetBinding } from "@wallet/ui";
+  type FluidViewportResponseV1, type MaterialTargetBinding } from "@wallet/ui";
 import { createEmptyMonoMaterials, normalizeMonoMaterialMap } from "../mono-preview/mono-material-preset";
 import type { MonoMaterialPatch } from "../mono-preview/mono-material-transfer";
 import { parseButtonBinding, BUTTON_TARGETS } from "./button-workshop/binding";
@@ -15,18 +15,22 @@ function exact(value: unknown, keys: readonly string[]): Record<string, unknown>
 }
 
 export function backgroundPatchFromLab(document: unknown): MonoMaterialPatch {
-  const data = exact(document, ["kind", "version", "material", "edgeFinish"]);
-  if (data.kind !== "novex-background-lab" || data.version !== 1)
+  const version = document && typeof document === "object" && "version" in document ? document.version : undefined;
+  if (version !== 1 && version !== 2)
     throw new Error("Версия пробы фона не поддерживается.");
+  const data = exact(document, ["kind", "version", "material", "edgeFinish",
+    ...(version === 2 ? ["viewportResponse"] : [])]);
+  if (data.kind !== "novex-background-lab") throw new Error("Версия пробы фона не поддерживается.");
   if (!data.material || typeof data.material !== "object" ||
     (data.material as { kind?: unknown }).kind !== "novex-material") {
     throw new Error("В MONO можно применить только установленный материал фона v2; текущая проба остаётся в мастерской.");
   }
   const map = createEmptyMonoMaterials();
-  map.ledger = { ...map.ledger, background: {
-    version: 1, recipe: data.material as NonNullable<typeof map.ledger.background>["recipe"],
-    edgeFinish: data.edgeFinish as NonNullable<typeof map.ledger.background>["edgeFinish"],
-  } };
+  const recipe = data.material as NonNullable<typeof map.ledger.background>["recipe"];
+  const edgeFinish = data.edgeFinish as NonNullable<typeof map.ledger.background>["edgeFinish"];
+  map.ledger = { ...map.ledger, background: version === 2
+    ? { version: 2, recipe, edgeFinish, viewportResponse: data.viewportResponse as FluidViewportResponseV1 }
+    : { version: 1, recipe, edgeFinish } };
   const value = normalizeMonoMaterialMap(map).ledger.background!;
   return { scope: "background", value };
 }

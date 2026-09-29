@@ -1,4 +1,5 @@
-import { DEFAULT_BACKGROUND_EDGE_FINISH, normalizeBackgroundEdgeFinish, type BackgroundEdgeFinishV1 } from "@wallet/ui";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, normalizeBackgroundEdgeFinish, parseFluidViewportResponse,
+  type BackgroundEdgeFinishV1, type FluidViewportResponseV1 } from "@wallet/ui";
 import { isV2Recipe, type SandboxRecipe } from "./recipes";
 import { exactObject, type RecipeParser, type SavedTrial, type StoragePort } from "./storage";
 import { parseLibraryV2, V2_LIBRARY_KEY, V2_WORKSPACE_KEY } from "./storage-v2";
@@ -13,14 +14,25 @@ export type BackgroundLabDocumentV1 = Readonly<{
   material: SandboxRecipe;
   edgeFinish: BackgroundEdgeFinishV1;
 }>;
+export type BackgroundLabDocumentV2 = Readonly<{
+  kind: "novex-background-lab";
+  version: 2;
+  material: SandboxRecipe;
+  edgeFinish: BackgroundEdgeFinishV1;
+  viewportResponse: FluidViewportResponseV1;
+}>;
+export type BackgroundLabDocument = BackgroundLabDocumentV1 | BackgroundLabDocumentV2;
 
 export function createBackgroundDocument(material: SandboxRecipe): BackgroundLabDocumentV1 {
   return { kind: "novex-background-lab", version: 1, material, edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH };
 }
 
-export function parseBackgroundDocument(input: unknown, parseMaterial: RecipeParser<SandboxRecipe>): BackgroundLabDocumentV1 {
-  const data = exactObject(input, ["kind", "version", "material", "edgeFinish"]);
-  if (data.kind !== "novex-background-lab" || data.version !== 1) throw new Error("Версия документа фона не поддерживается.");
+export function parseBackgroundDocument(input: unknown, parseMaterial: RecipeParser<SandboxRecipe>): BackgroundLabDocument {
+  const version = input && typeof input === "object" && "version" in input ? input.version : undefined;
+  if (version !== 1 && version !== 2) throw new Error("Версия документа фона не поддерживается.");
+  const data = exactObject(input, ["kind", "version", "material", "edgeFinish",
+    ...(version === 2 ? ["viewportResponse"] : [])]);
+  if (data.kind !== "novex-background-lab") throw new Error("Версия документа фона не поддерживается.");
   let edge: Record<string, unknown>;
   try { edge = exactObject(data.edgeFinish, ["version", "sideDarkening", "inset", "softness"]); }
   catch { throw new Error("Недопустимая отделка краёв: нужен полный набор полей."); }
@@ -33,11 +45,18 @@ export function parseBackgroundDocument(input: unknown, parseMaterial: RecipePar
   if (!isV2Recipe(material) && [edgeFinish.sideDarkening, edgeFinish.inset, edgeFinish.softness].some(value => value !== 0)) {
     throw new Error("Отделка краёв доступна только для материалов v2.");
   }
+  if (version === 2) {
+    if (!isV2Recipe(material) || material.effectId !== "fluid" || material.effectVersion !== 2)
+      throw new Error("Реакция внутри экрана доступна только для Fluid v2.");
+    const viewportResponse = parseFluidViewportResponse(data.viewportResponse);
+    if (!viewportResponse) throw new Error("Настройка реакции внутри экрана повреждена.");
+    return { kind: "novex-background-lab", version: 2, material, edgeFinish, viewportResponse };
+  }
   return { kind: "novex-background-lab", version: 1, material, edgeFinish };
 }
 
 /** Raw material JSON from older exports remains an explicit import, with finish off. */
-export function parseBackgroundDocumentImport(input: unknown, parseMaterial: RecipeParser<SandboxRecipe>): BackgroundLabDocumentV1 {
+export function parseBackgroundDocumentImport(input: unknown, parseMaterial: RecipeParser<SandboxRecipe>): BackgroundLabDocument {
   return input && typeof input === "object" && "kind" in input && input.kind === "novex-background-lab"
     ? parseBackgroundDocument(input, parseMaterial)
     : createBackgroundDocument(parseMaterial(input));

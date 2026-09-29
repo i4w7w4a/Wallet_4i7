@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
-import type { BackgroundPresentation, BackgroundRuntimeStatus, BackgroundSandboxBindings, MaterialAction, MaterialEffectId, MaterialQualityProfile, MaterialRecipeV2 } from "@wallet/ui";
+import { FLUID_VIEWPORT_RESPONSE_DEFAULTS, type BackgroundPresentation, type BackgroundRuntimeStatus,
+  type BackgroundSandboxBindings, type FluidViewportResponseV1, type MaterialAction,
+  type MaterialEffectId, type MaterialQualityProfile, type MaterialRecipeV2 } from "@wallet/ui";
 import { MonoBackgroundRecipes } from "../mono-preview/mono-background-recipes-view";
 import { MONO_BACKGROUND_DEFAULTS, type MonoBackgroundRecipeConfig, type MonoBackgroundRecipeId } from "../mono-preview/mono-background-recipes";
 import { MonoLabIconButton } from "../mono-preview/mono-lab-controls";
@@ -9,6 +11,7 @@ import { MonoBackgroundRecipeControls } from "../mono-preview/mono-background-re
 import { SandboxDialog } from "./background-sandbox/dialog";
 import { ParameterControls } from "./background-sandbox/parameter-controls";
 import { EdgeFinishControls } from "./background-sandbox/edge-finish-controls";
+import { ViewportResponseControls } from "./background-sandbox/viewport-response-controls";
 import { MaterialControls } from "./material-controls";
 import { MaterialWorkbench } from "./material-workbench";
 import { MonoProductApply } from "./mono-product-apply";
@@ -17,7 +20,7 @@ import { createSandboxSession } from "./background-sandbox/session";
 import { isDirty, type SandboxWorkspace } from "./background-sandbox/model";
 import { isGpuRecipe, isV1GpuRecipe, isV2Recipe, recipeKey, recipeParser, type SandboxRecipe } from "./background-sandbox/recipes";
 import { createBackgroundDocument, parseBackgroundDocument, parseBackgroundDocumentImport,
-  readV2LibraryAsV3, readV2WorkspaceAsV3, type BackgroundLabDocumentV1 } from "./background-sandbox/document-v3";
+  readV2LibraryAsV3, readV2WorkspaceAsV3, type BackgroundLabDocument } from "./background-sandbox/document-v3";
 import { LEGACY_KEY, boundedJson, exactObject, parseRecipeImport, readLegacyTrial } from "./background-sandbox/storage";
 import { parseLibraryV2, readV1LibraryPreview, V2_LIBRARY_KEY, V2_WORKSPACE_KEY, type TrialLibraryV2 } from "./background-sandbox/storage-v2";
 import { V3_LIBRARY_KEY, V3_WORKSPACE_KEY } from "./background-sandbox/storage-v3";
@@ -91,6 +94,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   const config = labDocument.material;
   const shownDocument = editor.shownRecipe();
   const shown = shownDocument.material;
+  const viewportResponse = labDocument.version === 2 ? labDocument.viewportResponse : FLUID_VIEWPORT_RESPONSE_DEFAULTS;
   const descriptorV1 = isV1GpuRecipe(config) ? bindings?.materials.find(item => item.id === config.effectId) : undefined;
   const descriptorV2 = isV2Recipe(config) ? bindings?.materialCatalogV2?.materials.find(item => item.id === config.effectId && item.effectVersion === config.effectVersion) : undefined;
   const shownDescriptor = isV2Recipe(shown)
@@ -107,7 +111,7 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
   const [name, setName] = useState("");
   const [asNew, setAsNew] = useState(false);
   const [importText, setImportText] = useState("");
-  const [importPreview, setImportPreview] = useState<BackgroundLabDocumentV1 | null>(null);
+  const [importPreview, setImportPreview] = useState<BackgroundLabDocument | null>(null);
   const [copyPreview, setCopyPreview] = useState<MaterialRecipeV2 | null>(null);
   const copyConsumed = useRef(false);
   const [legacy, setLegacy] = useState<MonoBackgroundRecipeConfig | null>(null);
@@ -232,6 +236,10 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
     if (next) request({ label: "Сменить материал", action: () => editor.openRecipe(createBackgroundDocument(next), key, true) });
   }
   function editMaterial(next: SandboxRecipe) { editor.edit({ ...labDocument, material: next }); }
+  function editViewportResponse(next: FluidViewportResponseV1) {
+    editor.edit({ kind: "novex-background-lab", version: 2, material: labDocument.material,
+      edgeFinish: labDocument.edgeFinish, viewportResponse: next });
+  }
   const recipeLabel = (value: SandboxRecipe) => isV2Recipe(value)
     ? MATERIAL_LABELS[value.effectId]
     : isV1GpuRecipe(value) ? bindings?.materials.find(item => item.id === value.effectId)?.label ?? value.effectId
@@ -303,6 +311,9 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
       : !isGpuRecipe(config) && <MonoBackgroundRecipeControls value={config} disabled={inactive} showRecipeSelector={false} onChange={next => { if (next) editMaterial(next); }} onGestureStart={editor.beginGesture} onGestureCommit={editor.endGesture} />}
     {isV2Recipe(config) && bindings?.renderMaterialStageV2 && <EdgeFinishControls value={labDocument.edgeFinish} disabled={inactive}
       onChange={next => editor.edit({ ...labDocument, edgeFinish: next })} onStart={editor.beginGesture} onCommit={editor.endGesture} />}
+    {isV2Recipe(config) && config.effectId === "fluid" && config.effectVersion === 2 &&
+      <ViewportResponseControls value={viewportResponse} disabled={inactive}
+        onChange={editViewportResponse} onStart={editor.beginGesture} onCommit={editor.endGesture} />}
     {((descriptorV2?.presets.length ?? descriptorV1?.presets.length ?? 0) > 1) && <label className={styles.field}>Начальная проба<select aria-label="Начальная проба" value="" disabled={inactive} onChange={event => {
       const preset = (descriptorV2?.presets ?? descriptorV1?.presets)?.find(item => item.id === event.target.value); if (preset) editMaterial(preset.recipe);
     }}><option value="" disabled>Выбрать вариант…</option>{(descriptorV2?.presets ?? descriptorV1?.presets)?.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}</select></label>}
@@ -322,7 +333,9 @@ export function MonoAtmosphereLab({ bindings, renderScene }: {
             {!state.ready ? <div className={styles.unavailable}>Подготовка рабочего места…</div>
               : state.recoveryUnavailable ? <div className={styles.unavailable}><p>Сохранённое рабочее место недоступно.</p><p>{state.recoveryError}</p><p>Исходные данные сохранены. Можно открыть именованную пробу из библиотеки или начать новую.</p><button className={styles.control} type="button" onClick={editor.startFresh}>Начать новую пробу</button></div>
               : isV2Recipe(shown) && bindings?.renderMaterialStageV2 ? bindings.renderMaterialStageV2({ recipe: shown, presentation: effectivePresentation,
-                quality, edgeFinish: shownDocument.edgeFinish, paused: paused || state.comparing, restartKey: state.restartKey,
+                quality, edgeFinish: shownDocument.edgeFinish,
+                viewportResponse: shownDocument.version === 2 ? shownDocument.viewportResponse : FLUID_VIEWPORT_RESPONSE_DEFAULTS,
+                paused: paused || state.comparing, restartKey: state.restartKey,
                 transientAction: !state.comparing && transientAction?.restartKey === state.restartKey ? transientAction : undefined, onStatus })
               : isV1GpuRecipe(shown) && bindings ? bindings.renderStage({ recipe: shown, presentation: effectivePresentation, paused: paused || state.comparing, restartKey: state.restartKey, onStatus })
               : !isGpuRecipe(shown) && effectivePresentation.mode === "mono" && renderScene ? renderScene({ config: paused || state.comparing ? { ...shown, calm: true } : shown, theme, width: effectivePresentation.width })

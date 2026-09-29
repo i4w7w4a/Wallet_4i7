@@ -52,6 +52,7 @@ function MaterialGpuStage({ request, snapshot, hostActive }: {
   if (request.recipe.kind !== "novex-material") return <p role="status">Материал v2 не установлен.</p>;
   const width = request.presentation.mode === "mono" ? request.presentation.width : null;
   return <MaterialSceneSurface background={request.recipe} edgeFinish={request.edgeFinish}
+    viewportResponse={request.viewportResponse}
     quality={request.quality} paused={request.paused}
     restartKey={request.restartKey} hostActive={hostActive} overlay={width ? overlay : undefined}
     transientAction={request.transientAction}

@@ -1,4 +1,4 @@
-import { DEFAULT_BACKGROUND_EDGE_FINISH, createTargetBinding, materialCatalogV2 } from "@wallet/ui";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, FLUID_VIEWPORT_RESPONSE_DEFAULTS, createTargetBinding, materialCatalogV2 } from "@wallet/ui";
 import { expect, it } from "vitest";
 import { createButtonDocument, editButtonArtwork } from "./button-workshop/model";
 import { createDefaultActionArtwork } from "../mono-preview/action-artwork/model";
@@ -33,6 +33,17 @@ it("extracts only the selected button layer and target from a full lab document"
   });
   expect(buttonPatchFromLab(document, { target: "all", layer: "fill" }).value.bindings)
     .toEqual([sendFill.value, receiveFill.value]);
+});
+
+it("carries only an explicitly configured Fluid viewport response into the background patch", () => {
+  const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
+  const viewportResponse = { ...FLUID_VIEWPORT_RESPONSE_DEFAULTS, enabled: true, inertia: 0.63 };
+  const document = { kind: "novex-background-lab", version: 2, material: fluid,
+    edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH, viewportResponse };
+  expect(backgroundPatchFromLab(document)).toEqual({ scope: "background", value: {
+    version: 2, recipe: fluid, edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH, viewportResponse,
+  } });
+  expect(() => backgroundPatchFromLab({ ...document, viewportResponse: { ...viewportResponse, shader: "x" } })).toThrow();
 });
 
 it("carries explicit frame mode even when the selected layer has no bindings", () => {
