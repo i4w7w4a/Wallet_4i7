@@ -1,169 +1,191 @@
 import { useRef, useState, type KeyboardEvent } from "react";
-import { previewMonoWorkingImport, type MonoWorkingImport } from "./mono-working-presets";
+import { previewMonoWorkingImport, type MonoSevenSlot, type MonoWorkingImport } from "./mono-working-presets";
+import type { MonoShapePreset } from "./mono-shape-preview";
 
-export type MonoWorkingPresetChoice = { id: string; name: string; legacyPalette: boolean };
+export type MonoWorkingPresetChoice = { slot: MonoSevenSlot; name: string };
+export type MonoWorkingArchiveChoice = { index: number; name: string; direction: MonoShapePreset };
 
-export function MonoWorkingPresetBar({ activeName, activeId, choices, ready, status, onExport, onImport, onOpenArchive, onSelect, onCreate, onCopy, onRename, onRetry, starterName, onStarter }: {
-  activeName: string;
-  activeId: string | null;
+type Props = {
+  activeSlot: MonoSevenSlot;
   choices: MonoWorkingPresetChoice[];
+  archive: MonoWorkingArchiveChoice[];
   ready: boolean;
   status: string;
-  onExport: () => string;
-  onImport: (imported: MonoWorkingImport) => boolean;
-  onOpenArchive: () => void;
-  onSelect: (id: string) => boolean;
-  onCreate: (name: string) => boolean;
-  onCopy: (name: string) => boolean;
+  onSelect: (slot: MonoSevenSlot) => boolean;
   onRename: (name: string) => boolean;
+  onCopy: (target: MonoSevenSlot) => boolean;
+  onImport: (imported: MonoWorkingImport, target: MonoSevenSlot) => boolean;
+  onRestore: (archiveIndex: number, target: MonoSevenSlot, direction: MonoShapePreset) => boolean;
+  onExport: () => string;
+  onExportArchive: (archiveIndex: number) => string;
+  onOpenPaletteArchive: () => void;
   onRetry: () => boolean;
-  starterName: string;
-  onStarter: () => boolean;
-}) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createName, setCreateName] = useState("");
+};
+
+const NUMBERS = [1, 2, 3, 4, 5, 6, 7] as const;
+const DIRECTIONS: readonly { id: MonoShapePreset; name: string }[] = [
+  { id: "ledger", name: "Ledger" }, { id: "frost", name: "Frost" }, { id: "mercury", name: "Mercury" },
+];
+
+export function MonoWorkingPresetBar({ activeSlot, choices, archive, ready, status,
+  onSelect, onRename, onCopy, onImport, onRestore, onExport, onExportArchive,
+  onOpenPaletteArchive, onRetry }: Props) {
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [copyOpen, setCopyOpen] = useState(false);
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [exportJson, setExportJson] = useState("");
-  const [exportMessage, setExportMessage] = useState("");
-  const [importOpen, setImportOpen] = useState(false);
+  const [action, setAction] = useState<"rename" | "copy" | "import" | "export" | "archive" | null>(null);
+  const [name, setName] = useState("");
+  const [target, setTarget] = useState<MonoSevenSlot | "">("");
   const [importJson, setImportJson] = useState("");
   const [importPreview, setImportPreview] = useState<MonoWorkingImport | null>(null);
   const [importError, setImportError] = useState("");
   const [importBusy, setImportBusy] = useState(false);
-  const [copyName, setCopyName] = useState("");
+  const [exportJson, setExportJson] = useState("");
+  const [archiveIndex, setArchiveIndex] = useState<number | null>(null);
+  const [direction, setDirection] = useState<MonoShapePreset>("ledger");
+  const actionsRef = useRef<HTMLButtonElement>(null);
+  const importEpoch = useRef(0);
+  const activeName = choices.find(choice => choice.slot === activeSlot)?.name ?? `Пресет ${activeSlot}`;
   const statusError = status.includes("Не удалось") || status.includes("Изменён в другой вкладке") ||
     status.includes("нельзя прочитать") || status.includes("нельзя перенести") || status.includes("Сначала примените");
-  const pickerRef = useRef<HTMLButtonElement>(null);
-  const actionsRef = useRef<HTMLButtonElement>(null);
 
-  const escape = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Escape" || (!pickerOpen && !actionsOpen && !copyOpen && !renameOpen && !exportOpen && !importOpen)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    if (copyOpen || actionsOpen || importOpen) {
-      setCopyOpen(false);
-      setRenameOpen(false);
-      setExportOpen(false);
-      setImportOpen(false);
-      setActionsOpen(false);
-      actionsRef.current?.focus();
-    } else {
-      setCreateOpen(false);
-      setPickerOpen(false);
-      pickerRef.current?.focus();
-    }
-  };
+  function invalidateImport() {
+    importEpoch.current += 1;
+    setImportPreview(null);
+    setImportBusy(false);
+  }
+  function closeActions() {
+    invalidateImport();
+    setActionsOpen(false); setAction(null);
+    actionsRef.current?.focus();
+  }
+  function escape(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Escape" || !actionsOpen) return;
+    event.preventDefault(); event.stopPropagation(); closeActions();
+  }
+  function pickAction(next: NonNullable<typeof action>) {
+    invalidateImport();
+    setAction(next); setTarget("");
+    if (next === "rename") setName(activeName);
+    if (next === "import") { setImportJson(""); setImportPreview(null); setImportError(""); }
+    if (next === "export") setExportJson(onExport());
+    if (next === "archive") setArchiveIndex(null);
+  }
+  function chooseArchive(index: number) {
+    setArchiveIndex(index); setDirection(archive[index]?.direction ?? "ledger");
+    setTarget(""); setExportJson("");
+  }
+  function download(json: string, filename: string) {
+    const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url);
+  }
+  const targetPicker = (label: string, excludeActive = false) => <label>{label}
+    <select value={target} onChange={event => setTarget(event.currentTarget.value ? Number(event.currentTarget.value) as MonoSevenSlot : "")}>
+      <option value="">Выберите номер</option>
+      {NUMBERS.filter(number => !excludeActive || number !== activeSlot).map(number =>
+        <option key={number} value={number}>{number} · {choices[number - 1]?.name ?? `Пресет ${number}`}</option>)}
+    </select>
+  </label>;
 
   return <div className="mono-working-preset" onKeyDown={escape}>
     <div className="mono-working-preset__row">
-      <button ref={pickerRef} type="button" className="mono-working-preset__selector"
-        disabled={!ready}
-        aria-label={`Пресет оформления: ${activeName}`} aria-controls="mono-working-preset-choices"
-        aria-expanded={pickerOpen} onClick={() => { setPickerOpen(!pickerOpen); setCreateOpen(false); setActionsOpen(false); setCopyOpen(false); setRenameOpen(false); setExportOpen(false); setImportOpen(false); }}>
-        <span className="mono-working-preset__caption">Пресет оформления</span>
-        <strong title={activeName}>{activeName}</strong><span aria-hidden="true">⌄</span>
-      </button>
+      <div className="mono-working-preset__current"><span>ПРЕСЕТ · {activeSlot}</span><strong title={activeName}>{activeName}</strong></div>
       <button ref={actionsRef} type="button" className="mono-working-preset__actions-trigger"
-        disabled={!ready}
-        aria-label="Действия с пресетом" aria-controls="mono-working-preset-actions"
-        aria-expanded={actionsOpen} onClick={() => { setActionsOpen(!actionsOpen); setPickerOpen(false); setCreateOpen(false); setCopyOpen(false); setRenameOpen(false); setExportOpen(false); setImportOpen(false); }}>⋯</button>
+        disabled={!ready} aria-label="Действия с пресетом" aria-controls="mono-working-preset-actions"
+        aria-expanded={actionsOpen} onClick={() => { invalidateImport(); setActionsOpen(value => !value); setAction(null); }}>⋯</button>
+    </div>
+    <div className="mono-working-preset__numbers" role="group" aria-label="Пресеты 1–7">
+      {choices.map(choice => <button key={choice.slot} type="button"
+        aria-label={`Пресет ${choice.slot}: ${choice.name}`} title={`${choice.slot} · ${choice.name}`}
+        aria-pressed={choice.slot === activeSlot} disabled={!ready}
+        onClick={() => onSelect(choice.slot)}>{choice.slot}</button>)}
     </div>
     <p className="mono-working-preset__status" data-working-status={statusError ? "error" : "normal"}
       role={statusError ? "alert" : undefined}>{status}</p>
-    {status.endsWith(" · Повторить") && activeId && <button type="button" className="mono-working-preset__retry"
+    {status.endsWith(" · Повторить") && <button type="button" className="mono-working-preset__retry"
       onClick={onRetry}>Повторить сохранение</button>}
-    <div id="mono-working-preset-choices" className="mono-working-preset__panel" hidden={!pickerOpen}
-      role="group" aria-label="Пресеты">
-      <button type="button" aria-label={`Открыть ${starterName}`} aria-pressed={activeId === null && activeName === starterName}
-        onClick={() => { if (onStarter()) setPickerOpen(false); }}>
-        <span aria-hidden="true">{activeId === null && activeName === starterName ? "✓" : ""}</span>
-        <span>{starterName}<small> · встроенный</small></span>
-      </button>
-      {choices.map(choice => <button key={choice.id} type="button" aria-label={`Выбрать ${choice.name}`}
-        aria-pressed={choice.id === activeId} onClick={() => { if (onSelect(choice.id)) setPickerOpen(false); }}>
-        <span aria-hidden="true">{choice.id === activeId ? "✓" : ""}</span>
-        <span>{choice.name}{choice.legacyPalette && <small> · палитра</small>}</span>
-      </button>)}
-      {!createOpen ? <button type="button" onClick={() => { setCreateName(""); setCreateOpen(true); }}>Создать пресет</button>
-        : <form onSubmit={event => {
-          event.preventDefault();
-          if (onCreate(createName.trim())) { setCreateOpen(false); setPickerOpen(false); }
-        }}>
-          <label>Название пресета<input autoFocus maxLength={80} value={createName}
-            onChange={event => setCreateName(event.currentTarget.value)} /></label>
-          <button type="submit" disabled={!createName.trim()}>Сохранить пресет</button>
-        </form>}
-    </div>
     <div id="mono-working-preset-actions" className="mono-working-preset__panel" hidden={!actionsOpen}
       role="group" aria-label="Действия с текущим пресетом">
-      {!copyOpen && !renameOpen && !exportOpen && !importOpen && <>
-        {activeId && <button type="button" onClick={() => { setCopyName(activeName); setRenameOpen(true); }}>Переименовать</button>}
-        <button type="button" onClick={() => { setCopyName(`${activeName} · копия`); setCopyOpen(true); }}>Создать копию</button>
-        <button type="button" onClick={() => { setImportJson(""); setImportPreview(null); setImportError(""); setImportOpen(true); }}>Импортировать</button>
-        <button type="button" onClick={() => { setExportJson(onExport()); setExportMessage(""); setExportOpen(true); }}>Экспортировать</button>
-        <button type="button" onClick={() => { onOpenArchive(); setActionsOpen(false); }}>Архив палитр и сервер</button>
+      {action === null && <>
+        <button type="button" onClick={() => pickAction("rename")}>Переименовать пресет {activeSlot}</button>
+        <button type="button" onClick={() => pickAction("copy")}>Копировать в другой пресет…</button>
+        <button type="button" onClick={() => pickAction("import")}>Импортировать в пресет…</button>
+        <button type="button" onClick={() => pickAction("export")}>Экспортировать пресет {activeSlot}</button>
+        <button type="button" onClick={() => pickAction("archive")}>Архив рабочих пресетов · {archive.length}</button>
+        <button type="button" onClick={() => { onOpenPaletteArchive(); closeActions(); }}>Архив палитр и сервер</button>
       </>}
-      {(copyOpen || renameOpen) && <form onSubmit={event => {
-        event.preventDefault();
-        if (renameOpen ? onRename(copyName.trim()) : onCopy(copyName.trim())) {
-          setCopyOpen(false); setRenameOpen(false); setActionsOpen(false);
-        }
-      }}>
-        <label>Название пресета<input autoFocus maxLength={80} value={copyName}
-          onChange={event => setCopyName(event.currentTarget.value)} /></label>
-        <button type="submit" disabled={!copyName.trim()}>{renameOpen ? "Сохранить название" : "Сохранить копию"}</button>
-      </form>}
-      {exportOpen && <div className="mono-working-preset__export">
-        <label>JSON рабочего пресета<textarea aria-label="JSON рабочего пресета" readOnly value={exportJson}
-          onFocus={event => event.currentTarget.select()} /></label>
-        <button type="button" onClick={() => {
-          if (!navigator.clipboard?.writeText) {
-            setExportMessage("Копирование недоступно. Используйте скачивание или выделите текст.");
-            return;
-          }
-          void navigator.clipboard.writeText(exportJson).then(() => setExportMessage("JSON скопирован."))
-            .catch(() => setExportMessage("Не удалось скопировать. Используйте скачивание или выделите текст."));
-        }}>Скопировать JSON</button>
-        <button type="button" onClick={() => {
-          const url = URL.createObjectURL(new Blob([exportJson], { type: "application/json" }));
-          const link = document.createElement("a");
-          link.href = url; link.download = "mono-working-preset.json"; link.click();
-          URL.revokeObjectURL(url);
-          setExportMessage("JSON-файл подготовлен для скачивания.");
-        }}>Скачать JSON</button>
-        {exportMessage && <p role="status">{exportMessage}</p>}
-        <button type="button" onClick={() => setExportOpen(false)}>Закрыть экспорт</button>
+      {action === "rename" && <form onSubmit={event => {
+        event.preventDefault(); if (onRename(name.trim())) closeActions();
+      }}><label>Новое имя<input autoFocus maxLength={80} value={name} onChange={event => setName(event.currentTarget.value)} /></label>
+        <button type="submit" disabled={!name.trim()}>Сохранить название</button></form>}
+      {action === "copy" && <div className="mono-working-preset__subpanel">
+        <p>Копия принятого пресета {activeSlot}. Прежнее содержимое выбранного пресета попадёт в архив.</p>
+        {targetPicker("Пресет для копии", true)}
+        <button type="button" disabled={target === ""} onClick={() => {
+          if (target && onCopy(target)) closeActions();
+        }}>Заменить выбранный пресет</button>
       </div>}
-      {importOpen && <div className="mono-working-preset__import">
+      {action === "import" && <div className="mono-working-preset__subpanel">
         <label>JSON для импорта<textarea aria-label="JSON для импорта" maxLength={2_000_000}
-          value={importJson} onChange={event => { setImportJson(event.currentTarget.value); setImportPreview(null); setImportError(""); }} /></label>
+          value={importJson} onChange={event => { invalidateImport(); setImportJson(event.currentTarget.value); setImportError(""); }} /></label>
         <label>Файл JSON<input type="file" accept=".json,application/json" onChange={event => {
           const file = event.currentTarget.files?.[0];
           if (!file) return;
+          invalidateImport();
           if (file.size > 2_000_000) { setImportError("Импорт слишком велик."); setImportPreview(null); return; }
-          void file.text().then(value => { setImportJson(value); setImportPreview(null); setImportError(""); })
-            .catch(() => setImportError("Не удалось прочитать файл."));
+          const request = importEpoch.current;
+          setImportBusy(true);
+          void file.text().then(value => {
+            if (request !== importEpoch.current) return;
+            setImportJson(value); setImportPreview(null); setImportError("");
+          }).catch(() => { if (request === importEpoch.current) setImportError("Не удалось прочитать файл."); })
+            .finally(() => { if (request === importEpoch.current) setImportBusy(false); });
         }} /></label>
         <button type="button" disabled={!importJson.trim() || importBusy} onClick={() => {
+          const request = ++importEpoch.current;
+          const text = importJson;
           setImportBusy(true); setImportError(""); setImportPreview(null);
-          void previewMonoWorkingImport(importJson).then(setImportPreview)
-            .catch(error => setImportError(error instanceof Error ? error.message : "Импорт отклонён."))
-            .finally(() => setImportBusy(false));
+          void previewMonoWorkingImport(text).then(value => {
+            if (request === importEpoch.current) setImportPreview(value);
+          }).catch(error => {
+            if (request === importEpoch.current) setImportError(error instanceof Error ? error.message : "Импорт отклонён.");
+          }).finally(() => { if (request === importEpoch.current) setImportBusy(false); });
         }}>Проверить импорт</button>
         {importError && <p role="alert">{importError}</p>}
-        {importPreview && <div role="region" aria-label="Предпросмотр импорта">
-          <p>{importPreview.kind === "full"
-            ? `Будет создана отдельная копия полного рабочего пресета «${importPreview.name}».`
-            : "Будет создана отдельная копия палитры. Форма, оптика и фон — исходные MONO defaults; другие настройки старый JSON не содержит."}</p>
-          <button type="button" onClick={() => { if (onImport(importPreview)) { setImportOpen(false); setActionsOpen(false); } }}>
-            Создать копию из импорта
-          </button>
-        </div>}
+        {importPreview && <>
+          <p>Проверено: {importPreview.name}. Заменяемый пресет будет сохранён в архиве.</p>
+          {targetPicker("Пресет для импорта")}
+          <button type="button" disabled={target === ""} onClick={() => {
+            if (target && onImport(importPreview, target)) closeActions();
+          }}>Импортировать в выбранный пресет</button>
+        </>}
       </div>}
+      {action === "export" && <div className="mono-working-preset__subpanel">
+        <label>JSON пресета<textarea aria-label="JSON рабочего пресета" readOnly value={exportJson}
+          onFocus={event => event.currentTarget.select()} /></label>
+        <button type="button" onClick={() => download(exportJson, `mono-workspace-${activeSlot}.json`)}>Скачать JSON</button>
+      </div>}
+      {action === "archive" && <div className="mono-working-preset__subpanel">
+        <p>Исходные записи сохранены полностью. Совпадающие имена не объединены.</p>
+        <div className="mono-working-preset__archive-list" role="group" aria-label="Архив рабочих пресетов">
+          {archive.map(item => <button key={item.index} type="button" aria-label={`Архив ${item.index + 1}: ${item.name}`}
+            aria-pressed={archiveIndex === item.index} onClick={() => chooseArchive(item.index)}>
+            {item.index + 1} · {item.name}</button>)}
+        </div>
+        {archiveIndex !== null && <>
+          <label>Направление из старой записи<select value={direction}
+            onChange={event => setDirection(event.currentTarget.value as MonoShapePreset)}>
+            {DIRECTIONS.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select></label>
+          {targetPicker("Восстановить в пресет")}
+          <button type="button" disabled={target === ""} onClick={() => {
+            if (target && onRestore(archiveIndex, target, direction)) closeActions();
+          }}>Восстановить выбранное направление</button>
+          <button type="button" onClick={() => setExportJson(onExportArchive(archiveIndex))}>Показать полный архивный JSON</button>
+          {exportJson && <label>Архивный JSON<textarea aria-label="Архивный JSON" readOnly value={exportJson}
+            onFocus={event => event.currentTarget.select()} /></label>}
+        </>}
+      </div>}
+      {action !== null && <button type="button" onClick={() => { invalidateImport(); setAction(null); }}>Назад к действиям</button>}
     </div>
   </div>;
 }

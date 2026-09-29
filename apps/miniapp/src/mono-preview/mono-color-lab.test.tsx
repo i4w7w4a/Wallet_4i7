@@ -10,6 +10,7 @@ import { createMonoPaletteWorkspace } from "./mono-palette-workspace";
 import { exportMonoPalettePreset, importMonoPalettePreset } from "./mono-preset-codec";
 import type { PresetView } from "../preset-library/preset-types";
 import { MONO_PALETTE_ACTIVE_KEY, MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY, applyMonoPaletteActive, saveMonoPaletteLibrary, saveMonoPaletteWorkspace } from "./mono-palette-storage";
+import { MONO_SEVEN_PRESETS_KEY } from "./mono-working-presets";
 
 beforeEach(() => {
   localStorage.clear();
@@ -47,7 +48,7 @@ describe("Color Lab interactions", () => {
     await open();
     expect(screen.getByRole("button", { name: "Применить палитру" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Другая палитра" })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Пресет оформления/ })).toBeVisible();
+    expect(screen.getByRole("button", { name: /^Пресет 1:/ })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Сохранить вариант" })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Имя пресета" })).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "JSON рабочего пресета" })).not.toBeInTheDocument();
@@ -172,7 +173,7 @@ describe("Color Lab interactions", () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
     await waitFor(() => expect(document.querySelector("[data-mono-preview]")).toHaveAttribute("data-palette-enabled", "true"));
     expect(localStorage.getItem(MONO_PALETTE_WORKSPACE_KEY)).toBe("{bad-json");
-    expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toBeNull();
+    expect(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)).toBeNull();
     expect(screen.getByText(/Изменения только в памяти/)).toBeVisible();
   });
   it("keeps original material until explicit activation and restores it with Undo", async () => {
@@ -215,12 +216,12 @@ describe("Color Lab interactions", () => {
   });
   it("keeps working preset edits separate from explicit palette Apply", async () => {
     await open(); openExact(); editHue("40");
-    await waitFor(() => expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toContain('"anchorHue":40'));
+    await waitFor(() => expect(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)).toContain('"anchorHue":40'));
     expect(localStorage.getItem(MONO_PALETTE_ACTIVE_KEY)).toBeNull();
     editHue("160"); fireEvent.click(screen.getByRole("button", { name: "Применить палитру" }));
     expect(localStorage.getItem(MONO_PALETTE_ACTIVE_KEY)).toContain('"anchorHue":160');
     expect(localStorage.getItem(MONO_PALETTE_PRESETS_KEY)).toBeNull();
-    await waitFor(() => expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toContain('"anchorHue":160'));
+    await waitFor(() => expect(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)).toContain('"anchorHue":160'));
   });
   it("previews a local load before changing the live draft", async () => {
     await seedLegacyPalette("Камень", 40);
@@ -252,21 +253,21 @@ describe("Color Lab interactions", () => {
   it("keeps the renderer lease stable, excludes text inputs from history shortcuts and compares without editing", async () => {
     await open(); openExact(); editHue("40");
     fireEvent.click(screen.getByRole("button", { name: "Действия с пресетом" }));
-    fireEvent.click(screen.getByRole("button", { name: "Переименовать" }));
+    fireEvent.click(screen.getByRole("button", { name: "Переименовать пресет 1" }));
     const canvas = document.querySelector("canvas");
     const canvasCount = document.querySelectorAll("canvas").length;
-    const input = screen.getByRole("textbox", { name: "Название пресета" });
+    const input = screen.getByRole("textbox", { name: "Новое имя" });
     fireEvent.keyDown(input, { key: "z", ctrlKey: true }); expect(hue()).toHaveValue("40");
     fireEvent.keyDown(screen.getByRole("button", { name: "Отменить цвет" }), { key: "z", ctrlKey: true });
     expect(hue()).toHaveValue("250");
-    await waitFor(() => expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toContain('"anchorHue":250'));
-    const storedBeforeCompare = localStorage.getItem("wallet4i7.mono.working-presets.v2");
+    await waitFor(() => expect(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)).toContain('"anchorHue":250'));
+    const storedBeforeCompare = localStorage.getItem(MONO_SEVEN_PRESETS_KEY);
     fireEvent.click(screen.getByRole("button", { name: "Сравнить A/B" }));
     expect(document.querySelector("canvas")).toBe(canvas);
     expect(document.querySelectorAll("canvas")).toHaveLength(canvasCount);
     expect(canvasCount).toBeLessThanOrEqual(1); // jsdom has no WebGL2; browser E2E asserts the one live canvas.
     expect(localStorage.getItem(MONO_PALETTE_ACTIVE_KEY)).toBeNull();
-    expect(localStorage.getItem("wallet4i7.mono.working-presets.v2")).toBe(storedBeforeCompare);
+    expect(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)).toBe(storedBeforeCompare);
   });
   it("leaves A/B before a theme edit and cannot Apply an unseen draft", async () => {
     await open();

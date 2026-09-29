@@ -1,7 +1,8 @@
 import { BUTTON_MASK_ASSETS, type ButtonMaterialLayer, type ButtonTargetId } from "@wallet/ui";
 import type { MonoShapePreset } from "./mono-shape-preview";
 import { normalizeMonoMaterialMap, type MonoMaterialBackground, type MonoMaterialButtons } from "./mono-material-preset";
-import { MonoWorkingStoreError, type MonoWorkingLibrary } from "./mono-working-presets";
+import { MONO_SEVEN_SLOTS, MonoWorkingStoreError,
+  type MonoSevenLibrary, type MonoSevenSlot, type MonoWorkingLibrary } from "./mono-working-presets";
 import { createDefaultActionArtworkMap, parseMonoActionArtworkMap,
   type MonoActionArtworkMap } from "./action-artwork/model";
 
@@ -65,4 +66,28 @@ export function applyMonoMaterialPatch(library: MonoWorkingLibrary, request: {
     ? { ...item, revision: item.revision + 1,
       document: { ...item.document, materials } } : item);
   return { ...library, generation: library.generation + 1, activeId: target.id, records };
+}
+
+/** Keep the legacy three-direction document intact; only the chosen number's selected direction is patched. */
+export function applyMonoSevenMaterialPatch(library: MonoSevenLibrary, request: {
+  slot: MonoSevenSlot;
+  expectedGeneration: number;
+  expectedRevision: number;
+  patch: MonoMaterialPatch;
+}): MonoSevenLibrary {
+  if (!MONO_SEVEN_SLOTS.includes(request.slot))
+    throw new MonoWorkingStoreError("Номер рабочего места неизвестен.", "invalid");
+  const chosen = library.slots[request.slot - 1];
+  if (library.generation !== request.expectedGeneration || chosen.revision !== request.expectedRevision)
+    throw new MonoWorkingStoreError("Рабочее место изменилось в другой вкладке.", "conflict");
+  const direction = (["ledger", "frost", "mercury"] as const)[chosen.document.palette.activeSlotId - 1];
+  const temporary: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1", generation: library.generation,
+    activeId: chosen.id, records: [{ id: chosen.id, name: chosen.name, revision: chosen.revision,
+      document: chosen.document }] };
+  const applied = applyMonoMaterialPatch(temporary, { targetId: chosen.id, direction,
+    expectedGeneration: request.expectedGeneration, expectedRevision: request.expectedRevision, patch: request.patch });
+  const slots = [...library.slots] as MonoSevenLibrary["slots"];
+  slots[request.slot - 1] = { ...chosen, revision: applied.records[0].revision,
+    document: applied.records[0].document };
+  return { ...library, generation: applied.generation, activeSlot: request.slot, slots };
 }

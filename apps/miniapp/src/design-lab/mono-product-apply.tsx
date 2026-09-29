@@ -2,12 +2,9 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { ButtonTargetId, MaterialTargetBinding } from "@wallet/ui";
-import { MONO_LOGO_PREVIEW_KEY } from "../mono-preview/mono-logo-preview";
-import { applyMonoMaterialPatch, type MonoMaterialPatch } from "../mono-preview/mono-material-transfer";
-import { MONO_PALETTE_ACTIVE_KEY, MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY } from "../mono-preview/mono-palette-storage";
-import { MONO_SHAPE_STORAGE_KEY, type MonoShapePreset } from "../mono-preview/mono-shape-preview";
-import { createMonoWorkingDocument, loadMonoWorkingLibrary, MONO_WORKING_PRESETS_KEY,
-  saveMonoWorkingLibrary, type MonoWorkingLibrary } from "../mono-preview/mono-working-presets";
+import { applyMonoSevenMaterialPatch, type MonoMaterialPatch } from "../mono-preview/mono-material-transfer";
+import { loadMonoSevenLibrary, MONO_SEVEN_PRESETS_KEY, MONO_SEVEN_SLOTS,
+  saveMonoSevenLibrary, type MonoSevenLibrary, type MonoSevenSlot } from "../mono-preview/mono-working-presets";
 import type { BackgroundLabDocumentV1 } from "./background-sandbox/document-v3";
 import type { ButtonLabDocument, ButtonLabWorkspace } from "./button-workshop/model";
 import { artworkPatchFromLab, backgroundPatchFromLab, buttonPatchFromLab } from "./mono-product-apply-source";
@@ -23,28 +20,17 @@ export type MonoProductApplyProps = Shared & (
       selection: Pick<ButtonLabWorkspace<ButtonTargetId, MaterialTargetBinding>["selection"], "target"> }
 );
 
-type Success = { id: string; name: string; direction: MonoShapePreset };
-const DIRECTIONS: readonly { id: MonoShapePreset; name: string }[] = [
-  { id: "ledger", name: "Ledger" }, { id: "frost", name: "Frost" }, { id: "mercury", name: "Mercury" },
-];
-const RECOVERY_KEYS = [MONO_PALETTE_ACTIVE_KEY, MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY,
-  "wallet4i7.mono.palette-workspace.v1", "wallet4i7.mono.palette-presets.v1",
-  MONO_SHAPE_STORAGE_KEY, MONO_LOGO_PREVIEW_KEY, "wallet4i7.mono.optical-preview.v1",
-  "wallet4i7.mono.environment-preview.v1"];
+type Success = { slot: MonoSevenSlot; name: string };
 const message = (error: unknown) => error instanceof Error ? error.message : "Материал не удалось применить.";
 
-function hasPreviousMonoData(): boolean {
-  return RECOVERY_KEYS.some(key => localStorage.getItem(key) !== null);
-}
-
 async function withWorkingLock<T>(task: () => T): Promise<T> {
-  if (navigator.locks?.request) return navigator.locks.request(MONO_WORKING_PRESETS_KEY, task);
+  if (navigator.locks?.request) return navigator.locks.request(MONO_SEVEN_PRESETS_KEY, task);
   return task();
 }
 
 async function rejectDirtyTarget(targetId: string): Promise<void> {
   if (typeof BroadcastChannel === "undefined") return;
-  const channel = new BroadcastChannel(MONO_WORKING_PRESETS_KEY);
+  const channel = new BroadcastChannel(MONO_SEVEN_PRESETS_KEY);
   const requestId = crypto.randomUUID();
   let dirty = false;
   channel.onmessage = event => {
@@ -82,12 +68,9 @@ export function MonoProductApply(props: MonoProductApplyProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [library, setLibrary] = useState<MonoWorkingLibrary | null>(null);
+  const [library, setLibrary] = useState<MonoSevenLibrary | null>(null);
   const [patch, setPatch] = useState<MonoMaterialPatch | null>(null);
-  const [targetId, setTargetId] = useState("");
-  const [direction, setDirection] = useState<MonoShapePreset | "">("");
-  const [name, setName] = useState("");
-  const [previousData, setPreviousData] = useState(false);
+  const [slot, setSlot] = useState<MonoSevenSlot | "">("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<Success | null>(null);
@@ -112,60 +95,39 @@ export function MonoProductApply(props: MonoProductApplyProps) {
   };
 
   const prepare = () => {
-    setError(""); setSuccess(null); setTargetId(""); setDirection(""); setName("");
+    setError(""); setSuccess(null); setSlot("");
     try {
       setPatch(props.scope === "background" ? backgroundPatchFromLab(props.document)
         : props.scope === "artwork" ? artworkPatchFromLab(props.document, props.selection)
         : buttonPatchFromLab(props.document, props.selection));
-      const nextLibrary = loadMonoWorkingLibrary(localStorage);
+      const nextLibrary = loadMonoSevenLibrary(localStorage);
       setLibrary(nextLibrary);
-      setPreviousData(!nextLibrary && hasPreviousMonoData());
-      if (nextLibrary) {
-        setTargetId(nextLibrary.activeId);
-        const active = nextLibrary.records.find(record => record.id === nextLibrary.activeId);
-        setDirection(DIRECTIONS[(active?.document.palette.activeSlotId ?? 1) - 1]!.id);
-      } else setDirection("ledger");
+      if (nextLibrary) setSlot(nextLibrary.activeSlot);
     } catch (cause) {
-      setPatch(null); setLibrary(null); setPreviousData(false); setError(message(cause));
+      setPatch(null); setLibrary(null); setError(message(cause));
     }
     changeOpen(true);
   };
 
   const confirm = async () => {
-    if (!patch || !direction || saving) return;
-    if (library && !targetId) { setError("Выберите рабочий пресет."); return; }
-    if (!library && previousData) { setError("Сначала откройте MONO и восстановите прежние настройки."); return; }
-    const trimmedName = name.trim();
-    if (!library && (!trimmedName || trimmedName.length > 80 || /[\u0000-\u001f\u007f]/.test(trimmedName))) {
-      setError("Введите имя рабочего пресета до 80 символов."); return;
-    }
+    if (!patch || !slot || saving) return;
+    if (!library) { setError("Сначала откройте MONO и восстановите семь пресетов."); return; }
     setSaving(true); setError("");
     try {
-      if (library) await rejectDirtyTarget(targetId);
+      const selected = library.slots[slot - 1];
+      await rejectDirtyTarget(selected.id);
       const result = await withWorkingLock((): Success => {
-        const current = loadMonoWorkingLibrary(localStorage);
-        if ((current?.generation ?? 0) !== (library?.generation ?? 0))
+        const current = loadMonoSevenLibrary(localStorage);
+        if (current?.generation !== library.generation)
           throw new Error("Библиотека изменилась в другой вкладке. Откройте выбор заново.");
-        if (library) {
-          const selected = library.records.find(record => record.id === targetId);
-          if (!current || !selected) throw new Error("Выбранный пресет больше недоступен.");
-          const next = applyMonoMaterialPatch(current, { targetId, direction,
-            expectedGeneration: library.generation, expectedRevision: selected.revision, patch });
-          saveMonoWorkingLibrary(localStorage, next, library.generation);
-          return { id: targetId, name: selected.name, direction };
-        }
-        if (hasPreviousMonoData()) throw new Error("Появились прежние настройки MONO. Откройте MONO для восстановления.");
-        const newId = crypto.randomUUID();
-        const initial: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1", generation: 0,
-          activeId: newId, records: [{ id: newId, name: trimmedName, revision: 1,
-            document: createMonoWorkingDocument() }] };
-        const next = applyMonoMaterialPatch(initial, { targetId: newId, direction,
-          expectedGeneration: 0, expectedRevision: 1, patch });
-        saveMonoWorkingLibrary(localStorage, next, 0);
-        return { id: newId, name: trimmedName, direction };
+        if (!current) throw new Error("Пресеты не найдены.");
+        const next = applyMonoSevenMaterialPatch(current, { slot, expectedGeneration: library.generation,
+          expectedRevision: selected.revision, patch });
+        saveMonoSevenLibrary(localStorage, next, library.generation);
+        return { slot, name: selected.name };
       });
       setSuccess(result);
-      setLibrary(loadMonoWorkingLibrary(localStorage));
+      setLibrary(loadMonoSevenLibrary(localStorage));
     } catch (cause) { setError(message(cause)); }
     finally { setSaving(false); }
   };
@@ -180,34 +142,24 @@ export function MonoProductApply(props: MonoProductApplyProps) {
       <p>Перенос: <strong>{patchLabel(patch)}</strong>. Проба мастерской останется отдельной.</p>
       {error && <p role="alert" className={styles.error}>{error}</p>}
       {success ? <>
-        <p role="status">Применено: {success.name} · {DIRECTIONS.find(item => item.id === success.direction)?.name}.</p>
-        <a href={`/mono?working=${encodeURIComponent(success.id)}&direction=${success.direction}`}
+        <p role="status">Применено в пресет {success.slot} · {success.name}.</p>
+        <a href={`/mono?slot=${success.slot}`}
           onClick={event => {
             if (event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey)
               props.onNavigateToMono?.();
           }}>Открыть MONO</a>
       </> : patch && <>
-        {library ? <label htmlFor={`${id}-target`}>Рабочий пресет
-          <select id={`${id}-target`} value={targetId} onChange={event => {
-            const nextId = event.target.value;
-            setTargetId(nextId);
-            const selected = library.records.find(record => record.id === nextId);
-            if (selected) setDirection(DIRECTIONS[selected.document.palette.activeSlotId - 1]!.id);
+        {library ? <label htmlFor={`${id}-target`}>Пресет 1–7
+          <select id={`${id}-target`} value={slot} onChange={event => {
+            const chosen = Number(event.currentTarget.value);
+            setSlot(MONO_SEVEN_SLOTS.includes(chosen as MonoSevenSlot) ? chosen as MonoSevenSlot : "");
           }}>
-            <option value="">Выберите пресет</option>
-            {library.records.map(record => <option key={record.id} value={record.id}>{record.name}</option>)}
+            <option value="">Выберите номер</option>
+            {library.slots.map(record => <option key={record.slot} value={record.slot}>
+              {record.slot} · {record.name}</option>)}
           </select>
-        </label> : previousData ? <p>Прежние настройки существуют. <a href="/mono">Откройте MONO</a> для их восстановления, затем вернитесь сюда.</p>
-          : <label htmlFor={`${id}-name`}>Название нового рабочего пресета
-            <input id={`${id}-name`} value={name} maxLength={80} onChange={event => setName(event.target.value)} />
-          </label>}
-        {!previousData && <label htmlFor={`${id}-direction`}>Направление
-          <select id={`${id}-direction`} value={direction} onChange={event => setDirection(event.target.value as MonoShapePreset | "")}>
-            <option value="">Выберите направление</option>
-            {DIRECTIONS.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </label>}
-        {!previousData && <button type="button" disabled={saving || !direction || (library ? !targetId : !name.trim())}
+        </label> : <p>Сначала <a href="/mono">откройте MONO</a>, чтобы восстановить семь пресетов, затем вернитесь сюда.</p>}
+        {library && <button type="button" disabled={saving || !slot}
           onClick={() => { void confirm(); }}>Применить в MONO</button>}
       </>}
       <button type="button" disabled={saving} onClick={() => changeOpen(false)}>Закрыть</button>

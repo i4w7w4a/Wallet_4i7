@@ -27,21 +27,27 @@ import { MonoPresetLibrary } from "./mono-preset-library";
 import { MonoShapeTuner } from "./mono-shape-tuner";
 import { MONO_QUICK_ACTION_DEFAULT } from "./mono-quick-action-feedback";
 import { MonoWorkingPresetBar } from "./mono-working-preset-bar";
-import { createFirstMonoWorkingDocument, FIRST_BUTTON_PRESET_NAME } from "./mono-first-button-preset";
+import { createFirstMonoWorkingDocument } from "./mono-first-button-preset";
 import { saveMonoPalettePrepaint } from "./mono-palette-prepaint";
 import { MONO_PALETTE_PRESETS_KEY, MONO_PALETTE_WORKSPACE_KEY, loadMonoPaletteLibrary,
   loadMonoPaletteActive, readMonoPaletteWorkspace, saveMonoPaletteWorkspace } from "./mono-palette-storage";
 import {
   createLegacyPaletteWorkingRecords,
   createMonoWorkingDocument,
-  createRecoveredMonoWorkingLibrary,
   exportMonoWorkingPreset,
-  loadMonoWorkingLibrary,
+  loadMonoSevenLibrary,
+  migrateMonoSevenLibrary,
+  MONO_SEVEN_PRESETS_KEY,
   MONO_WORKING_PRESETS_KEY,
+  MONO_WORKING_PRESETS_LEGACY_KEY,
   MonoWorkingStoreError,
-  saveMonoWorkingLibrary,
+  replaceMonoSevenSlot,
+  restoreMonoArchivedRecord,
+  saveMonoSevenLibrary,
+  MONO_SEVEN_SLOTS,
   type MonoWorkingDocument,
-  type MonoWorkingLibrary,
+  type MonoSevenLibrary,
+  type MonoSevenSlot,
   type MonoWorkingImport,
 } from "./mono-working-presets";
 import {
@@ -78,6 +84,7 @@ type MonoTheme = "dark" | "light";
 type MonoBackground = "iris" | "tide" | "strata";
 type MonoViewport = 320 | 390 | 430 | 480;
 type MonoRail = "quick" | "fine";
+const activeSevenRecord = (library: MonoSevenLibrary) => library.slots[library.activeSlot - 1];
 const TOOL_SLICES: Record<MonoToolId, ReadonlyArray<keyof MonoExtendedAppearance>> = {
   balance: ["balance", "eye"], assets: ["assets"], chart: ["chart", "layout"], typography: ["typography"],
   navigation: ["navigation"], logo: ["logo"], environment: ["background"], shape: [], optics: [], color: [],
@@ -205,15 +212,14 @@ function applyDocumentEnvironment(theme: MonoTheme, background: MonoBackground) 
 }
 
 function focusWorkingSelector() {
-  requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(".mono-working-preset__selector")?.focus());
+  requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.mono-working-preset__numbers button[aria-pressed="true"]')?.focus());
 }
 
-function readMaterialOpenTarget(): { id: string; preset: MonoPreset } | null {
+function readMaterialOpenTarget(): MonoSevenSlot | null {
   const params = new URLSearchParams(window.location.search);
-  const id = params.get("working"), direction = params.get("direction");
-  if (!id || !direction || id.length > 100) return null;
-  const preset = PRESETS.find(item => item.id === direction)?.id;
-  return preset ? { id, preset } : null;
+  const direct = params.get("slot") ?? params.get("working")?.replace(/^mono-seven-slot-/, "");
+  const number = Number(direct);
+  return MONO_SEVEN_SLOTS.includes(number as MonoSevenSlot) ? number as MonoSevenSlot : null;
 }
 
 export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
@@ -224,7 +230,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const [initialDocument] = useState(() => createMonoWorkingDocument(MONO_LOGO_PREVIEW_DEFAULTS));
   const quickActionLaunchRef = useRef<ApplyLaunch | null>(null);
   const quickActionKnownSessionsRef = useRef<string[]>([]);
-  const workingLibraryRef = useRef<MonoWorkingLibrary | null>(null);
+  const workingLibraryRef = useRef<MonoSevenLibrary | null>(null);
   const workingDocumentRef = useRef<MonoWorkingDocument>(initialDocument);
   const savedGenerationRef = useRef(0);
   const workingReadyRef = useRef(false);
@@ -234,22 +240,22 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const workingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const workingSaveFailedRef = useRef(false);
   const materialDirtyRef = useRef(true);
-  const [workingLibrary, setWorkingLibrary] = useState<MonoWorkingLibrary | null>(null);
+  const [workingLibrary, setWorkingLibrary] = useState<MonoSevenLibrary | null>(null);
   const [workingStatus, setWorkingStatus] = useState("Загрузка рабочего пресета…");
 
-  const persistWorking = useCallback((id: string) => {
+  const persistWorking = useCallback((slot: MonoSevenSlot) => {
     const pending = workingLibraryRef.current;
-    if (!pending || pending.activeId !== id) return false;
+    if (!pending || pending.activeSlot !== slot) return false;
     const next = { ...pending, generation: savedGenerationRef.current + 1 };
     try {
-      saveMonoWorkingLibrary(localStorage, next, savedGenerationRef.current);
+      saveMonoSevenLibrary(localStorage, next, savedGenerationRef.current);
       workingSaveFailedRef.current = false;
       savedGenerationRef.current = next.generation;
       workingLibraryRef.current = next;
       setWorkingLibrary(next);
       setWorkingStatus("Сохранено в этом браузере");
       try {
-        const document = next.records.find(record => record.id === id)!.document;
+        const document = activeSevenRecord(next).document;
         saveMonoPaletteWorkspace(localStorage, document.palette);
         saveMonoPalettePrepaint(localStorage, document.palette);
         const mode = document.palette.slots[document.palette.activeSlotId - 1].present.mode;
@@ -264,12 +270,12 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
   }, []);
 
-  const scheduleWorkingSave = useCallback((id: string) => {
+  const scheduleWorkingSave = useCallback((slot: MonoSevenSlot) => {
     if (workingTimerRef.current !== null) clearTimeout(workingTimerRef.current);
     setWorkingStatus("Сохраняется…");
     workingTimerRef.current = setTimeout(() => {
       workingTimerRef.current = null;
-      persistWorking(id);
+      persistWorking(slot);
     }, 180);
   }, [persistWorking]);
 
@@ -285,19 +291,15 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
     const current = workingLibraryRef.current;
     if (current) {
-      const records = current.records.map(record => record.id === current.activeId
-        ? { ...record, revision: record.revision + 1, document } : record);
-      const next = { ...current, records };
+      const slots = [...current.slots] as MonoSevenLibrary["slots"];
+      const selected = slots[current.activeSlot - 1];
+      slots[current.activeSlot - 1] = { ...selected, revision: selected.revision + 1, document };
+      const next = { ...current, slots };
       workingLibraryRef.current = next;
       setWorkingLibrary(next);
-      scheduleWorkingSave(next.activeId);
+      scheduleWorkingSave(next.activeSlot);
     } else {
-      const id = crypto.randomUUID();
-      const next: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1", generation: 0, activeId: id,
-        records: [{ id, name: "Мой пресет", revision: 1, document }] };
-      workingLibraryRef.current = next;
-      setWorkingLibrary(next);
-      scheduleWorkingSave(id);
+      setWorkingStatus("Пресеты не загружены. Черновик остался в памяти.");
     }
   }, [scheduleWorkingSave]);
 
@@ -307,8 +309,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     if (workingTimerRef.current === null) return true;
     clearTimeout(workingTimerRef.current);
     workingTimerRef.current = null;
-    const id = workingLibraryRef.current?.activeId;
-    return id ? persistWorking(id) : true;
+    const slot = workingLibraryRef.current?.activeSlot;
+    return slot ? persistWorking(slot) : false;
   };
 
   const trialsSettled = (next?: () => void) => {
@@ -325,42 +327,47 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     ? "Принятые настройки не изменены."
     : current.startsWith("Сначала примените")
     ? workingTimerRef.current !== null ? "Сохраняется…"
-      : workingLibraryRef.current ? "Сохранено в этом браузере" : `${FIRST_BUTTON_PRESET_NAME} · первое изменение создаст копию`
+      : workingLibraryRef.current ? "Сохранено в этом браузере" : "Черновик остался в памяти"
     : current);
 
-  const selectWorking = (id: string) => {
+  const showWorking = (next: MonoSevenLibrary) => {
+    const selected = activeSevenRecord(next);
+    const document = selected.document;
+    workingLibraryRef.current = next;
+    workingDocumentRef.current = document;
+    setWorkingLibrary(next);
+    setAppliedOptics(document.optics);
+    setDraftOptics(document.optics);
+    setAppliedShapes(document.shapes);
+    setDraftShapes(document.shapes);
+    restoreAppearance(document);
+    setBackground(document.background);
+    colorLab.loadManagedWorkspace(document.palette);
+    const mode = document.palette.slots[document.palette.activeSlotId - 1].present.mode;
+    applyDocumentEnvironment(mode, document.background);
+    try {
+      saveMonoPalettePrepaint(localStorage, document.palette);
+      localStorage.setItem(ENVIRONMENT_STORAGE_KEY,
+        JSON.stringify({ version: 1, theme: mode, background: document.background }));
+    } catch { /* Derived first-paint cache is secondary. */ }
+    setWorkingStatus("Сохранено в этом браузере");
+    focusWorkingSelector();
+  };
+
+  const selectWorking = (slot: MonoSevenSlot) => {
     if (workingBlockedRef.current) return false;
     const current = workingLibraryRef.current;
-    if (!current || current.activeId === id) return Boolean(current);
-    if (!trialsSettled(() => { selectWorking(id); })) return false;
+    if (!current || current.activeSlot === slot) return Boolean(current);
+    if (!MONO_SEVEN_SLOTS.includes(slot)) return false;
+    if (!trialsSettled(() => { selectWorking(slot); })) return false;
     colorLab.end();
     if (!flushWorking()) return false;
     const latest = workingLibraryRef.current!;
-    const selected = latest.records.find(record => record.id === id);
-    if (!selected) return false;
-    const next: MonoWorkingLibrary = { ...latest, activeId: id, generation: savedGenerationRef.current + 1 };
+    const next: MonoSevenLibrary = { ...latest, activeSlot: slot, generation: savedGenerationRef.current + 1 };
     try {
-      saveMonoWorkingLibrary(localStorage, next, savedGenerationRef.current);
+      saveMonoSevenLibrary(localStorage, next, savedGenerationRef.current);
       savedGenerationRef.current = next.generation;
-      workingLibraryRef.current = next;
-      workingDocumentRef.current = selected.document;
-      setWorkingLibrary(next);
-      setAppliedOptics(selected.document.optics);
-      setDraftOptics(selected.document.optics);
-      setAppliedShapes(selected.document.shapes);
-      setDraftShapes(selected.document.shapes);
-      restoreAppearance(selected.document);
-      setBackground(selected.document.background);
-      colorLab.loadManagedWorkspace(selected.document.palette);
-      const mode = selected.document.palette.slots[selected.document.palette.activeSlotId - 1].present.mode;
-      applyDocumentEnvironment(mode, selected.document.background);
-      try {
-        saveMonoPalettePrepaint(localStorage, selected.document.palette);
-        localStorage.setItem(ENVIRONMENT_STORAGE_KEY,
-          JSON.stringify({ version: 1, theme: mode, background: selected.document.background }));
-      } catch { /* Derived first-paint cache is secondary. */ }
-      setWorkingStatus("Сохранено в этом браузере");
-      focusWorkingSelector();
+      showWorking(next);
       return true;
     } catch (error) {
       setWorkingStatus(workingSaveError(error));
@@ -368,33 +375,29 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
   };
 
-  const copyWorking = (name: string) => {
-    if (!workingReadyRef.current || workingBlockedRef.current) return false;
-    if (!name || !trialsSettled(() => { copyWorking(name); })) return false;
+  const replaceWorking = (target: MonoSevenSlot,
+    makeNext: (current: MonoSevenLibrary) => MonoSevenLibrary): boolean => {
+    if (!workingReadyRef.current || workingBlockedRef.current || !MONO_SEVEN_SLOTS.includes(target)) return false;
+    if (!trialsSettled(() => { replaceWorking(target, makeNext); })) return false;
     colorLab.end();
     if (!flushWorking()) return false;
     const current = workingLibraryRef.current;
-    const id = crypto.randomUUID();
-    const document = structuredClone(workingDocumentRef.current);
-    const record = { id, name: name.slice(0, 80), revision: 1, document };
-    const next: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1",
-      generation: savedGenerationRef.current + 1, activeId: id,
-      records: [...(current?.records ?? []), record] };
+    if (!current) return false;
     try {
-      saveMonoWorkingLibrary(localStorage, next, savedGenerationRef.current);
+      const next = { ...makeNext(current), generation: savedGenerationRef.current + 1 };
+      saveMonoSevenLibrary(localStorage, next, savedGenerationRef.current);
       savedGenerationRef.current = next.generation;
-      workingLibraryRef.current = next;
-      workingDocumentRef.current = document;
-      setWorkingLibrary(next);
-      colorLab.loadManagedWorkspace(document.palette);
-      setWorkingStatus("Сохранено в этом браузере");
-      focusWorkingSelector();
+      showWorking(next);
       return true;
     } catch (error) {
       setWorkingStatus(workingSaveError(error));
       return false;
     }
   };
+
+  const copyWorking = (target: MonoSevenSlot) => replaceWorking(target, current =>
+    replaceMonoSevenSlot(current, target, workingDocumentRef.current,
+      `${activeSevenRecord(current).name} · копия`.slice(0, 80)));
 
   const renameWorking = (name: string) => {
     if (workingBlockedRef.current) return false;
@@ -403,11 +406,12 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     if (!flushWorking()) return false;
     const current = workingLibraryRef.current;
     if (!current) return false;
-    const records = current.records.map(record => record.id === current.activeId
-      ? { ...record, name: name.slice(0, 80), revision: record.revision + 1 } : record);
-    const next = { ...current, generation: savedGenerationRef.current + 1, records };
+    const slots = [...current.slots] as MonoSevenLibrary["slots"];
+    slots[current.activeSlot - 1] = { ...slots[current.activeSlot - 1],
+      name: name.slice(0, 80), revision: slots[current.activeSlot - 1].revision + 1 };
+    const next = { ...current, generation: savedGenerationRef.current + 1, slots };
     try {
-      saveMonoWorkingLibrary(localStorage, next, savedGenerationRef.current);
+      saveMonoSevenLibrary(localStorage, next, savedGenerationRef.current);
       savedGenerationRef.current = next.generation;
       workingLibraryRef.current = next;
       setWorkingLibrary(next);
@@ -420,86 +424,10 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
   };
 
-  const createWorking = (name: string) => {
-    if (!workingReadyRef.current || workingBlockedRef.current) return false;
-    if (!name) return false;
-    if (!trialsSettled(() => { createWorking(name); })) return false;
-    colorLab.end();
-    if (!flushWorking()) return false;
-    const current = workingLibraryRef.current;
-    const id = crypto.randomUUID();
-    const document = createMonoWorkingDocument();
-    const next: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1",
-      generation: savedGenerationRef.current + 1, activeId: id,
-      records: [...(current?.records ?? []), { id, name: name.slice(0, 80), revision: 1, document }] };
-    try {
-      saveMonoWorkingLibrary(localStorage, next, savedGenerationRef.current);
-      savedGenerationRef.current = next.generation;
-      workingLibraryRef.current = next;
-      workingDocumentRef.current = document;
-      setWorkingLibrary(next);
-      setAppliedOptics(document.optics);
-      setDraftOptics(document.optics);
-      setAppliedShapes(document.shapes);
-      setDraftShapes(document.shapes);
-      restoreAppearance(document);
-      setBackground(document.background);
-      colorLab.loadManagedWorkspace(document.palette);
-      applyDocumentEnvironment("dark", document.background);
-      try {
-        saveMonoPalettePrepaint(localStorage, document.palette);
-        localStorage.setItem(ENVIRONMENT_STORAGE_KEY,
-          JSON.stringify({ version: 1, theme: "dark", background: document.background }));
-      }
-      catch { /* Derived first-paint cache is secondary. */ }
-      setWorkingStatus("Сохранено в этом браузере");
-      focusWorkingSelector();
-      return true;
-    } catch (error) {
-      setWorkingStatus(workingSaveError(error));
-      return false;
-    }
-  };
-
-  const importWorking = (imported: MonoWorkingImport, exactName?: string) => {
-    if (!workingReadyRef.current || workingBlockedRef.current || !trialsSettled(() => { importWorking(imported, exactName); })) return false;
-    colorLab.end();
-    if (!flushWorking()) return false;
-    const current = workingLibraryRef.current;
-    const id = crypto.randomUUID();
-    const document = structuredClone(imported.document);
-    const name = exactName ?? (imported.kind === "palette-only" ? "Импорт палитры" : `${imported.name} · импорт`);
-    const next: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1",
-      generation: savedGenerationRef.current + 1, activeId: id,
-      records: [...(current?.records ?? []), { id, name: name.slice(0, 80), revision: 1, document }] };
-    try {
-      saveMonoWorkingLibrary(localStorage, next, savedGenerationRef.current);
-      savedGenerationRef.current = next.generation;
-      workingLibraryRef.current = next;
-      workingDocumentRef.current = document;
-      setWorkingLibrary(next);
-      setAppliedOptics(document.optics);
-      setDraftOptics(document.optics);
-      setAppliedShapes(document.shapes);
-      setDraftShapes(document.shapes);
-      restoreAppearance(document);
-      setBackground(document.background);
-      colorLab.loadManagedWorkspace(document.palette);
-      const mode = document.palette.slots[document.palette.activeSlotId - 1].present.mode;
-      applyDocumentEnvironment(mode, document.background);
-      try {
-        saveMonoPalettePrepaint(localStorage, document.palette);
-        localStorage.setItem(ENVIRONMENT_STORAGE_KEY,
-          JSON.stringify({ version: 1, theme: mode, background: document.background }));
-      } catch { /* Derived first-paint cache is secondary. */ }
-      setWorkingStatus("Сохранено в этом браузере");
-      focusWorkingSelector();
-      return true;
-    } catch (error) {
-      setWorkingStatus(workingSaveError(error));
-      return false;
-    }
-  };
+  const importWorking = (imported: MonoWorkingImport, target: MonoSevenSlot) =>
+    replaceWorking(target, current => replaceMonoSevenSlot(current, target, imported.document, imported.name));
+  const restoreWorking = (archiveIndex: number, target: MonoSevenSlot, direction: MonoPreset) =>
+    replaceWorking(target, current => restoreMonoArchivedRecord(current, archiveIndex, target, direction));
 
   const acceptWorkingDocument = (document: MonoWorkingDocument, tool: MonoToolId | "all") => {
     if (!workingReadyRef.current) return false;
@@ -513,14 +441,13 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       return false;
     }
     const current = workingLibraryRef.current;
-    const id = current?.activeId ?? crypto.randomUUID();
-    const records = current ? current.records.map(record => record.id === id
-      ? { ...record, revision: record.revision + 1, document } : record)
-      : [{ id, name: "Мой пресет", revision: 1, document }];
-    const next: MonoWorkingLibrary = { version: 2, skinId: "mono-ledger-v1",
-      generation: savedGenerationRef.current + 1, activeId: id, records };
+    if (!current) return false;
+    const slots = [...current.slots] as MonoSevenLibrary["slots"];
+    const selected = slots[current.activeSlot - 1];
+    slots[current.activeSlot - 1] = { ...selected, revision: selected.revision + 1, document };
+    const next: MonoSevenLibrary = { ...current, generation: savedGenerationRef.current + 1, slots };
     try {
-      saveMonoWorkingLibrary(localStorage, next, savedGenerationRef.current);
+      saveMonoSevenLibrary(localStorage, next, savedGenerationRef.current);
       savedGenerationRef.current = next.generation;
       workingLibraryRef.current = next;
       workingDocumentRef.current = document;
@@ -534,23 +461,13 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   };
   const preset = PRESETS[colorLab.workspace.activeSlotId - 1].id;
   const [shapeStatus, setShapeStatus] = useState("");
-  const setPreset = (next: MonoPreset) => {
-    if (next === preset) return;
-    if (fontCandidate || colorLab.pending) {
-      setWorkingStatus(fontCandidate ? "Сначала завершите или отмените пробу шрифтов." : "Сначала примените или отмените импорт палитры.");
-      selectTool(fontCandidate ? "typography" : "color");
-      return;
-    }
-    setShapeStatus("");
-    colorLab.switchSlot((PRESETS.findIndex(item => item.id === next) + 1) as 1 | 2 | 3);
-  };
   const [activeTool, setActiveTool] = useState<MonoToolId>("color");
   const [quickActionMotionStatus, setQuickActionMotionStatus] = useState("Стандартный отклик: Материал · 2,7 px / 270 мс.");
   const [quickActionPreview, setQuickActionPreview] = useState<{
     preset: ControlFeedbackPreset;
     workingPresetId: string | null;
   } | null>(null);
-  const quickActionOverride = quickActionPreview?.workingPresetId === (workingLibrary?.activeId ?? null)
+  const quickActionOverride = quickActionPreview?.workingPresetId === (workingLibrary ? activeSevenRecord(workingLibrary).id : null)
     ? quickActionPreview?.preset ?? null : null;
   const quickActionPreset = quickActionOverride ?? MONO_QUICK_ACTION_DEFAULT;
   const theme = colorLab.shown.mode;
@@ -611,7 +528,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         : !launch || request.sessionId !== launch.sessionId
           ? "stale-session"
           : request.workingPresetId !== launch.workingPresetId ||
-              request.workingPresetId !== (workingLibraryRef.current?.activeId ?? null)
+              request.workingPresetId !== (workingLibraryRef.current ? activeSevenRecord(workingLibraryRef.current).id : null)
             ? "preset-changed"
             : "applied";
       if (outcome === "applied") {
@@ -627,28 +544,16 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     let alive = true;
     const frame = requestAnimationFrame(() => {
       void (async () => { try {
-        let library = loadMonoWorkingLibrary(localStorage);
-        const openTarget = readMaterialOpenTarget();
-        let openedDirection: MonoPreset | null = null;
-        if (library && openTarget) {
-          const target = library.records.find(record => record.id === openTarget.id);
-          if (target) {
-            if (library.activeId !== target.id) {
-              const next = { ...library, activeId: target.id, generation: library.generation + 1 };
-              saveMonoWorkingLibrary(localStorage, next, library.generation);
-              library = next;
-            }
-            openedDirection = openTarget.preset;
-          }
-        }
-        const activeId = library?.activeId;
-        const saved = library?.records.find(record => record.id === activeId)?.document;
-        let document = saved ?? { ...createMonoWorkingDocument(loadMonoLogoPreview(localStorage)),
-          optics: loadOpticalCandidate(), shapes: loadMonoShapeCandidateFrom(() => localStorage),
-          background: loadEnvironmentCandidate().background };
-        if (openedDirection) document = { ...document, palette: { ...document.palette,
-          activeSlotId: (PRESETS.findIndex(item => item.id === openedDirection) + 1) as 1 | 2 | 3 } };
+        let library = loadMonoSevenLibrary(localStorage);
         if (!library) {
+          const hasWorkingSource = localStorage.getItem(MONO_WORKING_PRESETS_KEY) !== null ||
+            localStorage.getItem(MONO_WORKING_PRESETS_LEGACY_KEY) !== null;
+          let freshDocument: MonoWorkingDocument | undefined;
+          let legacyRecords: ReturnType<typeof createLegacyPaletteWorkingRecords> = [];
+          if (!hasWorkingSource) {
+            let document = { ...createMonoWorkingDocument(loadMonoLogoPreview(localStorage)),
+              optics: loadOpticalCandidate(), shapes: loadMonoShapeCandidateFrom(() => localStorage),
+              background: loadEnvironmentCandidate().background };
           validateLegacyCandidate(MONO_SHAPE_STORAGE_KEY, 5_000, "shape");
           validateLegacyCandidate(OPTICAL_STORAGE_KEY, 50_000, "optics");
           validateLegacyCandidate(ENVIRONMENT_STORAGE_KEY, 500, "environment");
@@ -659,14 +564,13 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           if (legacyStateExists) {
             const palette = readMonoPaletteWorkspace(localStorage);
             if (workspaceKeys.some(key => localStorage.getItem(key) !== null) && !palette)
-              throw new Error("Старое рабочее место повреждено.");
+              throw new Error("Старый пресет повреждён.");
             const environment = loadEnvironmentCandidate();
             document = { ...document, palette: palette ?? (environment.theme === "light"
               ? switchMonoPaletteTheme(document.palette, "light") : document.palette) };
           }
           const hasLegacyPresets = localStorage.getItem(MONO_PALETTE_PRESETS_KEY) !== null ||
             localStorage.getItem("wallet4i7.mono.palette-presets.v1") !== null;
-          let legacyRecords: ReturnType<typeof createLegacyPaletteWorkingRecords> = [];
           if (hasLegacyPresets) {
             const raw = localStorage.getItem(MONO_PALETTE_PRESETS_KEY) ??
               localStorage.getItem("wallet4i7.mono.palette-presets.v1")!;
@@ -682,31 +586,32 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
               throw new Error("Старую библиотеку палитр нельзя перенести: проверьте исходный JSON.");
             legacyRecords = createLegacyPaletteWorkingRecords(entries, loadMonoLogoPreview(localStorage));
           }
-          if (legacyStateExists || legacyRecords.length) {
-            library = legacyStateExists ? createRecoveredMonoWorkingLibrary(document) : {
-              version: 2, skinId: "mono-ledger-v1", generation: 1,
-              activeId: legacyRecords[0].id, records: [],
-            };
-            library = { ...library, records: [...library.records, ...legacyRecords] };
-            saveMonoWorkingLibrary(localStorage, library, 0);
-            document = library.records.find(record => record.id === library!.activeId)!.document;
-          } else {
-            document = createFirstMonoWorkingDocument(loadMonoLogoPreview(localStorage));
+            freshDocument = legacyStateExists ? document : legacyRecords[0]?.document ??
+              createFirstMonoWorkingDocument(loadMonoLogoPreview(localStorage));
           }
+          library = migrateMonoSevenLibrary(localStorage, freshDocument, legacyRecords);
         }
+        const openTarget = readMaterialOpenTarget();
+        if (openTarget && library.activeSlot !== openTarget) {
+          const next: MonoSevenLibrary = { ...library, activeSlot: openTarget,
+            generation: library.generation + 1 };
+          saveMonoSevenLibrary(localStorage, next, library.generation);
+          library = next;
+        }
+        const document = activeSevenRecord(library).document;
         if (!alive) return;
         workingLibraryRef.current = library;
         workingDocumentRef.current = document;
-        savedGenerationRef.current = library?.generation ?? 0;
+        savedGenerationRef.current = library.generation;
         setWorkingLibrary(library);
         setAppliedOptics(document.optics);
         setDraftOptics(document.optics);
         setAppliedShapes(document.shapes);
         setDraftShapes(document.shapes);
-      restoreAppearance(document);
+        restoreAppearance(document);
         setBackground(document.background);
         loadManagedWorkspace(document.palette);
-        setWorkingStatus(library ? "Сохранено в этом браузере" : `${FIRST_BUTTON_PRESET_NAME} · первое изменение создаст копию`);
+        setWorkingStatus("Сохранено в этом браузере");
         workingReadyRef.current = true;
         setWorkingReady(true);
       } catch (error) {
@@ -808,15 +713,19 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (pendingTransition || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) return;
+      if (pendingTransition || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.isComposing ||
+        document.querySelector('dialog[open], [role="dialog"]:not([data-mono-rail])')) return;
       const target = event.target;
       if (
         target instanceof HTMLElement &&
-        (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
+        (target.isContentEditable || target.closest("input, textarea, select, [contenteditable]") ||
+          ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
       ) return;
 
-      const next = PRESETS.find((item) => item.key === event.key);
-      if (next) setPreset(next.id);
+      const number = Number(event.key);
+      if (event.key.length === 1 && MONO_SEVEN_SLOTS.includes(number as MonoSevenSlot)) {
+        event.preventDefault(); selectWorking(number as MonoSevenSlot);
+      }
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -900,7 +809,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     const launch: ApplyLaunch = {
       sessionId: crypto.randomUUID(),
       targetId: "mono.quick-actions",
-      workingPresetId: workingLibraryRef.current?.activeId ?? null,
+      workingPresetId: workingLibraryRef.current ? activeSevenRecord(workingLibraryRef.current).id : null,
     };
     quickActionLaunchRef.current = launch;
     quickActionKnownSessionsRef.current = [...quickActionKnownSessionsRef.current.slice(-7), launch.sessionId];
@@ -937,17 +846,17 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
       JSON.stringify(draftShapes) !== JSON.stringify(appliedShapes) ||
       JSON.stringify(draftOptics) !== JSON.stringify(appliedOptics));
   }
-  const activeWorking = workingLibraryRef.current?.records.find(record =>
-    record.id === workingLibraryRef.current?.activeId);
+  const activeWorking = workingLibraryRef.current ? activeSevenRecord(workingLibraryRef.current) : null;
   materialDirtyRef.current = hasPendingTrials() || workingTimerRef.current !== null || workingSaveFailedRef.current ||
     Boolean(activeWorking && JSON.stringify(workingDocumentRef.current) !== JSON.stringify(activeWorking.document));
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
-    const channel = new BroadcastChannel(MONO_WORKING_PRESETS_KEY);
+    const channel = new BroadcastChannel(MONO_SEVEN_PRESETS_KEY);
     channel.onmessage = event => {
       const request = event.data as { kind?: unknown; requestId?: unknown; targetId?: unknown };
       if (request?.kind !== "material-apply-check" || typeof request.requestId !== "string" ||
-        request.requestId.length > 100 || request.targetId !== workingLibraryRef.current?.activeId) return;
+        request.requestId.length > 100 || request.targetId !==
+          (workingLibraryRef.current ? activeSevenRecord(workingLibraryRef.current).id : null)) return;
       channel.postMessage({ kind: "material-apply-status", requestId: request.requestId,
         targetId: request.targetId, dirty: !workingReadyRef.current || materialDirtyRef.current });
     };
@@ -955,9 +864,9 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   }, []);
   useEffect(() => {
     const changed = (event: StorageEvent) => {
-      if (event.key !== MONO_WORKING_PRESETS_KEY || !workingReadyRef.current) return;
+      if (event.key !== MONO_SEVEN_PRESETS_KEY || !workingReadyRef.current) return;
       try {
-        const latest = loadMonoWorkingLibrary(localStorage);
+        const latest = loadMonoSevenLibrary(localStorage);
         if (latest?.generation === savedGenerationRef.current) return;
       } catch { /* A damaged external write must not be applied over this draft. */ }
       workingBlockedRef.current = true;
@@ -1051,7 +960,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
   }, [pendingTransition]);
 
-  const activeRecord = workingLibrary?.records.find(record => record.id === workingLibrary.activeId);
+  const activeRecord = workingLibrary ? activeSevenRecord(workingLibrary) : null;
   const activeMaterials = workingDocumentRef.current.materials[preset];
   const materialSceneActive = Boolean(activeMaterials.background || activeMaterials.buttons?.bindings.length);
   const dirtyTools = (Object.keys(MONO_TOOL_LABELS) as MonoToolId[]).filter(toolDirty);
@@ -1093,32 +1002,32 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         aria-modal={compactChrome && mobileRail === "quick" ? true : undefined}>
         <div className="mono-rail__head"><div><span>WORKSPACE</span><strong>MONO</strong></div><a href="/">V1 ↗</a></div>
         <a className="mono-rail__lab-entry" href="/design-lab">Design Lab · Фоны и кнопки ↗</a>
-        <MonoWorkingPresetBar key={workingLibrary?.activeId ?? "baseline"}
+        <MonoWorkingPresetBar key={workingLibrary?.activeSlot ?? "baseline"}
           ready={workingReady}
-          activeName={workingLibrary?.records.find(record => record.id === workingLibrary.activeId)?.name ??
-            (workingReady && !workingBlockedRef.current ? FIRST_BUTTON_PRESET_NAME : "Исходный образец")}
-          activeId={workingLibrary?.activeId ?? null}
-          choices={workingLibrary?.records.map(record => ({ id: record.id, name: record.name,
-            legacyPalette: record.source?.kind === "legacy-palette" })) ?? []}
+          activeSlot={workingLibrary?.activeSlot ?? 1}
+          choices={workingLibrary?.slots.map(record => ({ slot: record.slot, name: record.name })) ?? []}
+          archive={workingLibrary?.archive.map((record, index) => ({ index, name: record.name,
+            direction: PRESETS[record.document.palette.activeSlotId - 1].id })) ?? []}
           status={workingStatus}
           onExport={() => {
             colorLab.end();
-            const name = workingLibraryRef.current?.records.find(record => record.id === workingLibraryRef.current?.activeId)?.name
-              ?? FIRST_BUTTON_PRESET_NAME;
+            const name = workingLibraryRef.current ? activeSevenRecord(workingLibraryRef.current).name : "Пресет";
             return exportMonoWorkingPreset(name, workingDocumentRef.current);
           }}
+          onExportArchive={index => {
+            const record = workingLibraryRef.current?.archive[index];
+            if (!record) throw new Error("Архивная запись недоступна.");
+            return exportMonoWorkingPreset(record.name, record.document);
+          }}
           onImport={importWorking}
-          starterName={FIRST_BUTTON_PRESET_NAME}
-          onStarter={() => workingLibraryRef.current
-            ? importWorking({ kind: "full", name: FIRST_BUTTON_PRESET_NAME, document: createFirstMonoWorkingDocument() }, FIRST_BUTTON_PRESET_NAME)
-            : !workingBlockedRef.current}
-          onOpenArchive={() => {
+          onRestore={restoreWorking}
+          onOpenPaletteArchive={() => {
             selectTool("color");
             colorLab.setVariantsOpen(true);
             requestAnimationFrame(() => document.getElementById("mono-palette-local-variants")?.scrollIntoView?.({ block: "start" }));
           }}
-          onSelect={selectWorking} onCreate={createWorking} onCopy={copyWorking} onRename={renameWorking}
-          onRetry={() => workingLibraryRef.current ? persistWorking(workingLibraryRef.current.activeId) : false} />
+          onSelect={selectWorking} onCopy={copyWorking} onRename={renameWorking}
+          onRetry={() => workingLibraryRef.current ? persistWorking(workingLibraryRef.current.activeSlot) : false} />
         <div className="mono-workbench__share" data-share-pending={hasPendingTrials()}
           onClickCapture={event => {
             const action = event.target instanceof Element
@@ -1141,10 +1050,6 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         </div>
         {hasPendingTrials() && <p className="mono-workbench__pending" role="status">Есть неприменённые пробы</p>}
 
-        <div className="mono-workbench__directions" role="group" aria-label="Варианты дизайна">
-          {PRESETS.map(item => <button key={item.id} type="button" aria-label={item.key + " · " + item.label}
-            aria-pressed={preset === item.id} onClick={() => setPreset(item.id)}><span>{item.key}</span>{item.label}</button>)}
-        </div>
         <p className="mono-workbench__dock-label">Инструменты</p>
         <MonoToolDock selected={activeTool} onSelect={selectTool} dirtyTools={dirtyTools} />
         <div className="mono-workbench__widths" role="group" aria-label="Ширина предпросмотра">

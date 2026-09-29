@@ -5,7 +5,7 @@ import { MockWalletRepository } from "@wallet/core";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { MonoPreview } from "./mono-preview";
-import { MONO_WORKING_PRESETS_KEY } from "./mono-working-presets";
+import { MONO_SEVEN_PRESETS_KEY } from "./mono-working-presets";
 
 beforeEach(() => {
   localStorage.clear();
@@ -24,7 +24,7 @@ afterEach(() => {
 
 it("shows the supplied Novex identity while preserving the account name and demo state", async () => {
   render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
-  await waitFor(() => expect(screen.getByRole("button", { name: /Пресет оформления:/ })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: /^Пресет 1:/ })).toBeEnabled());
 
   const header = within(document.querySelector<HTMLElement>(".mono-app-header")!);
   expect(header.getByRole("img", { name: "Novex Wallet" })).toBeVisible();
@@ -41,7 +41,7 @@ it("shows the supplied Novex identity while preserving the account name and demo
 
 it("switches between a bare logo and a plaque without changing the account header", async () => {
   render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
-  await waitFor(() => expect(screen.getByRole("button", { name: /Пресет оформления:/ })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: /^Пресет 1:/ })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Логотип" }));
 
   const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
@@ -63,10 +63,11 @@ it("switches between a bare logo and a plaque without changing the account heade
 it("keeps the brand colors until a separate emblem hue is enabled and remembers the applied choice", async () => {
   const snapshot = await new MockWalletRepository().getSnapshot();
   const first = render(<MonoPreview snapshot={snapshot} />);
-  await waitFor(() => expect(screen.getByRole("button", { name: /Пресет оформления:/ })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: /^Пресет 1:/ })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Логотип" }));
   const preview = document.querySelector<HTMLElement>("[data-mono-preview]")!;
   const custom = screen.getByRole("checkbox", { name: "Свой цвет эмблемы" });
+  const beforeApply = JSON.parse(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)!);
 
   expect(custom).not.toBeChecked();
   expect(screen.queryByRole("slider", { name: "Тон знака Novex" })).not.toBeInTheDocument();
@@ -79,7 +80,8 @@ it("keeps the brand colors until a separate emblem hue is enabled and remembers 
   expect(preview.style.getPropertyValue("--mono-logo-custom-dark-primary")).toMatch(/^#[0-9a-f]{6}$/);
   expect(preview.style.getPropertyValue("--mono-logo-custom-light-primary")).toMatch(/^#[0-9a-f]{6}$/);
   expect(localStorage.getItem("wallet4i7.mono.logo-preview.v1")).toBeNull();
-  expect(localStorage.getItem(MONO_WORKING_PRESETS_KEY)).toBeNull();
+  expect(JSON.parse(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)!).slots[0].document.appearance.ledger.logo.hue)
+    .toBe(beforeApply.slots[0].document.appearance.ledger.logo.hue);
 
   fireEvent.click(custom);
   expect(preview).toHaveAttribute("data-mono-logo-custom", "false");
@@ -87,12 +89,12 @@ it("keeps the brand colors until a separate emblem hue is enabled and remembers 
   fireEvent.click(custom);
   expect(screen.getByRole("slider", { name: "Тон знака Novex" })).toHaveValue("330");
   fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
-  expect(JSON.parse(localStorage.getItem(MONO_WORKING_PRESETS_KEY)!).records[0].document.appearance.ledger.logo.hue).toBe(330);
+  expect(JSON.parse(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)!).slots[0].document.appearance.ledger.logo.hue).toBe(330);
   expect(localStorage.getItem("wallet4i7.mono.logo-preview.v1")).toBeNull();
 
   first.unmount();
   render(<MonoPreview snapshot={snapshot} />);
-  await waitFor(() => expect(screen.getByRole("button", { name: /Пресет оформления:/ })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: /^Пресет 1:/ })).toBeEnabled());
   fireEvent.click(screen.getByRole("button", { name: "Логотип" }));
   await waitFor(() => expect(screen.getByRole("checkbox", { name: "Свой цвет эмблемы" })).toBeChecked());
   expect(screen.getByRole("slider", { name: "Тон знака Novex" })).toHaveValue("330");

@@ -5,9 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MonoPreview } from "./mono-preview";
 import { MonoShapeTuner } from "./mono-shape-tuner";
+import { MONO_SEVEN_PRESETS_KEY } from "./mono-working-presets";
 
 const SHAPE_STORAGE_KEY = "wallet4i7.mono.shape-preview.v1";
-const WORKING_KEY = "wallet4i7.mono.working-presets.v2";
+const WORKING_KEY = MONO_SEVEN_PRESETS_KEY;
 const waitWorkingReady = () => waitFor(() => expect(screen.getByRole("button", { name: "Действия с пресетом" })).toBeEnabled());
 const openShape = () => fireEvent.click(screen.getByRole("button", { name: "Форма и кнопки" }));
 const shapeActions = () => within(screen.getByRole("region", { name: "Форма и кнопки" }).querySelector("footer")!);
@@ -174,7 +175,7 @@ describe("MONO shape lab", () => {
     expect(exact).toHaveValue(20);
   });
 
-  it("applies only the active direction and leaves other direction drafts unapplied", async () => {
+  it("applies only the active preset and keeps the other preset independent", async () => {
     render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
     await waitWorkingReady();
     openShape();
@@ -184,32 +185,34 @@ describe("MONO shape lab", () => {
     const apply = shapeActions().getByRole("button", { name: "Применить форму" });
 
     fireEvent.change(radius, { target: { value: "20" } });
-    fireEvent.click(screen.getByRole("button", { name: "2 · Frost" }));
-    expect(radius).toHaveValue("19");
+    fireEvent.click(apply);
+    fireEvent.click(screen.getByRole("button", { name: /^Пресет 2:/ }));
+    expect(radius).toHaveValue("12");
     expect(apply).toHaveAttribute("aria-disabled", "true");
 
     fireEvent.change(radius, { target: { value: "21" } });
     fireEvent.click(apply);
 
     const stored = JSON.parse(localStorage.getItem(WORKING_KEY)!) as {
-      records: Array<{ document: { shapes: Record<string, Record<string, number>> } }>;
+      slots: Array<{ document: { shapes: Record<string, Record<string, number>> } }>;
     };
-    expect(stored.records[0].document.shapes.ledger?.["quick-actions"]).toBe(12);
-    expect(stored.records[0].document.shapes.frost?.["quick-actions"]).toBe(21);
+    expect(stored.slots[0].document.shapes.ledger?.["quick-actions"]).toBe(20);
+    expect(stored.slots[1].document.shapes.ledger?.["quick-actions"]).toBe(21);
 
-    fireEvent.click(screen.getByRole("button", { name: "1 · Ledger" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Пресет 1:/ }));
     expect(radius).toHaveValue("20");
   });
 
   it("keeps the live draft dirty when candidate storage is unavailable", async () => {
     const nativeSetItem = Storage.prototype.setItem;
+    render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+    await waitWorkingReady();
+    openShape();
+    const before = localStorage.getItem(WORKING_KEY);
     const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
       if (key === WORKING_KEY) throw new Error("storage blocked");
       return nativeSetItem.call(this, key, value);
     });
-    render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
-    await waitWorkingReady();
-    openShape();
 
     const lab = within(screen.getByRole("group", { name: "Настройка формы" }));
     const radius = lab.getByRole("slider", { name: "Радиус формы" });
@@ -222,7 +225,7 @@ describe("MONO shape lab", () => {
     expect(apply).toBeEnabled();
     expect(apply).toHaveAttribute("aria-disabled", "false");
     expect(lab.getByRole("status", { name: "Состояние формы" })).toHaveTextContent("Не удалось сохранить форму");
-    expect(localStorage.getItem(WORKING_KEY)).toBeNull();
+    expect(localStorage.getItem(WORKING_KEY)).toBe(before);
     write.mockRestore();
   });
 

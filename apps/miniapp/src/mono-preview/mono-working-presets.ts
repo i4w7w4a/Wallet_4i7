@@ -11,6 +11,10 @@ import { createEmptyMonoMaterials, normalizeMonoMaterialMap, type MonoMaterialMa
 
 export const MONO_WORKING_PRESETS_KEY = "wallet4i7.mono.working-presets.v2";
 export const MONO_WORKING_PRESETS_LEGACY_KEY = "wallet4i7.mono.working-presets.v1";
+export const MONO_SEVEN_PRESETS_KEY = "wallet4i7.mono.working-presets.v3";
+export const MONO_SEVEN_BACKUP_KEY = "wallet4i7.mono.working-presets.v3.source-raw";
+export const MONO_SEVEN_SLOTS = [1, 2, 3, 4, 5, 6, 7] as const;
+export type MonoSevenSlot = typeof MONO_SEVEN_SLOTS[number];
 const MAX_STORE_LENGTH = 2_000_000;
 const MAX_RECORDS = 64;
 const MAX_IMPORT_BYTES = 2_000_000;
@@ -44,6 +48,16 @@ export type MonoWorkingImport = {
   name: string;
   document: MonoWorkingDocument;
   kind: "full" | "palette-only";
+};
+export type MonoSevenRecord = MonoWorkingRecord & { slot: MonoSevenSlot };
+export type MonoSevenLibrary = {
+  version: 3;
+  skinId: "mono-ledger-v1";
+  generation: number;
+  activeSlot: MonoSevenSlot;
+  slots: [MonoSevenRecord, MonoSevenRecord, MonoSevenRecord, MonoSevenRecord,
+    MonoSevenRecord, MonoSevenRecord, MonoSevenRecord];
+  archive: MonoWorkingRecord[];
 };
 
 type StoragePort = Pick<Storage, "getItem" | "setItem">;
@@ -290,4 +304,148 @@ export function saveMonoWorkingLibrary(storage: StoragePort, library: MonoWorkin
     throw new MonoWorkingStoreError("Рабочая библиотека слишком велика для сохранения.", "invalid");
   loadMonoWorkingLibrary({ getItem: key => key === MONO_WORKING_PRESETS_KEY ? serialized : null });
   storage.setItem(MONO_WORKING_PRESETS_KEY, serialized);
+}
+
+const MAX_SEVEN_STORE_LENGTH = 4_000_000;
+const MAX_SEVEN_ARCHIVE = 96;
+
+function sevenSlot(value: unknown): value is MonoSevenSlot {
+  return MONO_SEVEN_SLOTS.includes(value as MonoSevenSlot);
+}
+
+function sevenRecord(value: unknown, slot?: MonoSevenSlot): MonoWorkingRecord | MonoSevenRecord {
+  const input = record(value);
+  exactKeys(input, ["id", "name", "revision", "document",
+    ...(slot === undefined ? [] : ["slot"]), ...(input?.source === undefined ? [] : ["source"])], "Запись семи пресетов");
+  if (typeof input.id !== "string" || !input.id || input.id.length > 100 ||
+    typeof input.name !== "string" || !input.name.trim() || input.name.length > 80 ||
+    !Number.isSafeInteger(input.revision) || Number(input.revision) < 1 ||
+    (slot !== undefined && input.slot !== slot))
+    throw new MonoWorkingStoreError("Запись семи пресетов повреждена.", "invalid");
+  if (slot !== undefined && input.id !== `mono-seven-slot-${slot}`)
+    throw new MonoWorkingStoreError("Номер пресета повреждён.", "invalid");
+  const document = normalizeMonoWorkingDocument(input.document);
+  if (record(input.document)?.version !== 5 || canonical(input.document) !== canonical(document))
+    throw new MonoWorkingStoreError("Документ пресета повреждён или неизвестен.", "invalid");
+  let source: MonoWorkingRecord["source"];
+  if (input.source !== undefined) {
+    exactKeys(input.source, ["kind", "id", "contentHash"], "Источник записи");
+    const metadata = input.source as Record<string, unknown>;
+    if (metadata.kind !== "legacy-palette" || typeof metadata.id !== "string" ||
+      typeof metadata.contentHash !== "string")
+      throw new MonoWorkingStoreError("Источник записи повреждён.", "invalid");
+    source = { kind: "legacy-palette", id: metadata.id, contentHash: metadata.contentHash };
+  }
+  return { id: input.id, name: input.name, revision: Number(input.revision), document,
+    ...(slot === undefined ? {} : { slot }), ...(source ? { source } : {}) } as MonoWorkingRecord | MonoSevenRecord;
+}
+
+export function parseMonoSevenLibrary(raw: string): MonoSevenLibrary {
+  if (raw.length > MAX_SEVEN_STORE_LENGTH) throw new MonoWorkingStoreError("Библиотека семи пресетов слишком велика.", "invalid");
+  let value: unknown;
+  try { value = JSON.parse(raw) as unknown; }
+  catch { throw new MonoWorkingStoreError("Библиотека семи пресетов повреждена.", "invalid"); }
+  exactKeys(value, ["version", "skinId", "generation", "activeSlot", "slots", "archive"], "Библиотека семи пресетов");
+  const input = value as Record<string, unknown>;
+  if (input.version !== 3 || input.skinId !== "mono-ledger-v1" || !sevenSlot(input.activeSlot) ||
+    !Number.isSafeInteger(input.generation) || Number(input.generation) < 1 ||
+    !Array.isArray(input.slots) || input.slots.length !== 7 ||
+    !Array.isArray(input.archive) || input.archive.length > MAX_SEVEN_ARCHIVE)
+    throw new MonoWorkingStoreError("Версия или состав семи пресетов неизвестны.", "invalid");
+  const sourceSlots = input.slots as unknown[];
+  const slots = MONO_SEVEN_SLOTS.map((slot, index) => sevenRecord(sourceSlots[index], slot)) as MonoSevenLibrary["slots"];
+  const archive = input.archive.map(item => sevenRecord(item)) as MonoWorkingRecord[];
+  const result: MonoSevenLibrary = { version: 3, skinId: "mono-ledger-v1", generation: Number(input.generation),
+    activeSlot: input.activeSlot, slots, archive };
+  if (canonical(value) !== canonical(result))
+    throw new MonoWorkingStoreError("Библиотека семи пресетов содержит неподдерживаемые значения.", "invalid");
+  return result;
+}
+
+export function loadMonoSevenLibrary(storage: Pick<Storage, "getItem">): MonoSevenLibrary | null {
+  const raw = storage.getItem(MONO_SEVEN_PRESETS_KEY);
+  return raw === null ? null : parseMonoSevenLibrary(raw);
+}
+
+export function createMonoSevenLibrary(source?: MonoWorkingLibrary | null, freshDocument?: MonoWorkingDocument,
+  extraArchive: readonly MonoWorkingRecord[] = []): MonoSevenLibrary {
+  const selected = source?.records.find(item => item.id === source.activeId);
+  const slots = MONO_SEVEN_SLOTS.map(slot => ({
+    slot, id: `mono-seven-slot-${slot}`,
+    name: slot === 1 ? selected?.name ?? "Пресет 1" : `Пресет ${slot}`,
+    revision: slot === 1 ? selected?.revision ?? 1 : 1,
+    document: structuredClone(slot === 1 ? selected?.document ?? freshDocument ?? createMonoWorkingDocument()
+      : createMonoWorkingDocument()),
+    ...(slot === 1 && selected?.source ? { source: structuredClone(selected.source) } : {}),
+  })) as MonoSevenLibrary["slots"];
+  const library: MonoSevenLibrary = { version: 3, skinId: "mono-ledger-v1", generation: 1, activeSlot: 1,
+    slots, archive: [...(source?.records ?? []), ...extraArchive].map(item => structuredClone(item)) };
+  return parseMonoSevenLibrary(JSON.stringify(library));
+}
+
+function writeVerified(storage: StoragePort, key: string, raw: string): void {
+  storage.setItem(key, raw);
+  if (storage.getItem(key) !== raw) throw new MonoWorkingStoreError("Запись не подтверждена хранилищем.", "invalid");
+}
+
+/** Back up the exact old bytes before the first v3 write. A partial attempt is safe to retry. */
+export function migrateMonoSevenLibrary(storage: StoragePort, freshDocument?: MonoWorkingDocument,
+  extraArchive: readonly MonoWorkingRecord[] = []): MonoSevenLibrary {
+  const existing = loadMonoSevenLibrary(storage);
+  if (existing) return existing;
+  const sourceKey = storage.getItem(MONO_WORKING_PRESETS_KEY) !== null
+    ? MONO_WORKING_PRESETS_KEY : MONO_WORKING_PRESETS_LEGACY_KEY;
+  const sourceRaw = storage.getItem(sourceKey);
+  const source = sourceRaw === null ? null : loadMonoWorkingLibrary(storage);
+  const next = createMonoSevenLibrary(source, freshDocument, extraArchive);
+  const raw = JSON.stringify(next);
+  const backup = storage.getItem(MONO_SEVEN_BACKUP_KEY);
+  if (sourceRaw !== null) {
+    if (backup !== null && backup !== sourceRaw)
+      throw new MonoWorkingStoreError("Исходная библиотека изменилась после резервирования.", "conflict");
+    if (backup === null) writeVerified(storage, MONO_SEVEN_BACKUP_KEY, sourceRaw);
+    if (storage.getItem(sourceKey) !== sourceRaw)
+      throw new MonoWorkingStoreError("Исходная библиотека изменилась в другой вкладке.", "conflict");
+  } else if (backup !== null) {
+    throw new MonoWorkingStoreError("Исходная библиотека недоступна после резервирования.", "conflict");
+  }
+  const concurrent = loadMonoSevenLibrary(storage);
+  if (concurrent) return concurrent;
+  writeVerified(storage, MONO_SEVEN_PRESETS_KEY, raw);
+  return next;
+}
+
+export function saveMonoSevenLibrary(storage: StoragePort, library: MonoSevenLibrary, expectedGeneration: number): void {
+  const current = loadMonoSevenLibrary(storage);
+  if (!current || current.generation !== expectedGeneration || library.generation !== expectedGeneration + 1)
+    throw new MonoWorkingStoreError("Пресеты изменились в другой вкладке.", "conflict");
+  const raw = JSON.stringify(library);
+  parseMonoSevenLibrary(raw);
+  writeVerified(storage, MONO_SEVEN_PRESETS_KEY, raw);
+}
+
+/** Replacement is explicit and recoverable; duplicate names in the archive remain distinct. */
+export function replaceMonoSevenSlot(library: MonoSevenLibrary, slot: MonoSevenSlot,
+  document: MonoWorkingDocument, name: string): MonoSevenLibrary {
+  if (!sevenSlot(slot) || !name.trim() || name.length > 80 || library.archive.length >= MAX_SEVEN_ARCHIVE)
+    throw new MonoWorkingStoreError("Пресет нельзя заменить.", "invalid");
+  const normalized = normalizeMonoWorkingDocument(document);
+  const prior = library.slots[slot - 1];
+  const archiveId = `archived-slot-${slot}-g${library.generation}-r${prior.revision}-${library.archive.length}`;
+  const archived: MonoWorkingRecord = { id: archiveId, name: prior.name, revision: prior.revision,
+    document: structuredClone(prior.document), ...(prior.source ? { source: structuredClone(prior.source) } : {}) };
+  const slots = [...library.slots] as MonoSevenLibrary["slots"];
+  slots[slot - 1] = { slot, id: prior.id, name: name.trim(), revision: prior.revision + 1,
+    document: structuredClone(normalized) };
+  return { ...library, activeSlot: slot, slots, archive: [...library.archive, archived] };
+}
+
+export function restoreMonoArchivedRecord(library: MonoSevenLibrary, archiveIndex: number,
+  slot: MonoSevenSlot, direction: MonoShapePreset): MonoSevenLibrary {
+  if (!Number.isInteger(archiveIndex) || archiveIndex < 0 || archiveIndex >= library.archive.length ||
+    (direction !== "ledger" && direction !== "frost" && direction !== "mercury"))
+    throw new MonoWorkingStoreError("Архивная запись неизвестна.", "invalid");
+  const document = structuredClone(library.archive[archiveIndex].document);
+  document.palette.activeSlotId = ({ ledger: 1, frost: 2, mercury: 3 } as const)[direction];
+  return replaceMonoSevenSlot(library, slot, document, library.archive[archiveIndex].name);
 }

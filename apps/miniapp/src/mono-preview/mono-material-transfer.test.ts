@@ -3,10 +3,15 @@ import { expect, it } from "vitest";
 import { createMonoWorkingDocument, exportMonoWorkingPreset, previewMonoWorkingImport,
   type MonoWorkingLibrary } from "./mono-working-presets";
 import { applyMonoMaterialPatch } from "./mono-material-transfer";
+import * as transfer from "./mono-material-transfer";
 import { createDefaultActionArtworkMap } from "./action-artwork/model";
 
 const artwork = () => { const map = createDefaultActionArtworkMap();
   map["quick.send"].packId = "volume-v1"; return map; };
+
+it("has a scoped seven-number material adapter", () => {
+  expect(transfer).toHaveProperty("applyMonoSevenMaterialPatch");
+});
 
 it("applies background then buttons to one chosen record and direction without changing other fields", async () => {
   const first = createMonoWorkingDocument();
