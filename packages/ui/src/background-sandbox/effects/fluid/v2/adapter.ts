@@ -5,7 +5,9 @@ import { createSeedSplats } from "../seed";
 import { createFluidActionState, drainFluidAction, queueFluidAction, type FluidActionState } from "./actions";
 import { createFluidClock, stepFluidClock, type FluidClock } from "./clock";
 import { fluidHexToRgb, resolveFluidV2Colors } from "./colors";
-import { fluidV2Decay } from "./dynamics";
+import { EMPTY_FLUID_VIEWPORT_MOTION, fluidV2Decay, stepFluidViewportMotion,
+  type FluidViewportMotionState } from "./dynamics";
+import { FLUID_VIEWPORT_RESPONSE_DEFAULTS } from "../../../fluid-viewport-response";
 import { planFluidV2Allocation, type FluidSize, type FluidV2Allocation } from "./quality";
 import { FluidV2PointerInput } from "./pointer";
 import { parseFluidV2Params, type FluidV2Params } from "./schema";
@@ -82,6 +84,7 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
   private disposed = false;
   private passes = 0;
   private dragPigment = 0;
+  private viewportMotion: FluidViewportMotionState = EMPTY_FLUID_VIEWPORT_MOTION;
 
   constructor(private readonly gl: Gl, private readonly init: MaterialInit<FluidV2Params, null> & { plan: MaterialResourcePlan }) {
     this.viewport = { ...init.viewport };
@@ -178,7 +181,7 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     this.displayDirty = true;
   }
 
-  private step(dt: number): void {
+  private step(dt: number, motion: FluidViewportMotionState, edgeResponse: number): void {
     const t = this.targets!;
     const texelSize = [1 / t.velocity.read.width, 1 / t.velocity.read.height];
     const decay = fluidV2Decay(dt, this.params.velocityDissipation, this.params.dyeDissipation, this.params.pressureRetention);
@@ -194,10 +197,13 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     }
     this.draw("gradient", t.velocity.write, { texelSize, pressure: t.pressure.read.texture, velocity: t.velocity.read.texture });
     swap(t.velocity);
-    this.draw("advect", t.velocity.write, { texelSize, velocity: t.velocity.read.texture, source: t.velocity.read.texture, dt, retention: decay.velocity });
+    this.draw("advect", t.velocity.write, { texelSize, velocity: t.velocity.read.texture, source: t.velocity.read.texture,
+      dt, retention: decay.velocity, velocityPass: 1, viewportScrollY: motion.scrollY,
+      viewportBlockedY: motion.edgeY, viewportEdgeResponse: edgeResponse });
     swap(t.velocity);
     for (const dye of [t.dyeA, t.dyeB]) {
-      this.draw("advect", dye.write, { texelSize, velocity: t.velocity.read.texture, source: dye.read.texture, dt, retention: decay.dye });
+      this.draw("advect", dye.write, { texelSize, velocity: t.velocity.read.texture, source: dye.read.texture,
+        dt, retention: decay.dye, velocityPass: 0, viewportScrollY: 0, viewportBlockedY: 0, viewportEdgeResponse: 0 });
       swap(dye);
     }
   }
@@ -243,6 +249,10 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     }
     const step = stepFluidClock(this.clock, frame.dt, this.params.timeScale, this.params.mode, this.params.ambientRate);
     this.clock = step.clock;
+    if (frame.viewportMotion?.reset) this.viewportMotion = EMPTY_FLUID_VIEWPORT_MOTION;
+    const response = frame.viewportMotion?.response ?? FLUID_VIEWPORT_RESPONSE_DEFAULTS;
+    this.viewportMotion = stepFluidViewportMotion(this.viewportMotion,
+      frame.viewportMotion ?? { deltaY: 0, blockedY: 0 }, frame.dt, response);
     const drag = this.input.consume(frame.pointer, this.geometry.width / this.geometry.height, this.params.mode === "draw");
     let available = 4;
     for (const moved of drag) {
@@ -260,7 +270,7 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     for (const point of step.splats.slice(0, available)) {
       this.splat(point.x, point.y, point.dx * this.params.force / 2600, point.dy * this.params.force / 2600, point.pigment, 0.4);
     }
-    if (step.dt > 0) { this.step(step.dt); this.displayDirty = true; }
+    if (step.dt > 0) { this.step(step.dt, this.viewportMotion, response.edgeResponse); this.displayDirty = true; }
     if (this.displayDirty) { this.postProcess(); this.displayDirty = false; }
     return { texture: this.targets.output.texture, width: this.targets.output.width, height: this.targets.output.height,
       alphaMode: this.params.backgroundAlpha === 1 ? "opaque" : "premultiplied", colorSpace: "display-srgb" };
@@ -285,6 +295,7 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
     this.actionState = createFluidActionState(seed);
     this.dragPigment = 0;
     this.input.reset();
+    this.viewportMotion = EMPTY_FLUID_VIEWPORT_MOTION;
     this.resetPending = true;
   }
 
@@ -294,6 +305,7 @@ class FluidV2Pass implements MaterialPass<FluidV2Params> {
       throw new FluidV2Failure("invalid-config", "Некорректная фоновая геометрия Fluid v2.");
     }
     if (sizeMatches(geometry, this.geometry)) { this.viewport = { ...viewport }; this.geometry = { ...geometry }; return; }
+    this.viewportMotion = EMPTY_FLUID_VIEWPORT_MOTION;
     const allocation = this.plan(geometry);
     this.viewport = { ...viewport };
     this.geometry = { ...geometry };

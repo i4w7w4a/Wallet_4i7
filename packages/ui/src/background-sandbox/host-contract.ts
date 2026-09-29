@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { FluidViewportResponseV1 } from "./fluid-viewport-response";
 import type {
   BackgroundRecipe, EffectDiagnostics, EffectId, EffectProvenance,
   ParameterControl, ParameterValue, ParseResult,
@@ -69,6 +70,7 @@ export interface MaterialCatalogV2 {
 export type MaterialStageRequestV2 = Readonly<{
   recipe: NormalizedBackgroundMaterial;
   edgeFinish?: BackgroundEdgeFinishV1;
+  viewportResponse?: FluidViewportResponseV1;
   presentation: BackgroundPresentation;
   quality: MaterialQualityProfile;
   paused: boolean;

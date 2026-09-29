@@ -1,6 +1,8 @@
 import { Renderer, Texture, type OGLRenderingContext } from "ogl";
 import type { Frame, GpuLimits, PointerFrame, PointerPhase, Viewport } from "./contracts";
-import { ActiveClock, PointerInput, resolveViewport } from "./host-input";
+import { ActiveClock, PointerInput, ViewportMotionInput, resolveViewport } from "./host-input";
+import { FLUID_VIEWPORT_RESPONSE_DEFAULTS, parseFluidViewportResponse,
+  type FluidViewportResponseV1 } from "./fluid-viewport-response";
 import type { BackgroundOverlay } from "./overlay";
 import type { BackgroundRuntimeStatus } from "./host-contract";
 import type {
@@ -28,6 +30,7 @@ const EMPTY_POINTER: PointerFrame = { uv: [0.5, 0.5], inside: false, down: false
 export type MaterialSceneInput = Readonly<{
   background: MaterialRecipeV2 | null;
   edgeFinish?: BackgroundEdgeFinishV1;
+  viewportResponse?: FluidViewportResponseV1;
   bindings: readonly MaterialTargetBinding[];
   quality: MaterialQualityProfile;
   paused: boolean;
@@ -85,9 +88,12 @@ export class MaterialSceneBackend {
   private readonly compositor: MaterialCompositor;
   private readonly clock = new ActiveClock();
   private readonly pointer = new PointerInput();
+  private readonly viewportMotion: ViewportMotionInput;
+  private readonly reducedMotion: MediaQueryList | null;
   private readonly resizeObserver: ResizeObserver;
   private readonly mutationObserver: MutationObserver;
   private viewport: Viewport;
+  private viewportResponse: FluidViewportResponseV1;
   private input: MaterialSceneInput;
   private passes: ActivePass[] = [];
   private optical: ReturnType<BackgroundOverlay["create"]> | null = null;
@@ -95,6 +101,9 @@ export class MaterialSceneBackend {
   private abort: AbortController | null = null;
   private generation = 0;
   private frameId: number | null = null;
+  private viewportMotionReset = true;
+  private touchScroll: { id: number; y: number; startX: number; startY: number;
+    intent: "pending" | "vertical" | "other" } | null = null;
   private lastActionId = 0;
   private structureKey = "";
   private waitingTargets = false;
@@ -107,10 +116,13 @@ export class MaterialSceneBackend {
     private readonly onStatus: (status: BackgroundRuntimeStatus) => void,
     private readonly onRestore: () => void) {
     this.input = input;
+    this.viewportResponse = parseFluidViewportResponse(input.viewportResponse) ?? FLUID_VIEWPORT_RESPONSE_DEFAULTS;
     // The stage is the visible viewport; MONO's scrollable wallet is taller than it.
     // A width-limited stage may sit inside a wider scrolling viewport. The canvas
     // follows that viewport vertically while keeping the stage's real CSS width.
     this.viewportElement = root.closest<HTMLElement>("[data-material-scrollport]") ?? root.parentElement ?? root;
+    this.viewportMotion = new ViewportMotionInput(this.viewportElement.scrollTop);
+    this.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)") ?? null;
     this.canvas = document.createElement("canvas");
     this.canvas.dataset.materialCanvas = "true";
     this.canvas.setAttribute("aria-hidden", "true");
@@ -139,6 +151,12 @@ export class MaterialSceneBackend {
       if (this.viewportElement !== root) this.resizeObserver.observe(this.viewportElement);
       this.mutationObserver.observe(root, { childList: true, subtree: true });
       this.viewportElement.addEventListener("scroll", this.scrollChanged, { passive: true });
+      this.viewportElement.addEventListener("wheel", this.wheelChanged, { passive: true });
+      this.viewportElement.addEventListener("touchstart", this.touchStarted, { passive: true });
+      this.viewportElement.addEventListener("touchmove", this.touchMoved, { passive: true });
+      this.viewportElement.addEventListener("touchend", this.touchEnded, { passive: true });
+      this.viewportElement.addEventListener("touchcancel", this.touchEnded, { passive: true });
+      this.reducedMotion?.addEventListener?.("change", this.motionPreferenceChanged);
       this.canvas.addEventListener("webglcontextlost", this.contextLost);
       this.canvas.addEventListener("webglcontextrestored", this.contextRestored);
       root.addEventListener("pointerenter", this.handlePointer, { passive: true });
@@ -309,6 +327,13 @@ export class MaterialSceneBackend {
     try {
       const timing = now === undefined ? { time: this.clock.time, dt: 0 } : this.clock.advance(now);
       const backgroundPointer = this.pointer.drain();
+      const fluidBackground = this.input.background?.effectId === "fluid" && this.input.background.effectVersion === 2;
+      const viewportMotion = fluidBackground ? {
+        ...this.viewportMotion.drain(),
+        response: this.canCollectViewportMotion() ? this.viewportResponse : FLUID_VIEWPORT_RESPONSE_DEFAULTS,
+        ...(this.viewportMotionReset ? { reset: true } : {}),
+      } : undefined;
+      if (fluidBackground) this.viewportMotionReset = false;
       const hostClips = new Map<HTMLElement, MaterialHostClip | undefined>();
       this.compositor.clear();
       for (const entry of this.passes) {
@@ -318,7 +343,8 @@ export class MaterialSceneBackend {
         if (geometry.pixelWidth !== entry.geometry.pixelWidth || geometry.pixelHeight !== entry.geometry.pixelHeight) {
           void this.select(); return;
         }
-        const frame: Frame = { ...timing, pointer: entry.key === "background" ? backgroundPointer : EMPTY_POINTER };
+        const frame: Frame = { ...timing, pointer: entry.key === "background" ? backgroundPointer : EMPTY_POINTER,
+          ...(entry.key === "background" && viewportMotion ? { viewportMotion } : {}) };
         const texture: MaterialFrameTexture = entry.pass.render(frame, geometry);
         const mode: MaterialDrawMode = entry.key === "background" ? "background" : entry.layer!;
         const drawn = this.compositor.draw(texture, geometry, mode, texture.alphaMode === "opaque",
@@ -380,7 +406,7 @@ export class MaterialSceneBackend {
   }
   private stop(): void {
     if (this.frameId !== null) cancelAnimationFrame(this.frameId);
-    this.frameId = null; this.clock.pause();
+    this.frameId = null; this.clock.pause(); this.resetViewportMotion();
   }
   private invalidate(): void {
     if (this.input.paused) this.draw(); else this.schedule();
@@ -392,7 +418,61 @@ export class MaterialSceneBackend {
   private syncCanvasToScroll(): void {
     this.canvas.style.top = `${this.viewportElement.scrollTop}px`;
   }
-  private readonly scrollChanged = () => { this.syncCanvasToScroll(); this.invalidate(); };
+  private scrollMax(): number {
+    return Math.max(0, this.viewportElement.scrollHeight - this.viewportElement.clientHeight);
+  }
+  private canCollectViewportMotion(): boolean {
+    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+    return this.input.background?.effectId === "fluid" && this.input.background.effectVersion === 2 &&
+      this.viewportResponse.enabled && this.viewportResponse.strength > 0 && this.input.hostActive && !this.input.paused &&
+      !this.loading && !this.lost && !this.reducedMotion?.matches && !saveData &&
+      document.visibilityState !== "hidden";
+  }
+  private resetViewportMotion(): void {
+    this.viewportMotion.reset(this.viewportElement.scrollTop);
+    this.viewportMotionReset = true;
+    this.touchScroll = null;
+  }
+  private readonly motionPreferenceChanged = () => { this.resetViewportMotion(); this.invalidate(); };
+  private readonly scrollChanged = () => {
+    this.syncCanvasToScroll();
+    if (this.canCollectViewportMotion())
+      this.viewportMotion.recordScroll(this.viewportElement.scrollTop, this.scrollMax(), this.viewportElement.clientHeight);
+    else this.viewportMotion.reset(this.viewportElement.scrollTop);
+    this.invalidate();
+  };
+  private readonly wheelChanged = (event: WheelEvent) => {
+    if (!this.canCollectViewportMotion()) return;
+    const height = this.viewportElement.clientHeight;
+    const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height : 1);
+    this.viewportMotion.recordBoundaryAttempt(delta, this.viewportElement.scrollTop, this.scrollMax(), height);
+    this.invalidate();
+  };
+  private readonly touchStarted = (event: TouchEvent) => {
+    if (!this.canCollectViewportMotion() || event.touches.length !== 1) { this.touchScroll = null; return; }
+    const touch = event.touches.item(0);
+    if (touch) this.touchScroll = { id: touch.identifier, y: touch.clientY,
+      startX: touch.clientX, startY: touch.clientY, intent: "pending" };
+  };
+  private readonly touchMoved = (event: TouchEvent) => {
+    const tracking = this.touchScroll;
+    if (!tracking || !this.canCollectViewportMotion() || event.touches.length !== 1) return;
+    const touch = event.touches.item(0);
+    if (!touch || touch.identifier !== tracking.id) { this.touchScroll = null; return; }
+    const delta = tracking.y - touch.clientY;
+    tracking.y = touch.clientY;
+    if (tracking.intent === "pending") {
+      const vertical = Math.abs(touch.clientY - tracking.startY);
+      const horizontal = Math.abs(touch.clientX - tracking.startX);
+      if (vertical >= 5 && vertical > horizontal * 1.25) tracking.intent = "vertical";
+      else if (horizontal >= 5 && horizontal > vertical * 1.25) tracking.intent = "other";
+    }
+    if (tracking.intent !== "vertical") return;
+    this.viewportMotion.recordBoundaryAttempt(delta, this.viewportElement.scrollTop,
+      this.scrollMax(), this.viewportElement.clientHeight);
+    this.invalidate();
+  };
+  private readonly touchEnded = () => { this.touchScroll = null; };
   private readonly handlePointer = (event: PointerEvent) => {
     if (!this.input.background || !this.input.hostActive || this.input.paused) return;
     const phase = event.type.slice("pointer".length) as PointerPhase;
@@ -424,7 +504,9 @@ export class MaterialSceneBackend {
   update(next: MaterialSceneInput): void {
     if (this.disposed || this.lost) return;
     const before = this.input;
+    const beforeResponse = this.viewportResponse;
     this.input = next;
+    this.viewportResponse = parseFluidViewportResponse(next.viewportResponse) ?? FLUID_VIEWPORT_RESPONSE_DEFAULTS;
     if (before.overlay !== next.overlay) {
       this.unsubscribeOverlay?.(); this.unsubscribeOverlay = null;
       this.optical?.dispose(); this.optical = null;
@@ -438,7 +520,11 @@ export class MaterialSceneBackend {
       if (next.restartKey !== before.restartKey) {
         for (const entry of this.passes) entry.pass.reset(entry.recipe.seed);
         this.clock.reset(); this.pointer.reset();
+        this.resetViewportMotion();
       }
+      if (this.viewportResponse.enabled !== beforeResponse.enabled ||
+          (this.viewportResponse.strength === 0 && beforeResponse.strength !== 0))
+        this.resetViewportMotion();
       if (next.transientAction && next.transientAction.requestId > this.lastActionId) {
         this.lastActionId = next.transientAction.requestId;
         this.passes.find(entry => entry.key === "background")?.pass.invokeAction?.(next.transientAction.action);
@@ -456,6 +542,7 @@ export class MaterialSceneBackend {
       this.limits.maxTextureSize);
     if (!size || (size.cssWidth === this.viewport.cssWidth && size.cssHeight === this.viewport.cssHeight &&
         size.pixelWidth === this.viewport.pixelWidth && size.pixelHeight === this.viewport.pixelHeight)) return;
+    this.resetViewportMotion();
     this.viewport = size;
     this.renderer.dpr = size.dpr; this.renderer.setSize(size.cssWidth, size.cssHeight);
     this.compositor.resize(size);
@@ -469,6 +556,12 @@ export class MaterialSceneBackend {
     this.generation++; this.abort?.abort(); this.stop();
     this.resizeObserver.disconnect(); this.mutationObserver.disconnect();
     this.viewportElement.removeEventListener("scroll", this.scrollChanged);
+    this.viewportElement.removeEventListener("wheel", this.wheelChanged);
+    this.viewportElement.removeEventListener("touchstart", this.touchStarted);
+    this.viewportElement.removeEventListener("touchmove", this.touchMoved);
+    this.viewportElement.removeEventListener("touchend", this.touchEnded);
+    this.viewportElement.removeEventListener("touchcancel", this.touchEnded);
+    this.reducedMotion?.removeEventListener?.("change", this.motionPreferenceChanged);
     this.unsubscribeOverlay?.(); this.unsubscribeOverlay = null;
     this.root.removeEventListener("pointerenter", this.handlePointer);
     this.root.removeEventListener("pointermove", this.handlePointer);

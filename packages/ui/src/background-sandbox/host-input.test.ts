@@ -1,5 +1,43 @@
 import { describe, expect, it } from "vitest";
-import { ActiveClock, PointerInput, resolveViewport } from "./host-input";
+import { ActiveClock, PointerInput, ViewportMotionInput, resolveViewport } from "./host-input";
+
+describe("viewport motion collection", () => {
+  it("uses the visible phone height and bounds the actual scroll delivered to a frame", () => {
+    const input = new ViewportMotionInput(0);
+    input.recordScroll(90, 600, 900);
+    expect(input.drain()).toEqual({ deltaY: 0.1, blockedY: 0 });
+    input.recordScroll(600, 600, 900);
+    expect(input.drain()).toEqual({ deltaY: 0.12, blockedY: 0 });
+    expect(input.drain()).toEqual({ deltaY: 0, blockedY: 0 });
+  });
+
+  it("records only an outward attempt at a reached boundary", () => {
+    const input = new ViewportMotionInput(0);
+    input.recordBoundaryAttempt(-45, 0, 600, 900);
+    input.recordBoundaryAttempt(45, 0, 600, 900);
+    expect(input.drain()).toEqual({ deltaY: 0, blockedY: -0.05 });
+    input.recordScroll(600, 600, 900);
+    input.recordBoundaryAttempt(45, 600, 600, 900);
+    expect(input.drain()).toEqual({ deltaY: 0.12, blockedY: 0.05 });
+    input.reset(100);
+    input.recordBoundaryAttempt(45, 100, 600, 900);
+    input.recordScroll(145, 600, 900);
+    expect(input.drain()).toEqual({ deltaY: 0.05, blockedY: 0 });
+  });
+
+  it("drops old impulses and takes a fresh baseline after reset", () => {
+    const input = new ViewportMotionInput(100);
+    input.recordScroll(100, 600, 900);
+    expect(input.drain()).toEqual({ deltaY: 0, blockedY: 0 });
+    input.recordScroll(190, 600, 900);
+    input.reset(190);
+    expect(input.drain()).toEqual({ deltaY: 0, blockedY: 0 });
+    input.recordScroll(100, 600, 900);
+    expect(input.drain()).toEqual({ deltaY: -0.1, blockedY: 0 });
+    input.recordScroll(Number.NaN, 600, 900);
+    expect(input.drain()).toEqual({ deltaY: 0, blockedY: 0 });
+  });
+});
 
 describe("active host time", () => {
   it("excludes hidden time and starts resume with zero dt", () => {

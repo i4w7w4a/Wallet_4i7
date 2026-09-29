@@ -2,16 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { BackgroundRuntimeStatus } from "./host-contract";
+import type { FluidViewportResponseV1 } from "./fluid-viewport-response";
 import type { BackgroundOverlay } from "./overlay";
 import type { BackgroundEdgeFinishV1, MaterialAction, MaterialQualityProfile, MaterialRecipeV2, MaterialTargetBinding } from "./material-contract";
 import { materialBindingsV2 } from "./registry-v2";
 import { MaterialSceneBackend, type MaterialSceneInput } from "./material-scene-backend";
 
-export function MaterialSceneSurface({ background = null, edgeFinish, bindings = [], quality, paused, restartKey,
+export function MaterialSceneSurface({ background = null, edgeFinish, viewportResponse, bindings = [], quality, paused, restartKey,
   hostActive = true, overlay, transientAction, emptyBackgroundColor = "#0c1119", canvasAboveContent = false,
   children, onStatus }: {
   background?: MaterialRecipeV2 | null;
   edgeFinish?: BackgroundEdgeFinishV1;
+  viewportResponse?: FluidViewportResponseV1;
   bindings?: readonly MaterialTargetBinding[];
   quality: MaterialQualityProfile;
   paused: boolean;
@@ -31,8 +33,8 @@ export function MaterialSceneSurface({ background = null, edgeFinish, bindings =
   const notify = useRef(onStatus);
   const [restoreGeneration, setRestoreGeneration] = useState(0);
   const [status, setStatus] = useState<BackgroundRuntimeStatus>({ phase: "initializing", message: "Подготовка материалов…" });
-  const input = useMemo<MaterialSceneInput>(() => ({ background, edgeFinish, bindings, quality, paused, restartKey,
-    hostActive, overlay, transientAction }), [background, edgeFinish, bindings, quality, paused, restartKey,
+  const input = useMemo<MaterialSceneInput>(() => ({ background, edgeFinish, viewportResponse, bindings, quality, paused, restartKey,
+    hostActive, overlay, transientAction }), [background, edgeFinish, viewportResponse, bindings, quality, paused, restartKey,
     hostActive, overlay, transientAction]);
   const latestInput = useRef(input);
   const fallback = materialBindingsV2.find(binding => binding.descriptor.id === background?.effectId)?.fallback.color ?? emptyBackgroundColor;

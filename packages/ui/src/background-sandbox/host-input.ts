@@ -114,6 +114,47 @@ export class PointerInput {
   }
 }
 
+/** Collect actual wallet scroll and blocked edge gestures once per host frame. */
+export class ViewportMotionInput {
+  private lastTop: number;
+  private deltaY = 0;
+  private blockedY = 0;
+  private static readonly MAX_DELTA = 0.12;
+
+  constructor(top: number) { this.lastTop = Number.isFinite(top) ? Math.max(0, top) : 0; }
+
+  recordScroll(top: number, maxTop: number, height: number): void {
+    if (![top, maxTop, height].every(Number.isFinite) || maxTop < 0 || height <= 0) return;
+    const next = Math.min(maxTop, Math.max(0, top));
+    this.deltaY = ViewportMotionInput.clamp(this.deltaY + (next - this.lastTop) / height);
+    this.lastTop = next;
+  }
+
+  /** Use only when the gesture starts at a hard end; actual scroll is counted separately. */
+  recordBoundaryAttempt(deltaY: number, top: number, maxTop: number, height: number): void {
+    if (![deltaY, top, maxTop, height].every(Number.isFinite) || maxTop < 0 || height <= 0) return;
+    if ((deltaY < 0 && top <= 0) || (deltaY > 0 && top >= maxTop))
+      this.blockedY = ViewportMotionInput.clamp(this.blockedY + deltaY / height);
+  }
+
+  drain(): { deltaY: number; blockedY: number } {
+    const result = { deltaY: this.deltaY, blockedY: this.blockedY };
+    this.deltaY = 0;
+    this.blockedY = 0;
+    return result;
+  }
+
+  reset(top: number): void {
+    this.lastTop = Number.isFinite(top) ? Math.max(0, top) : 0;
+    this.deltaY = 0;
+    this.blockedY = 0;
+  }
+
+  private static clamp(value: number): number {
+    return Math.max(-ViewportMotionInput.MAX_DELTA, Math.min(ViewportMotionInput.MAX_DELTA, value));
+  }
+}
+
 /** Keep layout dimensions independent of the physical raster and device DPR. */
 export function resolveViewport(width: number, height: number, deviceDpr: number, maxTextureSize: number): Viewport | null {
   if (![width, height, maxTextureSize].every(Number.isFinite) || width <= 0 || height <= 0 || maxTextureSize < 1) return null;

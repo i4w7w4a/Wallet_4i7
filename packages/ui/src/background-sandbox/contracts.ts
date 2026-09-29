@@ -1,4 +1,5 @@
 import type { OGLRenderingContext, Texture } from "ogl";
+import type { FluidViewportResponseV1 } from "./fluid-viewport-response";
 
 /** ABI v1. This file has no runtime imports, renderer, registry, or storage. */
 export type EffectId = "silk" | "fluid";
@@ -78,12 +79,23 @@ export type PointerFrame = Readonly<{
   /** Bounded, ordered, consumed once. UI/control events are not included. */
   samples: readonly PointerSample[];
 }>;
+/** Signed fractions of the visible wallet height; positive Y moves existing dye upward. */
+export type ViewportMotionFrame = Readonly<{
+  deltaY: number;
+  /** Outward wheel/touch movement when native scroll has reached an end. */
+  blockedY: number;
+  response: FluidViewportResponseV1;
+  /** Clear input momentum after pause, resize, Restart or context recovery, without erasing dye. */
+  reset?: boolean;
+}>;
 export type Frame = Readonly<{
   /** Active seconds; paused/hidden time is excluded. */
   time: number;
   /** Bounded seconds; the first frame after resume/reset has dt=0. */
   dt: number;
   pointer: PointerFrame;
+  /** Host-collected scroll input; other effects may ignore it. */
+  viewportMotion?: ViewportMotionFrame;
 }>;
 
 /** Adapter-owned output. Borrowed until its next resize/dispose; never delete in host. */

@@ -54,9 +54,32 @@ uniform sampler2D source;
 uniform vec2 texelSize;
 uniform float dt;
 uniform float retention;
+uniform float viewportScrollY;
+uniform float viewportBlockedY;
+uniform float viewportEdgeResponse;
+uniform float velocityPass;
 void main() {
   vec2 coordinate = vUv - dt * texture(velocity, vUv).xy * texelSize;
-  outColor = texture(source, coordinate) * retention;
+  vec4 carried = texture(source, coordinate) * retention;
+  float viewportMotion = abs(viewportScrollY) + abs(viewportBlockedY);
+  if (velocityPass > 0.5 && viewportMotion > 0.000001) {
+    // The new channel drives existing velocity, never a pigment bank.
+    float lower = 1.0 - smoothstep(0.0, 0.12, vUv.y);
+    float upper = 1.0 - smoothstep(0.0, 0.12, 1.0 - vUv.y);
+    float edgeDrive = viewportBlockedY * (viewportBlockedY > 0.0 ? upper : lower);
+    carried.y += (viewportScrollY + edgeDrive) * dt * 30000.0;
+
+    // Soft no-through response at all four visible walls while scroll is active.
+    float wall = clamp(viewportEdgeResponse * viewportMotion * 8.0, 0.0, 1.0);
+    float left = 1.0 - smoothstep(0.0, 0.12, vUv.x);
+    float right = 1.0 - smoothstep(0.0, 0.12, 1.0 - vUv.x);
+    if (carried.x < 0.0) carried.x = mix(carried.x, -carried.x * 0.25, wall * left);
+    if (carried.x > 0.0) carried.x = mix(carried.x, -carried.x * 0.25, wall * right);
+    if (carried.y < 0.0) carried.y = mix(carried.y, -carried.y * 0.25, wall * lower);
+    if (carried.y > 0.0) carried.y = mix(carried.y, -carried.y * 0.25, wall * upper);
+    carried.xy = clamp(carried.xy, vec2(-1000.0), vec2(1000.0));
+  }
+  outColor = carried;
 }
 `;
 
