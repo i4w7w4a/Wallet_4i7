@@ -74,6 +74,8 @@ export { BackgroundGpuSurface } from "./background-sandbox/background-gpu-surfac
 export { MaterialSceneSurface } from "./background-sandbox/material-scene-surface";
 export { DEFAULT_BACKGROUND_EDGE_FINISH, BACKGROUND_EDGE_FINISH_BOUNDS,
   normalizeBackgroundEdgeFinish } from "./background-sandbox/material-edge-finish";
+export { FLUID_VIEWPORT_RESPONSE_DEFAULTS, FLUID_VIEWPORT_RESPONSE_BOUNDS,
+  parseFluidViewportResponse, type FluidViewportResponseV1 } from "./background-sandbox/fluid-viewport-response";
 export { createMonoOpticalHost, type MonoSharedOpticalHost } from "./mono/mono-optical-host";
 export { createMonoOpticalOverlay } from "./mono/mono-optical-overlay";
 export { backgroundMaterials, backgroundMaterialDescriptors, parseBackgroundRecipe } from "./background-sandbox/registry";
