@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { webcrypto } from "node:crypto";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockWalletRepository } from "@wallet/core";
-import { createTargetBinding, materialCatalogV2, normalizeMonoPaletteConfig } from "@wallet/ui";
+import { DEFAULT_BACKGROUND_EDGE_FINISH, createTargetBinding, materialCatalogV2, normalizeMonoPaletteConfig } from "@wallet/ui";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoPreview } from "./mono-preview";
 import { exportMonoPalettePreset } from "./mono-preset-codec";
@@ -17,11 +17,21 @@ beforeEach(() => {
   vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduced-motion"), media: query,
     addEventListener() {}, removeEventListener() {} }));
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); LocalChannel.peers.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 const stored = () => loadMonoSevenLibrary(localStorage)!;
 const tool = (name: string) => fireEvent.click(within(screen.getByRole("toolbar", { name: "Инструменты оформления" })).getByRole("button", { name }));
 const inspectorActions = (name: string) => within(screen.getByRole("region", { name }).querySelector("footer")!);
+class LocalChannel {
+  static peers = new Set<LocalChannel>();
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  constructor(readonly name: string) { LocalChannel.peers.add(this); }
+  postMessage(data: unknown) {
+    for (const peer of LocalChannel.peers) if (peer !== this && peer.name === this.name)
+      queueMicrotask(() => peer.onmessage?.({ data } as MessageEvent));
+  }
+  close() { LocalChannel.peers.delete(this); }
+}
 async function mount() {
   const view = render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
   await waitFor(() => expect(screen.getByRole("button", { name: /^Пресет 1:/ })).toBeEnabled());
@@ -112,6 +122,43 @@ it("migrates standalone shape, optics and environment candidates without erasing
   for (const [key, value] of Object.entries(old)) expect(localStorage.getItem(key)).toBe(value);
 });
 
+it("reports an unsaved selected-preset trial to another MONO material Apply tab", async () => {
+  vi.stubGlobal("BroadcastChannel", LocalChannel);
+  await mount();
+  tool("Форма и кнопки");
+  fireEvent.change(screen.getByRole("slider", { name: "Радиус формы" }), { target: { value: "20" } });
+  expect(stored().slots[0].document.shapes.ledger["quick-actions"]).toBe(12);
+  const otherTab = new LocalChannel(MONO_SEVEN_PRESETS_KEY);
+  const answers: unknown[] = [];
+  otherTab.onmessage = event => answers.push(event.data);
+  otherTab.postMessage({ kind: "material-apply-check", requestId: "dirty-probe",
+    targetId: stored().slots[0].id });
+  await waitFor(() => expect(answers).toContainEqual({ kind: "material-apply-status",
+    requestId: "dirty-probe", targetId: stored().slots[0].id, dirty: true }));
+  otherTab.close();
+});
+
+it("does not mistake a clean stale preset reader for an unsaved trial", async () => {
+  vi.stubGlobal("BroadcastChannel", LocalChannel);
+  await mount();
+  const before = localStorage.getItem(MONO_SEVEN_PRESETS_KEY)!;
+  const next = JSON.parse(before) as MonoSevenLibrary;
+  next.generation += 1;
+  const raw = JSON.stringify(next);
+  localStorage.setItem(MONO_SEVEN_PRESETS_KEY, raw);
+  fireEvent(window, new StorageEvent("storage", { key: MONO_SEVEN_PRESETS_KEY,
+    oldValue: before, newValue: raw }));
+  await waitFor(() => expect(screen.getByText(/Изменён в другой вкладке/)).toBeVisible());
+  const otherTab = new LocalChannel(MONO_SEVEN_PRESETS_KEY);
+  const answers: unknown[] = [];
+  otherTab.onmessage = event => answers.push(event.data);
+  otherTab.postMessage({ kind: "material-apply-check", requestId: "clean-probe",
+    targetId: stored().slots[0].id });
+  await waitFor(() => expect(answers).toContainEqual({ kind: "material-apply-status",
+    requestId: "clean-probe", targetId: stored().slots[0].id, dirty: false }));
+  otherTab.close();
+});
+
 it("saves direct color only in the active preset, then restores it after switch and reload", async () => {
   const first = await mount();
   fireEvent.click(screen.getByRole("button", { name: "Включить палитру" }));
@@ -187,6 +234,29 @@ it("applies the background only on command and restores it after reload", async 
   first.unmount(); await mount(); tool("Среда"); fireEvent.click(screen.getByText("Исходная среда и тема"));
   expect(within(screen.getByRole("group", { name: "Фон" })).getByRole("button", { name: "Волна" }))
     .toHaveAttribute("aria-pressed", "true");
+});
+
+it("removes an applied material background and reveals the preserved MONO background", async () => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  const document = createMonoWorkingDocument();
+  document.background = "tide";
+  const fluid = materialCatalogV2.materials.find(item => item.id === "fluid")!.presets[0]!.recipe;
+  document.materials.ledger = { ...document.materials.ledger, background: { version: 1, recipe: fluid,
+    edgeFinish: DEFAULT_BACKGROUND_EDGE_FINISH } };
+  saveMonoWorkingLibrary(localStorage, { version: 2, skinId: "mono-ledger-v1", generation: 1,
+    activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1, document }] }, 0);
+  await mount();
+  fireEvent.click(screen.getByRole("button", { name: "Скрыть баланс" }));
+  fireEvent.click(screen.getByRole("button", { name: "За неделю" }));
+  expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "За неделю" })).toHaveAttribute("aria-pressed", "true");
+  tool("Среда");
+  fireEvent.click(screen.getByRole("button", { name: "Снять материал фона" }));
+  await waitFor(() => expect(stored().slots[0].document.materials.ledger.background).toBeNull());
+  expect(stored().slots[0].document.background).toBe("tide");
+  expect(screen.getByText(/Материал фона снят · прежний фон MONO сохранён/)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "За неделю" })).toHaveAttribute("aria-pressed", "true");
 });
 
 it("keeps a failed color edit live, allows export and retries the same preset", async () => {

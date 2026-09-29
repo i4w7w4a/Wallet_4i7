@@ -49,6 +49,23 @@ it("requires the seven workspaces to be restored before applying from an empty b
   expect(loadMonoSevenLibrary(localStorage)).toBeNull();
 });
 
+it("keeps confirmation visible while a seven-preset Apply transaction is pending", () => {
+  class QuietChannel {
+    onmessage: ((event: MessageEvent) => void) | null = null;
+    postMessage() {}
+    close() {}
+  }
+  vi.stubGlobal("BroadcastChannel", QuietChannel);
+  seven();
+  render(<MonoProductApply scope="background" document={background} />);
+  fireEvent.click(screen.getByRole("button", { name: "В рабочий пресет MONO…" }));
+  expect(screen.getByLabelText("Пресет 1–7")).toHaveValue("1");
+  fireEvent.click(screen.getByRole("button", { name: "Применить в MONO" }));
+  fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
+  expect(screen.getByRole("dialog", { name: "Применить материал в MONO" })).toBeInTheDocument();
+  expect(loadMonoSevenLibrary(localStorage)?.slots[0].document.materials.ledger.background).toBeNull();
+});
+
 it("rejects a stale number picker without overwriting the newer generation", async () => {
   const initial = seven();
   render(<MonoProductApply scope="background" document={background} />);
@@ -76,6 +93,14 @@ it("rejects a live MONO draft reported through the seven-workspace channel", asy
   fireEvent.click(screen.getByRole("button", { name: "Применить в MONO" }));
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/несохранённая проба/));
   expect(loadMonoSevenLibrary(localStorage)?.slots[0].document.materials.ledger.background).toBeNull();
+});
+
+it("names an empty selected button layer as a clear operation before confirmation", () => {
+  const document = createButtonDocument<ButtonTargetId, MaterialTargetBinding>(BUTTON_TARGETS);
+  render(<MonoProductApply scope="buttons" document={document}
+    selection={{ target: "quick.send", layer: "fill" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "В рабочий пресет MONO…" }));
+  expect(screen.getByText(/Снять поверхность · Отправить/)).toBeVisible();
 });
 
 it("applies selected artwork to the chosen number through explicit confirmation", async () => {
