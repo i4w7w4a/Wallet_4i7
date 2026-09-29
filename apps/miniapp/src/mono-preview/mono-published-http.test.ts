@@ -152,7 +152,11 @@ describe("published MONO HTTP boundary", () => {
       password: "only-owner-knows-this",
     }, { origin: "https://evil.example" }))).status).toBe(403);
     const { cookie, csrfToken } = await authenticated();
-    const tampered = `${cookie.slice(0, -1)}${cookie.endsWith("A") ? "B" : "A"}`;
+    // A 32-byte MAC has unused bits in its final base64url character. Its
+    // adjacent spelling decodes to the same bytes but is not the issued cookie.
+    const tampered = `${cookie.slice(0, -1)}${String.fromCharCode(cookie.charCodeAt(cookie.length - 1) + 1)}`;
+    expect(Buffer.from(tampered.split(".").at(-1)!, "base64url"))
+      .toEqual(Buffer.from(cookie.split(".").at(-1)!, "base64url"));
     expect((await http.put(request("PUT", "/api/mono-published/1", {
       expectedRevision: 0, snapshot: createMonoAppearanceEnvelope(),
     }, { origin, cookie: tampered, "x-mono-csrf": csrfToken }), "1")).status).toBe(401);

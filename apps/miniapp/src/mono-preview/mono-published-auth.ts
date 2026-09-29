@@ -115,7 +115,8 @@ export function verifyMonoPublishSession(secret: string, cookie: string | null, 
   const issued = Number(match[2]);
   if (!Number.isSafeInteger(issued) || issued > now + 60_000 || now - issued >= SESSION_MS) return null;
   const expected = Buffer.from(mac(secret, match[1]!), "base64url"), supplied = Buffer.from(match[3]!, "base64url");
-  return supplied.length === expected.length && timingSafeEqual(supplied, expected) ? cookie! : null;
+  return supplied.length === expected.length && supplied.toString("base64url") === match[3] &&
+    timingSafeEqual(supplied, expected) ? cookie! : null;
 }
 
 export function monoPublishCsrfToken(secret: string, cookie: string): string { return mac(secret, `csrf:${cookie}`); }
