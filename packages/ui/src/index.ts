@@ -9,14 +9,14 @@ export { GlassSurface } from "./primitives/glass-surface";
 export { ActionButton } from "./primitives/action-button";
 export { BottomSheet } from "./primitives/bottom-sheet";
 export { HeroVideo } from "./media/hero-video";
+export { MonoOpticalGlass } from "./mono/mono-optical-glass";
 export {
-  MonoOpticalGlass,
   MONO_GLASS_BOUNDS,
   MONO_GLASS_DEFAULTS,
   normalizeMonoGlassSettings,
   type MonoGlassSettings,
   type MonoOpticalPreset,
-} from "./mono/mono-optical-glass";
+} from "./mono/mono-glass-settings";
 export { Dashboard } from "./dashboard/dashboard";
 export {
   normalizeMonoOklch, srgbToOklch, oklchToSrgb, gamutMapMonoOklch,
