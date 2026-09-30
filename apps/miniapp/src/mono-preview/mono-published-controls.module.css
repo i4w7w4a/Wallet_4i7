@@ -12,8 +12,7 @@
 .heading code { color: #aab6b9; font: 11px ui-monospace, monospace; }
 .actions { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 0; }
 .actions a,
-.actions button,
-.login button {
+.actions button {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -27,23 +26,9 @@
   text-decoration: none;
   cursor: pointer;
 }
-.actions button:disabled,
-.login button:disabled { cursor: default; opacity: .5; }
+.actions button:disabled { cursor: default; opacity: .5; }
 .actions .iconAction { width: 44px; min-width: 44px; height: 44px; padding: 0; font-size: 22px; line-height: 1; }
 .actions .publish { min-width: 0; flex: 1; padding-inline: 6px; }
 .actions a:focus-visible,
-.actions button:focus-visible,
-.login button:focus-visible,
-.login input:focus-visible { outline: 2px solid #d2e8ec; outline-offset: 2px; }
-.login { display: flex; flex-wrap: wrap; align-items: end; gap: 6px; }
-.login label { display: grid; min-width: min(100%, 170px); flex: 1; gap: 4px; }
-.login input {
-  min-height: 44px;
-  padding: 8px;
-  border: 1px solid #687275;
-  border-radius: 7px;
-  background: #0d1113;
-  color: #f4f7f7;
-  font: inherit;
-}
+.actions button:focus-visible { outline: 2px solid #d2e8ec; outline-offset: 2px; }
 .status { min-height: 16px; margin: 0; color: #b8c3c5; }

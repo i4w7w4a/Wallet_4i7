@@ -20,7 +20,8 @@ beforeEach(() => {
     const url = String(input), method = init?.method ?? "GET";
     const body = init?.body ? JSON.parse(String(init.body)) as Record<string, unknown> : undefined;
     calls.push({ url, method, ...(body ? { body } : {}) });
-    if (url === "/api/mono-published/session") return Response.json({ authenticated: true, csrfToken: "csrf" });
+    if (url === "/api/mono-published/config")
+      return Response.json({ publicOrigin: "https://wallet.example" });
     if (url.startsWith("/api/mono-published/") && method === "GET")
       return Response.json({ error: "missing" }, { status: 404 });
     if (url.startsWith("/api/mono-published/") && method === "PUT")
@@ -68,11 +69,29 @@ it("publishes preset 7 at its own address without leaking the First button mater
   expect(library.slots[6].document.materials.ledger.buttons).toBeNull();
 });
 
-it("keeps an unfinished editor trial out of the published snapshot", async () => {
+it("accepts a pending trial and then publishes its accepted snapshot once in the original slot", async () => {
   const controls = await renderReady();
   fireEvent.click(screen.getByRole("button", { name: "Баланс" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Моргание глаза" }));
   fireEvent.click(within(controls).getByRole("button", { name: "Опубликовать" }));
   await waitFor(() => expect(within(controls).getByRole("status")).toHaveTextContent(/незавершённая проба/i));
+  expect(calls.some(call => call.method === "PUT")).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Применить пробы и опубликовать" }));
+  await waitFor(() => expect(calls.filter(call => call.method === "PUT")).toHaveLength(1));
+  expect(calls.find(call => call.method === "PUT")).toMatchObject({
+    url: "/api/mono-published/1", body: { expectedRevision: 0, snapshot: { appearance: { eye: { blinkEnabled: false } } } },
+  });
+});
+
+it("does not publish when a pending trial is cancelled or the guard is dismissed", async () => {
+  const controls = await renderReady();
+  fireEvent.click(screen.getByRole("button", { name: "Баланс" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Моргание глаза" }));
+  fireEvent.click(within(controls).getByRole("button", { name: "Опубликовать" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Назад" })).toBeVisible());
+  fireEvent.click(screen.getByRole("button", { name: "Назад" }));
+  expect(calls.some(call => call.method === "PUT")).toBe(false);
+  fireEvent.click(within(controls).getByRole("button", { name: "Опубликовать" }));
+  fireEvent.click(screen.getByRole("button", { name: "Отменить пробы" }));
   expect(calls.some(call => call.method === "PUT")).toBe(false);
 });

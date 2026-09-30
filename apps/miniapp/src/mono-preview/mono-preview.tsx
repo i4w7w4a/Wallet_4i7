@@ -314,12 +314,12 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     return slot ? persistWorking(slot) : false;
   };
 
-  const trialsSettled = (next?: () => void) => {
+  const trialsSettled = (next?: () => void, continueAfterCancel = true) => {
     if (allowTransitionRef.current || !hasPendingTrials()) return true;
     setWorkingStatus("Сначала примените или отмените непринятые пробы.");
     if (next) {
       trialReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      setPendingTransition({ run: next });
+      setPendingTransition({ run: next, continueAfterCancel });
     }
     return false;
   };
@@ -482,7 +482,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const [fontError, setFontError] = useState("");
   const fontRequestRef = useRef(0);
   useEffect(() => () => { fontRequestRef.current += 1; }, []);
-  const [pendingTransition, setPendingTransition] = useState<{ run: () => void } | null>(null);
+  const [pendingTransition, setPendingTransition] = useState<{ run: () => void; continueAfterCancel: boolean } | null>(null);
   const allowTransitionRef = useRef(false);
   const trialDialogRef = useRef<HTMLDialogElement>(null);
   const trialReturnFocusRef = useRef<HTMLElement | null>(null);
@@ -944,7 +944,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     }
     setPendingTransition(null);
     allowTransitionRef.current = true;
-    try { next.run(); } finally { allowTransitionRef.current = false; }
+    try { if (choice === "apply" || next.continueAfterCancel) next.run(); }
+    finally { allowTransitionRef.current = false; }
     clearTrialWarning();
   }
   useEffect(() => {
@@ -1056,7 +1057,11 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             const selected = selectedPublishedSlot;
             const current = workingLibraryRef.current;
             if (!workingReadyRef.current || !current || current.activeSlot !== selected ||
-                workingBlockedRef.current || workingSaveFailedRef.current || hasPendingTrials()) return null;
+                workingBlockedRef.current || workingSaveFailedRef.current) return null;
+            if (!trialsSettled(() => {
+              requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(
+                `[data-mono-publish-action="publish"][data-mono-publish-slot="${selected}"]`)?.click());
+            }, false)) return null;
             colorLab.end();
             if (!flushWorking()) return null;
             const accepted = workingLibraryRef.current;
@@ -1188,8 +1193,12 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         {fontCandidate && <p>{fontError || "Дождитесь загрузки шрифтов или отмените пробу."}</p>}
         <div>
           <button type="button" onClick={() => finishTransition("back")}>Назад</button>
-          <button type="button" onClick={() => finishTransition("cancel")}>Отменить пробы и продолжить</button>
-          <button type="button" disabled={Boolean(fontCandidate || colorLab.pending)} onClick={() => finishTransition("apply")}>Применить пробы и продолжить</button>
+          <button type="button" onClick={() => finishTransition("cancel")}>
+            {pendingTransition?.continueAfterCancel ? "Отменить пробы и продолжить" : "Отменить пробы"}
+          </button>
+          <button type="button" disabled={Boolean(fontCandidate || colorLab.pending)} onClick={() => finishTransition("apply")}>
+            {pendingTransition?.continueAfterCancel ? "Применить пробы и продолжить" : "Применить пробы и опубликовать"}
+          </button>
         </div>
       </dialog>
     </div>

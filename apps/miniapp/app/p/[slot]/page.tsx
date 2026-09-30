@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { MockWalletRepository } from "@wallet/core";
 import { parsePublishedSlot } from "../../../src/mono-preview/mono-published-contract";
+import { parseMonoPublishRuntimeConfig } from "../../../src/mono-preview/mono-published-config";
 import { MonoPublishedStore } from "../../../src/mono-preview/mono-published-store";
 import { MonoPublishedViewer } from "../../../src/mono-preview/mono-published-viewer";
 
@@ -23,6 +24,9 @@ export default async function PublishedMonoPage({ params }: { params: Promise<{ 
   let slot: ReturnType<typeof parsePublishedSlot>;
   try { slot = parsePublishedSlot(raw); }
   catch { notFound(); }
+  const config = parseMonoPublishRuntimeConfig();
+  if (!config) throw new Error("Публикация не настроена.");
+  if (config.remoteOrigin) redirect(`${config.publicOrigin}/p/${slot}`);
   const published = await new MonoPublishedStore(process.env.MONO_PUBLISHED_DATA_DIR).read(slot);
   if (!published) notFound();
   const wallet = await new MockWalletRepository().getSnapshot();
