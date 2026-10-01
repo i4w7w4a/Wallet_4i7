@@ -14,7 +14,7 @@
 }
 
 .header {
-  margin-bottom: 34px;
+  margin-bottom: 24px;
 }
 
 .topline {
@@ -33,8 +33,7 @@
 }
 
 .section,
-.eyebrow,
-.swatchLabel {
+.eyebrow {
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 0.14em;
@@ -50,7 +49,7 @@
   align-items: end;
   justify-content: space-between;
   gap: 32px;
-  padding-top: 42px;
+  padding-top: 30px;
 }
 
 .eyebrow {
@@ -76,7 +75,7 @@
 
 .notice {
   display: inline-block;
-  margin: 26px 0 0;
+  margin: 18px 0 0;
   padding: 9px 12px;
   border: 1px solid rgb(176 194 220 / 18%);
   border-radius: 5px;
@@ -92,6 +91,8 @@
 }
 
 .card {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: 7px;
   border: 1px solid rgb(191 211 239 / 13%);
@@ -115,101 +116,28 @@
 
 .swatch {
   position: relative;
-  display: flex;
-  align-items: end;
-  gap: 5px;
-  height: 133px;
+  width: min(100%, 190px);
+  aspect-ratio: 390 / 620;
+  margin-inline: auto;
   overflow: hidden;
-  padding: 13px;
   border: 1px solid rgb(255 255 255 / 8%);
   border-radius: 7px;
-  background: linear-gradient(135deg, #353a43, #151a22 70%);
+  background: #111821;
 }
 
-.swatch::before {
-  position: absolute;
-  top: -53px;
-  right: -22px;
-  width: 180px;
-  aspect-ratio: 1;
-  border: 1px solid rgb(255 255 255 / 16%);
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 32%, rgb(255 255 255 / 18%), transparent 55%);
-  content: "";
-}
-
-.capture::before {
-  content: none;
-}
-
-.capture img {
+.swatch img {
   object-fit: cover;
   object-position: center top;
 }
 
-.swatchLabel {
-  position: absolute;
-  top: 13px;
-  left: 13px;
-  z-index: 1;
-  color: rgb(255 255 255 / 70%);
-  font-size: 8px;
-  letter-spacing: 0.08em;
-}
-
-.swatchLine {
-  position: relative;
-  z-index: 1;
-  width: 34px;
-  height: 8px;
-  border-radius: 100px;
-  background: rgb(255 255 255 / 59%);
-}
-
-.swatchLine:nth-of-type(3) {
-  width: 22px;
-  opacity: 0.55;
-}
-
-.swatchLine:nth-of-type(4) {
-  width: 12px;
-  opacity: 0.3;
-}
-
-.card:nth-child(2) .swatch {
-  background: linear-gradient(138deg, #193949, #14363e 48%, #1e272a);
-}
-
-.card:nth-child(3) .swatch {
-  background: linear-gradient(138deg, #d7d3c9, #a9b5b8 60%, #667a8e);
-}
-
-.card:nth-child(3) .swatchLabel {
-  color: #2a3743;
-}
-
-.card:nth-child(4) .swatch {
-  background: linear-gradient(138deg, #0c1918, #11352b 60%, #0b1715);
-}
-
-.card:nth-child(5) .swatch {
-  background: linear-gradient(138deg, #b2b7bf, #87919b 58%, #5c6570);
-}
-
-.card:nth-child(6) .swatch {
-  background: linear-gradient(138deg, #a8bbce, #728ea3 60%, #2d465d);
-}
-
-.card:nth-child(7) .swatch {
-  background: linear-gradient(138deg, #254679, #253869 55%, #101d38);
-}
-
 .cardFooter {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 58px;
-  padding: 3px 7px 0;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  min-height: 68px;
+  padding: 10px 7px 3px;
 }
 
 .cardText {
@@ -220,7 +148,7 @@
 }
 
 .name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 550;
   letter-spacing: -0.015em;
 }
@@ -232,6 +160,7 @@
 }
 
 .arrow {
+  align-self: flex-end;
   color: #b6c7dd;
   font-size: 18px;
   line-height: 1;
@@ -262,7 +191,7 @@
 
   .intro {
     display: block;
-    padding-top: 36px;
+    padding-top: 28px;
   }
 
   .description {
@@ -271,12 +200,18 @@
   }
 
   .grid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
-  .swatch {
-    height: 105px;
+  .name {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 350px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

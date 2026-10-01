@@ -42,29 +42,20 @@ export default function ShowcasePage() {
         <div className={styles.grid} aria-label="Пресеты Novex">
           {presets.map(({ id, name }) => (
             <a className={styles.card} href={`/p/${id}`} key={id}>
-              {id <= 5 ? (
-                <div className={`${styles.swatch} ${styles.capture}`} aria-hidden="true">
-                  <Image
-                    src={`/showcase/slot-${id}-mobile.jpg`}
-                    alt=""
-                    fill
-                    unoptimized
-                    loading="eager"
-                    sizes="(max-width: 600px) 100vw, (max-width: 1000px) 50vw, 25vw"
-                  />
-                </div>
-              ) : (
-                <div className={styles.swatch} aria-hidden="true">
-                  <span className={styles.swatchLabel}>УСЛОВНЫЙ ЦВЕТОВОЙ МАРКЕР</span>
-                  <span className={styles.swatchLine} />
-                  <span className={styles.swatchLine} />
-                  <span className={styles.swatchLine} />
-                </div>
-              )}
+              <div className={styles.swatch} aria-hidden="true">
+                <Image
+                  src={`/showcase/slot-${id}-mobile.jpg`}
+                  alt=""
+                  fill
+                  unoptimized
+                  loading="eager"
+                  sizes="(max-width: 600px) 100vw, (max-width: 1000px) 50vw, 25vw"
+                />
+              </div>
               <div className={styles.cardFooter}>
                 <span className={styles.cardText}>
                   <span className={styles.name}>{id} {name}</span>
-                  <span className={styles.kind}>{id <= 5 ? "Снимок кандидата" : "Цветовой маркер"}</span>
+                  <span className={styles.kind}>Открыть пресет</span>
                 </span>
                 <span className={styles.arrow} aria-hidden="true">↗</span>
               </div>
@@ -73,8 +64,7 @@ export default function ShowcasePage() {
         </div>
 
         <footer className={styles.footer}>
-          Карточки 1–5 показывают локальных кандидатов; 6–7 — условные цветовые маркеры.
-          Откройте пресет, чтобы увидеть опубликованную версию.
+          Снимки показывают дизайн. Откройте пресет для живого просмотра.
         </footer>
       </div>
     </main>
