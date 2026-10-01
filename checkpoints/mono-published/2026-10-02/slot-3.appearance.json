@@ -1,0 +1,948 @@
+{
+  "kind": "mono-appearance",
+  "version": 4,
+  "skinId": "mono-ledger-v1",
+  "appearance": {
+    "balance": {
+      "composition": "ledger",
+      "fractionSize": "medium",
+      "fractionTone": "secondary"
+    },
+    "chart": {
+      "visible": false,
+      "variant": "line"
+    },
+    "layout": {
+      "chartPosition": "top"
+    },
+    "assets": {
+      "variant": "ledger",
+      "density": "comfortable",
+      "separators": "subtle"
+    },
+    "logo": {
+      "version": 1,
+      "variant": "bare",
+      "customColor": false,
+      "hue": 270
+    },
+    "typography": {
+      "version": 1,
+      "catalogVersion": 1,
+      "primaryFontId": "golos-text",
+      "secondaryFontId": "ibm-plex-sans",
+      "roles": {
+        "body": {
+          "family": "primary",
+          "size": 15,
+          "weight": 400
+        },
+        "balance": {
+          "family": "secondary",
+          "size": 52,
+          "weight": 600
+        },
+        "button": {
+          "family": "primary",
+          "size": 13,
+          "weight": 500
+        },
+        "menu": {
+          "family": "primary",
+          "size": 12,
+          "weight": 500
+        },
+        "label": {
+          "family": "primary",
+          "size": 12,
+          "weight": 500
+        },
+        "mono": {
+          "family": "secondary",
+          "size": 12,
+          "weight": 400
+        }
+      },
+      "bodyLineHeight": 1.46,
+      "labelTracking": 0.02
+    },
+    "background": {
+      "version": 1,
+      "recipe": "aperture",
+      "intensity": 0.24,
+      "speed": 0.6,
+      "pointerResponse": 0.2,
+      "character": "precise",
+      "calm": true
+    },
+    "eye": {
+      "blinkEnabled": true
+    },
+    "navigation": {
+      "indicator": "capsule",
+      "glowPercent": 0,
+      "softnessPx": 0,
+      "shimmerEnabled": false,
+      "periodSeconds": 6
+    },
+    "preset": "ledger",
+    "palette": {
+      "enabled": true,
+      "config": {
+        "version": 1,
+        "engineVersion": 1,
+        "catalogVersion": 1,
+        "skinId": "mono-ledger-v1",
+        "themes": {
+          "dark": {
+            "mode": "dark",
+            "recipe": {
+              "anchorHue": 38,
+              "anchorChroma": 0.026,
+              "temperature": 0.26,
+              "iridescence": 0.1,
+              "exposure": -0.015,
+              "contrast": 1.06,
+              "surfaceResponse": 0.54,
+              "harmony": "spectral-graphite"
+            },
+            "roles": {
+              "canvas": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceBase": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceRaised": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceOverlay": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textPrimary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textSecondary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textMuted": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textDisabled": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "borderSubtle": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "borderStrong": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "focus": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "accentPrimary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "accentSecondary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "glassTint": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "edgeCool": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "edgeWarm": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "atmosphereCool": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "atmosphereWarm": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "chartLine": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "selection": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "success": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "warning": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "danger": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "info": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              }
+            },
+            "groupLocks": {
+              "core": false,
+              "content": false,
+              "structure": false,
+              "decorative": false,
+              "system": false
+            }
+          },
+          "light": {
+            "mode": "light",
+            "recipe": {
+              "anchorHue": 38,
+              "anchorChroma": 0.026,
+              "temperature": 0.26,
+              "iridescence": 0.1,
+              "exposure": -0.015,
+              "contrast": 1.06,
+              "surfaceResponse": 0.54,
+              "harmony": "spectral-graphite"
+            },
+            "roles": {
+              "canvas": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceBase": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceRaised": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceOverlay": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textPrimary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textSecondary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textMuted": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textDisabled": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "borderSubtle": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "borderStrong": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "focus": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "accentPrimary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "accentSecondary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "glassTint": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "edgeCool": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "edgeWarm": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "atmosphereCool": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "atmosphereWarm": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "chartLine": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "selection": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "success": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "warning": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "danger": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "info": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              }
+            },
+            "groupLocks": {
+              "core": false,
+              "content": false,
+              "structure": false,
+              "decorative": false,
+              "system": false
+            }
+          }
+        },
+        "linkedThemes": false,
+        "seed": "mono-share",
+        "actionCounter": 0
+      }
+    },
+    "shape": {
+      "quick-actions": 16,
+      "bottom-navigation": 12
+    },
+    "optics": {
+      "ior": 1.34,
+      "edgeThickness": 0.165,
+      "edgeDarkening": 0.5,
+      "highlightStrength": 0.54,
+      "reflectionStrength": 0.59,
+      "causticStrength": 0.63,
+      "fieldEnabled": true,
+      "fieldFadeMode": 1,
+      "fieldStart": 0.34,
+      "fieldSoftness": 0.99,
+      "fieldCurve": 2.69,
+      "fieldStrength": 1.92,
+      "flowEnabled": true,
+      "flowMode": 5,
+      "flowSpeed": 0.29,
+      "flowStrength": 0.44,
+      "flowScale": 4.47,
+      "pointerStrength": 0.23
+    },
+    "environment": {
+      "theme": "light",
+      "background": "strata"
+    }
+  },
+  "material": {
+    "background": null,
+    "buttons": null
+  }
+}
