@@ -1,8 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { ProductActionRoute } from "@wallet/core";
-import { SendFlow } from "./send-flow";
+import { SendFlow, type SendBatteryActivity } from "./send-flow";
 import type { SendDemoResult, SendPort, SendQuote, SendQuoteResult, SendRequest } from "./send-port";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
@@ -200,4 +201,76 @@ it("fails closed when a route is unsupported", async () => {
   mount(makePort({ loadRoute: async () => null }));
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/маршрут недоступен/i));
   expect(screen.queryByLabelText("Получатель")).toBeNull();
+});
+
+it("reports battery activity only while the current pending send owns the pool", async () => {
+  const attempts = Array.from({ length: 4 }, () => deferred<SendDemoResult>());
+  let attempt = 0;
+  const changes: (SendBatteryActivity | null)[] = [];
+  const port = makePort({
+    quote: async request => makeQuote(request, { feeFunding: { kind: "battery", charges: 1, pool: {
+      id: `${request.route.networkId}-pool`, networkId: request.route.networkId,
+      networkLabel: request.route.networkLabel, eligibleAccountIds: ["account-a", "account-b"],
+      action: "send", remainingTransfers: 3,
+    } } }),
+    send: () => attempts[attempt++]!.promise,
+  });
+  function Host({ selectedRoute }: { selectedRoute: ProductActionRoute }) {
+    const [activity, setActivity] = useState<SendBatteryActivity | null>(null);
+    return <>
+      <output aria-label="Активный пул">{activity?.poolId ?? "idle"}</output>
+      <SendFlow route={selectedRoute} port={port} onBack={() => {}} onClose={() => {}}
+        onBatteryActivityChange={next => { changes.push(next); setActivity(next); }} />
+    </>;
+  }
+  const rendered = render(<Host selectedRoute={route} />);
+  await review();
+  expect(screen.getByLabelText("Активный пул")).toHaveTextContent("idle");
+  expect(changes).toEqual([null]);
+  expect(screen.queryByRole("img", { name: "Батарейка используется" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Назад" }));
+  fireEvent.click(screen.getByRole("button", { name: "Проверить перевод" }));
+  expect(changes).toEqual([null]);
+  fireEvent.click(screen.getByRole("button", { name: "Подтвердить симуляцию" }));
+  expect(changes).toEqual([null, { poolId: "ethereum-pool", phase: "using" }]);
+  expect(screen.getByLabelText("Активный пул")).toHaveTextContent("ethereum-pool");
+  rendered.rerender(<Host selectedRoute={{ ...route }} />);
+  expect(changes).toHaveLength(2); // Parent renders/handler identity must not re-emit using.
+
+  const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+  fireEvent(document, new Event("visibilitychange"));
+  expect(screen.getByRole("img", { name: "Батарейка используется" })).toHaveAttribute("data-visible", "false");
+  expect(screen.getByLabelText("Активный пул")).toHaveTextContent("ethereum-pool");
+  visibility.mockReturnValue("visible");
+  fireEvent(document, new Event("visibilitychange"));
+  expect(screen.getByRole("img", { name: "Батарейка используется" })).toHaveAttribute("data-visible", "true");
+  await act(async () => attempts[0]!.resolve({ mode: "demo", status: "simulated-success" }));
+  expect(screen.getByLabelText("Активный пул")).toHaveTextContent("idle");
+  expect(changes.at(-1)).toBeNull();
+
+  rendered.rerender(<Host selectedRoute={{ ...route, networkId: "solana", networkLabel: "Solana" }} />);
+  await review();
+  fireEvent.click(screen.getByRole("button", { name: "Подтвердить симуляцию" }));
+  expect(screen.getByLabelText("Активный пул")).toHaveTextContent("solana-pool");
+  rendered.rerender(<Host selectedRoute={{ ...route, accountId: "account-b" }} />);
+  expect(screen.getByLabelText("Активный пул")).toHaveTextContent("idle");
+  await review();
+  fireEvent.click(screen.getByRole("button", { name: "Подтвердить симуляцию" }));
+  const beforeOldResult = changes.length;
+  await act(async () => attempts[1]!.resolve({ mode: "demo", status: "simulated-success" }));
+  expect(screen.getByLabelText("Активный пул")).toHaveTextContent("ethereum-pool");
+  expect(changes).toHaveLength(beforeOldResult); // Old route cannot clear the new pending activity.
+  await act(async () => attempts[2]!.resolve({ mode: "demo", status: "simulated-failure", reason: "rejected" }));
+  expect(screen.getByLabelText("Активный пул")).toHaveTextContent("idle");
+  expect(changes.at(-1)).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Пересчитать и повторить" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Проверить перевод" }));
+  fireEvent.click(screen.getByRole("button", { name: "Подтвердить симуляцию" }));
+  expect(screen.getByLabelText("Активный пул")).toHaveTextContent("ethereum-pool");
+  rendered.unmount();
+  expect(changes.at(-1)).toBeNull();
+  const afterUnmount = changes.length;
+  await act(async () => attempts[3]!.resolve({ mode: "demo", status: "simulated-success" }));
+  expect(changes).toHaveLength(afterUnmount);
 });

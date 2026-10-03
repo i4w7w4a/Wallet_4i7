@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { ProductActionRoute } from "@wallet/core";
 import type { SendPort, SendQuote } from "./send-port";
 import { mockSendPort } from "./mock-send-port";
@@ -8,19 +8,22 @@ import { sendIssueMessage, sendRouteKey } from "./send-validation";
 import { useSendFlow } from "./use-send-flow";
 import styles from "./send-flow.module.css";
 
+export type SendBatteryActivity = { poolId: string; phase: "using" };
+
 export type SendFlowProps = {
   route: ProductActionRoute;
   port?: SendPort;
   privacy?: boolean;
   onBack(): void;
   onClose(): void;
+  onBatteryActivityChange?(activity: SendBatteryActivity | null): void;
 };
 
 export function SendFlow({ port = mockSendPort, ...props }: SendFlowProps) {
   return <SendSession key={sendRouteKey(props.route)} {...props} port={port} />;
 }
 
-function SendSession({ route: selectedRoute, port, privacy = false, onBack, onClose }: SendFlowProps & { port: SendPort }) {
+function SendSession({ route: selectedRoute, port, privacy = false, onBack, onClose, onBatteryActivityChange }: SendFlowProps & { port: SendPort }) {
   // Equivalent route objects from appearance renders must not reset the form.
   const [route] = useState(selectedRoute);
   const flow = useSendFlow(route, port);
@@ -28,6 +31,10 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
   const heading = useRef<HTMLHeadingElement>(null);
   const { stage, data, quote } = flow;
   const pending = stage === "pending";
+  // Pending is entered only after validateQuote succeeds in submit. Expiry after
+  // submission does not end the accepted operation's hold; result/reset does.
+  const activePoolId = data && pending && quote?.feeFunding.kind === "battery" ? quote.feeFunding.pool.id : null;
+  useBatteryActivity(activePoolId, onBatteryActivityChange);
   const error = flow.loadIssue ?? flow.issue;
   const mask = (value: string) => privacy ? "••••" : value;
   const resultSuccess = flow.result?.status === "simulated-success";
@@ -140,7 +147,7 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
       {pending && <div className={styles.outcome}>
         <span className={styles.resultMark} aria-hidden="true">…</span>
         <p role="status" className={styles.status}>Выполняется симуляция. Дождитесь результата.</p>
-        {quote?.feeFunding.kind === "battery" && <p className={styles.note}>Демо: заряд показан как временно удержанный. Остаток пула не меняется.</p>}
+        {activePoolId !== null && <PendingBatteryNote />}
       </div>}
 
       {stage === "result" && flow.result && <div className={styles.outcome}>
@@ -158,6 +165,37 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
       </div>}
     </div>
   </section>;
+}
+
+function useBatteryActivity(poolId: string | null, onChange: SendFlowProps["onBatteryActivityChange"]) {
+  const listener = useRef(onChange);
+  // Update only after commit. Handler identity changes do not replay activity or
+  // create a parent setState -> render -> notification loop.
+  useEffect(() => { listener.current = onChange; }, [onChange]);
+  useEffect(() => { listener.current?.(poolId === null ? null : { poolId, phase: "using" }); }, [poolId]);
+  // This keyed route session owns its cleanup. Old async results are already
+  // suppressed by useSendFlow's generation guard and cannot publish afterward.
+  useEffect(() => () => { listener.current?.(null); }, []);
+}
+
+function subscribeDocumentVisibility(onChange: () => void) {
+  document.addEventListener("visibilitychange", onChange);
+  return () => document.removeEventListener("visibilitychange", onChange);
+}
+
+function documentVisible() { return document.visibilityState === "visible"; }
+function serverVisible() { return false; }
+
+function PendingBatteryNote() {
+  const visible = useSyncExternalStore(subscribeDocumentVisibility, documentVisible, serverVisible);
+  return <p className={`${styles.note} ${styles.batteryPending}`}>
+    <svg className={styles.batteryIndicator} viewBox="0 0 28 18" role="img" aria-label="Батарейка используется" data-visible={visible}>
+      <rect x="1" y="2" width="23" height="14" rx="3" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M26 6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <rect className={styles.batteryCharge} x="4" y="5" width="17" height="8" rx="1.5" fill="currentColor" />
+    </svg>
+    <span>Демо: заряд показан как временно удержанный. Остаток пула не меняется.</span>
+  </p>;
 }
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {

@@ -6,7 +6,7 @@
 
 Из `./send`:
 
-- `SendFlow`, `SendFlowProps`.
+- `SendFlow`, `SendFlowProps`, `SendBatteryActivity`.
 - `createMockSendPort(snapshot?: ProductSnapshot): SendPort`, `mockSendPort`.
 - Типы: `SendPort`, `SendCallOptions`, `SendRouteData`, `SendTerms`, `SendRecipient`, `SendRequest`, `SendQuote`, `SendQuoteResult`, `SendDemoResult`, `SendIssue`, `SendIssueCode`.
 
@@ -17,7 +17,10 @@ type SendFlowProps = {
   privacy?: boolean;    // default false; masks money, recipient and memo
   onBack(): void;       // recipient/result -> existing route chooser
   onClose(): void;      // Escape, success Done, failure Close
+  onBatteryActivityChange?(activity: SendBatteryActivity | null): void;
 };
+
+type SendBatteryActivity = { poolId: string; phase: "using" };
 ```
 
 Back within the flow moves review -> amount -> recipient. Changing account/asset/network/action remounts the session and aborts outstanding work. Equivalent route objects and privacy changes retain the draft. Keep the component mounted across appearance changes; do not key it by preset. A different port instance reloads its route and resets the session, so memoize ports.
@@ -50,6 +53,14 @@ function SendRouteDetail({ route, view, commands }: {
 
 No hook should be inserted below `ProductOverlay`'s conditional returns. This wrapper avoids that problem. Use `route.action === "send"` before rendering it. An unsupported route fails closed inside the module as well.
 
+### Battery activity callback
+
+Pass `onBatteryActivityChange={handleBatteryActivityChange}` to connect the common battery UI. It emits `{ poolId, phase: "using" }` only during pending after successful quote validation and only for the quoted battery pool. Eligible routes, recipient/amount entry, quoting and review stay `null`. Result/failure/reset clears activity; route-session unmount also emits `null`. Initial mount emits `null`. Back before submission is idle; Back during pending is disabled.
+
+Handler identity changes do not replay the event. Notifications and cleanup use the latest committed handler; the existing request generation guard prevents late results of a previous route from changing the new route's activity. Preserve the component instance across ordinary parent/appearance renders. An accepted quote expiring after submission does not end a pending hold: result or reset ends it.
+
+The pending explanation contains a small green battery glyph. Only its fill breathes, only while the document is visible and `prefers-reduced-motion: no-preference`. It is static for hidden/reduced states, and its visibility listener is removed on unmount. Visibility does not change the semantic activity callback. No common scene/controller changes, fake recharge/debit, extra runtime or delay were added; the mock port already has an abortable 700ms send delay.
+
 ## Port boundary
 
 `SendPort.mode` and all quotes/results require the literal `"demo"`. This is a provisional frontend contract, not a verified backend DTO. It cannot truthfully present a live send result without a separate contract change.
@@ -81,5 +92,13 @@ pnpm --filter @wallet/miniapp exec vitest run src/mono-product/send/send-validat
 ```
 
 Result: **2 files, 30 tests passed**. Coverage includes large exact decimals and atomic boundaries, limits/precision, recipient delegation, route/input invalidation, quote races, expired/unknown quote, separate insufficient asset/fee, battery scope, duplicate submit, pending/success/failure/retry, privacy and navigation. One self-read completed.
+
+Battery follow-up: one focused lifecycle RED/GREEN, **1 passed / 12 skipped** (the prior 30-test suite was not rerun):
+
+```powershell
+pnpm --filter @wallet/miniapp exec vitest run src/mono-product/send/send-flow.test.tsx -t "reports battery activity only" --reporter=dot
+```
+
+It covers idle/review/back, pending, parent rerenders with a replaced callback identity, hidden/visible icon gating, success/failure, route replacement with an old result arriving during the new send, retry and unmount cleanup.
 
 CSS is local, uses existing MONO tokens, 44px controls, tabular digits, finite 220ms/4px stage motion and immediate reduced-motion states. No financial number count-up/blur. The orchestrator/ORACLE still owns overall typecheck/build and the browser review at 320/390/430/480 widths in light/dark and all seven presets. This module has not been visually approved or deployed.
