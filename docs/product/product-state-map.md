@@ -1,0 +1,60 @@
+# Карта состояний MONO
+
+Срез: 2026-10-03. Карта привязана к финансовым веткам базы 4aa6fc4 и модели профиля текущей волны. Она описывает реализованные состояния и открытые стыки backend. Новый Profile resource выделен отдельно: его UI делает соседний поток, а host wiring и runtime проверяются при общей интеграции.
+
+Идентичность операции: accountId/assetId/networkId/action; у Receive ещё receiveMode, у internal transfer оба счёта. Символ валюты, USD-оценка и All context не заменяют IDs.
+
+## Счета и маршруты
+
+| Состояние | Current component / props / port | Что показывается и разрешено | Данные backend | Открытое правило |
+| --- | --- | --- | --- | --- |
+| Один account | useMonoProductController; snapshot.accounts | Начальный context — этот account. Account chooser не открывается при count≤1. Main Send/Receive всё равно показывают route menu при единственном маршруте. | Полный набор accounts и IDs. | Создание/удаление account, выбор после обновления списка. |
+| Несколько accounts / All | Controller, ProductHoldings, ProductAccountChooser | Начальный обзор All, группировка по asset. Tabs route menu локальны и не меняют глобальный context. | Accounts, точные holdings/capabilities. | All не источник списания; нужны разрешённые сочетания IDs. |
+| Active | Core resolveActionRoutes, ProductActionRoute | Только объявленные capability/action/asset/network. | Status и capabilities отдельно от баланса. | Active и account kind сами по себе не разрешают действие. |
+| Inactive | Account chooser, EmptyHoldings, SelectedPlacement | «Не активирован», просмотр. Core не выдаёт routes; автоматической активации нет. | Причина/стадия неактивности. | Активация, KYC и private readiness не реализованы как workflow. |
+| Unavailable / account исчез | Те же компоненты, controller effective context | «Недоступен». Для исчезнувшего selected account effective context возвращается к All. | Актуальные accounts/status и причины. | Отличить временную ошибку сервиса от отключённого account. |
+| Нет holdings | ProductHoldings.EmptyHoldings | «Активов пока нет» либо состояние account. Получение только при receive capability. | Пустой массив как подтверждённые данные. | Общего loading union у ProductSnapshot нет; до готовности данными управляет внешний host. |
+| Available равен 0 | ProductHolding.availableQuantity, SelectedPlacement, SendTerms | Известный ноль показывается как ноль. Capability может оставить вход в форму; положительная сумма не проходит balance validation. | Spendable decimal string. | Ноль не равен отсутствующей capability. |
+| Available отсутствует/невалиден | ProductHoldings, SelectedPlacement, Send/internal validation | «Нет данных» / «пока неизвестно»; unknown-available блокирует confirm. Internal требует единственный exact holding, неоднозначные записи не складывает. | Available отдельно от quantity/fiatMinor. | Blocked/reserved средства, freshness и reconciliation. |
+| Нет action route | ActionRouteMenu, ProductSheet, core reason | Короткое unavailable/empty состояние. Для swap/buy/withdraw продолжение пока недоступно. | Точные capabilities и причины запрета. | Набор live действий и условия доступности ещё согласуются. |
+| Конкретный placement | ProductAssetWorkspace, openPlacementAction | Единственный exact route открывается напрямую; Back возвращает к placement. Источник — его account. | Holding ID и account/asset/network. | Изменение placement во время операции требует server semantics. |
+
+## Данные и операции
+
+| Состояние | Current component / props / port | Что показывается и разрешено | Данные backend | Открытое правило |
+| --- | --- | --- | --- | --- |
+| Receive loading | ReceiveFlow; pending ReceiveDataPort.load | «Загружаем реквизиты» / «Проверяем счета-источники»; прежние destination data не показываются. | Ready/unavailable/error для exact request. | DTO и срок жизни реквизитов. |
+| Receive unavailable/error/retry | ReceiveLoadResult, ReceiveFlow | Unavailable с причиной. Error скрывает реквизиты; retry при retryable. Несовпадение account/asset/network/mode отклоняется. | Причина и retryability; AbortSignal в контракте. | Domain/transport ошибки и backoff для live. |
+| External receive ready | ExternalReceive, ExternalReceiveDestination | Non-payable reference, необязательная желаемая сумма, demo copy/share. Optional QR renderer получает testOnly payload. | Новый live destination contract с memo/tag при необходимости. | Address/URI/lifetime/QR не поддерживаются текущим demo типом. |
+| Internal receive без port | InternalReceive; sources из ReceiveDataPort | Источник → просмотр маршрута → «Готово». Комиссия неизвестна, transfer command отсутствует. | Явно разрешённые источники. | Send capability не создаёт разрешённую пару. |
+| Internal receive с port | InternalTransferReceive, InternalTransferPort | Источник → сумма → quote/review → pending → demo result. Exact binding, capabilities и known available обязательны. | Два account ID, общий asset/network, quote/result. | Fee0 и TTL60s — fixture; live тариф/авторизация не согласованы. |
+| Send load/error | SendFlow/useSendFlow, SendPort.loadRoute | Подготовка → recipient. Rejected load даёт unavailable и «Повторить загрузку»; null data даёт unsupported-route. | Terms и описание recipient/memo. | Формат получателя оставлен за backend. |
+| Send invalid amount/precision/limits | validateAmount, SendTerms | Исправление ввода с конкретной причиной; quote не принимается. | Decimals, minimum/maximum и available. | Реальные precision/rounding/fee правила ещё не определены. |
+| Send unknown available/fee/funding | validateQuote, SendQuote | Неизвестный остаток или комиссия закрывают confirm. | Debit, known fee и достаточность funding. | Missing fee не равна нулю; наличие pool не подтверждает оплату. |
+| Quote expired/stale/invalid | Send validation/useSendFlow; internal guard/hook | До submit нужен новый quote. Send expiry возвращает к amount; edits инвалидируют старый расчёт. Поздний ответ прежнего запроса не восстанавливает авторизацию. | Quote identity, exact request, expiresAt. | Server-side freshness/authorization обязательны для live. |
+| Pending | SendFlow / InternalTransferReceive | Read-only pending, duplicate submit закрыт. Принятая попытка не отменяется только из-за истечения quote TTL. | Authoritative operation status, optional ETA. | Poll/subscription, reload recovery, cancellation/finality ещё не live contract. |
+| ETA известен/неизвестен | onOperationChange, ProductAssetDetail | «Время уточняется» либо статичная оценка текущей demo-операции. Ноль не означает success. | Provider estimate, отдельно от status. | SLA не задан; countdown или восстановление battery не выводятся. |
+| Demo success/failure | SendDemoResult/InternalTransferResult, controller journal | Явная симуляция, receipt, «В истории» после записи. Terminal success/failure фиксируется один раз; success очищает свой draft. Денег не перемещает. | Для live нужен иной result/status contract. | Серверные IDs, journal source of truth, reconciliation после неопределённого исхода. |
+| История loading/error/empty/filter empty | ProductHistory; activityStatus/retryActivities | Загрузка; ошибка/retry при callback; «операций пока нет»; «Нет совпадений» со сбросом фильтров. Internal transfer — одна запись с двумя участниками и contextual direction. | Account/asset/network, direction/status, receipt, timestamp. | Pagination, серверный search и live updates пока не заданы. |
+| Battery unknown/empty/known | Core BatteryCoverage, ProductHome/BatteryPopover, ProductAssetDetail | Неизвестный остаток/«Нет данных» либо переданные значения. Процент не вычисляется из количества переводов. Использование только от принятого Send quote. | Pool entitlement и процент отдельно. | Тариф, charging/renewal, eligibility определяет backend. Internal demo battery не использует. |
+
+## Профиль и предпочтения
+
+| Состояние | Current component / props / port | Что показывается и разрешено | Данные backend | Открытое правило |
+| --- | --- | --- | --- | --- |
+| Profile security unknown | ProductProfile; новый createDemoProfileResource | Существующая ветка показывает неизвестную защиту. Новая модель также даёт verification/twoFactor/addressAllowlist unknown, null contacts/support и пустые documents. Demo ID не является адресом получения. | Подтверждённые contacts/security states. | Unknown не равен disabled/not-started. Auth/KYC не выводятся из frontend. |
+| Profile loading/error/ready — новый контракт волны | ProductProfileResource; optional ProductProfile.resource, UI соседнего потока | Контракт разделяет loading, error.retryable, ready.data. Согласованное UI поведение: stale contacts/security скрыты, retry требует retryable+onRetry, preferences доступны. | Host загружает/валидирует resource и отслеживает актуальность ответа. | Host wiring/runtime проверяются на общей интеграции; account auth resource ещё не определён. |
+| Security/contact action | ProductProfileActions | Callback открывает workflow потребителя. Missing callback — недоступное действие с объяснением; security flag не переключается. | Commands/auth и свежий resource после результата. | Password state в модель не входит; recovery/verification workflows не реализуются этой волной. |
+| Support/documents | ProductProfileDetails, isProfileLinkAllowed | Только предоставленные допустимые HTTPS links; default ссылок нет. Guard не удостоверяет доверие домену. | Авторизованные URLs, titles, document IDs. | Источник/версии документов и support URLs не назначены. |
+| Light/dark | ProductProfile theme/onThemeChange; appearance.environment.theme | Согласованный control меняет host preference. Без callback — текущая тема read-only. | При необходимости серверное preference отдельно от presets. | Viewer theme и session persistence подключает host; авторские presets не переписываются. |
+| Privacy | Controller/session balanceHidden, Receive/Send privacy, money components | Деньги/receipts маскируются. Receive убирает реквизиты/inputs/QR из DOM, закрывает copy/share/confirm; Send использует masked text/password inputs. Raw drafts остаются в памяти. | Уже полученные данные; новых permissions не создаёт. | UI privacy не заменяет auth/encryption и не удаляет draft; persist/delete policy отдельная. |
+| Reduced motion | Системное media preference, MONO static | Существующие переходы соблюдают reduced/static. Пункта уменьшения анимаций в профиле нет. | Не требуется. | Решение владельца: отдельный profile control не добавлять. |
+
+## Исходники
+
+- [Core и selectors](../../packages/core/src/wallet-product.ts), [controller](../../apps/miniapp/src/mono-product/product-controller.ts), [adapter/factory](../../apps/miniapp/src/mono-product/demo-adapter.ts).
+- [Holdings](../../apps/miniapp/src/mono-product/product-holdings.tsx), [account chooser](../../apps/miniapp/src/mono-product/product-account-chooser.tsx), [asset workspace](../../apps/miniapp/src/mono-product/asset-workspace/product-asset-workspace.tsx), [action menu](../../apps/miniapp/src/mono-product/action-route-menu.tsx), [overlay](../../apps/miniapp/src/mono-product/product-sheet.tsx).
+- [SendPort](../../apps/miniapp/src/mono-product/send/send-port.ts), [Send validation](../../apps/miniapp/src/mono-product/send/send-validation.ts), [Send lifecycle](../../apps/miniapp/src/mono-product/send/use-send-flow.ts), [Receive contract](../../apps/miniapp/src/mono-product/receive/receive-types.ts), [ReceiveFlow](../../apps/miniapp/src/mono-product/receive/receive-flow.tsx), [internal contract](../../apps/miniapp/src/mono-product/internal-transfer/types.ts).
+- [History](../../apps/miniapp/src/mono-product/product-history.tsx), [asset detail](../../apps/miniapp/src/mono-product/asset-detail/product-asset-detail.tsx), [profile UI](../../apps/miniapp/src/mono-product/product-profile.tsx), [profile model](../../apps/miniapp/src/mono-product/profile/model.ts).
+
+Порядок подключения и вопросы к backend: [React handoff](./react-frontend-handoff.md). Исторические инструкции module INTEGRATION описывают свои этапы; точное текущее подключение определяется controller/host файлами.
