@@ -49,7 +49,7 @@ it("offers only the newest selected-account activity without reordering the inpu
   const onOpenActivity = vi.fn();
   render(<ProductRecentActivity activities={activities} balanceHidden={false}
     accountId="account-a" onOpenActivity={onOpenActivity} />);
-  const row = screen.getByRole("button", { name: /Получение.*ETH.*Выполнено.*2\.5/i });
+  const row = screen.getByRole("button", { name: /Получение.*ETH.*Выполнено.*2,5/i });
   expect(screen.getAllByRole("button")).toHaveLength(1);
   expect(screen.queryByText(/USDT|BTC/)).not.toBeInTheDocument();
   fireEvent.click(row);
@@ -79,13 +79,42 @@ it("masks recent quantity in both visible and accessible text and exposes no fee
     accountId="account-a" onOpenActivity={() => undefined} />);
   expect(screen.getByText(/••••/)).toBeInTheDocument();
   const row = screen.getByRole("button", { name: /Получение.*ETH/i });
-  expect(row).not.toHaveAccessibleName(/2\.5|0\.005/);
-  expect(container.innerHTML).not.toMatch(/2\.5|0\.005/);
+  expect(row).not.toHaveAccessibleName(/2[.,]5|0[.,]005/);
+  expect(container.innerHTML).not.toMatch(/2[.,]5|0[.,]005/);
 
   rerender(<ProductRecentActivity activities={activities} balanceHidden={false}
     accountId="account-a" onOpenActivity={() => undefined} />);
-  expect(row).toHaveAccessibleName(/2\.5/);
-  expect(container.innerHTML).not.toContain("0.005");
+  expect(row).toHaveAccessibleName(/2,5/);
+  expect(container.innerHTML).not.toMatch(/0[.,]005/);
+});
+
+it.each([
+  { status: "completed" as const, label: "Симуляция завершена" },
+  { status: "failed" as const, label: "Симуляция не выполнена" },
+])("keeps recent $status simulation labels and decimal precision consistent with private history", ({ status, label }) => {
+  const simulation: ProductActivity = {
+    ...activities[0],
+    id: "simulation-a",
+    mode: "simulation",
+    status,
+    quantity: "0.123456789012345678",
+    occurredAt: "2026-10-03T09:00:00.000Z",
+  };
+  const onOpenActivity = vi.fn();
+  const { container, rerender } = render(<ProductRecentActivity activities={[simulation]} balanceHidden
+    accountId="account-a" onOpenActivity={onOpenActivity} />);
+  const row = screen.getByRole("button", { name: /Демо-отправка.*USDT/ });
+  expect(row).toHaveAccessibleName(new RegExp(label));
+  expect(row).toHaveAccessibleName(/сумма скрыта/i);
+  expect(container.innerHTML).not.toContain("123456789012345678");
+  expect(screen.queryByText("Выполнено")).not.toBeInTheDocument();
+  fireEvent.click(row);
+  expect(onOpenActivity).toHaveBeenCalledExactlyOnceWith("simulation-a");
+
+  rerender(<ProductRecentActivity activities={[simulation]} balanceHidden={false}
+    accountId="account-a" onOpenActivity={onOpenActivity} />);
+  expect(row).toHaveAccessibleName(/0,123456789012345678/);
+  expect(container).toHaveTextContent("0,123456789012345678");
 });
 
 it("opens the selected history detail from recent activity and permits collapsing it", () => {

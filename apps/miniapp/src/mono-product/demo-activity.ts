@@ -4,12 +4,43 @@ export type ProductActivity = {
   accountLabel: string;
   direction: "incoming" | "outgoing";
   status: "pending" | "completed" | "failed";
+  /** Undefined is an example. Simulations are session-only UI events, never a balance ledger. */
+  mode?: "example" | "simulation";
   assetSymbol: string;
   quantity: string;
   networkLabel: string;
   occurredAt: string;
   feeLabel?: string;
 };
+
+const EXAMPLE_STATUS_LABEL: Record<ProductActivity["status"], string> = {
+  pending: "В обработке",
+  completed: "Выполнено",
+  failed: "Не выполнено",
+};
+
+const SIMULATION_STATUS_LABEL: Record<ProductActivity["status"], string> = {
+  pending: "Симуляция выполняется",
+  completed: "Симуляция завершена",
+  failed: "Симуляция не выполнена",
+};
+
+export function getProductActivityLabels(activity: ProductActivity) {
+  const incoming = activity.direction === "incoming";
+  const simulation = activity.mode === "simulation";
+  return {
+    directionLabel: simulation
+      ? incoming ? "Демо-получение" : "Демо-отправка"
+      : incoming ? "Получение" : "Отправка",
+    statusLabel: (simulation ? SIMULATION_STATUS_LABEL : EXAMPLE_STATUS_LABEL)[activity.status],
+  };
+}
+
+/** Fee labels are display text; localize only a decimal amount at the start. */
+export function formatProductActivityFee(feeLabel?: string): string {
+  if (!feeLabel?.trim()) return "Комиссия не указана";
+  return feeLabel.replace(/^(\d+)\.(\d+)(?=\s|$)/, "$1,$2");
+}
 
 /** Illustrative states only. These entries are never a balance or transaction ledger. */
 export function createDemoActivities(accountId: string, accountLabel: string): readonly ProductActivity[] {

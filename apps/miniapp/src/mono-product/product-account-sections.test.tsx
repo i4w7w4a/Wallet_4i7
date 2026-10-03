@@ -80,13 +80,13 @@ it("exposes each operation status and expands network, account, time and known f
   const row = screen.getByRole("button", { name: /USDT/ });
   expect(row).toHaveAttribute("aria-expanded", "false");
   expect(document.getElementById(row.getAttribute("aria-controls") ?? "")).toHaveAttribute("hidden");
-  expect(screen.queryByText("0.05 TON")).not.toBeInTheDocument();
+  expect(screen.queryByText("0,05 TON")).not.toBeInTheDocument();
   fireEvent.click(row);
   expect(row).toHaveAttribute("aria-expanded", "true");
   expect(document.getElementById(row.getAttribute("aria-controls") ?? "")).not.toHaveAttribute("hidden");
   expect(screen.getByText("TON")).toBeInTheDocument();
   expect(screen.getByText("Основной счёт")).toBeInTheDocument();
-  expect(screen.getByText("0.05 TON")).toBeInTheDocument();
+  expect(screen.getByText("0,05 TON")).toBeInTheDocument();
   expect(screen.getByText(/1 октября 2026/i)).toBeInTheDocument();
 });
 
@@ -94,7 +94,7 @@ it("hides quantities and fees from visible and accessible details when privacy i
   const { container } = render(<ProductHistory activities={[activities[0]]} balanceHidden />);
   fireEvent.click(screen.getByRole("button", { name: /USDT/ }));
   expect(screen.getByText("TON")).toBeInTheDocument();
-  expect(container.innerHTML).not.toMatch(/12\.345|0\.05/);
+  expect(container.innerHTML).not.toMatch(/12[.,]345|0[.,]05/);
   expect(screen.getByText("Комиссия")).toBeInTheDocument();
   expect(screen.getAllByText("••••").length).toBeGreaterThan(0);
 });
@@ -106,13 +106,51 @@ it("keeps an unknown fee unknown instead of calling it zero", () => {
   expect(screen.queryByText(/0(?:[.,]0+)?\s*ETH/)).not.toBeInTheDocument();
 });
 
+it.each([
+  { status: "completed" as const, label: "Симуляция завершена" },
+  { status: "failed" as const, label: "Симуляция не выполнена" },
+])("labels a $status simulation and preserves decimal precision while hiding its quantity and fee together", ({ status, label }) => {
+  const simulation: ProductActivity = {
+    ...activities[0],
+    id: "simulation-a",
+    mode: "simulation",
+    status,
+    quantity: "9007199254740993.123456789012345678",
+    feeLabel: "0.000000000000000001 TON",
+  };
+  const { container, rerender } = render(<ProductHistory activities={[simulation]} balanceHidden
+    accountId="account-a" expandedActivityId="simulation-a" />);
+  const row = screen.getByRole("button", { name: /Демо-отправка.*USDT/ });
+  expect(row).toHaveAccessibleName(new RegExp(label));
+  expect(row).not.toHaveAccessibleName(/9007199254740993|123456789012345678|000000000000000001/);
+  expect(container.innerHTML).not.toMatch(/9007199254740993|123456789012345678|000000000000000001/);
+  expect(screen.queryByText("Выполнено")).not.toBeInTheDocument();
+  expect(screen.queryByText("Не выполнено")).not.toBeInTheDocument();
+
+  rerender(<ProductHistory activities={[simulation]} balanceHidden={false}
+    accountId="account-a" expandedActivityId="simulation-a" />);
+  expect(container).toHaveTextContent("9007199254740993,123456789012345678");
+  expect(screen.getByText("0,000000000000000001 TON")).toBeInTheDocument();
+  expect(screen.queryByText("Выполнено")).not.toBeInTheDocument();
+});
+
+it("shows that profile security is unconnected before opening its unknown states", () => {
+  render(<ProductProfile profile={profile} balanceHidden={false} onBalanceHiddenChange={() => undefined} />);
+  const security = screen.getByRole("button", { name: "Безопасность" });
+  expect(security).toHaveAccessibleDescription(/не подключено/i);
+  fireEvent.click(security);
+  expect(screen.getByText("Двухфакторная защита")).toBeInTheDocument();
+  expect(screen.getByText("Проверка личности")).toBeInTheDocument();
+  expect(screen.getAllByText("Неизвестно")).toHaveLength(2);
+});
+
 it("opens a controlled activity and requests collapse without overriding the parent", () => {
   const onExpandedActivityChange = vi.fn();
   const { rerender } = render(<ProductHistory activities={activities} balanceHidden={false}
     accountId="account-a" expandedActivityId="pending-a" onExpandedActivityChange={onExpandedActivityChange} />);
   const row = screen.getByRole("button", { name: /USDT/ });
   expect(row).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByText("0.05 TON")).toBeInTheDocument();
+  expect(screen.getByText("0,05 TON")).toBeInTheDocument();
 
   fireEvent.click(row);
   expect(onExpandedActivityChange).toHaveBeenCalledExactlyOnceWith(null);
@@ -121,7 +159,7 @@ it("opens a controlled activity and requests collapse without overriding the par
   rerender(<ProductHistory activities={activities} balanceHidden={false}
     accountId="account-a" expandedActivityId={null} onExpandedActivityChange={onExpandedActivityChange} />);
   expect(row).toHaveAttribute("aria-expanded", "false");
-  expect(screen.queryByText("0.05 TON")).not.toBeInTheDocument();
+  expect(screen.queryByText("0,05 TON")).not.toBeInTheDocument();
   fireEvent.click(row);
   expect(onExpandedActivityChange).toHaveBeenLastCalledWith("pending-a");
 });
@@ -129,12 +167,12 @@ it("opens a controlled activity and requests collapse without overriding the par
 it("does not expand a controlled record from another account", () => {
   const { rerender } = render(<ProductHistory activities={activities} balanceHidden={false}
     accountId="account-a" expandedActivityId="pending-a" />);
-  expect(screen.getByText("0.05 TON")).toBeInTheDocument();
+  expect(screen.getByText("0,05 TON")).toBeInTheDocument();
 
   rerender(<ProductHistory activities={activities} balanceHidden={false}
     accountId="account-b" expandedActivityId="pending-a" />);
   expect(screen.getByRole("button", { name: /BTC/ })).toHaveAttribute("aria-expanded", "false");
-  expect(screen.queryByText("0.05 TON")).not.toBeInTheDocument();
+  expect(screen.queryByText("0,05 TON")).not.toBeInTheDocument();
   expect(screen.queryByText("Основной счёт")).not.toBeInTheDocument();
 });
 
@@ -143,7 +181,7 @@ it("announces loading and suppresses stale rows and expanded details until ready
     expandedActivityId="pending-a" status="loading" />);
   expect(screen.getByRole("status")).toHaveTextContent(/загружаем операции/i);
   expect(screen.queryByRole("list")).not.toBeInTheDocument();
-  expect(container.innerHTML).not.toMatch(/12\.345|0\.05/);
+  expect(container.innerHTML).not.toMatch(/12[.,]345|0[.,]05/);
   expect(screen.queryByText(/операций пока нет/i)).not.toBeInTheDocument();
 
   rerender(<ProductHistory activities={activities} balanceHidden={false}
@@ -158,7 +196,7 @@ it("shows a safe error and exposes the supplied retry instead of stale rows", ()
     expandedActivityId="pending-a" status="error" onRetry={onRetry} />);
   expect(screen.getByRole("alert")).toHaveTextContent(/не удалось загрузить операции/i);
   expect(screen.queryByRole("list")).not.toBeInTheDocument();
-  expect(container.innerHTML).not.toMatch(/12\.345|0\.05/);
+  expect(container.innerHTML).not.toMatch(/12[.,]345|0[.,]05/);
   fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
   expect(onRetry).toHaveBeenCalledOnce();
 });

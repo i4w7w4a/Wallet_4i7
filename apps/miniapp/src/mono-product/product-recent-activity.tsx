@@ -1,7 +1,8 @@
 "use client";
 
 import { useId } from "react";
-import type { ProductActivity } from "./demo-activity";
+import { getProductActivityLabels, type ProductActivity } from "./demo-activity";
+import { formatQuantity } from "./product-format";
 import styles from "./product-account-sections.module.css";
 
 export type ProductRecentActivityProps = {
@@ -9,12 +10,6 @@ export type ProductRecentActivityProps = {
   balanceHidden: boolean;
   accountId?: string;
   onOpenActivity(id: string): void;
-};
-
-const STATUS_LABEL: Record<ProductActivity["status"], string> = {
-  pending: "В обработке",
-  completed: "Выполнено",
-  failed: "Не выполнено",
 };
 
 function occurredAtTime(activity: ProductActivity): number {
@@ -34,9 +29,9 @@ export function ProductRecentActivity({ activities, balanceHidden, accountId, on
 
   if (!latest) return null;
 
-  const directionLabel = latest.direction === "incoming" ? "Получение" : "Отправка";
-  const quantity = balanceHidden ? "••••" : latest.quantity;
-  const accessibleQuantity = balanceHidden ? "Сумма скрыта" : `${latest.quantity} ${latest.assetSymbol}`;
+  const { directionLabel, statusLabel } = getProductActivityLabels(latest);
+  const quantity = balanceHidden ? "••••" : formatQuantity(latest.quantity);
+  const accessibleQuantity = balanceHidden ? "Сумма скрыта" : `${quantity} ${latest.assetSymbol}`;
 
   return <section className={`${styles.section} ${styles.recentActivity}`} aria-labelledby={titleId}>
     <div className={styles.recentHeading}>
@@ -44,15 +39,19 @@ export function ProductRecentActivity({ activities, balanceHidden, accountId, on
       <span className={styles.demoBadge}>Демо</span>
     </div>
     <button type="button" className={`${styles.rowButton} ${styles.recentButton}`}
-      aria-label={`Открыть операцию: ${directionLabel} · ${latest.assetSymbol}, ${STATUS_LABEL[latest.status]}, ${accessibleQuantity}`}
+      aria-label={`Открыть операцию: ${directionLabel} · ${latest.assetSymbol}, ${statusLabel}, ${accessibleQuantity}`}
       onClick={() => onOpenActivity(latest.id)}>
       <span className={styles.directionMark} aria-hidden="true">{latest.direction === "incoming" ? "↓" : "↑"}</span>
       <span className={styles.rowIdentity}>
-        <strong>{directionLabel} · {latest.assetSymbol}</strong>
-        <small className={styles.status} data-status={latest.status}>{STATUS_LABEL[latest.status]}</small>
+        <strong>{directionLabel}</strong>
+        <small className={styles.status} data-status={latest.status}>
+          <span className={styles.statusMark} aria-hidden="true">{latest.status === "completed" ? "✓" : latest.status === "failed" ? "×" : "·"}</span>
+          <span>{statusLabel}</span>
+        </small>
       </span>
       <span className={styles.rowAmount}>
-        <strong>{quantity} <span>{latest.assetSymbol}</span></strong>
+        <strong>{quantity}</strong>
+        <small>{latest.assetSymbol}</small>
       </span>
       <svg className={styles.recentChevron} viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />

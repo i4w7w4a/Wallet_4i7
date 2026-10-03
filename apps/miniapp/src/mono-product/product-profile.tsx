@@ -17,13 +17,18 @@ export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange }
   const groupIdPrefix = useId();
   const [openGroup, setOpenGroup] = useState<ProfileGroup | null>(null);
 
-  function disclosure(group: ProfileGroup, label: string, content: ReactNode) {
+  function disclosure(group: ProfileGroup, label: string, summary: string, content: ReactNode) {
     const expanded = openGroup === group;
     const detailsId = `${groupIdPrefix}-${group}`;
+    const summaryId = `${detailsId}-summary`;
     return <div className={styles.group}>
       <button type="button" className={styles.groupButton} aria-expanded={expanded}
+        aria-label={label} aria-describedby={summaryId}
         aria-controls={detailsId} onClick={() => setOpenGroup(expanded ? null : group)}>
-        <span>{label}</span><span aria-hidden="true">{expanded ? "−" : "+"}</span>
+        <span className={styles.groupCopy}><strong>{label}</strong><small id={summaryId}>{summary}</small></span>
+        <svg className={styles.rowChevron} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </button>
       <div className={styles.groupDetails} id={detailsId} hidden={!expanded}>{expanded && content}</div>
     </div>;
@@ -31,36 +36,39 @@ export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange }
 
   return <section className={styles.section} aria-labelledby={titleId}>
     <div className={styles.heading}>
-      <div>
-        <p className={styles.eyebrow}>АККАУНТ / DEMO</p>
-        <h1 id={titleId}>Профиль</h1>
-      </div>
+      <h1 id={titleId}>Профиль</h1>
       <span className={styles.demoBadge}>Демо</span>
     </div>
     <div className={styles.identity}>
       <span className={styles.avatar} aria-hidden="true">{profile.name.trim().slice(0, 1).toLocaleUpperCase("ru-RU")}</span>
-      <div><strong>{profile.name}</strong><small>Демонстрационный профиль</small></div>
+      <div><strong>{profile.name}</strong></div>
     </div>
     <div className={styles.identityCode}>
       <span>Идентификатор демо-профиля</span><strong>{profile.shortAddress}</strong>
     </div>
-    <p className={styles.identityNote}>Это пример идентификатора, не адрес для получения средств.</p>
+    <p className={styles.identityNote}>Не используется для получения средств.</p>
     <button type="button" className={styles.privacyButton} aria-pressed={balanceHidden}
       aria-label={balanceHidden ? "Показать суммы" : "Скрыть суммы"}
       onClick={() => onBalanceHiddenChange(!balanceHidden)}>
-      <span>Скрывать суммы</span><strong>{balanceHidden ? "Включено" : "Выключено"}</strong>
+      <span>Скрывать суммы</span>
+      <span className={styles.privacyState}>
+        <strong>{balanceHidden ? "Включено" : "Выключено"}</strong>
+        <span className={styles.privacyToggle} data-checked={balanceHidden} aria-hidden="true" />
+      </span>
     </button>
     <div className={styles.groups}>
-      {disclosure("settings", "Настройки", <>
+      {disclosure("settings", "Настройки", "Язык и валюта", <>
         <div className={styles.detailLine}><span>Язык интерфейса</span><strong>Русский</strong></div>
         <div className={styles.detailLine}><span>Валюта оценки</span><strong>USD</strong></div>
-        <p className={styles.groupNote}>Текущая конфигурация демо. Выбор языка и валюты пока недоступен.</p>
+        <p className={styles.groupNote}>Выбор языка и валюты пока недоступен.</p>
       </>)}
-      {disclosure("security", "Безопасность", <p className={styles.groupNote}>
-        Сведения о двухфакторной защите и проверке личности пока не подключены. Их статус здесь неизвестен.
-      </p>)}
-      {disclosure("help", "Помощь", <p className={styles.groupNote}>
-        Связь с поддержкой и документы пока не подключены.
+      {disclosure("security", "Безопасность", "Не подключено", <>
+        <div className={styles.detailLine}><span>Двухфакторная защита</span><strong>Неизвестно</strong></div>
+        <div className={styles.detailLine}><span>Проверка личности</span><strong>Неизвестно</strong></div>
+        <p className={styles.groupNote}>Данные о защите не подключены.</p>
+      </>)}
+      {disclosure("help", "Помощь", "Поддержка и документы", <p className={styles.groupNote}>
+        Поддержка и документы пока недоступны.
       </p>)}
     </div>
   </section>;
