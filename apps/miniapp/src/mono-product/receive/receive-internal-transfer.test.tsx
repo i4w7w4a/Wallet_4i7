@@ -73,7 +73,9 @@ it("auto-selects one eligible source without emitting a seed, and retains raw dr
   const { props, rerender, container } = setup({ initialInternalDraft: { sourceAccountId: null, amount: "" } });
   const input = await screen.findByRole("textbox", { name: "Сумма пополнения" });
   expect(props.onInternalDraftChange).not.toHaveBeenCalled();
-  expect(screen.getByRole("radio", { name: /Основной/ })).toBeChecked();
+  expect(screen.queryByRole("radio")).toBeNull();
+  expect(screen.getByText("Основной")).toBeVisible();
+  expect(screen.getAllByText("Хранилище")).toHaveLength(1);
   fireEvent.change(input, { target: { value: "037,4567001" } });
   expect(props.onInternalDraftChange).toHaveBeenCalledExactlyOnceWith({ sourceAccountId: "demo-main", amount: "037,4567001" });
   rerender(<ReceiveFlow {...props} privacy initialInternalDraft={{ sourceAccountId: null, amount: "999" }} />);

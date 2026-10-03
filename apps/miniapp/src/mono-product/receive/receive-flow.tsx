@@ -93,7 +93,7 @@ function ReceiveRouteContent(props: ReceiveFlowProps & { route: ReceiveRoute }) 
   </ReceiveFrame>;
 }
 
-function ReceiveFrame({ route, onBack, onClose, onAssetDetails, showCloseButton = true, state, children, backButtonRef }:
+function ReceiveFrame({ route, onBack, onClose, onAssetDetails, internalTransferPort, showCloseButton = true, state, children, backButtonRef }:
   ReceiveFlowProps & { state: string; children: ReactNode; backButtonRef?: Ref<HTMLButtonElement> }) {
   const titleId = useId();
   const internal = route.action === "receive" && route.receiveMode === "internal-transfer";
@@ -110,7 +110,9 @@ function ReceiveFrame({ route, onBack, onClose, onAssetDetails, showCloseButton 
       <span className={styles.demoBadge}>Демо</span>
     </header>
     <dl className={styles.context}>
-      <div><dt>Счёт{internal ? " зачисления" : ""}</dt><dd>{route.accountLabel}</dd></div>
+      {!(internal && internalTransferPort && state === "ready") && <div className={styles.contextAccount}>
+        <dt>Счёт{internal ? " зачисления" : ""}</dt><dd>{route.accountLabel}</dd>
+      </div>}
       {onAssetDetails ? <div className={styles.assetContext}>
         <dt>Актив и сеть</dt>
         <dd><button type="button" className={styles.assetButton}

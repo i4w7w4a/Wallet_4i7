@@ -33,7 +33,7 @@
 .demoBadge { flex: 0 0 auto; padding-top: 2px; color: var(--mono-text-secondary, #bdbdbd); font: 500 11px/1.4 var(--mono-font-ui, sans-serif); }
 .context { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; margin: 12px 0 15px; padding: 0; }
 .context > div { display: grid; min-width: 0; gap: 3px; }
-.context > div:first-child { display: flex; align-items: baseline; gap: 8px; grid-column: 1 / -1; }
+.context > .contextAccount { display: flex; align-items: baseline; gap: 8px; grid-column: 1 / -1; }
 .context > div:last-child { text-align: right; }
 .context dt { color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; }
 .context dd { margin: 0; font-size: 13px; font-weight: var(--mono-font-weight-medium, 500); }

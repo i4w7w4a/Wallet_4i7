@@ -24,6 +24,7 @@ export function InternalTransferReceive(props: InternalReceiveTransferOptions & 
   const input = useRef<HTMLInputElement>(null);
   const previousStage = useRef(model.stage);
   const form = model.stage === "edit" || model.stage === "quoting";
+  const chooseSource = form && !privacy && (!model.source || destination.sources.filter(source => source.status === "available").length > 1);
   const issue = model.issue ?? (form && draft.amount.trim() && !model.amount ? "invalid-amount" : null);
   useLayoutEffect(() => {
     if (model.stage !== previousStage.current) {
@@ -35,7 +36,7 @@ export function InternalTransferReceive(props: InternalReceiveTransferOptions & 
 
   return <div className={styles.transfer}>
     <div className={styles.direction} role="group" aria-label="Направление пополнения">
-      {form && !privacy ? <fieldset className={styles.sources}>
+      {chooseSource ? <fieldset className={styles.sources}>
         <legend>Откуда</legend>
         {destination.sources.map(source => <label key={source.accountId} className={styles.source}
           data-selected={source.accountId === model.sourceId}>
