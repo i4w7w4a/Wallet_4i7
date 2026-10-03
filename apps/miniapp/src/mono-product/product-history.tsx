@@ -1,12 +1,14 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import type { ProductActivity } from "./demo-activity";
 import { scopeProductActivities } from "./product-activity-scope";
 import { formatQuantity } from "./product-format";
 import { OperationReceiptView } from "./operation-receipt-view";
 import { HistoryDirectionIcon, HistoryStatusIcon } from "./history-direction-icon";
 import { getHistoryPresentation } from "./history-presentation";
+import { DEFAULT_HISTORY_FILTERS, HISTORY_QUERY_LIMIT, filterHistoryActivities, matchesHistoryFilters,
+  type HistoryFilters } from "./history-filters";
 import styles from "./product-account-sections.module.css";
 
 export type ProductHistoryProps = {
@@ -26,7 +28,10 @@ const rowDateFormat = new Intl.DateTimeFormat("ru-RU", {
 const directionFilters = [
   { id: "all", label: "Все" }, { id: "incoming", label: "Получения" }, { id: "outgoing", label: "Отправки" },
 ] as const;
-type DirectionFilter = typeof directionFilters[number]["id"];
+const statusFilters = [
+  { id: "all", label: "Все статусы" }, { id: "pending", label: "Ожидают" },
+  { id: "completed", label: "Завершены" }, { id: "failed", label: "Ошибки" },
+] as const;
 
 export function ProductHistory({
   activities, balanceHidden, accountId, accountLabel,
@@ -34,24 +39,44 @@ export function ProductHistory({
 }: ProductHistoryProps) {
   const titleId = useId();
   const detailIdPrefix = useId();
+  const searchId = useId();
+  const searchInput = useRef<HTMLInputElement>(null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [directionFilter, setDirectionFilter] = useState<DirectionFilter>("all");
-  const activeId = expandedActivityId === undefined ? openId : expandedActivityId;
+  const [filters, setFilters] = useState<HistoryFilters>(DEFAULT_HISTORY_FILTERS);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [observedExternalId, setObservedExternalId] = useState(expandedActivityId);
+  const [dismissedId, setDismissedId] = useState<string | null>(null);
   const scopedActivities = scopeProductActivities(activities, accountId === undefined ? undefined : [accountId]);
-  const activeActivity = scopedActivities.find(activity => activity.id === activeId);
-  // An externally selected activity must be visible on the first render, even after another filter.
-  const effectiveFilter = activeActivity && directionFilter !== "all" && activeActivity.direction !== directionFilter
-    ? "all" : directionFilter;
-  const visibleActivities = effectiveFilter === "all" ? scopedActivities
-    : scopedActivities.filter(activity => activity.direction === effectiveFilter);
+  const visibleActivities = filterHistoryActivities(scopedActivities, filters);
+  const requestedId = expandedActivityId === undefined ? openId : expandedActivityId;
+  const activeId = requestedId === dismissedId ? null : requestedId;
+  const activeActivity = visibleActivities.find(activity => activity.id === activeId);
+
+  // Consume a new external reveal before committing children; an unchanged controlled ID must not undo manual filters.
+  if (expandedActivityId !== observedExternalId) {
+    setObservedExternalId(expandedActivityId);
+    setDismissedId(null);
+    if (expandedActivityId != null && !visibleActivities.some(activity => activity.id === expandedActivityId)) {
+      setFilters(DEFAULT_HISTORY_FILTERS);
+    }
+  }
+
+  useLayoutEffect(() => {
+    if (searchOpen) searchInput.current?.focus({ preventScroll: true });
+  }, [searchOpen]);
 
   function changeExpandedActivity(id: string | null) {
+    setDismissedId(id === null ? requestedId : null);
     if (expandedActivityId === undefined) setOpenId(id);
     onExpandedActivityChange?.(id);
   }
-  function selectDirection(next: DirectionFilter) {
-    setDirectionFilter(next);
-    if (activeActivity && next !== "all" && activeActivity.direction !== next) changeExpandedActivity(null);
+  function updateFilters(next: HistoryFilters) {
+    setFilters(next);
+    if (activeActivity && !matchesHistoryFilters(activeActivity, next)) changeExpandedActivity(null);
+  }
+  function clearSearch() {
+    updateFilters({ ...filters, query: "" });
+    searchInput.current?.focus({ preventScroll: true });
   }
 
   return <section className={`${styles.section} ${styles.historyPresentation}`} aria-labelledby={titleId}>
@@ -61,10 +86,44 @@ export function ProductHistory({
     <p className={styles.intro}>
       {accountId === undefined ? "Все счета" : accountLabel ?? "Выбранный счёт"} · примеры и симуляции
     </p>
-    {status === "ready" && scopedActivities.length > 0 && <div className={styles.directionFilters} role="group" aria-label="Направление операций">
-      {directionFilters.map(filter => <button key={filter.id} type="button" data-direction-filter={filter.id}
-        aria-pressed={effectiveFilter === filter.id} onClick={() => selectDirection(filter.id)}>{filter.label}</button>)}
-    </div>}
+    {status === "ready" && scopedActivities.length > 0 && <>
+      <div className={styles.historyTools}>
+        <button type="button" className={styles.historySearchToggle} aria-label="Поиск по операциям"
+          aria-expanded={searchOpen} aria-controls={searchOpen ? searchId : undefined}
+          aria-description={filters.query.trim() ? "Поисковый фильтр применён" : undefined} data-active={filters.query.trim().length > 0}
+          onClick={() => setSearchOpen(value => !value)}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+            <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+            <path d="m10.5 10.5 3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+          <span>Поиск</span>
+        </button>
+        <select className={styles.historyStatusFilter} aria-label="Статус операций" value={filters.status}
+          data-active={filters.status !== "all"}
+          onChange={event => updateFilters({ ...filters, status: event.target.value as HistoryFilters["status"] })}>
+          {statusFilters.map(filter => <option key={filter.id} value={filter.id}>{filter.label}</option>)}
+        </select>
+      </div>
+      {searchOpen && <div className={styles.historySearchField}>
+        <label className={styles.historySearchLabel} htmlFor={searchId}>Валюта, сеть или счёт</label>
+        <input id={searchId} ref={searchInput} type="search" value={filters.query} maxLength={HISTORY_QUERY_LIMIT}
+          placeholder="Валюта, сеть или счёт" autoComplete="off" spellCheck={false}
+          onChange={event => updateFilters({ ...filters, query: event.target.value.slice(0, HISTORY_QUERY_LIMIT) })}
+          onKeyDown={event => {
+            if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); clearSearch(); }
+          }} />
+        {filters.query.length > 0 && <button type="button" className={styles.historySearchClear} aria-label="Очистить поиск" onClick={clearSearch}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+            <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+        </button>}
+      </div>}
+      <div className={styles.directionFilters} role="group" aria-label="Направление операций">
+        {directionFilters.map(filter => <button key={filter.id} type="button" data-direction-filter={filter.id}
+          aria-pressed={filters.direction === filter.id}
+          onClick={() => updateFilters({ ...filters, direction: filter.id })}>{filter.label}</button>)}
+      </div>
+    </>}
     {status === "loading" ? <p className={styles.empty} role="status">Загружаем операции…</p> :
       status === "error" ? <div className={styles.historyState}>
         <p role="alert">Не удалось загрузить операции.</p>
@@ -72,8 +131,8 @@ export function ProductHistory({
       </div> :
       scopedActivities.length === 0 ? <p className={styles.empty}>Для этого счёта операций пока нет.</p> :
       visibleActivities.length === 0 ? <div className={styles.filterEmpty}>
-        <p>{effectiveFilter === "incoming" ? "Получений пока нет" : "Отправок пока нет"}</p>
-        <button type="button" onClick={() => selectDirection("all")}>Показать все</button>
+        <p>Нет совпадений</p>
+        <button type="button" onClick={() => updateFilters(DEFAULT_HISTORY_FILTERS)}>Сбросить фильтры</button>
       </div> :
       <ol className={`${styles.rows} ${styles.historyRows}`}>
         {visibleActivities.map(activity => {

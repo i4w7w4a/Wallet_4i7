@@ -51,8 +51,8 @@ it("can clear an empty direction filter within an already asset-filtered input",
   fireEvent.click(screen.getByRole("button", { name: "Получения" }));
   expect(change).toHaveBeenLastCalledWith(null);
   expect(rowIds(container)).toEqual([]);
-  expect(screen.getByText("Получений пока нет")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Показать все" }));
+  expect(screen.getByText("Нет совпадений")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Сбросить фильтры" }));
   expect(rowIds(container)).toEqual(["outgoing-a"]);
   expect(container.querySelector("[data-product-activity-id='outgoing-a']")).toHaveAttribute("aria-expanded", "false");
 });

@@ -63,6 +63,27 @@
   --history-failed-ink: #a34722;
   --history-pending-ink: #80621f;
 }
+.historyTools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 4px; }
+.historySearchToggle, .historyStatusFilter, .historySearchClear {
+  min-height: 44px; border: 0; border-radius: 22px; background: transparent;
+  color: var(--mono-text-secondary, #bdbdbd); cursor: pointer; font: inherit; font-size: 13px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+.historySearchToggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 44px; padding: 8px 10px; }
+.historyStatusFilter { min-width: 0; max-width: 60%; padding: 8px 10px; color-scheme: dark; }
+.historyStatusFilter option { background: var(--mono-surface-high, #25272e); color: var(--mono-text, #f4f4f4); }
+:global(.mono-page[data-mono-theme="light"]) .historyStatusFilter { color-scheme: light; }
+.historySearchToggle[data-active="true"], .historyStatusFilter[data-active="true"] { color: var(--mono-text, #f4f4f4); background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); }
+.historySearchToggle:focus-visible, .historyStatusFilter:focus-visible, .historySearchClear:focus-visible,
+.historySearchField input:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: -2px; }
+.historySearchToggle:active, .historySearchClear:active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 9%, transparent); }
+.historySearchField { position: relative; display: flex; align-items: center; gap: 4px; margin-bottom: 8px; border-bottom: 1px solid var(--mono-rule, #343434); }
+.historySearchLabel { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.historySearchField input { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 8px 6px; border: 0; border-radius: 8px; background: transparent; color: var(--mono-text, #f4f4f4); font: inherit; font-size: 13px; }
+.historySearchField input::placeholder { color: var(--mono-text-secondary, #bdbdbd); opacity: 1; }
+.historySearchField input::-webkit-search-cancel-button { display: none; -webkit-appearance: none; }
+.historySearchClear { display: grid; flex: 0 0 44px; width: 44px; padding: 0; place-items: center; }
 .directionFilters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0 0 8px; }
 .directionFilters button {
   --history-filter-ink: var(--mono-text, #f4f4f4);
@@ -107,6 +128,7 @@
 .recentActivity .recentHeading { padding-bottom: 8px; }
 .recentActivity .recentButton { border-top-color: color-mix(in srgb, var(--mono-rule, #343434) 72%, transparent); border-top-left-radius: 0; border-top-right-radius: 0; }
 :global(.mono-page[data-mono-motion="static"]) .historyRowButton .rowChevron { transition: none; }
+:global(.mono-page[data-mono-motion="static"]) :is(.historySearchToggle, .historyStatusFilter, .historySearchClear, .directionFilters button) { transition: none; }
 
 @media (hover: hover) and (pointer: fine) {
   .historyRowButton:hover:not(:active) { background: color-mix(in srgb, var(--history-direction-ink) 5%, transparent); transition-duration: 90ms; }
@@ -148,5 +170,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rowButton, .groupButton, .privacyButton, .rowChevron, .privacyToggle::after { transition: none; }
-  .directionFilters button { transition: none; }
+  .directionFilters button, .historySearchToggle, .historyStatusFilter, .historySearchClear { transition: none; }
 }
