@@ -4,6 +4,8 @@
 
 Canonical `C:/Users/iwwa/.codex/worktrees/mono-showcase/5-wallet-foundation`, branch `codex/product-ux-20261003`, base `4aa6fc4`. Runtime3184 source306b530 работает до единой сборки. ORACLE — единственный владелец сборки и публикации.
 
+GitHub: [#54 — профиль](https://github.com/i4w7w4a/Wallet_4i7/issues/54), [#55 — модель и React handoff](https://github.com/i4w7w4a/Wallet_4i7/issues/55), [#56 — единый выпуск](https://github.com/i4w7w4a/Wallet_4i7/issues/56).
+
 ## Global Constraints
 
 - Продолжаем собственный React MONO. Эта волна НЕ реализует настоящий backend, KYC, 2FA, пароль, whitelist, платёжные адреса/QR, покупку/обмен/вывод, подписание или реальные переводы. Неизвестные правила и состояния не изображать включёнными/успешными.
