@@ -137,11 +137,11 @@ it.each([
 it("shows that profile security is unconnected before opening its unknown states", () => {
   render(<ProductProfile profile={profile} balanceHidden={false} onBalanceHiddenChange={() => undefined} />);
   const security = screen.getByRole("button", { name: "Безопасность" });
-  expect(security).toHaveAccessibleDescription(/не подключено/i);
+  expect(security).toHaveAccessibleDescription(/Данные не подключены/i);
   fireEvent.click(security);
   expect(screen.getByText("Двухфакторная защита")).toBeInTheDocument();
   expect(screen.getByText("Проверка личности")).toBeInTheDocument();
-  expect(screen.getAllByText("Неизвестно")).toHaveLength(2);
+  expect(within(screen.getByRole("region", { name: "Безопасность" })).getAllByText("Данные не подключены")).toHaveLength(3);
 });
 
 it("opens a controlled activity and requests collapse without overriding the parent", () => {
