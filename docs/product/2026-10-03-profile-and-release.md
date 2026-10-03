@@ -6,6 +6,15 @@ Canonical `C:/Users/iwwa/.codex/worktrees/mono-showcase/5-wallet-foundation`, br
 
 GitHub: [#54 — профиль](https://github.com/i4w7w4a/Wallet_4i7/issues/54), [#55 — модель и React handoff](https://github.com/i4w7w4a/Wallet_4i7/issues/55), [#56 — единый выпуск](https://github.com/i4w7w4a/Wallet_4i7/issues/56).
 
+## Фактический статус
+
+- Tasks 1–2 завершены: контракты `2620d44`, модель/handoff `f90ba67`, UI `0078c85`.
+- Task 3: интеграция темы `85d33d2`, один общий typecheck и production build прошли. Локальный source `85d33d2`, build `sCkDflYnHlcl-QzMMQIjs`. Оркестратор просмотрел профиль в light/dark на 390px, связь privacy с главной и входы Send/history. Это не заменяет визуального решения владельца.
+- Task 3 завершён: `85d33d2` опубликован 03.10.2026 в 22:21 МСК; PR #57 открыт. Root public browser подтвердил профиль и сохранение темы на `/p/1`, мобильный обзор `/p/2`. Семь snapshots и все 26 файлов/history совпали с backup, ревизии `2/4/3/3/2/2/2`.
+- Task 4 завершён: [технический выпуск](../releases/2026-10-03-mono-product-release.md) и [короткий текст заказчице](../releases/2026-10-03-client-update.md). Клиенту сообщения автоматически не отправлялись. Документальные commits не требуют новой сборки runtime.
+
+Остальные разделы ниже сохраняют исходное задание и границы ответственности.
+
 ## Global Constraints
 
 - Продолжаем собственный React MONO. Эта волна НЕ реализует настоящий backend, KYC, 2FA, пароль, whitelist, платёжные адреса/QR, покупку/обмен/вывод, подписание или реальные переводы. Неизвестные правила и состояния не изображать включёнными/успешными.

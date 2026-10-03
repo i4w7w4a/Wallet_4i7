@@ -1,6 +1,6 @@
 # React frontend handoff — MONO
 
-Срез: 2026-10-03, финансовые сценарии базы 4aa6fc4 и модель профиля текущей волны. Рядом находится [карта состояний](./product-state-map.md). Операции демонстрационные. Общие TypeScript/build, host wiring профиля и визуальную оценку объединённой версии проверяет интеграционный поток.
+Срез: 2026-10-03, интегрированный код `85d33d2a2b105efeaab419f194424fa7ce553d5a`. Рядом находится [карта состояний](./product-state-map.md). Профиль, управление темой и privacy подключены; общие TypeScript и production build прошли, мобильная компоновка 390px просмотрена в браузере. Операции остаются демонстрационными, а не подключёнными к платёжному backend.
 
 ## Вход и разделение данных
 
@@ -35,7 +35,7 @@
 | Internal Receive draft | destination/asset/network/mode → sourceAccountId + raw amount; источник проверяется отдельно. |
 | Quote, validation, pending, result | Текущая flow session. Из draft не восстанавливаются. Правка ввода, смена маршрута или port инвалидирует авторизацию. |
 | История симуляций | Controller deduplicates local simulation IDs и сохраняет terminal success/failure с receipt. Success очищает свой draft. Балансы и battery не меняются. |
-| Тема и privacy | Host preference. Viewer light/dark хранится отдельно от опубликованных presets и рабочего appearance draft; общий theme callback подключается в этой волне. |
+| Тема и privacy | Host preference. Editor передаёт тему существующему `colorLab.switchTheme`. Viewer без host session хранит только light/dark в `wallet4i7.mono.viewer-theme.v1`, отдельно от опубликованных presets. Privacy остаётся у session/controller. |
 
 [ProductOverlay / RouteDetail](../../apps/miniapp/src/mono-product/product-sheet.tsx) оставляет форму mounted под hidden/inert во время asset detail. Это сохраняет recipient/amount. Main Send/Receive сначала открывают compact menu, затем форму; Back восстанавливает точный route focus. Вход из placement сохраняет прямой путь и возврат к его launcher.
 
@@ -65,9 +65,11 @@ Factory каждый раз создаёт новый ready object и новый
 
 URL guard допускает абсолютный HTTPS с явным authority без username/password/userinfo, обратных слешей и raw whitespace/control символов. Это проверка формы URL. Разрешённые domains/документы и доверие к backend остаются у host. Для новых вкладок UI использует текстовые узлы и rel="noopener noreferrer".
 
-В согласованном расширении [ProductProfile](../../apps/miniapp/src/mono-product/product-profile.tsx) обязательны прежние profile, balanceHidden, onBalanceHiddenChange. Добавляются optional resource, actions, onRetry, theme, onThemeChange. Resource: loading; error с retryable; ready с data. Отсутствующий resource даёт demo defaults. При loading/error stale contacts/security скрыты; preferences доступны. Retry требует retryable error и onRetry, а отсутствие callback не создаёт активную фиктивную кнопку.
+В [ProductProfile](../../apps/miniapp/src/mono-product/product-profile.tsx) обязательны profile, balanceHidden, onBalanceHiddenChange. Optional props: resource, actions, onRetry, theme, onThemeChange. Resource: loading; error с retryable; ready с data. Отсутствующий resource даёт demo defaults. При loading/error stale contacts/security скрыты; preferences доступны. Retry требует retryable error и onRetry, а отсутствие callback не создаёт активную фиктивную кнопку.
 
-UI реализуется отдельным потоком текущей волны, host wiring проверяется при общей интеграции. Модель не добавляет транспорта или auth. Manage-password только открывает workflow: поля «пароль установлен» в данных нет.
+UI и host wiring реализованы. Четыре раздела раскрываются на месте: личные данные, настройки, безопасность, помощь и документы. Модель не добавляет транспорта или auth. Manage-password только открывает workflow: поля «пароль установлен» в данных нет.
+
+`MonoScene.session.onThemeChange` — controlled callback. Если session передан без callback, тема read-only: visitor fallback не включается. В `/mono` профиль использует существующий Lab owner, не выполняя Save/Apply/publish. В `/p/N` и portable viewer без host session [useViewerTheme](../../apps/miniapp/src/mono-product/profile/use-viewer-theme.ts) восстанавливает строго `{version:1,theme:'dark'|'light'}` после mount. SSR/первая hydration используют supplied appearance; повреждённая запись игнорируется, отказ storage оставляет выбор в памяти. Presentation clone не меняет исходный envelope. Editor не читает этот viewer key.
 
 [integration-example.tsx](../../apps/miniapp/src/mono-product/profile/integration-example.tsx) — небольшой controlled wrapper с переключением loading/error/ready. Он не монтируется в production route, не делает HTTP и не пишет storage. View передаёт потребитель; импорт ProductProfile внутри example только типовой.
 
