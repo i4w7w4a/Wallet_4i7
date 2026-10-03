@@ -1,3 +1,5 @@
+import type { ProductHolding, ProductSnapshot } from "@wallet/core";
+
 export type ProductActivity = {
   id: string;
   accountId: string;
@@ -6,8 +8,10 @@ export type ProductActivity = {
   status: "pending" | "completed" | "failed";
   /** Undefined is an example. Simulations are session-only UI events, never a balance ledger. */
   mode?: "example" | "simulation";
+  assetId?: string;
   assetSymbol: string;
   quantity: string;
+  networkId?: string;
   networkLabel: string;
   occurredAt: string;
   feeLabel?: string;
@@ -80,4 +84,35 @@ export function createDemoActivities(accountId: string, accountLabel: string): r
       occurredAt: "2026-09-25T18:45:00.000Z",
     },
   ];
+}
+
+/** Synthetic examples for snapshot placements, never recovered history or balance changes. */
+export function createSnapshotDemoActivities(snapshot: ProductSnapshot): readonly ProductActivity[] {
+  const accounts = new Map(snapshot.accounts.map((account) => [account.id, account]));
+  const placements = new Map<string, ProductHolding>();
+
+  for (const holding of snapshot.holdings) {
+    if (!accounts.has(holding.accountId)) continue;
+    const placementKey = JSON.stringify([holding.accountId, holding.assetId, holding.networkId]);
+    if (!placements.has(placementKey)) placements.set(placementKey, holding);
+  }
+
+  return [...placements]
+    .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+    .slice(0, 4)
+    .map<ProductActivity>(([placementKey, holding]) => ({
+      id: `demo-placement-${encodeURIComponent(placementKey)}`,
+      accountId: holding.accountId,
+      accountLabel: accounts.get(holding.accountId)!.label,
+      direction: "incoming",
+      status: "completed",
+      mode: "example",
+      assetId: holding.assetId,
+      assetSymbol: holding.symbol,
+      // Deliberately independent of the holding's current or available balance.
+      quantity: "0.1",
+      networkId: holding.networkId,
+      networkLabel: holding.networkLabel,
+      occurredAt: "2026-09-27T12:00:00.000Z",
+    }));
 }
