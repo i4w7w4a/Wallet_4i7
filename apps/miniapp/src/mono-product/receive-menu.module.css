@@ -1,25 +1,45 @@
 .layer { position: absolute; z-index: 40; inset: 0; pointer-events: none; }
 .panel {
   position: absolute; box-sizing: border-box; overflow: auto; overscroll-behavior: contain;
-  padding: 10px; border: 0; border-radius: 18px; pointer-events: auto;
+  padding: 10px; border: 0; border-radius: 20px; pointer-events: auto;
   color: var(--mono-text, #f4f4f4); font: 12px/1.3 var(--mono-font-ui, sans-serif);
   scrollbar-width: thin; scroll-padding-block: 4px;
+  --receive-panel-veil: color-mix(in srgb, var(--mono-surface, #0c0c0c) 30%, transparent);
+  --receive-panel-shadow: inset 0 1px 0 rgb(255 255 255 / 15%), inset 1px 0 0 rgb(255 255 255 / 5%),
+    inset 0 -1px 0 rgb(255 255 255 / 3%), 0 10px 28px rgb(0 0 0 / 15%);
 }
+/* Keep the existing shared optical host and its accessibility/opaque fallbacks. */
+.panel[data-receive-menu][data-product-glass]:not([data-product-glass="opaque"]) { --mono-panel-veil: var(--receive-panel-veil); box-shadow: var(--receive-panel-shadow); }
+.panel[data-product-glass="shared-webgl"] { --receive-panel-veil: color-mix(in srgb, var(--mono-surface, #0c0c0c) 16%, transparent); }
+:global([data-mono-theme="light"]) .panel {
+  --receive-panel-veil: color-mix(in srgb, var(--mono-surface-high, #f7f5ef) 36%, transparent);
+  --receive-panel-shadow: inset 0 1px 0 rgb(255 255 255 / 64%), inset 1px 0 0 rgb(255 255 255 / 24%),
+    inset 0 -1px 0 rgb(40 40 35 / 5%), 0 10px 26px rgb(30 28 22 / 10%);
+}
+:global([data-mono-theme="light"]) .panel[data-product-glass="shared-webgl"] { --receive-panel-veil: color-mix(in srgb, var(--mono-surface-high, #f7f5ef) 24%, transparent); }
 .panel *, .panel *::before, .panel *::after { box-sizing: border-box; }
 .header { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 44px; margin-bottom: 4px; }
 .header h2 { margin: 0; padding-left: 4px; font: 600 14px/1.3 var(--mono-font-ui, sans-serif); }
 .close, .account, .route {
   border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit;
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-  transition: background-color 190ms cubic-bezier(.2, 0, 0, 1);
+  transition: color 190ms cubic-bezier(.2, 0, 0, 1);
 }
 .close { display: grid; flex: 0 0 44px; width: 44px; height: 44px; place-items: center; border-radius: 50%; }
-.accounts { display: grid; gap: 4px; margin-bottom: 4px; }
+.accounts { position: relative; isolation: isolate; display: grid; gap: 4px; margin-bottom: 4px; }
+.accountLens {
+  position: absolute; z-index: 0; left: 0; top: 0; height: 32px; border-radius: 18px; pointer-events: none;
+  background: linear-gradient(155deg, rgb(255 255 255 / 7%), transparent 58%), color-mix(in srgb, var(--mono-text, #f4f4f4) 3%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 15%), inset 1px 0 0 rgb(255 255 255 / 5%), 0 3px 9px rgb(0 0 0 / 5%);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+:global([data-mono-theme="light"]) .accountLens { box-shadow: inset 0 1px 0 rgb(255 255 255 / 65%), inset 1px 0 0 rgb(255 255 255 / 26%), 0 3px 9px rgb(30 28 22 / 5%); }
 .account {
+  position: relative; z-index: 1;
   min-width: 44px; height: 44px; padding: 0 6px; border-radius: 22px;
   color: var(--mono-text-secondary, #bdbdbd); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
 }
-.account[aria-pressed="true"] { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 9%, transparent); color: var(--mono-text, #f4f4f4); }
+.account[aria-pressed="true"] { color: var(--mono-text, #f4f4f4); font-weight: 600; }
 .singleAccount { height: 24px; margin: 0 0 4px; padding: 3px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--mono-text-secondary, #bdbdbd); }
 .grid { display: grid; grid-auto-rows: 88px; align-content: start; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .grid > li { min-width: 0; }
@@ -27,24 +47,47 @@
   display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px;
   width: 100%; min-width: 44px; min-height: 44px; height: 88px; padding: 3px 2px; border-radius: 12px; text-align: center;
 }
-.coin { flex: 0 0 26px; width: 26px; height: 26px; overflow: visible; }
-.coin circle { fill: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); stroke: color-mix(in srgb, var(--mono-text, #f4f4f4) 30%, transparent); stroke-width: 1; }
-.coin text { fill: currentColor; font: 600 15px var(--mono-font-ui, sans-serif); }
+.coin { display: block; flex: 0 0 26px; width: 26px; height: 26px; overflow: visible; object-fit: contain; }
 .route strong { max-width: 100%; font-size: 12px; font-weight: 600; line-height: 14px; overflow-wrap: anywhere; }
 .network { max-width: 100%; color: var(--mono-text-secondary, #bdbdbd); font-size: 10px; line-height: 12px; overflow-wrap: anywhere; }
 .method { max-width: 100%; color: var(--mono-text-secondary, #bdbdbd); font-size: 10px; line-height: 12px; }
 .empty { min-height: 64px; margin: 0; padding: 9px 4px; color: var(--mono-text-secondary, #bdbdbd); line-height: 1.45; overflow-wrap: anywhere; }
-.close:focus-visible, .account:focus-visible, .route:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: -2px; background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); }
-.close:active, .account:active, .route:active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 12%, transparent); transition-duration: 80ms; }
+.close:focus-visible, .account:focus-visible, .route:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: -2px; }
+.close:active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 8%, transparent); }
 @media (hover: hover) and (pointer: fine) {
-  .close:hover:not(:active), .account:hover:not(:active), .route:hover:not(:active) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); transition-duration: 90ms; }
+  .close:hover:not(:active) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 5%, transparent); }
+  .account:hover { color: var(--mono-text, #f4f4f4); transition-duration: 90ms; }
 }
 @media (prefers-reduced-motion: no-preference) {
   :global([data-mono-motion="ready"]) .panel[data-positioned="true"] { animation: enter 180ms cubic-bezier(.2, 0, 0, 1) both; }
+  :global([data-mono-motion="ready"]) .accountLens[data-animate="true"] { transition: transform 260ms cubic-bezier(.2, 0, 0, 1); }
+  :global([data-mono-motion="ready"]) .grid { animation: revealGroup 140ms cubic-bezier(.2, 0, 0, 1) both; }
+  :global([data-mono-motion="ready"]) .coin { transition: transform 190ms cubic-bezier(.2, 0, 0, 1), filter 190ms cubic-bezier(.2, 0, 0, 1); }
+  :global([data-mono-motion="ready"]) .route:focus-visible .coin { transform: translateY(-1px); filter: drop-shadow(0 2px 5px rgb(255 255 255 / 14%)); transition-duration: 90ms; }
+  :global([data-mono-motion="ready"]) .route:active .coin { transform: translateY(1px) scale(.98); transition-duration: 80ms; }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  :global([data-mono-motion="ready"]) .route:hover:not(:active) .coin { transform: translateY(-1px); filter: drop-shadow(0 2px 5px rgb(255 255 255 / 14%)); transition-duration: 90ms; }
 }
 .panel[data-side="below"] { --receive-enter-y: -4px; }
 .panel[data-side="above"] { --receive-enter-y: 4px; }
 @keyframes enter { from { opacity: 0; transform: translateY(var(--receive-enter-y, 0)) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-:global([data-mono-motion="static"]) .panel { animation: none; }
-:global([data-mono-motion="static"]) .panel :is(.close, .account, .route) { transition: none; }
-@media (prefers-reduced-motion: reduce) { .close, .account, .route { transition: none; } }
+@keyframes revealGroup { from { opacity: .45; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+:global([data-mono-motion="static"]) :is(.panel, .grid) { animation: none; }
+:global([data-mono-motion="static"]) .panel :is(.close, .account, .route, .accountLens, .coin) { transition: none; }
+:global([data-mono-motion="static"]) .route .coin { transform: none; filter: none; }
+.panel[data-product-glass="opaque"] .accountLens { -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (prefers-reduced-motion: reduce) { .close, .account, .route, .accountLens, .coin { transition: none; } }
+@media (prefers-reduced-transparency: reduce) {
+  .panel[data-receive-menu][data-product-glass] { background: var(--mono-surface-high, #1c1c1c); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .accountLens { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (forced-colors: active) {
+  .panel[data-receive-menu][data-product-glass],
+  .panel[data-receive-menu][data-product-glass]:not([data-product-glass="opaque"]) { background: Canvas; color: CanvasText; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .panel .accountLens { background: Highlight; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .account[aria-pressed="true"] { color: HighlightText; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .panel[data-receive-menu][data-product-glass="fallback"]:not([data-product-glass="opaque"]) { --mono-panel-veil: color-mix(in srgb, var(--mono-surface, #0c0c0c) 88%, transparent); }
+}

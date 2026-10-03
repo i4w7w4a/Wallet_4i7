@@ -4,6 +4,7 @@ import type { ProductActionRoute } from "@wallet/core";
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { productRouteKey } from "./product-controller";
 import { ProductGlassSurface } from "./product-glass-surface";
+import { CurrencyLogo } from "./currency-logo";
 import styles from "./receive-menu.module.css";
 
 export type ReceiveMenuProps = {
@@ -42,6 +43,7 @@ function OpenReceiveMenu({ routes, focusRouteKey, emptyMessage, onSelectRoute, o
   const actions = useRef({ onClose });
   const closeRequested = useRef(false);
   const [selectedAccountId, setSelectedAccountId] = useState(initialAccountId ?? routes[0]?.accountId);
+  const [animatedIndicatorLayout, setAnimatedIndicatorLayout] = useState<string | null>(null);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const positioned = placement !== null;
   const accounts = new Map<string, { label: string; routes: ReceiveRoute[] }>();
@@ -54,6 +56,14 @@ function OpenReceiveMenu({ routes, focusRouteKey, emptyMessage, onSelectRoute, o
   const activeAccount = activeId ? accounts.get(activeId) : undefined;
   const largestGroup = Math.max(0, ...[...accounts.values()].map(account => account.routes.length));
   const accountCount = accounts.size;
+  const accountColumns = placement?.accountColumns ?? Math.min(accountCount, 3);
+  const indicatorLayout = `${placement?.width ?? 260}:${accountColumns}:${accountCount}`;
+  const activeAccountIndex = [...accounts.keys()].indexOf(activeId ?? "");
+  const accountWidth = ((placement?.width ?? 260) - 20 - (accountColumns - 1) * 4) / Math.max(1, accountColumns);
+  const indicatorStyle: CSSProperties = {
+    width: Math.max(0, accountWidth - 8),
+    transform: `translate(${(Math.max(0, activeAccountIndex) % Math.max(1, accountColumns)) * (accountWidth + 4) + 4}px, ${Math.floor(Math.max(0, activeAccountIndex) / Math.max(1, accountColumns)) * 48 + 6}px)`,
+  };
 
   useLayoutEffect(() => { actions.current = { onClose }; }, [onClose]);
 
@@ -149,11 +159,16 @@ function OpenReceiveMenu({ routes, focusRouteKey, emptyMessage, onSelectRoute, o
         </button>
       </header>
       {accountCount > 1 ? <div className={styles.accounts} role="group" aria-label="Счёт получения"
-        style={{ gridTemplateColumns: `repeat(${placement?.accountColumns ?? Math.min(accountCount, 3)}, minmax(0, 1fr))` }}>
+        style={{ gridTemplateColumns: `repeat(${accountColumns}, minmax(0, 1fr))` }}>
+        <span className={styles.accountLens} aria-hidden="true" data-receive-account-indicator data-account-id={activeId}
+          data-animate={animatedIndicatorLayout === indicatorLayout} style={indicatorStyle} />
         {[...accounts].map(([id, account]) => <button key={id} className={styles.account} type="button"
-          aria-pressed={id === activeId} onClick={() => setSelectedAccountId(id)}>{account.label}</button>)}
+          aria-pressed={id === activeId} onClick={() => {
+            setAnimatedIndicatorLayout(indicatorLayout);
+            setSelectedAccountId(id);
+          }}>{account.label}</button>)}
       </div> : activeAccount && <p className={styles.singleAccount}>{activeAccount.label}</p>}
-      {activeAccount ? <ul className={styles.grid} data-receive-menu-grid
+      {activeAccount ? <ul className={styles.grid} key={activeId} data-receive-menu-grid
         style={{ height: placement?.gridHeight ?? tileHeight, gridTemplateColumns: `repeat(${placement?.columns ?? 4}, minmax(0, 1fr))` }}>
         {activeAccount.routes.map(route => {
           const key = productRouteKey(route);
@@ -163,13 +178,10 @@ function OpenReceiveMenu({ routes, focusRouteKey, emptyMessage, onSelectRoute, o
               ref={key === focusRouteKey ? requestedButton : undefined}
               aria-label={`${route.symbol} · ${route.name} · ${route.networkLabel} · ${route.accountLabel} · ${internal ? "Между счетами" : "Внешнее получение"}`}
               onClick={() => onSelectRoute(route)}>
-              <svg className={styles.coin} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-                <circle cx="16" cy="16" r="14" />
-                <text x="16" y="21" textAnchor="middle">{route.symbol.slice(0, 1)}</text>
-              </svg>
+              <CurrencyLogo assetId={route.assetId} className={styles.coin} />
               <strong>{route.symbol}</strong>
               <span className={styles.network}>{route.networkLabel}</span>
-              <small className={styles.method}>{internal ? "Между счетами" : "Извне"}</small>
+              {internal && <small className={styles.method}>Между счетами</small>}
             </button>
           </li>;
         })}

@@ -2,6 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ProductActionRoute } from "@wallet/core";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ReceiveMenu, type ReceiveMenuProps } from "./receive-menu";
 
@@ -73,6 +75,7 @@ it("keeps same-symbol networks separate and emits the exact route and receive me
   const select = vi.fn();
   render(<Scene open routes={routes} onClose={vi.fn()} onSelectRoute={select} />);
   expect(routeButtons()).toHaveLength(4);
+  expect(within(menu()).queryAllByText("Извне")).toHaveLength(0);
   fireEvent.click(within(menu()).getByRole("button", { name: /USDC.*Ethereum.*Основной.*Внешнее получение/ }));
   expect(select).toHaveBeenLastCalledWith(ethereum);
   fireEvent.click(within(menu()).getByRole("button", { name: /USDC.*Solana.*Основной.*Внешнее получение/ }));
@@ -83,6 +86,58 @@ it("keeps same-symbol networks separate and emits the exact route and receive me
   fireEvent.click(within(menu()).getByRole("button", { name: /USDC.*Ethereum.*Хранилище.*Между счетами/ }));
   expect(select).toHaveBeenLastCalledWith(internal);
   expect(select).toHaveBeenCalledTimes(3);
+});
+
+it("uses real local currency SVGs by asset identity, sharing USDC artwork across networks and keeping unknown assets generic", () => {
+  const unknown: ProductActionRoute = { ...ethereum, assetId: "unlisted-usdc", name: "Unlisted asset" };
+  render(<Scene open routes={[...routes, unknown]} onClose={vi.fn()} onSelectRoute={vi.fn()} />);
+  const expected = [
+    { name: /BTC.*Bitcoin.*Основной/, file: "btc.svg" },
+    { name: /ETH.*Ethereum.*Основной/, file: "eth.svg" },
+    { name: /USDC · USD Coin.*Ethereum.*Основной/, file: "usdc.svg" },
+    { name: /USDC · USD Coin.*Solana.*Основной/, file: "usdc.svg" },
+  ];
+  for (const { name, file } of expected) {
+    const icon = within(menu()).getByRole("button", { name }).querySelector("img");
+    expect(icon).toHaveAttribute("src", `/media/currency-logos/${file}`);
+    expect(icon).toHaveAttribute("alt", "");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+    const source = readFileSync(resolve(process.cwd(), "public/media/currency-logos", file), "utf8");
+    const svg = new DOMParser().parseFromString(source, "image/svg+xml");
+    expect(svg.documentElement.localName).toBe("svg");
+    expect(svg.querySelector("path, circle")).not.toBeNull();
+    expect(svg.querySelector("script, foreignObject, image, use")).toBeNull();
+  }
+  const fallback = within(menu()).getByRole("button", { name: /Unlisted asset/ });
+  expect(fallback.querySelector("img")).toBeNull();
+  expect(fallback.querySelector("[data-currency-logo='generic']")).toBeInTheDocument();
+});
+
+it("moves one account indicator to the latest selection and settles it immediately on resize", () => {
+  const select = vi.fn();
+  render(<Scene open routes={routes} onClose={vi.fn()} onSelectRoute={select} />);
+  const indicator = menu().querySelector<HTMLElement>("[data-receive-account-indicator]")!;
+  expect(indicator).toHaveAttribute("data-account-id", "main");
+  expect(indicator).toHaveAttribute("data-animate", "false");
+  expect(indicator.style.transform).toBe("translate(4px, 6px)");
+  const main = within(menu()).getByRole("button", { name: "Основной" });
+  const vault = within(menu()).getByRole("button", { name: "Хранилище" });
+  fireEvent.click(vault);
+  fireEvent.click(main);
+  fireEvent.click(vault);
+  expect(menu().querySelectorAll("[data-receive-account-indicator]")).toHaveLength(1);
+  expect(menu().querySelector("[data-receive-account-indicator]")).toBe(indicator);
+  expect(indicator).toHaveAttribute("data-account-id", "vault");
+  expect(indicator).toHaveAttribute("data-animate", "true");
+  expect(indicator.style.transform).toBe("translate(126px, 6px)");
+  expect(vault).toHaveAttribute("aria-pressed", "true");
+  expect(routeButtons()).toHaveLength(1);
+  expect(select).not.toHaveBeenCalled();
+  sceneRect = new DOMRect(0, 20, 248, 740);
+  fireEvent(window, new Event("resize"));
+  expect(indicator).toHaveAttribute("data-animate", "false");
+  expect(indicator.style.transform).toBe("translate(108px, 6px)");
+  expect(vault).toHaveAttribute("aria-pressed", "true");
 });
 
 it("keeps the 4-versus-1 account menu, grid and anchor position stable", () => {
