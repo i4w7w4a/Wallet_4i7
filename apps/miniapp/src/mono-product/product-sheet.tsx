@@ -3,27 +3,27 @@
 import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { selectFiatBalanceMinor, selectHoldings, type ProductActionKind, type ProductActionRoute,
   type RouteUnavailableReason } from "@wallet/core";
-import { productRouteKey, type MonoProductCommands, type MonoProductView } from "./product-controller";
+import { productRouteKey, sendDraftKey, type MonoProductCommands, type MonoProductView } from "./product-controller";
 import { accountStatus } from "./product-home";
 import { formatFiatMinor } from "./product-format";
 import { createMonoDemoFlowPorts } from "./demo-adapter";
 import { ReceiveFlow } from "./receive";
-import { SendFlow, type SendOperationStatus } from "./send";
+import { SendFlow, type SendDraft, type SendOperationStatus, type SendSimulationResult } from "./send";
 import { ProductAssetDetail } from "./asset-detail/product-asset-detail";
 import { BatteryPopover } from "./battery-popover";
 import "./product-home.css";
 
-type ProductProps = { view: MonoProductView; commands: MonoProductCommands };
+type ProductProps = { view: MonoProductView; commands: MonoProductCommands; onOpenActivity?(id: string): void };
 
-export function ProductOverlay({ view, commands }: ProductProps) {
+export function ProductOverlay({ view, commands, onOpenActivity }: ProductProps) {
   const ports = useMemo(() => createMonoDemoFlowPorts(view.snapshot), [view.snapshot]);
   return <>
     <BatteryPopover view={view} open={view.sheet?.kind === "battery"} onClose={commands.closeSheet} />
-    <ProductModalOverlay view={view} commands={commands} ports={ports} />
+    <ProductModalOverlay view={view} commands={commands} ports={ports} onOpenActivity={onOpenActivity} />
   </>;
 }
 
-function ProductModalOverlay({ view, commands, ports }: ProductProps & { ports: ReturnType<typeof createMonoDemoFlowPorts> }) {
+function ProductModalOverlay({ view, commands, ports, onOpenActivity }: ProductProps & { ports: ReturnType<typeof createMonoDemoFlowPorts> }) {
   const sheet = view.sheet;
   if (!sheet || sheet.kind === "battery") return null;
   if (sheet.kind === "accounts") return <ProductSheet title="Выбор счёта" onClose={commands.closeSheet}>
@@ -48,7 +48,8 @@ function ProductModalOverlay({ view, commands, ports }: ProductProps & { ports: 
   const action = sheet.action;
   const title = actionLabel(action);
   return <ProductSheet title={title} onClose={commands.closeSheet}>
-    {sheet.route ? <RouteDetail key={productRouteKey(sheet.route)} route={sheet.route} view={view} commands={commands} ports={ports} /> :
+    {sheet.route ? <RouteDetail key={productRouteKey(sheet.route)} route={sheet.route} view={view} commands={commands} ports={ports}
+      onOpenActivity={onOpenActivity} /> :
       <RouteChooser view={view} commands={commands} action={action} focusRouteKey={sheet.focusRouteKey} />}
   </ProductSheet>;
 }
@@ -72,13 +73,24 @@ function RouteChooser({ view, commands, action, focusRouteKey }: ProductProps & 
   </>;
 }
 
-function RouteDetail({ route, view, commands, ports }: ProductProps & {
+function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductProps & {
   route: ProductActionRoute; ports: ReturnType<typeof createMonoDemoFlowPorts>;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const returnToAsset = useRef<HTMLElement | null>(null);
   const [assetDetails, setAssetDetails] = useState(false);
   const [operation, setOperation] = useState<SendOperationStatus | null>(null);
+  const [resultActivityId, setResultActivityId] = useState<string | null>(null);
+  const saveDraft = commands.saveSendDraft;
+  const recordSimulation = commands.recordSendSimulation;
+  const onDraftChange = useCallback((draft: SendDraft | null) => saveDraft(route, draft), [route, saveDraft]);
+  const onSimulationResult = useCallback((event: SendSimulationResult) => {
+    setResultActivityId(recordSimulation(event));
+  }, [recordSimulation]);
+  const onOperationChange = useCallback((next: SendOperationStatus | null) => {
+    setOperation(next);
+    if (next?.status !== "completed") setResultActivityId(null);
+  }, []);
   const previousDetails = useRef(false);
   const showAssetDetails = useCallback(() => {
     if (!returnToAsset.current?.isConnected) {
@@ -106,8 +118,11 @@ function RouteDetail({ route, view, commands, ports }: ProductProps & {
     {route.action === "receive" ? <ReceiveFlow route={route} dataPort={ports.receive} privacy={view.balanceHidden}
       onBack={commands.backToRoutes} onClose={commands.closeSheet} showCloseButton={false} onAssetDetails={showAssetDetails} /> :
       route.action === "send" ? <SendFlow route={route} port={ports.send} privacy={view.balanceHidden}
+        initialDraft={view.sendDrafts[sendDraftKey(route)] ?? null} onDraftChange={onDraftChange}
+        onSimulationResult={onSimulationResult}
+        onViewHistory={resultActivityId && onOpenActivity ? () => onOpenActivity(resultActivityId) : undefined}
         onBack={() => commands.backToRoutes(route)} onClose={commands.closeSheet}
-        onAssetDetails={showAssetDetails} onOperationChange={setOperation}
+        onAssetDetails={showAssetDetails} onOperationChange={onOperationChange}
         onBatteryActivityChange={commands.setBatteryActivity} /> : <div className="mono-product-sheet__route">
     <button type="button" className="mono-product-sheet__back" onClick={() => commands.backToRoutes(route)}>← Назад к выбору маршрута</button>
     <span className="mono-product-sheet__overline">ВЫБРАННЫЙ МАРШРУТ</span>

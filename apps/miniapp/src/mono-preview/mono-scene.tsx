@@ -373,7 +373,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     "--mono-nav-period": `${navigation.periodSeconds}s`,
     ...(typography.active ? monoTypographyStyle(typography.active) : {}),
   } as CSSProperties;
-  const chart = (!product || product.view.context.kind === "all") && fullScene && appearance.chart &&
+  const chart = (!product || (product.view.usesDefaultDemoChart && product.view.context.kind === "all")) && fullScene && appearance.chart &&
     <MonoChart values={snapshot.chart[period]} format={moneyFormat}
     hidden={balanceHidden} period={period} onPeriodChange={setPeriod} appearance={appearance.chart} />;
   return (
@@ -505,7 +505,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
 
         {product && appearance.layout?.chartPosition === "top" && chart &&
           <div className="mono-scene-domain mono-scene-domain--chart mono-product-chart">{chart}</div>}
-        {product && <ProductHoldings {...product} overview
+        {product && <ProductHoldings {...product} overview onPlacementAction={product.commands.openPlacementAction}
           appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />}
         {product?.view.activityStatus === "ready" && <div className="mono-product-recent"><ProductRecentActivity
           activities={product.view.activities} balanceHidden={product.view.balanceHidden}
@@ -548,7 +548,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <div className="mono-section-view__balance"><span>{product?.view.context.kind === "account" ? "Баланс счёта" :
             product ? "Общая стоимость" : "Общий баланс"}</span>
             <strong>{balanceHidden ? "••••••" : product ? formatFiatMinor(product.view.balanceMinor) : `${balance} $`}</strong></div>
-          {product ? <ProductHoldings {...product} overview={false}
+          {product ? <ProductHoldings {...product} overview={false} onPlacementAction={product.commands.openPlacementAction}
             appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} /> : <div className="mono-section-view__assets mono-scene-domain">
             <MonoAssetList assets={snapshot.assets} format={moneyFormat} hidden={balanceHidden}
               appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />
@@ -598,7 +598,9 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </button>
         ))}
       </nav>
-      {product && <ProductOverlay {...product} />}
+      {product && <ProductOverlay {...product} onOpenActivity={id => {
+        product.commands.expandActivity(id); product.commands.closeSheet(); setSection("history");
+      }} />}
         </main>
   );
 }

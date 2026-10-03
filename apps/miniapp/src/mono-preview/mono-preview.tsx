@@ -74,6 +74,7 @@ import { createMonoAppearanceFromDocument, type MonoExtendedAppearance } from ".
 import { createMonoShareUrl } from "./mono-share-codec";
 import { MonoShareButton } from "./mono-share-button";
 import { MonoPublishedPresetControls } from "./mono-published-controls";
+import { MonoPreviewSource } from "./mono-preview-source";
 
 import "./mono-workbench.css";
 import "./mono-shape-tuner.css";
@@ -1004,6 +1005,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         role={compactChrome && mobileRail === "quick" ? "dialog" : undefined}
         aria-modal={compactChrome && mobileRail === "quick" ? true : undefined}>
         <div className="mono-rail__head"><div><span>WORKSPACE</span><strong>MONO</strong></div><a href="/">V1 ↗</a></div>
+        <MonoPreviewSource />
         <a className="mono-rail__lab-entry" href="/design-lab">Design Lab · Фоны и кнопки ↗</a>
         <MonoWorkingPresetBar key={workingLibrary?.activeSlot ?? "baseline"}
           ready={workingReady}
