@@ -33,6 +33,12 @@ it("keeps example history tied to four unique known snapshot placements", () => 
     { accountId: "demo-custody", accountLabel: "Выбранный счёт", assetId: "usdc", assetSymbol: "USDC", networkId: "solana", networkLabel: "Solana" },
   ]);
   expect(new Set(activities.map(({ id }) => id)).size).toBe(4);
+  expect(activities.map(({ direction, status }) => [direction, status])).toEqual([
+    ["incoming", "completed"], ["outgoing", "completed"], ["incoming", "pending"], ["outgoing", "failed"],
+  ]);
+  expect(new Set(activities.map(activity => activity.quantity)).size).toBeGreaterThanOrEqual(3);
+  const dates = activities.map(activity => Date.parse(activity.occurredAt));
+  expect(dates.every((date, index) => index === 0 || date < dates[index - 1]!)).toBe(true);
   expect(activities.every(({ mode, occurredAt, feeLabel }) =>
     mode === "example" && !Number.isNaN(Date.parse(occurredAt)) && feeLabel === undefined,
   )).toBe(true);
@@ -44,4 +50,14 @@ it("keeps example history tied to four unique known snapshot placements", () => 
   })).toEqual(activities);
   expect(demoActivity.createSnapshotDemoActivities({ ...snapshot, accounts: [] })).toEqual([]);
   expect(snapshot).toEqual(before);
+});
+
+it.each(["unlisted-asset", "constructor"])("uses a small explicit demo quantity for unknown asset %s without inferring its balance or fee", assetId => {
+  const snapshot: ProductSnapshot = { ...MULTI_ACCOUNT_DEMO, holdings: [
+    { ...MULTI_ACCOUNT_DEMO.holdings[0], assetId, symbol: "OTHER", quantity: "9345.67" },
+  ] };
+  const [entry] = demoActivity.createSnapshotDemoActivities(snapshot);
+  expect(entry).toMatchObject({ mode: "example", assetId, quantity: "0.1" });
+  expect(entry!.feeLabel).toBeUndefined();
+  expect(entry!.receipt).toBeUndefined();
 });

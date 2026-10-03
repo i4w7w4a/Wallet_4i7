@@ -30,6 +30,10 @@ export function sendDraftKey(route: { accountId: string; assetId: string; networ
   return JSON.stringify([route.accountId, route.assetId, route.networkId]);
 }
 
+export function receiveRequestAmountKey(route: ProductActionRoute): string {
+  return JSON.stringify([route.accountId, route.assetId, route.networkId, route.action === "receive" ? route.receiveMode : null]);
+}
+
 function resolveIntent(snapshot: Readonly<ProductSnapshot>, context: AccountContext, sheet: ProductSheetState) {
   if (sheet?.kind !== "intent") return null;
   if (!sheet.placementId) return resolveActionRoutes(snapshot, context, sheet.action);
@@ -46,6 +50,7 @@ export type MonoProductView = {
   activityStatus: "ready" | "loading" | "error";
   expandedActivityId: string | null;
   sendDrafts: Readonly<Record<string, SendDraft>>;
+  receiveRequestAmounts: Readonly<Record<string, string>>;
   usesDefaultDemoChart: boolean;
   context: AccountContext;
   account: ProductAccount | null;
@@ -79,6 +84,7 @@ export type MonoProductCommands = {
   expandActivity(id: string | null): void;
   retryActivities?: () => void;
   saveSendDraft(route: ProductActionRoute, draft: SendDraft | null): void;
+  saveReceiveRequestAmount(route: ProductActionRoute, rawAmount: string): void;
   recordSendSimulation(event: SendSimulationResult): string | null;
   toggleFunds(): void;
   toggleAsset(assetId: string): void;
@@ -102,6 +108,7 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
   const [assetWorkspace, setAssetWorkspace] = useState<ProductAssetWorkspaceState>(null);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [sendDrafts, setSendDrafts] = useState<Record<string, SendDraft>>({});
+  const [receiveRequestAmounts, setReceiveRequestAmounts] = useState<Record<string, string>>({});
   const [simulations, setSimulations] = useState<readonly ProductActivity[]>([]);
   const recordedSimulations = useRef(new Set<string>());
   const saveSendDraft = useCallback((route: ProductActionRoute, draft: SendDraft | null) => {
@@ -118,6 +125,22 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       return next;
     });
   }, []);
+  const saveReceiveRequestAmount = useCallback((route: ProductActionRoute, rawAmount: string) => {
+    if (route.action !== "receive" || route.receiveMode !== "external-address" ||
+      typeof rawAmount !== "string" || rawAmount.length > 128) return;
+    const key = receiveRequestAmountKey(route);
+    const valid = resolveActionRoutes(snapshot, { kind: "account", accountId: route.accountId }, "receive").routes
+      .some(candidate => receiveRequestAmountKey(candidate) === key);
+    if (!valid) return;
+    // Partial input belongs to this session. The Receive module validates the actual request.
+    setReceiveRequestAmounts(current => {
+      if ((current[key] ?? "") === rawAmount) return current;
+      const next = { ...current };
+      if (rawAmount) next[key] = rawAmount;
+      else delete next[key];
+      return next;
+    });
+  }, [snapshot]);
   const recordSendSimulation = useCallback((event: SendSimulationResult): string | null => {
     if (!event.simulationId || event.route.action !== "send" || event.result.mode !== "demo" ||
       !["simulated-success", "simulated-failure"].includes(event.result.status)) return null;
@@ -174,7 +197,7 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
     ? resolveBatteryCoverage(snapshot.batteryPools, sheet.route) : null;
 
   return {
-    view: { snapshot, activities, activityStatus: adapter.activityStatus ?? "ready", expandedActivityId, sendDrafts,
+    view: { snapshot, activities, activityStatus: adapter.activityStatus ?? "ready", expandedActivityId, sendDrafts, receiveRequestAmounts,
       usesDefaultDemoChart: adapter === MONO_PRODUCT_DEMO_ADAPTER,
       context: effectiveContext, account, holdings, balanceMinor, batteryPools,
       balanceHidden, fundsExpanded, expandedAssetIds, assetWorkspace, sheet, intent, coverage, batteryActivity, batteryChargePercent },
@@ -225,6 +248,7 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       expandActivity: setExpandedActivityId,
       retryActivities: adapter.retryActivities,
       saveSendDraft,
+      saveReceiveRequestAmount,
       recordSendSimulation,
       toggleFunds() { setFundsExpanded(value => !value); },
       toggleAsset(assetId) {

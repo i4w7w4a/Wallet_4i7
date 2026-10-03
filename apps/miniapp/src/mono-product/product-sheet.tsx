@@ -3,7 +3,7 @@
 import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { selectFiatBalanceMinor, selectHoldings, type ProductActionKind, type ProductActionRoute,
   type RouteUnavailableReason } from "@wallet/core";
-import { productRouteKey, sendDraftKey, type MonoProductCommands, type MonoProductView } from "./product-controller";
+import { productRouteKey, receiveRequestAmountKey, sendDraftKey, type MonoProductCommands, type MonoProductView } from "./product-controller";
 import { accountStatus } from "./product-home";
 import { formatFiatMinor } from "./product-format";
 import { createMonoDemoFlowPorts } from "./demo-adapter";
@@ -83,8 +83,10 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   const [operation, setOperation] = useState<SendOperationStatus | null>(null);
   const [resultActivityId, setResultActivityId] = useState<string | null>(null);
   const saveDraft = commands.saveSendDraft;
+  const saveReceiveAmount = commands.saveReceiveRequestAmount;
   const recordSimulation = commands.recordSendSimulation;
   const onDraftChange = useCallback((draft: SendDraft | null) => saveDraft(route, draft), [route, saveDraft]);
+  const onRequestAmountChange = useCallback((amount: string) => saveReceiveAmount(route, amount), [route, saveReceiveAmount]);
   const onSimulationResult = useCallback((event: SendSimulationResult) => {
     setResultActivityId(recordSimulation(event));
   }, [recordSimulation]);
@@ -117,6 +119,8 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   }}>
     <div hidden={assetDetails} inert={assetDetails} data-product-flow-content>
     {route.action === "receive" ? <ReceiveFlow route={route} dataPort={ports.receive} privacy={view.balanceHidden}
+      initialRequestAmount={route.receiveMode === "external-address" ? view.receiveRequestAmounts[receiveRequestAmountKey(route)] ?? "" : undefined}
+      onRequestAmountChange={route.receiveMode === "external-address" ? onRequestAmountChange : undefined}
       onBack={commands.backToRoutes} onClose={commands.closeSheet} showCloseButton={false} onAssetDetails={showAssetDetails} /> :
       route.action === "send" ? <SendFlow route={route} port={ports.send} privacy={view.balanceHidden}
         initialDraft={view.sendDrafts[sendDraftKey(route)] ?? null} onDraftChange={onDraftChange}

@@ -89,6 +89,16 @@ export function createDemoActivities(accountId: string, accountLabel: string): r
   ];
 }
 
+const SNAPSHOT_EXAMPLES = [
+  { direction: "incoming", status: "completed", occurredAt: "2026-09-27T12:00:00.000Z" },
+  { direction: "outgoing", status: "completed", occurredAt: "2026-09-27T10:15:00.000Z" },
+  { direction: "incoming", status: "pending", occurredAt: "2026-09-26T17:30:00.000Z" },
+  { direction: "outgoing", status: "failed", occurredAt: "2026-09-25T08:45:00.000Z" },
+] as const;
+const EXAMPLE_QUANTITIES = new Map<string, readonly [string, string]>([
+  ["btc", ["0.0042", "0.0011"]], ["eth", ["0.35", "0.12"]], ["usdc", ["48.2", "12.345"]],
+]);
+
 /** Synthetic examples for snapshot placements, never recovered history or balance changes. */
 export function createSnapshotDemoActivities(snapshot: ProductSnapshot): readonly ProductActivity[] {
   const accounts = new Map(snapshot.accounts.map((account) => [account.id, account]));
@@ -103,19 +113,17 @@ export function createSnapshotDemoActivities(snapshot: ProductSnapshot): readonl
   return [...placements]
     .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
     .slice(0, 4)
-    .map<ProductActivity>(([placementKey, holding]) => ({
+    .map<ProductActivity>(([placementKey, holding], index) => ({
       id: `demo-placement-${encodeURIComponent(placementKey)}`,
       accountId: holding.accountId,
       accountLabel: accounts.get(holding.accountId)!.label,
-      direction: "incoming",
-      status: "completed",
+      ...SNAPSHOT_EXAMPLES[index]!,
       mode: "example",
       assetId: holding.assetId,
       assetSymbol: holding.symbol,
       // Deliberately independent of the holding's current or available balance.
-      quantity: "0.1",
+      quantity: (EXAMPLE_QUANTITIES.get(holding.assetId) ?? ["0.1", "0.25"])[index % 2]!,
       networkId: holding.networkId,
       networkLabel: holding.networkLabel,
-      occurredAt: "2026-09-27T12:00:00.000Z",
     }));
 }

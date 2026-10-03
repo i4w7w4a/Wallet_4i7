@@ -81,7 +81,7 @@ it("shows exact asset/account history and narrows it to the selected network wit
   const input = props({ scopeAccountId: "demo-custody" });
   const { rerender } = render(<Harness {...input} />);
   const history = screen.getByRole("region", { name: "История операций" });
-  expect(within(history).getAllByRole("button")).toHaveLength(2);
+  expect(within(within(history).getByRole("list")).getAllByRole("button")).toHaveLength(2);
   expect(history).toHaveTextContent("12,34");
   expect(history).toHaveTextContent("34,56");
   expect(history).not.toHaveTextContent(/23,45|45,67|56,78|67,89/);

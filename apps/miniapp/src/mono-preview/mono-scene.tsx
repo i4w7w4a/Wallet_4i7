@@ -162,6 +162,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const pageRef = useRef<HTMLElement>(null);
   const previousSection = useRef(section);
   const previousAsset = useRef<{ assetId: string; section: MonoSection } | null>(null);
+  const activityFocusRequest = useRef<string | null>(null);
   const paletteCrossfadeRef = useRef<HTMLDivElement>(null);
   const previousPaletteBackgroundRef = useRef<string | null>(null);
   const paletteAnimationRef = useRef<Animation | null>(null);
@@ -203,6 +204,27 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         .find(element => element.dataset.monoProductAssetTrigger === previous.assetId)?.focus();
     }
   }, [assetWorkspaceId, section]);
+
+  function openActivity(id: string) {
+    if (!product) return;
+    activityFocusRequest.current = id;
+    product.commands.expandActivity(id);
+    product.commands.closeSheet();
+    setSection("history");
+  }
+
+  useLayoutEffect(() => {
+    const id = activityFocusRequest.current;
+    if (!id || section !== "history") return;
+    activityFocusRequest.current = null;
+    // Run after the removed modal's focus-return microtask. Never refocus on ordinary renders.
+    queueMicrotask(() => {
+      const root = pageRef.current;
+      if (root?.dataset.monoSection !== "history") return;
+      [...root.querySelectorAll<HTMLElement>("[data-product-activity-id]")]
+        .find(element => element.dataset.productActivityId === id && !element.closest("[hidden], [inert]"))?.focus();
+    });
+  }, [section, product?.view.expandedActivityId, product?.view.sheet]);
 
   const stopAtmosphere = useCallback((clearRipples: boolean) => {
     const host = pageRef.current;
@@ -538,7 +560,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {product?.view.activityStatus === "ready" && <div className="mono-product-recent"><ProductRecentActivity
           activities={product.view.activities} balanceHidden={product.view.balanceHidden}
           accountId={product.view.context.kind === "account" ? product.view.context.accountId : undefined}
-          onOpenActivity={id => { product.commands.expandActivity(id); setSection("history"); }} /></div>}
+          onOpenActivity={openActivity} /></div>}
 
         <div className="mono-promo-frame">
           <MonoOpticalGlass preset={preset} settings={optics} active={active} className="mono-promo" sharedHost={opticalHost}>
@@ -628,9 +650,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         ))}
       </nav>
       {product && <ProductGlassProvider sharedHost={opticalHost} preset={preset} settings={optics} active={active && !effectsDisabled}>
-        <ProductOverlay {...product} onOpenActivity={id => {
-        product.commands.expandActivity(id); product.commands.closeSheet(); setSection("history");
-      }} /></ProductGlassProvider>}
+        <ProductOverlay {...product} onOpenActivity={openActivity} /></ProductGlassProvider>}
         </main>
   );
 }
