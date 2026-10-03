@@ -1,12 +1,13 @@
 # SendFlow — task #41
 
-Отдельный React-модуль для существующего detail отправки. В `/mono` ещё не подключён. Нового route, material host, canvas, runtime или зависимости нет. Все денежные действия — симуляция.
+React-модуль существующего detail отправки в `product-sheet.tsx`. Базовый flow уже подключён; новые draft/journal callbacks этого этапа подключает ORACLE. Нового route, material host, canvas, runtime или зависимости нет. Все денежные действия — симуляция.
 
 ## Exports
 
 Из `./send`:
 
 - `SendFlow`, `SendFlowProps`, `SendBatteryActivity`, `SendOperationStatus`.
+- `SendDraft`, `SendSimulationResult`.
 - `createMockSendPort(snapshot?: ProductSnapshot): SendPort`, `mockSendPort`.
 - Типы: `SendPort`, `SendCallOptions`, `SendRouteData`, `SendTerms`, `SendRecipient`, `SendRequest`, `SendQuote`, `SendQuoteResult`, `SendDemoResult`, `SendIssue`, `SendIssueCode`.
 
@@ -15,6 +16,10 @@ type SendFlowProps = {
   route: ProductActionRoute;
   port?: SendPort;       // default: mockSendPort, MULTI_ACCOUNT_DEMO only
   privacy?: boolean;    // default false; masks money, recipient and memo
+  initialDraft?: SendDraft | null;
+  onDraftChange?(draft: SendDraft | null): void;
+  onSimulationResult?(event: SendSimulationResult): void;
+  onViewHistory?(): void;
   onBack(): void;       // recipient/result -> existing route chooser
   onClose(): void;      // Escape, success Done, failure Close
   onAssetDetails?(): void;
@@ -29,7 +34,34 @@ type SendOperationStatus = {
 };
 ```
 
-Back within the flow moves review -> amount -> recipient. Changing account/asset/network/action remounts the session and aborts outstanding work. Equivalent route objects and privacy changes retain the draft. Keep the component mounted across appearance changes; do not key it by preset. A different port instance reloads its route and resets the session, so memoize ports.
+Back within the flow moves review -> amount -> recipient. Changing account/asset/network/action remounts the session and aborts outstanding work. Equivalent route objects and privacy changes retain the draft. Keep the component mounted across appearance changes; do not key it by preset. A different port instance reloads its rules, keeps form values, and clears recipient validation/quote/result even if loading fails. Memoize ports.
+
+## Draft and simulation journal (continuation)
+
+```ts
+type SendDraft = {
+  route: { accountId: string; assetId: string; networkId: string };
+  recipient: SendRecipient;
+  amount: string; // raw input, e.g. "12," or "0012,3400"
+};
+
+type SendSimulationResult = {
+  simulationId: string; // local demo attempt ID, never a transaction hash
+  route: ProductActionRoute;
+  quantity: string; // canonical decimal used by the accepted send request
+  result: SendDemoResult;
+};
+```
+
+`initialDraft` seeds a newly mounted matching route session only. Parent echoes/changes of this prop do not overwrite active input. A draft for different account/asset/network is ignored. Only form fields are picked: stage/quote/validation/result are never restored. «Черновик» and «Начать заново» appear when a nonempty matching seed was restored. Continue still validates the recipient with the current port, then requires a new quote and explicit confirmation.
+
+`onDraftChange` emits raw form values on edits (and canonical recipient acceptance if it changes the input). No effect/rerender loop, no unmount clear. Empty input or «Начать заново» emits null. Start again also aborts validation/quote and clears local result; it is unavailable in pending. Host owns session memory and draft removal after a completed simulation. Neither the component nor mock writes storage, appearance or URL.
+
+`onSimulationResult` emits once after each accepted current attempt (success or displayed failure) and never from an effect. `simulationId` equals that attempt's idempotencyKey. Old route/port/unmounted results cannot notify. Host should deduplicate by this local ID and, for the agreed completed journal, accept only `result.status === "simulated-success"`, create a memory-only `ProductActivity` with `mode: "simulation"`, `direction: "outgoing"`, `status: "completed"`, and assign its own timestamp. No balance/pool change or transaction hash is created.
+
+Only after the exact journal record exists, host passes `onViewHistory`. Success shows «Готово» plus secondary «В истории»; the host callback closes the sheet and expands that matching record. Failure/retry stays as before. Existing callbacks for asset details, operation status and battery remain independent.
+
+«Вставить пример» inserts only `demo:recipient`, focuses its field and waits for explicit Continue. It never reads clipboard data or auto-quotes/submits. Copy is reduced to one demo context plus explicit confirmation/result; account/network stays in the header. Fields have a lower rule instead of separate boxed cards; the large decimal input, visible focus and 44px controls remain.
 
 ## Minimum integration
 
@@ -114,7 +146,7 @@ Focused RED/GREEN only:
 pnpm --filter @wallet/miniapp exec vitest run src/mono-product/send/send-validation.test.ts src/mono-product/send/send-flow.test.tsx --reporter=dot
 ```
 
-Result: **2 files, 30 tests passed**. Coverage includes large exact decimals and atomic boundaries, limits/precision, recipient delegation, route/input invalidation, quote races, expired/unknown quote, separate insufficient asset/fee, battery scope, duplicate submit, pending/success/failure/retry, privacy and navigation. One self-read completed.
+Initial result (previous milestone): **2 files, 30 tests passed**. Coverage includes large exact decimals and atomic boundaries, limits/precision, recipient delegation, route/input invalidation, quote races, expired/unknown quote, separate insufficient asset/fee, battery scope, duplicate submit, pending/success/failure/retry, privacy and navigation. One self-read completed.
 
 Battery follow-up: one focused lifecycle RED/GREEN, **1 passed / 12 skipped** (the prior 30-test suite was not rerun):
 
@@ -131,3 +163,10 @@ pnpm --filter @wallet/miniapp exec vitest run src/mono-product/send/send-flow.te
 ```
 
 CSS is local, uses existing MONO tokens, 44px controls, tabular digits, finite 220ms/4px stage motion and immediate reduced-motion states. No financial number count-up/blur. The orchestrator/ORACLE still owns overall typecheck/build and the browser review at 320/390/430/480 widths in light/dark and all seven presets. This module has not been visually approved or deployed.
+
+Continuation verification: `send-draft.test.tsx` had **9 new behavior tests pass**, then **2 later targeted cases pass / 9 skipped** for failed replacement-port cleanup and the requested history callback. No full send suite or project suite was rerun. The prior pending-copy assertion was updated for the intentional concise status text. No server/browser/native UI was launched.
+
+```powershell
+pnpm --filter @wallet/miniapp exec vitest run src/mono-product/send/send-draft.test.tsx --reporter=dot
+pnpm --filter @wallet/miniapp exec vitest run src/mono-product/send/send-draft.test.tsx -t "hides a previous result|opens the host journal" --reporter=dot
+```

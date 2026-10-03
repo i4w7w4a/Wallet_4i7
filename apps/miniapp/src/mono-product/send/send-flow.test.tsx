@@ -66,7 +66,7 @@ it("shows pending and a literal simulation result, and synchronously blocks dupl
   fireEvent.click(confirm);
   expect(send).toHaveBeenCalledTimes(1);
   expect(send.mock.calls[0]![0]).toMatchObject({ quote: { request: { amount: "10", recipient: { address: "demo:recipient" } } }, idempotencyKey: expect.any(String) });
-  expect(screen.getByRole("status")).toHaveTextContent(/выполняется симуляция/i);
+  expect(screen.getByRole("status")).toHaveTextContent(/ожидаем завершения/i);
   await act(async () => pending.resolve({ mode: "demo", status: "simulated-success" }));
   expect(screen.getByRole("heading", { name: "Симуляция завершена" })).toBeInTheDocument();
   expect(screen.getByText(/средства не отправлены/i)).toBeInTheDocument();

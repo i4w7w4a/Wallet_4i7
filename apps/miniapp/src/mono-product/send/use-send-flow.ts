@@ -2,17 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import type { ProductActionRoute } from "@wallet/core";
 import type { SendDemoResult, SendIssue, SendPort, SendQuote, SendRecipient, SendRequest, SendRouteData } from "./send-port";
 import { validateAmount, validateQuote } from "./send-validation";
+import { formDraft, matchingDraft, type SendFormOptions } from "./send-form";
 
 type Stage = "recipient" | "amount" | "review" | "pending" | "result";
 type Loaded = { port: SendPort; attempt: number; data: SendRouteData | null; issue: SendIssue | null };
 
-export function useSendFlow(route: ProductActionRoute, port: SendPort) {
+export function useSendFlow(route: ProductActionRoute, port: SendPort, {
+  initialDraft, onDraftChange, onSimulationResult,
+}: SendFormOptions = {}) {
+  const [seed] = useState(() => matchingDraft(route, initialDraft));
+  const [restoredDraft, setRestoredDraft] = useState(seed !== null);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [stage, setStage] = useState<Stage>("recipient");
-  const [recipient, setRecipient] = useState<SendRecipient>({ address: "" });
+  const [recipient, setRecipient] = useState<SendRecipient>(() => seed?.recipient ?? { address: "" });
   const [validatedRecipient, setValidatedRecipient] = useState<SendRecipient | null>(null);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(() => seed?.amount ?? "");
   const [quote, setQuote] = useState<SendQuote | null>(null);
   const [issue, setIssue] = useState<SendIssue | null>(null);
   const [working, setWorking] = useState<"recipient" | "quote" | "send" | null>(null);
@@ -20,6 +25,8 @@ export function useSendFlow(route: ProductActionRoute, port: SendPort) {
   const generation = useRef(0);
   const operation = useRef<AbortController | null>(null);
   const sendLocked = useRef(false);
+  const observers = useRef({ onDraftChange, onSimulationResult });
+  useEffect(() => { observers.current = { onDraftChange, onSimulationResult }; }, [onDraftChange, onSimulationResult]);
   const data = loaded?.port === port && loaded.attempt === loadAttempt ? loaded.data : null;
   const loading = loaded?.port !== port || loaded.attempt !== loadAttempt;
   const loadIssue = !loading ? loaded?.issue : null;
@@ -33,11 +40,15 @@ export function useSendFlow(route: ProductActionRoute, port: SendPort) {
           ? await port.loadRoute(route, { signal: controller.signal }) : null;
         if (!active) return;
         setLoaded({ port, attempt: loadAttempt, data: value, issue: value ? null : { code: "unsupported-route" } });
-        setStage("recipient"); setRecipient({ address: "" }); setValidatedRecipient(null);
-        setAmount(""); setQuote(null); setIssue(null); setWorking(null); setResult(null);
-        sendLocked.current = false;
       } catch {
         if (active) setLoaded({ port, attempt: loadAttempt, data: null, issue: { code: "unavailable" } });
+      } finally {
+        // New port/rules invalidate authorization, while raw form input remains editable.
+        if (active) {
+          setStage("recipient"); setValidatedRecipient(null);
+          setQuote(null); setIssue(null); setWorking(null); setResult(null);
+          sendLocked.current = false;
+        }
       }
     }
     void load();
@@ -80,11 +91,20 @@ export function useSendFlow(route: ProductActionRoute, port: SendPort) {
   function changeRecipient(value: SendRecipient) {
     if (sendLocked.current) return;
     invalidate(); setRecipient(value); setValidatedRecipient(null);
+    observers.current.onDraftChange?.(formDraft(route, value, amount));
   }
 
   function changeAmount(value: string) {
     if (sendLocked.current) return;
     invalidate(); setAmount(value);
+    observers.current.onDraftChange?.(formDraft(route, recipient, value));
+  }
+
+  function startAgain() {
+    if (sendLocked.current) return;
+    invalidate(); setRecipient({ address: "" }); setValidatedRecipient(null); setAmount("");
+    setStage("recipient"); setRestoredDraft(false);
+    observers.current.onDraftChange?.(null);
   }
 
   function editRecipient() {
@@ -104,7 +124,12 @@ export function useSendFlow(route: ProductActionRoute, port: SendPort) {
       if (!task.current()) return;
       if (!validation.valid || !validation.recipient.address.trim() ||
           (data.recipient.memo?.required && !validation.recipient.memo?.trim())) setIssue({ code: "invalid-recipient" });
-      else { setValidatedRecipient(validation.recipient); setRecipient(validation.recipient); setStage("amount"); }
+      else {
+        setValidatedRecipient(validation.recipient); setRecipient(validation.recipient); setStage("amount");
+        if (validation.recipient.address !== recipient.address || validation.recipient.memo !== recipient.memo) {
+          observers.current.onDraftChange?.(formDraft(route, validation.recipient, amount));
+        }
+      }
     } catch {
       if (task.current()) setIssue({ code: "unavailable" });
     } finally { if (task.current()) setWorking(null); }
@@ -156,16 +181,23 @@ export function useSendFlow(route: ProductActionRoute, port: SendPort) {
     sendLocked.current = true;
     const task = nextOperation();
     setStage("pending"); setWorking("send"); setIssue(null);
+    let accepted: SendDemoResult;
+    let simulationId: string | null = null;
     try {
-      const response = await port.send({ quote, idempotencyKey: `demo:${quote.id}:${crypto.randomUUID()}` },
+      simulationId = `demo:${quote.id}:${crypto.randomUUID()}`;
+      const response = await port.send({ quote, idempotencyKey: simulationId },
         { signal: task.controller.signal });
       if (!task.current()) return;
-      setResult(response.mode === "demo" && (response.status === "simulated-success" || response.status === "simulated-failure")
-        ? response : { mode: "demo", status: "simulated-failure", reason: "unavailable" });
+      accepted = response.mode === "demo" && (response.status === "simulated-success" || response.status === "simulated-failure")
+        ? response : { mode: "demo", status: "simulated-failure", reason: "unavailable" };
     } catch {
-      if (task.current()) setResult({ mode: "demo", status: "simulated-failure", reason: "unavailable" });
-    } finally {
-      if (task.current()) { sendLocked.current = false; setWorking(null); setStage("result"); }
+      accepted = { mode: "demo", status: "simulated-failure", reason: "unavailable" };
+    }
+    if (!task.current()) return;
+    setResult(accepted); sendLocked.current = false; setWorking(null); setStage("result");
+    // Event-driven, never replayed by renders/effects. Observer errors cannot rewrite the result.
+    if (simulationId !== null) {
+      observers.current.onSimulationResult?.({ simulationId, route: { ...route }, quantity: request.amount, result: { ...accepted } });
     }
   }
 
@@ -177,6 +209,7 @@ export function useSendFlow(route: ProductActionRoute, port: SendPort) {
   }
 
   return { data, loading, loadIssue, loadAgain: () => setLoadAttempt(value => value + 1), stage,
+    restoredDraft, startAgain,
     recipient, validatedRecipient, amount, quote, issue, working, result, changeRecipient, changeAmount,
     editRecipient, continueRecipient, requestQuote, review, submit, back };
 }

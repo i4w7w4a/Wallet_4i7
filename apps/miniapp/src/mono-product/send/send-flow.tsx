@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { ProductActionRoute } from "@wallet/core";
 import type { SendPort, SendQuote } from "./send-port";
+import type { SendFormOptions } from "./send-form";
 import { mockSendPort } from "./mock-send-port";
 import { sendIssueMessage, sendRouteKey } from "./send-validation";
 import { useSendFlow } from "./use-send-flow";
@@ -14,13 +15,14 @@ export type SendOperationStatus = {
   estimatedRemainingSeconds: number | null;
 };
 
-export type SendFlowProps = {
+export type SendFlowProps = SendFormOptions & {
   route: ProductActionRoute;
   port?: SendPort;
   privacy?: boolean;
   onBack(): void;
   onClose(): void;
   onAssetDetails?(): void;
+  onViewHistory?(): void;
   onBatteryActivityChange?(activity: SendBatteryActivity | null): void;
   onOperationChange?(operation: SendOperationStatus | null): void;
 };
@@ -30,12 +32,14 @@ export function SendFlow({ port = mockSendPort, ...props }: SendFlowProps) {
 }
 
 function SendSession({ route: selectedRoute, port, privacy = false, onBack, onClose, onAssetDetails,
-  onBatteryActivityChange, onOperationChange }: SendFlowProps & { port: SendPort }) {
+  onBatteryActivityChange, onOperationChange, initialDraft, onDraftChange, onSimulationResult, onViewHistory }: SendFlowProps & { port: SendPort }) {
   // Equivalent route objects from appearance renders must not reset the form.
   const [route] = useState(selectedRoute);
-  const flow = useSendFlow(route, port);
+  const flow = useSendFlow(route, port, { initialDraft, onDraftChange, onSimulationResult });
   const fieldId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
+  const recipientInput = useRef<HTMLInputElement>(null);
+  const amountInput = useRef<HTMLInputElement>(null);
   const { stage, data, quote } = flow;
   const pending = stage === "pending";
   // Pending is entered only after validateQuote succeeds in submit. Expiry after
@@ -55,10 +59,16 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
     : stage === "recipient" ? "Кому отправляем"
       : stage === "amount" ? "Сумма перевода"
         : stage === "review" ? "Проверьте перевод"
-          : stage === "pending" ? "Симуляция перевода"
+          : stage === "pending" ? "Перевод в обработке"
             : resultSuccess ? "Симуляция завершена" : "Симуляция не выполнена";
 
   useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [stage, flow.loading]);
+  useEffect(() => {
+    const code = flow.issue?.code;
+    const field = code === "invalid-recipient" ? recipientInput.current
+      : code && ["invalid-amount", "precision", "below-minimum", "above-maximum", "insufficient-asset"].includes(code) ? amountInput.current : null;
+    if (field && !field.closest("[hidden], [inert]")) field.focus({ preventScroll: true });
+  }, [flow.issue]);
 
   const routeIdentity = <>
     <span className={styles.asset} aria-hidden="true">{route.symbol.slice(0, 1)}</span>
@@ -74,14 +84,17 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
       <button type="button" className={styles.textButton} disabled={pending} onClick={() => flow.back(onBack)}>
         <span aria-hidden="true">←</span> Назад
       </button>
-      <span className={styles.demo}>DEMO · ОТПРАВКА</span>
+      <span className={styles.demo}>Демо</span>
     </div>
 
     {onAssetDetails ? <button type="button" className={`${styles.route} ${styles.routeButton}`}
       aria-label={`О валюте ${route.symbol} в сети ${route.networkLabel}`} onClick={onAssetDetails}>
       {routeIdentity}<span className={styles.routeChevron} aria-hidden="true">›</span>
     </button> : <div className={styles.route}>{routeIdentity}</div>}
-    <p className={styles.note}>Тестовый сценарий. Средства не отправляются.</p>
+    {data && flow.restoredDraft && stage !== "pending" && stage !== "result" && <div className={styles.draftNotice}>
+      <span>Черновик</span>
+      <button type="button" className={styles.textButton} onClick={flow.startAgain}>Начать заново</button>
+    </div>}
 
     <div key={stage} className={styles.step}>
       <div className={styles.stepHeading}>
@@ -96,8 +109,14 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
         <button className={styles.primary} type="button" onClick={flow.loadAgain}>Повторить загрузку</button>}
 
       {data && stage === "recipient" && <form className={styles.form} onSubmit={event => { event.preventDefault(); void flow.continueRecipient(); }}>
-        <label className={styles.label} htmlFor={`${fieldId}-recipient`}>{data.recipient.label}</label>
-        <input id={`${fieldId}-recipient`} type={privacy ? "password" : "text"} value={flow.recipient.address}
+        <div className={styles.fieldHeading}>
+          <label className={styles.label} htmlFor={`${fieldId}-recipient`}>{data.recipient.label}</label>
+          <button type="button" className={styles.sampleButton} onClick={() => {
+            flow.changeRecipient({ ...flow.recipient, address: "demo:recipient" });
+            recipientInput.current?.focus({ preventScroll: true });
+          }}>Вставить пример</button>
+        </div>
+        <input ref={recipientInput} id={`${fieldId}-recipient`} type={privacy ? "password" : "text"} value={flow.recipient.address}
           className={styles.input} autoComplete="off" autoCapitalize="none" spellCheck={false}
           placeholder={data.recipient.placeholder} required
           aria-invalid={flow.issue?.code === "invalid-recipient" || undefined}
@@ -128,7 +147,7 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
         </div>
         <label className={styles.label} htmlFor={`${fieldId}-amount`}>Сумма, {route.symbol}</label>
         <div className={styles.amountInput}>
-          <input id={`${fieldId}-amount`} type={privacy ? "password" : "text"} inputMode="decimal" autoComplete="off"
+          <input ref={amountInput} id={`${fieldId}-amount`} type={privacy ? "password" : "text"} inputMode="decimal" autoComplete="off"
             value={flow.amount} onChange={event => flow.changeAmount(event.target.value)} placeholder="0" required
             aria-describedby={`${fieldId}-available${error ? ` ${fieldId}-error` : ""}`}
             aria-invalid={flow.issue && ["invalid-amount", "precision", "below-minimum", "above-maximum", "insufficient-asset"].includes(flow.issue.code) || undefined} />
@@ -149,8 +168,6 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
       {data && quote && stage === "review" && <div className={styles.review}>
         <p className={styles.amount}>{mask(`${quote.request.amount} ${route.symbol}`)}</p>
         <dl className={styles.details}>
-          <Detail label="Со счёта">{route.accountLabel}</Detail>
-          <Detail label="Сеть">{route.networkLabel}</Detail>
           <Detail label="Получатель"><bdi>{mask(quote.request.recipient.address)}</bdi></Detail>
           {quote.request.recipient.memo && <Detail label={data.recipient.memo?.label ?? "Дополнительные реквизиты"}>
             <bdi>{mask(quote.request.recipient.memo)}</bdi>
@@ -158,28 +175,28 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
           {quote.assetDebit !== quote.request.amount && <Detail label={`Всего со счёта, ${route.symbol}`}>{mask(quote.assetDebit)}</Detail>}
         </dl>
         <QuoteDetails quote={quote} privacy={privacy} />
-        <p className={styles.note}>Сумма и комиссия тестовые. Подтверждение запустит только симуляцию.</p>
         <button className={styles.primary} type="button" onClick={() => void flow.submit()}>Подтвердить симуляцию</button>
       </div>}
 
-      {pending && <div className={styles.outcome}>
+      {data && pending && <div className={styles.outcome}>
         <span className={styles.resultMark} aria-hidden="true">…</span>
-        <p role="status" className={styles.status}>Выполняется симуляция. Ожидаем завершения.</p>
+        <p role="status" className={styles.status}>Ожидаем завершения.</p>
         <p className={styles.note}>{operationEstimateLabel(estimate)}</p>
         {activePoolId !== null && <PendingBatteryNote />}
       </div>}
 
-      {stage === "result" && flow.result && <div className={styles.outcome}>
+      {data && stage === "result" && flow.result && <div className={styles.outcome}>
         <span className={styles.resultMark} aria-hidden="true">{resultSuccess ? "✓" : "!"}</span>
-        <p className={styles.resultText}>{resultSuccess ? "Средства не отправлены. Это результат симуляции."
+        <p className={styles.resultText}>{resultSuccess ? "Средства не отправлены."
           : flow.result.status === "simulated-failure" && flow.result.reason === "expired"
-            ? "Срок расчёта истёк. Для повторной симуляции нужен новый расчёт."
-            : "Симуляция прервана. Средства не отправлены; можно получить новый расчёт и повторить."}</p>
+            ? "Срок расчёта истёк. Рассчитайте заново."
+            : "Обновите расчёт и попробуйте снова."}</p>
         {quote?.feeFunding.kind === "battery" && <p className={styles.note}>{resultSuccess
-          ? "Демо: показан этап списания после успеха. Реальный пул не изменён."
-          : "Пул не изменён. Правила возврата заряда для реальной операции пока неизвестны."}</p>}
+          ? "Остаток батарейки сохранён."
+          : "Заряд не списан."}</p>}
         {resultSuccess ? <button className={styles.primary} type="button" onClick={onClose}>Готово</button>
           : <button className={styles.primary} type="button" onClick={() => void flow.requestQuote()}>Пересчитать и повторить</button>}
+        {resultSuccess && onViewHistory && <button className={styles.secondary} type="button" onClick={onViewHistory}>В истории</button>}
         {!resultSuccess && <button className={styles.secondary} type="button" onClick={onClose}>Закрыть</button>}
       </div>}
     </div>
@@ -231,7 +248,7 @@ function PendingBatteryNote() {
       <path d="M26 6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <rect className={styles.batteryCharge} x="4" y="5" width="17" height="8" rx="1.5" fill="currentColor" />
     </svg>
-    <span>Демо: заряд показан как временно удержанный. Остаток пула не меняется.</span>
+    <span>Удержание заряда до результата · общий пул сети.</span>
   </p>;
 }
 
@@ -245,15 +262,15 @@ function QuoteDetails({ quote, privacy }: { quote: SendQuote; privacy: boolean }
     <dl className={styles.details}>
       <Detail label="Комиссия сети">{quote.networkFee.status === "known"
         ? privacy ? "••••" : `${quote.networkFee.amount} ${quote.networkFee.symbol}` : "Неизвестна"}</Detail>
-      <Detail label="Оплата комиссии">{funding.kind === "battery" ? "Батарейка · демо" : "Средства счёта · демо"}</Detail>
+      <Detail label="Оплата комиссии">{funding.kind === "battery" ? "Батарейка" : "Средства счёта"}</Detail>
     </dl>
     {funding.kind === "battery" && <details className={styles.battery}>
       <summary>Общий пул · {funding.pool.networkLabel}</summary>
-      <p>Для этой симуляции: {privacy ? "••••" : funding.charges} заряд. Пул общий для подходящих счетов этой сети,
+      <p>Для этой операции: {privacy ? "••••" : funding.charges} заряд. Пул общий для подходящих счетов этой сети,
         включая «{quote.request.route.accountLabel}».</p>
       <p>При обработке — временное удержание; после успеха — списание. В демо остаток пула не меняется.
         Правила возврата при ошибке пока неизвестны.</p>
     </details>}
-    <p className={styles.hint}>Демо-расчёт ограничен по времени. При изменении данных потребуется новый.</p>
+    <p className={styles.hint}>При изменении данных потребуется новый расчёт.</p>
   </div>;
 }

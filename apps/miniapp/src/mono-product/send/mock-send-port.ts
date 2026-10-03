@@ -45,7 +45,7 @@ export function createMockSendPort(snapshot: ProductSnapshot = MULTI_ACCOUNT_DEM
     const data: SendRouteData = {
       terms: { decimals: scenario.decimals, available: holding?.availableQuantity ?? null },
       recipient: { label: "Получатель", placeholder: "demo:recipient",
-        hint: "Введите demo:recipient или другое demo:имя латиницей. Настоящие адреса в этом демо не используются." },
+        hint: "Неплатёжный пример. Реальные адреса здесь не используются." },
     };
     return data;
   };
