@@ -36,7 +36,7 @@ Commit только своих paths; отчёт .superpowers/sdd/2026-10-03-his
 
 ## Task 2: Запрос на получение
 
-Исполнитель прежний Receive Astra MAX, canonical checkout C:/Users/iwwa/.codex/worktrees/mono-showcase/5-wallet-foundation, base12d2353, branchcodex/product-ux-20261003. Прочитать AGENTS/scoped Next docs, TDD, motion-навыки если добавляешь движение. Работать только receive/**, никакихобщих controller/history/scene.
+Исполнитель прежний Receive Astra MAX, canonical checkout C:/Users/iwwa/.codex/worktrees/mono-showcase/5-wallet-foundation, base 12d2353, branch codex/product-ux-20261003. Прочитать AGENTS/scoped Next docs, TDD, motion-навыки если добавляешь движение. Работать только в receive/**, не изменять общие controller/history/scene.
 
 Сейчас copy уносит только reference, share содержит валюту/сеть/reference. Реализовать полезный следующий шаг без расширения backend:
 
@@ -46,7 +46,7 @@ Commit только своих paths; отчёт .superpowers/sdd/2026-10-03-his
 - Privacy: input/value/preview/reference/QR убраны из DOM, copy/share disabled; draft сохраняется выше privacy-key. Не утекать в aria/title/error/status. При route смене не брать сумму другой сети.
 - Additive ReceiveFlowProps: `initialRequestAmount?: string; onRequestAmountChange?(amount:string):void;`. Инициализировать draft один раз на keyed route-content; raw input сохранять в памяти владельца через callback при пользовательском изменении, а не эффектом, перезаписывающим восстановленное значение. Host ORACLE хранит этот draft на account/asset/network/receiveMode. Без host props локальная версия совместима. Asset-details roundtrip/visibility remount не теряет ввод; старую privacy cancellation защиту copy/share сохранить.
 - Маленькая спокойная композиция внутри уже одобренной glass sheet; не обводить каждую строку новым квадратом и не строить огромную форму. Иконкиcopy/share живые лёгкие CSS/SVG feedback, без новых runtime.
-- Focused TDD: exact-string normalization/blank/invalid, copy-reference vs unified request payload, privacy retains butredacts draft, stale route/cancel сохраняют guards. Не全 suite, неserver/build.
+- Focused TDD: exact-string normalization/blank/invalid, copy-reference vs unified request payload, privacy retains but redacts draft, stale route/cancel сохраняют guards. Только адресные проверки, без полного suite, запуска сервера и сборки.
 
 Commit ownedpaths only, report .superpowers/sdd/2026-10-03-history-receive-polish/task-2-report.md, краткийDONE. Обновить INTEGRATION.md коротко для новых props. НетVPS/push/backend/history operations.
 
@@ -63,3 +63,13 @@ Commit ownedpaths only, report .superpowers/sdd/2026-10-03-history-receive-polis
 5. По cleancommitsTask1/2 — одинscopedreviewdiffот12d2353, одинminiapp typecheck/build. Current3184 удержатьдоfreeze. Предупредитьroot→verifiedstop/build/start3184→READYexactSHA/buildId. Browserвизуалroot, nativeнеиспользовать.
 
 Report .superpowers/sdd/2026-10-03-history-receive-polish/task-3-report.md. No externaldeployment/push/presetwrites. Собираемцельныйрезультат, нематрицу100проверок.
+
+## Итог локальной итерации
+
+- История/последняя операция: `ad4ec4b`; запрос на получение: `7582288`; память, примеры и фокус: `c90eb96`.
+- На визуальном проходе найден перенос суффикса USDC. Исправлен одной CSS-правкой `33a22ef`; потребовалась одна дополнительная сборка, без повторной тестовой матрицы.
+- Финальный runtime: `33a22ef2ed657780b66a5090946f6de08fcc9be9`, build `EP3QxNzKXR04p38zCt5sC`, локальный адрес `http://127.0.0.1:3184/mono`.
+- Исполнители выполнили адресные проверки: History/Recent/receipt 28; новый Receive 14; ORACLE — data/session, маршрутная память, фокус и одна совместимость asset workspace. Typecheck и production build успешны. Полный набор тестов не запускался.
+- Root в браузере 390×844: четыре состояния истории, фильтр исходящих, полная inline-квитанция; запрос 25,50 USDC и сохранение после закрытия/возврата. После CSS-правки повторён только проблемный кейс — USDC в одну строку. Не проверялось на физическом телефоне; отдельного browser-прогона всех тем не было.
+- Скриншоты: `C:/Users/iwwa/.novex-ops/product-ux/2026-10-03/history-polish-mobile.jpg`, `C:/Users/iwwa/.novex-ops/product-ux/2026-10-03/receive-request-mobile.jpg`. Viewport восстановлен, тестовая сумма очищена, вкладка оставлена на истории.
+- Пресеты, фоны, материалы, стеклянный host и данные реальных операций не изменялись. Только локальная разработка, без push/VPS deployment. GitHub: #50, ожидает визуальной обратной связи владельца.
