@@ -65,7 +65,7 @@ it("reveals each asset's separate account and network placements", async () => {
 it("shows a single shared network battery pool and returns focus after Escape", async () => {
   await renderHome();
   const balance = screen.getByRole("region", { name: "Общая стоимость" });
-  const trigger = within(balance).getByRole("button", { name: /Батарейка.*Ethereum.*3 перевода/ });
+  const trigger = within(balance).getByRole("button", { name: /Батарейка.*Ethereum.*60%/ });
   expect(trigger).toHaveAttribute("data-charge-state", "charged");
   expect(trigger.querySelector("svg")).toBeInTheDocument();
   trigger.focus();

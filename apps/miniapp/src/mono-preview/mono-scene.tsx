@@ -28,6 +28,7 @@ import { ProductOverlay } from "../mono-product/product-sheet";
 import { formatFiatMinor } from "../mono-product/product-format";
 import type { MonoProductController } from "../mono-product/product-controller";
 import { ProductHistory } from "../mono-product/product-history";
+import { ProductRecentActivity } from "../mono-product/product-recent-activity";
 import { ProductProfile } from "../mono-product/product-profile";
 
 import "./mono-fonts.css";
@@ -408,7 +409,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             </div>
           </div>}
 
-      <div className="mono-scene" inert={Boolean(product?.view.sheet)}>
+      <div className="mono-scene" inert={Boolean(product?.view.sheet && product.view.sheet.kind !== "battery")}>
         <header className="mono-app-header">
           <div className="mono-app-header__mark">
             <MonoLogo />
@@ -506,6 +507,10 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <div className="mono-scene-domain mono-scene-domain--chart mono-product-chart">{chart}</div>}
         {product && <ProductHoldings {...product} overview
           appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />}
+        {product?.view.activityStatus === "ready" && <div className="mono-product-recent"><ProductRecentActivity
+          activities={product.view.activities} balanceHidden={product.view.balanceHidden}
+          accountId={product.view.context.kind === "account" ? product.view.context.accountId : undefined}
+          onOpenActivity={id => { product.commands.expandActivity(id); setSection("history"); }} /></div>}
 
         <div className="mono-promo-frame">
           <MonoOpticalGlass preset={preset} settings={optics} active={active} className="mono-promo" sharedHost={opticalHost}>
@@ -554,7 +559,9 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {section === "history" && product && <div className="mono-product-section"><ProductHistory
           activities={product.view.activities} balanceHidden={product.view.balanceHidden}
           accountId={product.view.context.kind === "account" ? product.view.context.accountId : undefined}
-          accountLabel={product.view.account?.label} /></div>}
+          accountLabel={product.view.account?.label} expandedActivityId={product.view.expandedActivityId}
+          onExpandedActivityChange={product.commands.expandActivity} status={product.view.activityStatus}
+          onRetry={product.commands.retryActivities} /></div>}
         {section === "history" && !product && <section className="mono-section-view" aria-labelledby="mono-history-title">
           <div className="mono-section-view__eyebrow">ОПЕРАЦИИ / DEMO</div>
           <h1 id="mono-history-title">История операций</h1>
@@ -580,7 +587,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         </section>}
       </div>
 
-      <nav className="mono-nav" aria-label="Разделы кошелька" inert={Boolean(product?.view.sheet)}>
+      <nav className="mono-nav" aria-label="Разделы кошелька" inert={Boolean(product?.view.sheet && product.view.sheet.kind !== "battery")}>
         {NAV_ITEMS.map(item => (
           <button className="mono-nav__item" type="button" data-active={section === item.id ? "true" : "false"}
             aria-current={section === item.id ? "page" : undefined} key={item.id}

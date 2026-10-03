@@ -66,21 +66,23 @@ export function ProductBalance({ view, commands, appearance, blinkEnabled }: Pro
 export function ProductBatteryLine({ view, commands }: ProductProps) {
   const pools = view.batteryPools;
   const only = pools.length === 1 ? pools[0]! : null;
-  const remaining = only?.remainingTransfers;
-  const knownRemaining = typeof remaining === "number" && Number.isSafeInteger(remaining) && remaining >= 0;
-  const chargeState = pools.length > 1 ? "multiple" : !only || !knownRemaining ? "unknown"
-    : remaining === 0 ? "empty" : "charged";
-  const count = pools.length > 1 ? String(pools.length) : knownRemaining ? String(remaining) : "?";
+  const percent = only ? view.batteryChargePercent[only.id] ?? null : null;
+  const chargeState = pools.length > 1 ? "multiple" : percent === null ? "unknown"
+    : percent === 0 ? "empty" : "charged";
+  const count = pools.length > 1 ? `${pools.length} сети` : percent !== null ? `${percent}%` : "—";
   const summary = pools.length === 0 ? "правила неизвестны"
-    : only ? `${only.networkLabel} · ${knownRemaining ? remainingLabel(remaining) : "остаток неизвестен"}`
+    : only ? `${only.networkLabel} · ${percent !== null ? `${percent}% · пример` : "Нет данных"}`
       : `${pools.length} сетевых пула; остатки не складываются`;
+  const using = Boolean(view.batteryActivity && pools.some(pool => pool.id === view.batteryActivity?.poolId));
   return <button type="button" className="mono-product-battery" onClick={commands.openBattery}
     data-mono-product-battery-trigger data-charge-state={chargeState}
+    data-battery-activity={using ? "using" : "idle"} data-details-open={view.sheet?.kind === "battery"}
+    aria-haspopup="dialog" aria-expanded={view.sheet?.kind === "battery"}
     aria-label={`Батарейка: ${summary}. Подробнее`}>
     <svg viewBox="0 0 38 22" aria-hidden="true" focusable="false">
       <rect className="mono-product-battery__body" x="1" y="2" width="31" height="18" rx="4" />
       <path className="mono-product-battery__cap" d="M34 8v6" />
-      {chargeState === "charged" && <rect className="mono-product-battery__charge" x="4.5" y="5.5" width="24" height="11" rx="2" />}
+      {chargeState === "charged" && <rect className="mono-product-battery__charge" x="4.5" y="5.5" width={24 * (percent ?? 0) / 100} height="11" rx="2" />}
       {chargeState === "multiple" && <path className="mono-product-battery__multiple" d="M7 8h5m-5 6h5m5-6h5m-5 6h5" />}
     </svg>
     <span className="mono-product-battery__count" aria-hidden="true">{count}</span>

@@ -1,18 +1,31 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { selectFiatBalanceMinor, selectHoldings, type ProductActionKind, type ProductActionRoute,
   type RouteUnavailableReason } from "@wallet/core";
-import type { MonoProductCommands, MonoProductView } from "./product-controller";
-import { accountStatus, remainingLabel } from "./product-home";
+import { productRouteKey, type MonoProductCommands, type MonoProductView } from "./product-controller";
+import { accountStatus } from "./product-home";
 import { formatFiatMinor } from "./product-format";
+import { createMonoDemoFlowPorts } from "./demo-adapter";
+import { ReceiveFlow } from "./receive";
+import { SendFlow, type SendOperationStatus } from "./send";
+import { ProductAssetDetail } from "./asset-detail/product-asset-detail";
+import { BatteryPopover } from "./battery-popover";
 import "./product-home.css";
 
 type ProductProps = { view: MonoProductView; commands: MonoProductCommands };
 
 export function ProductOverlay({ view, commands }: ProductProps) {
+  const ports = useMemo(() => createMonoDemoFlowPorts(view.snapshot), [view.snapshot]);
+  return <>
+    <BatteryPopover view={view} open={view.sheet?.kind === "battery"} onClose={commands.closeSheet} />
+    <ProductModalOverlay view={view} commands={commands} ports={ports} />
+  </>;
+}
+
+function ProductModalOverlay({ view, commands, ports }: ProductProps & { ports: ReturnType<typeof createMonoDemoFlowPorts> }) {
   const sheet = view.sheet;
-  if (!sheet) return null;
+  if (!sheet || sheet.kind === "battery") return null;
   if (sheet.kind === "accounts") return <ProductSheet title="Выбор счёта" onClose={commands.closeSheet}>
     <p className="mono-product-sheet__intro">Контекст меняет сумму и доступные маршруты. «Все счета» — обзор, не источник перевода.</p>
     <div className="mono-product-sheet__options">
@@ -32,49 +45,80 @@ export function ProductOverlay({ view, commands }: ProductProps) {
     </div>
   </ProductSheet>;
 
-  if (sheet.kind === "battery") return <ProductSheet title="Батарейка" onClose={commands.closeSheet}>
-    <p className="mono-product-sheet__intro">Демо-данные. Батарейка действует для указанной сети, действия и подходящих счетов. Остаток общего пула не складывается по счетам.</p>
-    {view.batteryPools.length ? <ul className="mono-product-sheet__pools">
-      {view.batteryPools.map(pool => <li key={pool.id}>
-        <div className="mono-product-sheet__pool-top"><h3>{pool.networkLabel}</h3><strong>{remainingLabel(pool.remainingTransfers)}</strong></div>
-        <p>Общий пул · {actionLabel(pool.action)} · {pool.eligibleAccountIds.map(id =>
-          view.snapshot.accounts.find(account => account.id === id)?.label ?? "Недоступный счёт").join(", ")}</p>
-      </li>)}
-    </ul> : <p className="mono-product-sheet__empty">Для выбранного контекста правила батарейки неизвестны.</p>}
-    <p className="mono-product-sheet__caution">Покрытие и комиссия конкретной операции пока неизвестны. Остаток не обещает бесплатный перевод.</p>
-  </ProductSheet>;
-
   const action = sheet.action;
   const title = actionLabel(action);
   return <ProductSheet title={title} onClose={commands.closeSheet}>
-    {sheet.route ? <RouteDetail route={sheet.route} view={view} /> : <>
+    {sheet.route ? <RouteDetail key={productRouteKey(sheet.route)} route={sheet.route} view={view} commands={commands} ports={ports} /> :
+      <RouteChooser view={view} commands={commands} action={action} focusRouteKey={sheet.focusRouteKey} />}
+  </ProductSheet>;
+}
+
+function RouteChooser({ view, commands, action, focusRouteKey }: ProductProps & {
+  action: ProductActionKind; focusRouteKey?: string;
+}) {
+  const selectedButton = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => { selectedButton.current?.focus({ preventScroll: true }); }, [focusRouteKey]);
+  return <>
       <p className="mono-product-sheet__intro">Выберите счёт, актив и сеть. Это просмотр демо-маршрутов; перевод здесь не выполняется.</p>
       {view.intent?.routes.length ? <div className="mono-product-sheet__options">
         {view.intent.routes.map((route, index) => <button type="button" key={`${route.accountId}-${route.assetId}-${route.networkId}-${index}`}
-          className="mono-product-sheet__option" onClick={() => commands.selectRoute(route)}>
+          className="mono-product-sheet__option" onClick={() => commands.selectRoute(route)}
+          ref={productRouteKey(route) === focusRouteKey ? selectedButton : undefined}>
           <span><strong>{route.symbol} · {route.networkLabel}</strong><small>{route.accountLabel}</small></span>
           <span>{route.action === "receive" ? receiveLabel(route.receiveMode) : "Выбрать"}</span>
         </button>)}
       </div> : <p className="mono-product-sheet__empty">{unavailableReason(view.intent?.reason ?? null, action, view.context.kind === "all")}</p>}
-    </>}
     <p className="mono-product-sheet__caution">Демо · операции и адреса не подключены. Ни одно действие здесь не отправляет средства.</p>
-  </ProductSheet>;
+  </>;
 }
 
-function RouteDetail({ route, view }: { route: ProductActionRoute; view: MonoProductView }) {
-  const coverage = view.coverage;
-  return <div className="mono-product-sheet__route">
+function RouteDetail({ route, view, commands, ports }: ProductProps & {
+  route: ProductActionRoute; ports: ReturnType<typeof createMonoDemoFlowPorts>;
+}) {
+  const container = useRef<HTMLDivElement>(null);
+  const returnToAsset = useRef<HTMLElement | null>(null);
+  const [assetDetails, setAssetDetails] = useState(false);
+  const [operation, setOperation] = useState<SendOperationStatus | null>(null);
+  const previousDetails = useRef(false);
+  const showAssetDetails = useCallback(() => {
+    if (!returnToAsset.current?.isConnected) {
+      returnToAsset.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    }
+    setAssetDetails(true);
+  }, []);
+  const hideAssetDetails = useCallback(() => setAssetDetails(false), []);
+  useLayoutEffect(() => {
+    if (assetDetails) container.current?.querySelector<HTMLElement>("[data-product-asset-content] button")?.focus({ preventScroll: true });
+    else if (previousDetails.current) returnToAsset.current?.focus({ preventScroll: true });
+    previousDetails.current = assetDetails;
+  }, [assetDetails]);
+  useLayoutEffect(() => { container.current?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true }); }, [route]);
+  const pool = view.batteryPools.find(candidate => candidate.networkId === route.networkId &&
+    candidate.eligibleAccountIds.includes(route.accountId));
+  return <div ref={container} onClickCapture={event => {
+    if (!assetDetails && event.target instanceof Element) returnToAsset.current = event.target.closest<HTMLButtonElement>("button");
+  }} onKeyDownCapture={event => {
+    if (assetDetails && event.key === "Escape") {
+      event.preventDefault(); event.stopPropagation(); hideAssetDetails();
+    }
+  }}>
+    <div hidden={assetDetails} inert={assetDetails} data-product-flow-content>
+    {route.action === "receive" ? <ReceiveFlow route={route} dataPort={ports.receive} privacy={view.balanceHidden}
+      onBack={commands.backToRoutes} onClose={commands.closeSheet} showCloseButton={false} onAssetDetails={showAssetDetails} /> :
+      route.action === "send" ? <SendFlow route={route} port={ports.send} privacy={view.balanceHidden}
+        onBack={() => commands.backToRoutes(route)} onClose={commands.closeSheet}
+        onAssetDetails={showAssetDetails} onOperationChange={setOperation}
+        onBatteryActivityChange={commands.setBatteryActivity} /> : <div className="mono-product-sheet__route">
+    <button type="button" className="mono-product-sheet__back" onClick={() => commands.backToRoutes(route)}>← Назад к выбору маршрута</button>
     <span className="mono-product-sheet__overline">ВЫБРАННЫЙ МАРШРУТ</span>
     <h3>{route.symbol} · {route.networkLabel}</h3>
     <p>Счёт: {route.accountLabel}</p>
-    {route.action === "receive" && <p>{receiveLabel(route.receiveMode)}. Реквизиты и адрес не предоставлены демо-адаптером.</p>}
-    {route.action === "send" && <p>Сумма, доступность и комиссия появятся после подключения расчёта операции.</p>}
-    {route.action === "send" && <p>{coverage?.status === "covered"
-      ? `Батарейка подходит к этому маршруту · ${remainingLabel(coverage.pool!.remainingTransfers)} в общем пуле. Комиссия ещё не рассчитана.`
-      : coverage?.status === "exhausted" ? "Подходящий пул исчерпан. Комиссия ещё не рассчитана."
-        : coverage?.status === "not-applicable" ? "Батарейка на этот маршрут не распространяется. Комиссия ещё не рассчитана."
-          : "Правила батарейки для маршрута неизвестны. Комиссия ещё не рассчитана."}</p>}
     <p className="mono-product-sheet__empty">Продолжение пока недоступно в демо.</p>
+    </div>}
+    </div>
+    {assetDetails && <div data-product-asset-content><ProductAssetDetail route={route} battery={pool ? { networkLabel: pool.networkLabel,
+      chargePercent: view.batteryChargePercent[pool.id] ?? null, remainingTransfers: pool.remainingTransfers } : null}
+      operation={operation} onBack={hideAssetDetails} /></div>}
   </div>;
 }
 
@@ -85,11 +129,13 @@ function ProductSheet({ title, onClose, children }: { title: string; onClose(): 
 
   useLayoutEffect(() => {
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialogRef.current?.focus();
+    dialogRef.current?.focus({ preventScroll: true });
     return () => {
       const previous = returnFocus.current;
-      if (previous?.isConnected) previous.focus();
-      else document.querySelector<HTMLElement>("[data-mono-product-context-trigger], [data-mono-product-battery-trigger], .mono-actions__item")?.focus();
+      queueMicrotask(() => {
+        if (previous?.isConnected) previous.focus({ preventScroll: true });
+        else document.querySelector<HTMLElement>("[data-mono-product-context-trigger], [data-mono-product-battery-trigger], .mono-actions__item")?.focus({ preventScroll: true });
+      });
     };
   }, []);
 
@@ -101,7 +147,8 @@ function ProductSheet({ title, onClose, children }: { title: string; onClose(): 
       return;
     }
     if (event.key !== "Tab") return;
-    const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])") ?? [])];
+    const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary") ?? [])]
+      .filter(element => !element.closest("[hidden], [inert]"));
     if (!focusable.length) { event.preventDefault(); dialogRef.current?.focus(); return; }
     const first = focusable[0]!, last = focusable[focusable.length - 1]!;
     if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {

@@ -4,6 +4,8 @@
 .mono-page[data-mono-product="true"] .mono-scene > .mono-actions { order: 3; margin-top: 15px; }
 .mono-page[data-mono-product="true"] .mono-scene > .mono-product-chart { order: 5; margin-top: 15px; }
 .mono-page[data-mono-product="true"] .mono-scene > .mono-product-funds { order: 6; }
+.mono-page[data-mono-product="true"] .mono-scene > .mono-product-recent { order: 6; width: 100%; margin-top: 14px; }
+.mono-page[data-mono-product="true"] .mono-product-recent:empty { display: none; }
 .mono-page[data-mono-product="true"] .mono-scene > .mono-promo-frame { order: 7; margin-top: 18px; }
 .mono-page[data-mono-product="true"] .mono-scene > .mono-scene-domain--chart:not(.mono-product-chart) { order: 8; }
 .mono-page[data-mono-product="true"] .mono-scene > :is(.mono-section-view, .mono-product-section) { order: 2; }
@@ -34,30 +36,33 @@
 .mono-page[data-mono-product="true"] .mono-actions__item[data-product-primary="true"] .mono-actions__label { font-weight: var(--mono-font-weight-strong, 600); }
 
 .mono-product-battery {
-  --mono-battery-charge: #69df8b;
+  --mono-battery-charge: #79ae87;
+  position: relative;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
   width: 50px; min-width: 50px; min-height: 48px; padding: 2px;
-  border: 1px solid var(--mono-rule); border-radius: 9px; background: var(--mono-surface);
+  border: 0; border-radius: 0; background: transparent;
   color: var(--mono-text-secondary); font: inherit; cursor: pointer;
-  transition: background-color 220ms var(--mono-ease), border-color 220ms var(--mono-ease);
+  transition: opacity 100ms var(--mono-ease);
 }
 .mono-product-battery[data-charge-state="charged"] {
-  border-color: color-mix(in srgb, var(--mono-battery-charge) 54%, var(--mono-rule));
   color: var(--mono-battery-charge);
 }
 .mono-page[data-mono-theme="light"] .mono-product-battery[data-charge-state="charged"] { --mono-battery-charge: #21794b; }
-.mono-product-battery:active { background: var(--mono-surface-high); }
-.mono-product-battery svg { display: block; width: 34px; height: 21px; overflow: visible; }
+.mono-product-battery:active { opacity: .7; }
+.mono-product-battery svg { display: block; width: 34px; height: 21px; overflow: visible; filter: drop-shadow(0 0 1.5px color-mix(in srgb, currentColor 18%, transparent)); }
 .mono-product-battery__body { fill: none; stroke: currentColor; stroke-width: 1.5; }
 .mono-product-battery__cap { fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 2.4; }
-.mono-product-battery__charge { fill: var(--mono-battery-charge); animation: mono-product-battery-breathe 3.8s ease-in-out infinite; }
-.mono-page[data-mono-motion="ready"] .mono-product-battery__charge {
-  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--mono-battery-charge) 62%, transparent));
-}
+.mono-product-battery__charge { fill: var(--mono-battery-charge); opacity: .66; }
+.mono-page[data-mono-motion="ready"] .mono-product-battery[data-battery-activity="using"] .mono-product-battery__charge { animation: mono-product-battery-breathe 1.5s ease-in-out infinite; }
+.mono-page[data-mono-motion="ready"] .mono-product-battery[data-details-open="true"] svg { animation: mono-product-battery-open 440ms var(--mono-ease) both; }
 .mono-product-battery__multiple { fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.6; }
 .mono-product-battery__count { min-width: 1ch; margin-top: -1px; font: 700 10px/1.1 var(--mono-font-numeric); font-variant-numeric: tabular-nums; }
 .mono-page[data-mono-motion="static"] .mono-product-battery__charge { animation: none; opacity: .82; }
 @keyframes mono-product-battery-breathe { 0%, 100% { opacity: .67; } 50% { opacity: 1; } }
+@keyframes mono-product-battery-open {
+  0%, 100% { filter: drop-shadow(0 0 1.5px color-mix(in srgb, currentColor 18%, transparent)); }
+  35% { filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 42%, transparent)); }
+}
 
 .mono-product-funds { margin-top: 15px; min-width: 0; }
 .mono-product-funds__heading {
@@ -142,12 +147,14 @@
 .mono-product-sheet__overline { color: var(--mono-text-muted); font: 10px var(--mono-font-mono); letter-spacing: .1em; }
 .mono-product-sheet__route h3 { margin: 10px 0; font-size: 19px; }
 .mono-product-sheet__route .mono-product-sheet__empty { margin-top: 16px; }
+.mono-product-sheet__back { display: block; min-height: 44px; margin-bottom: 12px; border: 0; background: transparent; color: var(--mono-text); cursor: pointer; }
 
 @keyframes mono-product-scrim-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mono-product-panel-in { from { opacity: .7; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) {
   .mono-page[data-mono-product="true"] :is(.mono-product-context > button, .mono-product-battery, .mono-product-funds__asset) { transition: none; }
-  .mono-product-battery__charge { animation: none; opacity: .82; }
+  .mono-page[data-mono-motion="ready"] .mono-product-battery .mono-product-battery__charge,
+  .mono-page[data-mono-motion="ready"] .mono-product-battery svg { animation: none; }
   .mono-product-sheet__scrim, .mono-product-sheet__panel { animation: none; }
 }
 @container mono-preview (max-width: 359px) {

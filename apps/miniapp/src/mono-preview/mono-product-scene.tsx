@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { ChartPeriod } from "@wallet/core";
 import { MaterialSceneSurface, createMonoOpticalHost, createMonoOpticalOverlay } from "@wallet/ui";
 import type { MonoMaterialDirection } from "./mono-material-preset";
@@ -23,10 +23,20 @@ export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_
   });
   const [localPeriod, setLocalPeriod] = useState<ChartPeriod>("1D");
   const [localSection, setLocalSection] = useState<MonoSection>("overview");
+  const section = scene.session?.section ?? localSection;
+  const sectionRef = useRef(section);
+  const closeSheet = product.commands.closeSheet;
+  const onSectionChange = scene.session?.onSectionChange ?? setLocalSection;
+  const changeSection = useCallback((next: MonoSection) => {
+    closeSheet(); onSectionChange(next);
+  }, [closeSheet, onSectionChange]);
+  useEffect(() => {
+    if (sectionRef.current !== section) { sectionRef.current = section; closeSheet(); }
+  }, [section, closeSheet]);
   const productScene: MonoSceneProps = { ...scene, product,
     session: { balanceHidden: product.view.balanceHidden, onBalanceHiddenChange: product.commands.setBalanceHidden,
       period: scene.session?.period ?? localPeriod, onPeriodChange: scene.session?.onPeriodChange ?? setLocalPeriod,
-      section: scene.session?.section ?? localSection, onSectionChange: scene.session?.onSectionChange ?? setLocalSection } };
+      section, onSectionChange: changeSection } };
   const actionFrameMode = material.buttons?.version === 2 || material.buttons?.version === 3
     ? material.buttons.frameMode : "group";
   const actionArtwork = material.buttons?.version === 3 ? material.buttons.artwork : DEFAULT_ACTION_ARTWORK;
