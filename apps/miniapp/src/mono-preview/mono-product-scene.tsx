@@ -25,14 +25,14 @@ export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_
   const [localSection, setLocalSection] = useState<MonoSection>("overview");
   const section = scene.session?.section ?? localSection;
   const sectionRef = useRef(section);
-  const closeSheet = product.commands.closeSheet;
+  const closeAsset = product.commands.closeAsset;
   const onSectionChange = scene.session?.onSectionChange ?? setLocalSection;
   const changeSection = useCallback((next: MonoSection) => {
-    closeSheet(); onSectionChange(next);
-  }, [closeSheet, onSectionChange]);
+    closeAsset(); onSectionChange(next);
+  }, [closeAsset, onSectionChange]);
   useEffect(() => {
-    if (sectionRef.current !== section) { sectionRef.current = section; closeSheet(); }
-  }, [section, closeSheet]);
+    if (sectionRef.current !== section) { sectionRef.current = section; closeAsset(); }
+  }, [section, closeAsset]);
   const productScene: MonoSceneProps = { ...scene, product,
     session: { balanceHidden: product.view.balanceHidden, onBalanceHiddenChange: product.commands.setBalanceHidden,
       period: scene.session?.period ?? localPeriod, onPeriodChange: scene.session?.onPeriodChange ?? setLocalPeriod,
@@ -44,7 +44,9 @@ export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_
   const bindings = visibleActionBindings(actionFrameMode, material.buttons?.bindings ?? [], actionArtwork);
   if (!material.background && !bindings.length) return <MonoScene {...productScene} actionFrameMode={actionFrameMode}
     actionRadii={actionRadii} actionArtwork={actionArtwork} />;
-  return <ActiveMaterialScene material={material} bindings={bindings}
+  // Keep the material host mounted, but release passes for DOM targets absent from the subview.
+  return <ActiveMaterialScene material={material}
+    bindings={section === "overview" && !product.view.assetWorkspace ? bindings : []}
     scene={{ ...productScene, actionFrameMode, actionRadii, actionArtwork }} />;
 }
 

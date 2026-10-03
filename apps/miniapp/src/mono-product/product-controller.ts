@@ -18,6 +18,7 @@ export type ProductSheetState =
   | null;
 
 export type ProductBatteryActivity = { poolId: string; phase: "using" } | null;
+export type ProductAssetWorkspaceState = { assetId: string; holdingId: string | null } | null;
 
 export function productRouteKey(route: ProductActionRoute): string {
   return [route.action, route.accountId, route.assetId, route.networkId,
@@ -30,11 +31,12 @@ export function sendDraftKey(route: { accountId: string; assetId: string; networ
 
 function resolveIntent(snapshot: Readonly<ProductSnapshot>, context: AccountContext, sheet: ProductSheetState) {
   if (sheet?.kind !== "intent") return null;
-  const result = resolveActionRoutes(snapshot, context, sheet.action);
-  if (!sheet.placementId) return result;
+  if (!sheet.placementId) return resolveActionRoutes(snapshot, context, sheet.action);
   const holding = snapshot.holdings.find(candidate => candidate.id === sheet.placementId);
-  return { ...result, routes: holding ? result.routes.filter(route => route.accountId === holding.accountId &&
-    route.assetId === holding.assetId && route.networkId === holding.networkId) : [] };
+  if (!holding) return { routes: [], reason: "capability-unavailable" } as const;
+  const result = resolveActionRoutes(snapshot, { kind: "account", accountId: holding.accountId }, sheet.action);
+  return { ...result, routes: result.routes.filter(route => route.accountId === holding.accountId &&
+    route.assetId === holding.assetId && route.networkId === holding.networkId) };
 }
 
 export type MonoProductView = {
@@ -52,6 +54,7 @@ export type MonoProductView = {
   balanceHidden: boolean;
   fundsExpanded: boolean;
   expandedAssetIds: ReadonlySet<string>;
+  assetWorkspace: ProductAssetWorkspaceState;
   sheet: ProductSheetState;
   intent: ActionRouteResolution | null;
   coverage: BatteryCoverage | null;
@@ -66,6 +69,9 @@ export type MonoProductCommands = {
   openBattery(): void;
   openIntent(action: ProductActionKind): void;
   openPlacementAction(holdingId: string, action: "send" | "receive"): void;
+  openAsset(assetId: string): void;
+  selectAssetHolding(holdingId: string): void;
+  closeAsset(): void;
   selectRoute(route: ProductActionRoute): void;
   backToRoutes(route: ProductActionRoute): void;
   setBatteryActivity(activity: ProductBatteryActivity): void;
@@ -92,6 +98,7 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
   const [fundsExpanded, setFundsExpanded] = useState(false);
   const [expandedAssetIds, setExpandedAssetIds] = useState<ReadonlySet<string>>(() => new Set());
   const [sheet, setSheet] = useState<ProductSheetState>(null);
+  const [assetWorkspace, setAssetWorkspace] = useState<ProductAssetWorkspaceState>(null);
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [sendDrafts, setSendDrafts] = useState<Record<string, SendDraft>>({});
   const [simulations, setSimulations] = useState<readonly ProductActivity[]>([]);
@@ -121,7 +128,8 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
     recordedSimulations.current.add(event.simulationId);
     const succeeded = event.result.status === "simulated-success";
     const entry: ProductActivity = { id, mode: "simulation", direction: "outgoing", status: succeeded ? "completed" : "failed",
-      accountId: route.accountId, accountLabel: route.accountLabel, assetSymbol: route.symbol, networkLabel: route.networkLabel,
+      accountId: route.accountId, accountLabel: route.accountLabel, assetId: route.assetId, assetSymbol: route.symbol,
+      networkId: route.networkId, networkLabel: route.networkLabel,
       quantity: event.quantity, occurredAt: new Date().toISOString() };
     setSimulations(current => [entry, ...current]);
     if (succeeded) saveSendDraft(route, null);
@@ -134,6 +142,7 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       ? current : activity);
   }, []);
   const closeSheet = useCallback(() => { setSheet(null); updateBatteryActivity(null); }, []);
+  const closeAsset = useCallback(() => { setAssetWorkspace(null); closeSheet(); }, [closeSheet]);
   const balanceHidden = privacy.hidden ?? localHidden;
   const account = context.kind === "account"
     ? snapshot.accounts.find(candidate => candidate.id === context.accountId) ?? null : null;
@@ -141,6 +150,13 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
     ? { kind: "all" } as const : context;
   const selectedHoldings = useMemo(() => selectHoldings(snapshot, effectiveContext), [snapshot, effectiveContext]);
   const holdings = useMemo(() => groupHoldingsByAsset(selectedHoldings), [selectedHoldings]);
+  const workspaceGroup = assetWorkspace ? holdings.find(group => group.assetId === assetWorkspace.assetId) : null;
+  // Discard stale source state before rendering a flow against a changed snapshot.
+  if (assetWorkspace && (!workspaceGroup || (assetWorkspace.holdingId &&
+    !workspaceGroup.placements.some(holding => holding.id === assetWorkspace.holdingId)))) {
+    setAssetWorkspace(workspaceGroup ? { ...assetWorkspace, holdingId: null } : null);
+    closeSheet();
+  }
   const balanceMinor = useMemo(() => selectFiatBalanceMinor(selectedHoldings), [selectedHoldings]);
   const batteryPools = useMemo(() => selectBatteryPools(snapshot.batteryPools, effectiveContext), [snapshot, effectiveContext]);
   const batteryChargePercent = useMemo(() => Object.fromEntries((snapshot.batteryPools ?? []).map(pool => {
@@ -156,25 +172,40 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
     view: { snapshot, activities, activityStatus: adapter.activityStatus ?? "ready", expandedActivityId, sendDrafts,
       usesDefaultDemoChart: adapter === MONO_PRODUCT_DEMO_ADAPTER,
       context: effectiveContext, account, holdings, balanceMinor, batteryPools,
-      balanceHidden, fundsExpanded, expandedAssetIds, sheet, intent, coverage, batteryActivity, batteryChargePercent },
+      balanceHidden, fundsExpanded, expandedAssetIds, assetWorkspace, sheet, intent, coverage, batteryActivity, batteryChargePercent },
     commands: {
       setBalanceHidden(hidden) {
         if (privacy.onHiddenChange) privacy.onHiddenChange(hidden);
         else setLocalHidden(hidden);
       },
       openAccounts() { if (snapshot.accounts.length > 1) { updateBatteryActivity(null); setSheet({ kind: "accounts" }); } },
-      selectContext(next) { setContext(next); setExpandedActivityId(null); closeSheet(); },
+      selectContext(next) { setContext(next); setExpandedActivityId(null); closeAsset(); },
       openBattery() { updateBatteryActivity(null); setSheet(current => current?.kind === "battery" ? null : { kind: "battery" }); },
       openIntent(action) { updateBatteryActivity(null); setSheet({ kind: "intent", action, route: null }); },
       openPlacementAction(holdingId, action) {
         const holding = snapshot.holdings.find(candidate => candidate.id === holdingId);
         if (!holding) return;
+        if (assetWorkspace && (assetWorkspace.holdingId !== holdingId ||
+          !workspaceGroup?.placements.some(candidate => candidate.id === holdingId))) return;
         const nextContext: AccountContext = { kind: "account", accountId: holding.accountId };
         const nextSheet: ProductSheetState = { kind: "intent", action, route: null, placementId: holdingId };
         const routes = resolveIntent(snapshot, nextContext, nextSheet)?.routes ?? [];
-        setContext(nextContext); setExpandedActivityId(null); updateBatteryActivity(null);
+        if (!assetWorkspace) setContext(nextContext);
+        setExpandedActivityId(null); updateBatteryActivity(null);
         setSheet({ ...nextSheet, route: routes.length === 1 ? routes[0]! : null });
       },
+      openAsset(assetId) {
+        const group = holdings.find(candidate => candidate.assetId === assetId);
+        if (!group) return;
+        closeSheet(); setExpandedActivityId(null);
+        setAssetWorkspace({ assetId, holdingId: group.placements.length === 1 ? group.placements[0]!.id : null });
+      },
+      selectAssetHolding(holdingId) {
+        if (!assetWorkspace || !workspaceGroup?.placements.some(holding => holding.id === holdingId)) return;
+        closeSheet(); setExpandedActivityId(null);
+        setAssetWorkspace({ ...assetWorkspace, holdingId });
+      },
+      closeAsset,
       selectRoute(route) { updateBatteryActivity(null); setSheet(current => {
         const valid = resolveIntent(snapshot, effectiveContext, current)?.routes
           .find(candidate => productRouteKey(candidate) === productRouteKey(route));

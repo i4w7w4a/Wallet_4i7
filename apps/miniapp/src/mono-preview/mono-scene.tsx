@@ -25,6 +25,7 @@ import { MONO_EYE_DEFAULT, MONO_NAVIGATION_DEFAULT, type MonoEyeAppearance,
   type MonoNavigationAppearance } from "./mono-interface-appearance";
 import { ProductBalance, ProductContextLine, ProductHoldings } from "../mono-product/product-home";
 import { ProductOverlay } from "../mono-product/product-sheet";
+import { ProductAssetWorkspace } from "../mono-product/asset-workspace";
 import { ProductGlassProvider } from "../mono-product/product-glass-surface";
 import { formatFiatMinor } from "../mono-product/product-format";
 import type { MonoProductController } from "../mono-product/product-controller";
@@ -143,6 +144,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const [localPeriod, setLocalPeriod] = useState<ChartPeriod>("1D");
   const [localSection, setLocalSection] = useState<MonoSection>("overview");
   const section = session?.section ?? localSection;
+  const assetWorkspace = section === "overview" || section === "assets" ? product?.view.assetWorkspace ?? null : null;
+  const assetWorkspaceId = assetWorkspace?.assetId ?? null;
   const setSection = session?.onSectionChange ?? setLocalSection;
   const period = session?.period ?? localPeriod;
   const setPeriod = session?.onPeriodChange ?? setLocalPeriod;
@@ -158,6 +161,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
   const pageRef = useRef<HTMLElement>(null);
   const previousSection = useRef(section);
+  const previousAsset = useRef<{ assetId: string; section: MonoSection } | null>(null);
   const paletteCrossfadeRef = useRef<HTMLDivElement>(null);
   const previousPaletteBackgroundRef = useRef<string | null>(null);
   const paletteAnimationRef = useRef<Animation | null>(null);
@@ -182,6 +186,23 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       scrollport.dispatchEvent(new Event(MATERIAL_VIEWPORT_MOTION_REBASE_EVENT));
     }
   }, [section]);
+
+  useLayoutEffect(() => {
+    const previous = previousAsset.current;
+    const root = pageRef.current;
+    previousAsset.current = assetWorkspaceId ? { assetId: assetWorkspaceId, section } : null;
+    if (assetWorkspaceId && previous?.assetId !== assetWorkspaceId) {
+      root?.querySelector<HTMLElement>("[data-mono-product-asset-title]")?.focus({ preventScroll: true });
+      const scrollport = root?.closest<HTMLElement>("[data-material-scrollport]") ?? root?.ownerDocument.scrollingElement;
+      if (scrollport) {
+        scrollport.scrollTop = 0;
+        scrollport.dispatchEvent(new Event(MATERIAL_VIEWPORT_MOTION_REBASE_EVENT));
+      }
+    } else if (!assetWorkspaceId && previous?.section === section) {
+      [...(root?.querySelectorAll<HTMLElement>("[data-mono-product-asset-trigger]") ?? [])]
+        .find(element => element.dataset.monoProductAssetTrigger === previous.assetId)?.focus();
+    }
+  }, [assetWorkspaceId, section]);
 
   const stopAtmosphere = useCallback((clearRipples: boolean) => {
     const host = pageRef.current;
@@ -426,7 +447,12 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         </header>
         {product && <ProductContextLine {...product} />}
 
-        {section === "overview" && <>
+        {product && assetWorkspace && <div className="mono-product-section"><ProductAssetWorkspace
+          view={product.view} assetId={assetWorkspace.assetId} selectedHoldingId={assetWorkspace.holdingId}
+          onSelectHolding={product.commands.selectAssetHolding} onBack={product.commands.closeAsset}
+          onPlacementAction={product.commands.openPlacementAction} onExpandActivity={product.commands.expandActivity}
+          onRetryActivities={product.commands.retryActivities} /></div>}
+        {section === "overview" && !assetWorkspace && <>
         {product ? <section className="mono-hero">
           <div className="mono-scene-domain">
             <ProductBalance {...product} appearance={appearance.balance ?? MONO_BALANCE_LEGACY}
@@ -507,6 +533,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {product && appearance.layout?.chartPosition === "top" && chart &&
           <div className="mono-scene-domain mono-scene-domain--chart mono-product-chart">{chart}</div>}
         {product && <ProductHoldings {...product} overview onPlacementAction={product.commands.openPlacementAction}
+          onOpenAsset={product.commands.openAsset}
           appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />}
         {product?.view.activityStatus === "ready" && <div className="mono-product-recent"><ProductRecentActivity
           activities={product.view.activities} balanceHidden={product.view.balanceHidden}
@@ -543,13 +570,14 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {fullScene && appearance.layout?.chartPosition === "bottom" && chart &&
           <div className="mono-scene-domain mono-scene-domain--chart">{chart}</div>}
         </>}
-        {section === "assets" && <section className="mono-section-view" aria-labelledby="mono-all-assets-title">
+        {section === "assets" && !assetWorkspace && <section className="mono-section-view" aria-labelledby="mono-all-assets-title">
           <div className="mono-section-view__eyebrow">ПОРТФЕЛЬ / DEMO</div>
           <h1 id="mono-all-assets-title">Все активы</h1>
           <div className="mono-section-view__balance"><span>{product?.view.context.kind === "account" ? "Баланс счёта" :
             product ? "Общая стоимость" : "Общий баланс"}</span>
             <strong>{balanceHidden ? "••••••" : product ? formatFiatMinor(product.view.balanceMinor) : `${balance} $`}</strong></div>
           {product ? <ProductHoldings {...product} overview={false} onPlacementAction={product.commands.openPlacementAction}
+            onOpenAsset={product.commands.openAsset}
             appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} /> : <div className="mono-section-view__assets mono-scene-domain">
             <MonoAssetList assets={snapshot.assets} format={moneyFormat} hidden={balanceHidden}
               appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />

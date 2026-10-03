@@ -59,7 +59,7 @@ it.each(["simulated-success", "simulated-failure"] as const)("journals a %s once
   expect(entries).toHaveLength(1);
   expect(entries[0]).toMatchObject({ id: "simulation:session-attempt-1", mode: "simulation", direction: "outgoing",
     status: status === "simulated-success" ? "completed" : "failed", accountId: "demo-custody", assetSymbol: "USDC",
-    networkLabel: "Ethereum", quantity: "12.5" });
+    assetId: "usdc", networkId: "ethereum", networkLabel: "Ethereum", quantity: "12.5" });
   expect(Date.parse(entries[0]!.occurredAt)).not.toBeNaN();
   expect(result.current.view.balanceMinor).toBe(balance);
   expect(result.current.view.batteryPools[0]!.remainingTransfers).toBe(pool);
@@ -81,7 +81,7 @@ it("restores a placement draft without its quote and opens the exact simulation 
   const envelope = createMonoAppearanceEnvelope("ledger");
   render(<MonoProductScene snapshot={wallet} appearance={envelope.appearance} material={envelope.material} />);
   fireEvent.click(screen.getByRole("button", { name: /Мои средства/ }));
-  fireEvent.click(screen.getByRole("button", { name: /USD Coin/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Показать размещения USDC" }));
   const openPlacement = () => fireEvent.click(screen.getByRole("button", { name: "Отправить USDC · Основной · Ethereum" }));
   openPlacement();
   await screen.findByRole("textbox", { name: "Получатель" });
