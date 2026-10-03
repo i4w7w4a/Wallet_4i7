@@ -161,3 +161,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Cryptocurrency Icons — ReceiveMenu
+
+- Источник: [spothq/cryptocurrency-icons](https://github.com/spothq/cryptocurrency-icons), version `0.18.1`.
+- Зафиксированный commit: `1a63530be6e374711a8554f31b17e4cb92c25fa5`.
+- Использованы только `svg/color/btc.svg`, `svg/color/eth.svg`, `svg/color/usdc.svg`; локальные копии — `apps/miniapp/public/media/currency-logos/`.
+- Лицензия: CC0 1.0 Universal. Полный текст upstream сохранён в [LICENSE.md](apps/miniapp/public/media/currency-logos/LICENSE.md).
+- Artwork, цвета и геометрия не изменены; добавлен только завершающий LF. Точные source/local SHA-256 и источники — в [PROVENANCE.md](apps/miniapp/public/media/currency-logos/PROVENANCE.md).
+- Это сторонний набор изображений логотипов, не официальный brand kit. CC0 не передаёт права на товарные знаки или патенты и не означает endorsement.

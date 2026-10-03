@@ -1,0 +1,48 @@
+/* Local surface candidate, not an optical preset. No geometry or motion ownership. */
+.mono-product-glass[data-product-glass] {
+  --mono-panel-veil: color-mix(in srgb, var(--mono-surface, #0c0c0c) 48%, transparent);
+  background:
+    linear-gradient(155deg, rgb(255 255 255 / 7%), transparent 28%, transparent 76%, rgb(255 255 255 / 2%)),
+    var(--mono-panel-veil);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 23%), inset 1px 0 0 rgb(255 255 255 / 8%),
+    inset 0 -1px 0 rgb(255 255 255 / 6%), 0 14px 38px rgb(0 0 0 / 23%);
+  /* Readability/fallback only. Refraction is rendered by the shared optical host. */
+  -webkit-backdrop-filter: blur(14px) saturate(.9);
+  backdrop-filter: blur(14px) saturate(.9);
+}
+.mono-product-glass[data-product-glass="shared-webgl"] {
+  --mono-panel-veil: color-mix(in srgb, var(--mono-surface, #0c0c0c) 28%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+[data-mono-theme="light"] .mono-product-glass[data-product-glass] {
+  --mono-panel-veil: color-mix(in srgb, var(--mono-surface-high, #f7f5ef) 58%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%), inset 1px 0 0 rgb(255 255 255 / 43%),
+    inset 0 -1px 0 rgb(40 40 35 / 10%), 0 14px 38px rgb(30 28 22 / 15%);
+}
+[data-mono-theme="light"] .mono-product-glass[data-product-glass="shared-webgl"] {
+  --mono-panel-veil: color-mix(in srgb, var(--mono-surface-high, #f7f5ef) 40%, transparent);
+}
+.mono-product-glass[data-product-glass="opaque"] {
+  background: var(--mono-surface-high, #1c1c1c);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .mono-product-glass[data-product-glass="fallback"] {
+    --mono-panel-veil: color-mix(in srgb, var(--mono-surface, #0c0c0c) 88%, transparent);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .mono-product-glass[data-product-glass] {
+    background: var(--mono-surface-high, #1c1c1c);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .mono-product-glass[data-product-glass] {
+    background: Canvas; color: CanvasText; outline: 1px solid CanvasText;
+    box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+}

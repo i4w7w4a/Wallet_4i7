@@ -3,7 +3,8 @@ import type { Frame, GpuLimits, PointerFrame, PointerPhase, Viewport } from "./c
 import { ActiveClock, PointerInput, ViewportMotionInput, resolveViewport } from "./host-input";
 import { FLUID_VIEWPORT_RESPONSE_DEFAULTS, parseFluidViewportResponse,
   type FluidViewportResponseV1 } from "./fluid-viewport-response";
-import type { BackgroundOverlay } from "./overlay";
+import { overlayFrameList, type BackgroundOverlay, type OverlaySource } from "./overlay";
+import { normalizeBackgroundEdgeFinish } from "./material-edge-finish";
 import { MATERIAL_VIEWPORT_MOTION_REBASE_EVENT, type BackgroundRuntimeStatus } from "./host-contract";
 import type {
   BackgroundEdgeFinishV1, ButtonMaterialLayer, MaterialFrameTexture, MaterialMaskSource, MaterialPass,
@@ -336,6 +337,7 @@ export class MaterialSceneBackend {
       } : undefined;
       if (fluidBackground) this.viewportMotionReset = false;
       const hostClips = new Map<HTMLElement, MaterialHostClip | undefined>();
+      let backgroundSource: OverlaySource | null = null;
       this.compositor.clear();
       for (const entry of this.passes) {
         const geometry = entry.button && entry.layer
@@ -347,6 +349,18 @@ export class MaterialSceneBackend {
         const frame: Frame = { ...timing, pointer: entry.key === "background" ? backgroundPointer : EMPTY_POINTER,
           ...(entry.key === "background" && viewportMotion ? { viewportMotion } : {}) };
         const texture: MaterialFrameTexture = entry.pass.render(frame, geometry);
+        if (entry.key === "background" && this.input.overlay) {
+          // Reconstruct the same source-over color as the background canvas over
+          // its solid CSS base. Premultiplied textures must not be blended twice.
+          const components = getComputedStyle(this.root).backgroundColor.match(/[\d.]+/g)?.map(Number);
+          const base = components && components.length >= 3 && (components[3] ?? 1) === 1
+            ? [components[0]! / 255, components[1]! / 255, components[2]! / 255] as const : null;
+          const finish = normalizeBackgroundEdgeFinish(this.input.edgeFinish);
+          if (texture.alphaMode === "opaque" || base) backgroundSource = {
+            ...texture, baseColor: base ?? [0, 0, 0],
+            edgeFinish: [finish.sideDarkening, finish.inset, finish.softness],
+          };
+        }
         const mode: MaterialDrawMode = entry.key === "background" ? "background" : entry.layer!;
         const drawn = this.compositor.draw(texture, geometry, mode, texture.alphaMode === "opaque",
           entry.iconTexture, entry.key === "background" ? this.input.edgeFinish : undefined,
@@ -354,17 +368,18 @@ export class MaterialSceneBackend {
         if (drawn && entry.button && entry.layer) entry.button.setAttribute(`data-material-${entry.layer}-presented`, "true");
       }
       if (this.input.overlay) {
-          this.optical ??= this.input.overlay.create(this.gl, this.limits);
-        const overlayFrame = this.optical.render({ ...timing, pointer: backgroundPointer }, this.viewport, this.canvas);
-        if (overlayFrame) {
+        this.optical ??= this.input.overlay.create(this.gl, this.limits);
+        const frames = overlayFrameList(this.optical.render({ ...timing, pointer: backgroundPointer },
+          this.viewport, this.canvas, backgroundSource));
+        for (const overlayFrame of frames) {
           const [x, y, width, height] = overlayFrame.rect;
           const region: MaterialTargetGeometry = { capability: "background", x, y, width, height,
             pixelWidth: Math.max(1, Math.ceil(width * this.viewport.dpr)),
             pixelHeight: Math.max(1, Math.ceil(height * this.viewport.dpr)), dpr: this.viewport.dpr,
             radiusCss: overlayFrame.radius, borderWidthCss: 0, mask: { kind: "rounded-rect" } };
-          this.compositor.draw(overlayFrame, region, "promo", true);
+          this.compositor.draw(overlayFrame, region, "promo", true, undefined, undefined, undefined, overlayFrame.opacity);
         }
-        this.input.overlay.markPresented(Boolean(overlayFrame));
+        this.input.overlay.markPresented(frames.length > 0);
       }
       this.publish(this.input.paused ? "paused" : "running", this.input.paused ? "Пауза" : "Живые материалы");
     } catch (error) { this.fail(error); }

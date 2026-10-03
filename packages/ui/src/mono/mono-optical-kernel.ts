@@ -3,7 +3,7 @@
  * Copyright (c) 2026 i4w7w4a. MIT License.
  */
 import type { Texture } from "ogl";
-import type { MonoGlassSettings } from "./mono-optical-glass";
+import type { MonoGlassSettings } from "./mono-glass-settings";
 
 export const MONO_OPTICAL_VERTEX = `#version 300 es
 in vec2 position;
@@ -18,6 +18,10 @@ void main() {
 export const MONO_OPTICAL_FRAGMENT = `#version 300 es
 precision highp float;
 uniform sampler2D uSource;
+uniform float uBackgroundSource;
+uniform vec4 uSourceRegion;
+uniform vec3 uSourceBase;
+uniform vec3 uSourceEdgeFinish;
 uniform vec2 uResolution;
 uniform float uTime;
 uniform float uIOR;
@@ -50,6 +54,15 @@ vec2 coverUv(vec2 uv) {
   return (uv - 0.5) * scale + 0.5;
 }
 vec3 sourceAt(vec2 uv) {
+  if (uBackgroundSource > 0.5) {
+    // Crop in viewport coordinates, never cover-fit the whole scene to a panel.
+    vec2 sourceUv = clamp(uSourceRegion.xy + uv * uSourceRegion.zw, vec2(0.0), vec2(1.0));
+    vec4 texel = texture(uSource, sourceUv);
+    float fromSide = min(sourceUv.x, 1.0 - sourceUv.x);
+    float edgeWeight = 1.0 - smoothstep(uSourceEdgeFinish.y,
+      uSourceEdgeFinish.y + max(0.015, uSourceEdgeFinish.z), fromSide);
+    return texel.rgb * (1.0 - uSourceEdgeFinish.x * edgeWeight) + uSourceBase * (1.0 - texel.a);
+  }
   // Reflect overflow back into the source instead of repeating its last column.
   // Positive signed IOR otherwise leaves a frozen vertical strip at the right edge.
   vec2 covered = coverUv(uv);
@@ -79,6 +92,9 @@ void main() {
   float lensFade = smoothstep(max(0.0, start - softness * 0.8), 1.12, edgeTravel);
   float selectedFade = mix(edgeFade, lensFade, step(0.5, uFieldFadeMode));
   float masterFade = pow(selectedFade, clamp(uFieldCurve, 0.35, 6.0));
+  // Panel lens geometry protects a wider clear center without altering the
+  // approved Promo field or writing a new optical settings preset.
+  if (uBackgroundSource > 0.5) masterFade *= smoothstep(0.5, 1.0, rectTravel);
   vec2 normal = length(centered) > 0.00001 ? normalize(centered) : vec2(0.0);
   if (uFlowEnabled > 0.5 && uFlowMode > 0.5 && uFlowStrength > 0.0) {
     float phase = uTime * uFlowSpeed * 6.2831853;
@@ -94,7 +110,8 @@ void main() {
     }
     normal = normalize(normal + flow * uFlowStrength * (0.28 + masterFade * 0.72));
   }
-  normal = normalize(normal + uPointer * uPointerStrength * (0.24 + masterFade * 0.76));
+  vec2 aimedNormal = normal + uPointer * uPointerStrength * (0.24 + masterFade * 0.76);
+  normal = length(aimedNormal) > 0.00001 ? normalize(aimedNormal) : vec2(0.0);
   float pull = signedOpticalPower(uIOR) * uFieldStrength * (0.055 + uEdgeThickness * 0.38);
   // Keep the physical displacement strong, then use the field only as the material mask.
   // Applying masterFade twice makes a mathematically active lens look visually inert.
@@ -105,13 +122,16 @@ void main() {
   vec2 light = normalize(vec2(-0.46, -0.89));
   float rim = pow(max(dot(normal, light), 0.0), 2.8) * edgeMask;
   float lip = smoothstep(0.58, 1.0, vUv.y) * edgeMask;
-  float drift = sin(uTime * 0.34) * 0.055;
+  // Panel edges stay calm; live motion comes from the borrowed background and
+  // the existing flow controls, not an independent pulsing highlight.
+  float drift = uBackgroundSource > 0.5 ? 0.0 : sin(uTime * 0.34) * 0.055;
   float reflectionBand = exp(-pow((vUv.x + vUv.y * 0.31 - 0.46 - drift) / 0.13, 2.0));
   float reflection = (rim * 0.74 + reflectionBand * (0.12 + edgeMask * 0.42)) * uReflectionStrength;
   vec3 focusSample = sourceAt(vUv + offset * 1.62);
   float focusDelta = max(0.0, luminance(opticalColor) - luminance(focusSample));
   float caustic = focusDelta * (0.3 + edgeMask * 1.3) * uCausticStrength;
-  float sweep = 1.0 - smoothstep(0.0, 0.028, abs(vUv.x - fract(uTime * 0.018 + vUv.y * 0.26)));
+  float sweep = uBackgroundSource > 0.5 ? 0.0 :
+    1.0 - smoothstep(0.0, 0.028, abs(vUv.x - fract(uTime * 0.018 + vUv.y * 0.26)));
   opticalColor += vec3(
     (rim * 0.48 + lip * 0.22 + sweep * edgeMask * 0.08) * uHighlightStrength +
     reflection + caustic
@@ -146,6 +166,8 @@ export function applyMonoOpticalSettings(uniforms: MonoOpticalUniforms, settings
 export function makeMonoOpticalUniforms(source: Texture): MonoOpticalUniforms {
   return {
     uSource: { value: source }, uResolution: { value: new Float32Array([1, 1]) }, uTime: { value: 0 },
+    uBackgroundSource: { value: 0 }, uSourceRegion: { value: new Float32Array([0, 0, 1, 1]) },
+    uSourceBase: { value: new Float32Array(3) }, uSourceEdgeFinish: { value: new Float32Array(3) },
     uIOR: { value: 0 }, uDispersion: { value: 0 }, uEdgeThickness: { value: 0 },
     uEdgeDarkening: { value: 0 }, uHighlightStrength: { value: 0 }, uFieldStart: { value: 0 },
     uFieldSoftness: { value: 0 }, uFieldCurve: { value: 1 }, uFieldStrength: { value: 0 },

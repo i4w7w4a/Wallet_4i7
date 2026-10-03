@@ -20,6 +20,7 @@ uniform float uRadius;
 uniform float uBorder;
 uniform float uKind;
 uniform float uOpaque;
+uniform float uOpacity;
 uniform vec3 uEdgeFinish;
 uniform vec4 uHostRegion;
 uniform float uHostRadius;
@@ -77,7 +78,7 @@ void main() {
     float edgeWeight = 1.0 - smoothstep(uEdgeFinish.y, uEdgeFinish.y + feather, fromSide);
     color.rgb *= 1.0 - uEdgeFinish.x * edgeWeight;
   }
-  fragColor = color;
+  fragColor = color * uOpacity;
 }`;
 
 export type MaterialDrawMode = "background" | "fill" | "border" | "icon" | "promo";
@@ -96,6 +97,7 @@ export class MaterialCompositor {
     uViewport: { value: Float32Array }; uRegion: { value: Float32Array };
     uRadius: { value: number }; uBorder: { value: number };
     uKind: { value: number }; uOpaque: { value: number };
+    uOpacity: { value: number };
     uEdgeFinish: { value: Float32Array };
     uHostRegion: { value: Float32Array }; uHostRadius: { value: number };
     uHostBottom: { value: number }; uHostEnabled: { value: number };
@@ -110,6 +112,7 @@ export class MaterialCompositor {
       uViewport: { value: new Float32Array([viewport.cssWidth, viewport.cssHeight]) },
       uRegion: { value: new Float32Array([0, 0, viewport.cssWidth, viewport.cssHeight]) },
       uRadius: { value: 0 }, uBorder: { value: 0 }, uKind: { value: 0 }, uOpaque: { value: 1 },
+      uOpacity: { value: 1 },
       uEdgeFinish: { value: new Float32Array(3) },
       uHostRegion: { value: new Float32Array(4) }, uHostRadius: { value: 0 },
       uHostBottom: { value: 0 }, uHostEnabled: { value: 0 },
@@ -139,7 +142,7 @@ export class MaterialCompositor {
 
   draw(source: FrameTexture, target: MaterialTargetGeometry, mode: MaterialDrawMode,
     opaque: boolean, iconMask?: Texture, edgeFinish?: BackgroundEdgeFinishV1,
-    hostClip?: MaterialHostClip): boolean {
+    hostClip?: MaterialHostClip, opacity = 1): boolean {
     if (this.disposed) return false;
     const clip = materialScissorRect(target, this.viewport);
     if (!clip) return false;
@@ -151,6 +154,7 @@ export class MaterialCompositor {
     this.uniforms.uBorder.value = target.borderWidthCss;
     this.uniforms.uKind.value = KIND[mode];
     this.uniforms.uOpaque.value = opaque ? 1 : 0;
+    this.uniforms.uOpacity.value = opacity;
     this.uniforms.uHostEnabled.value = hostClip ? 1 : 0;
     this.uniforms.uHostRegion.value.set(hostClip
       ? [hostClip.x, hostClip.y, hostClip.width, hostClip.height] : [0, 0, 0, 0]);
