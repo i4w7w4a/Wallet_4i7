@@ -1,0 +1,85 @@
+# SendFlow — task #41
+
+Отдельный React-модуль для существующего detail отправки. В `/mono` ещё не подключён. Нового route, material host, canvas, runtime или зависимости нет. Все денежные действия — симуляция.
+
+## Exports
+
+Из `./send`:
+
+- `SendFlow`, `SendFlowProps`.
+- `createMockSendPort(snapshot?: ProductSnapshot): SendPort`, `mockSendPort`.
+- Типы: `SendPort`, `SendCallOptions`, `SendRouteData`, `SendTerms`, `SendRecipient`, `SendRequest`, `SendQuote`, `SendQuoteResult`, `SendDemoResult`, `SendIssue`, `SendIssueCode`.
+
+```ts
+type SendFlowProps = {
+  route: ProductActionRoute;
+  port?: SendPort;       // default: mockSendPort, MULTI_ACCOUNT_DEMO only
+  privacy?: boolean;    // default false; masks money, recipient and memo
+  onBack(): void;       // recipient/result -> existing route chooser
+  onClose(): void;      // Escape, success Done, failure Close
+};
+```
+
+Back within the flow moves review -> amount -> recipient. Changing account/asset/network/action remounts the session and aborts outstanding work. Equivalent route objects and privacy changes retain the draft. Keep the component mounted across appearance changes; do not key it by preset. A different port instance reloads its route and resets the session, so memoize ports.
+
+## Minimum integration
+
+The current chooser/detail lives in `product-sheet.tsx` (`ProductOverlay` / `RouteDetail`). Replace only its selected `send` branch with the following body component. Retain the enclosing `ProductSheet` for dialog semantics, its close button, focus trap, focus return and scrolling/safe-area. `SendFlow` is a section, not a second dialog.
+
+```tsx
+import { useMemo } from "react";
+import type { ProductActionRoute } from "@wallet/core";
+import { SendFlow, createMockSendPort } from "./send";
+import type { MonoProductCommands, MonoProductView } from "./product-controller";
+
+function SendRouteDetail({ route, view, commands }: {
+  route: ProductActionRoute;
+  view: MonoProductView;
+  commands: MonoProductCommands;
+}) {
+  const port = useMemo(() => createMockSendPort(view.snapshot), [view.snapshot]);
+  return <SendFlow
+    route={route}
+    port={port}
+    privacy={view.balanceHidden}
+    onBack={() => commands.openIntent("send")}
+    onClose={commands.closeSheet}
+  />;
+}
+```
+
+No hook should be inserted below `ProductOverlay`'s conditional returns. This wrapper avoids that problem. Use `route.action === "send"` before rendering it. An unsupported route fails closed inside the module as well.
+
+## Port boundary
+
+`SendPort.mode` and all quotes/results require the literal `"demo"`. This is a provisional frontend contract, not a verified backend DTO. It cannot truthfully present a live send result without a separate contract change.
+
+1. `loadRoute(route, { signal })` supplies precision, available quantity (or `null`), optional minimum/maximum and recipient field metadata. `null` route data means unsupported. Missing limits mean no local limit check was supplied, not a promise about real limits.
+2. `validateRecipient(route, { address, memo? }, { signal })` owns network validation and canonicalization. Required memo is also checked before progression. The owner confirmed on 2026-10-03 that address/internal-ID rules remain unknown and belong to the backend.
+3. `quote(request, { signal })` returns `quoted` or `unavailable` with a typed issue. A quote binds account, asset, network, recipient, memo and canonical decimal amount. It supplies current terms, full debit from the source asset, network fee and explicit funding for this operation. `feeFunding.balance.status` is the provider's funding decision; the UI does not invent network-specific fee accounting.
+4. `send({ quote, idempotencyKey }, { signal })` runs only after explicit confirmation. Results are `simulated-success` or `simulated-failure`; there is no transaction-hash field. Failure requires a fresh quote and a new deliberate confirmation before retry.
+
+Monetary comparisons use normalized strings. Only the isolated mock's native-asset fee addition uses integer `BigInt` units. Amounts never pass through floating-point conversion. Quotes with unknown fee/funding/available quantity, expired timestamps, mismatched inputs, insufficient assets or insufficient fees cannot be confirmed. Battery funding also checks the pool's network, action, eligible accounts and known capacity. Pool presence alone grants no coverage.
+
+Requests use abort signals plus a generation guard, so ignored aborts cannot revive an old quote. A synchronous ref lock prevents duplicate submit before React disables the control. Quote expiry has a finite timeout with cleanup and is checked again on review/submit. Pending and result skip quote expiry because submission has already started.
+
+## Explicit mock assumptions
+
+- Only routes supplied by the passed demo snapshot and the local fixture map are supported. The default port uses `MULTI_ACCOUNT_DEMO`; pass a port created from the current snapshot for single-account fixtures.
+- Recipient is `demo:recipient` or `demo:` followed by 1–40 Latin letters/digits/underscores/hyphens. It is not a real destination. Default memo is absent.
+- BTC/Bitcoin, ETH/Ethereum, USDC/Ethereum and USDC/Solana each have a synthetic fee scenario. Values are UI fixtures, not network tariffs. Quote lifetime is a demo 60 seconds.
+- Available quantity comes only from the snapshot's `availableQuantity`. In the current multi-account fixture ETH remains unknown, so confirmation is unavailable; total holding quantity is not substituted.
+- USDC/Ethereum can demonstrate one charge from the eligible shared network pool when explicitly quoted. Other supported scenarios use synthetic sufficient fee funding. These scenarios do not imply actual funding or mutate a holding/pool.
+- Battery copy describes pending hold and debit after success. Demo values never change. Real reservation/release rules, fees and backend DTOs remain unknown.
+
+## Verification and handoff boundary
+
+Focused RED/GREEN only:
+
+```powershell
+pnpm --filter @wallet/miniapp exec vitest run src/mono-product/send/send-validation.test.ts src/mono-product/send/send-flow.test.tsx --reporter=dot
+```
+
+Result: **2 files, 30 tests passed**. Coverage includes large exact decimals and atomic boundaries, limits/precision, recipient delegation, route/input invalidation, quote races, expired/unknown quote, separate insufficient asset/fee, battery scope, duplicate submit, pending/success/failure/retry, privacy and navigation. One self-read completed.
+
+CSS is local, uses existing MONO tokens, 44px controls, tabular digits, finite 220ms/4px stage motion and immediate reduced-motion states. No financial number count-up/blur. The orchestrator/ORACLE still owns overall typecheck/build and the browser review at 320/390/430/480 widths in light/dark and all seven presets. This module has not been visually approved or deployed.
