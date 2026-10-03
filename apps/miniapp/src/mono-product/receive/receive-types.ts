@@ -60,6 +60,8 @@ export type ReceiveFlowProps = {
   privacy: boolean;
   onBack: (route: ProductActionRoute) => void;
   onClose: () => void;
+  /** Host opens details while keeping this flow mounted, preserving its local state. */
+  onAssetDetails?: () => void;
   renderQr?: ReceiveQrRenderer;
   /** False when the containing sheet already owns a close control. */
   showCloseButton?: boolean;

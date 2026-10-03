@@ -13,6 +13,7 @@
 | `privacy: boolean` | `true` удаляет внешние реквизиты и QR из DOM, блокирует copy/share. Названия счёта, актива и сети остаются для ориентации. Денежных значений модуль не выводит. |
 | `onBack(route)` | Возврат к существующему chooser; передаёт исходный route без изменения контекста. Host сохраняет account context и возвращает фокус выбранной строке chooser. |
 | `onClose()` | Закрытие. Вызывается кнопкой закрытия и `Готово` в просмотре внутреннего маршрута. Не означает операцию. |
+| `onAssetDetails?()` | Делает строку актива/сети кнопкой деталей. Callback не меняет route, load или локальный выбор. Без callback прежние статические строки сохраняются. |
 | `showCloseButton?: boolean` | По умолчанию `true`. В существующем `ProductSheet` передать `false`, поскольку sheet уже имеет закрытие. |
 | `renderQr?: ReceiveQrRenderer` | Необязательный рендер только test-only реквизитов. Без него показан честный не-QR placeholder. |
 
@@ -50,6 +51,8 @@ const receivePort = useMemo(() => createDemoReceiveDataPort(view.snapshot, [
 ```
 
 `openIntent("receive")` уже существует и очищает только выбранный detail, сохраняя account context. Для восстановления фокуса chooser host может использовать переданный в `onBack` route. Новый URL, приложение или wrapper showcase не нужны.
+
+При открытии `ProductAssetDetail` host оставляет `ReceiveFlow` mounted (например, `hidden` + `inert`), сохраняет route/key/dataPort и возвращает focus кнопке актива после Back. Условная замена или remount намеренно сбросят local state. Для обычного Receive `operation` в деталях не передавать: модуль не придумывает ожидающий входящий платёж. Общий header/overlay по-прежнему принадлежит host.
 
 ## Данные и границы
 

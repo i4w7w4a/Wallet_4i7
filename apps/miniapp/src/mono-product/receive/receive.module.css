@@ -37,6 +37,12 @@
 .context > div:last-child { text-align: right; }
 .context dt { color: var(--mono-text-secondary, #bdbdbd); font-size: 11px; }
 .context dd { margin: 0; font-size: 14px; font-weight: var(--mono-font-weight-medium, 500); }
+.assetContext { grid-column: 1 / -1; }
+.assetContext dt { text-align: left; }
+.assetButton { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--mono-rule, #343434); border-radius: var(--mono-button-radius, 10px); background: var(--mono-surface, #1a1c21); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.assetButton strong { font-weight: var(--mono-font-weight-strong, 600); }
+.assetButton > span { color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; }
+.assetButton > span:last-child { margin-left: auto; font-size: 17px; }
 .state { min-width: 0; animation: receive-enter 220ms var(--mono-ease, cubic-bezier(.2, 0, 0, 1)) both; }
 .empty { display: grid; justify-items: start; gap: 8px; padding: 17px 14px; border: 1px solid var(--mono-rule, #343434); border-radius: var(--mono-radius, 12px); background: var(--mono-surface, #1a1c21); }
 .empty strong { font-size: 15px; font-weight: var(--mono-font-weight-strong, 600); }

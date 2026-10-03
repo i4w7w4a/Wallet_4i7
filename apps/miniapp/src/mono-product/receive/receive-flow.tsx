@@ -74,7 +74,7 @@ function ReceiveRouteContent(props: ReceiveFlowProps & { route: ReceiveRoute }) 
   </ReceiveFrame>;
 }
 
-function ReceiveFrame({ route, onBack, onClose, showCloseButton = true, state, children, backButtonRef }:
+function ReceiveFrame({ route, onBack, onClose, onAssetDetails, showCloseButton = true, state, children, backButtonRef }:
   ReceiveFlowProps & { state: string; children: ReactNode; backButtonRef?: Ref<HTMLButtonElement> }) {
   const titleId = useId();
   const internal = route.action === "receive" && route.receiveMode === "internal-transfer";
@@ -92,8 +92,16 @@ function ReceiveFrame({ route, onBack, onClose, showCloseButton = true, state, c
     </header>
     <dl className={styles.context}>
       <div><dt>Счёт{internal ? " зачисления" : ""}</dt><dd>{route.accountLabel}</dd></div>
-      <div><dt>Актив</dt><dd>{route.symbol}</dd></div>
-      <div><dt>Сеть</dt><dd>{route.networkLabel}</dd></div>
+      {onAssetDetails ? <div className={styles.assetContext}>
+        <dt>Актив и сеть</dt>
+        <dd><button type="button" className={styles.assetButton}
+          aria-label={`Подробнее об активе ${route.symbol} в сети ${route.networkLabel}`} onClick={onAssetDetails}>
+          <strong>{route.symbol}</strong><span>{route.networkLabel}</span><span aria-hidden="true">↗</span>
+        </button></dd>
+      </div> : <>
+        <div><dt>Актив</dt><dd>{route.symbol}</dd></div>
+        <div><dt>Сеть</dt><dd>{route.networkLabel}</dd></div>
+      </>}
     </dl>
     {children}
   </section>;
