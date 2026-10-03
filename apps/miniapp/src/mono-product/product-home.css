@@ -51,6 +51,9 @@
 .mono-product-battery__body { fill: none; stroke: currentColor; stroke-width: 1.5; }
 .mono-product-battery__cap { fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 2.4; }
 .mono-product-battery__charge { fill: var(--mono-battery-charge); animation: mono-product-battery-breathe 3.8s ease-in-out infinite; }
+.mono-page[data-mono-motion="ready"] .mono-product-battery__charge {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--mono-battery-charge) 62%, transparent));
+}
 .mono-product-battery__multiple { fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.6; }
 .mono-product-battery__count { min-width: 1ch; margin-top: -1px; font: 700 10px/1.1 var(--mono-font-numeric); font-variant-numeric: tabular-nums; }
 .mono-page[data-mono-motion="static"] .mono-product-battery__charge { animation: none; opacity: .82; }
