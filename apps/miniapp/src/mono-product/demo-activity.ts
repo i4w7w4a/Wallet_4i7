@@ -1,4 +1,5 @@
 import type { ProductHolding, ProductSnapshot } from "@wallet/core";
+import type { SendQuoteReceipt } from "./operation-receipt";
 
 export type ProductActivity = {
   id: string;
@@ -15,6 +16,8 @@ export type ProductActivity = {
   networkLabel: string;
   occurredAt: string;
   feeLabel?: string;
+  receipt?: SendQuoteReceipt;
+  failureReason?: "rejected" | "expired" | "unavailable";
 };
 
 const EXAMPLE_STATUS_LABEL: Record<ProductActivity["status"], string> = {

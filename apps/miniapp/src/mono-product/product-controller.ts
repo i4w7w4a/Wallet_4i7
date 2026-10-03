@@ -9,6 +9,7 @@ import {
 
 import { MONO_PRODUCT_DEMO_ADAPTER, type MonoProductAdapter } from "./demo-adapter";
 import type { ProductActivity } from "./demo-activity";
+import { normalizeOperationReceipt } from "./operation-receipt";
 import type { SendDraft, SendSimulationResult } from "./send";
 
 export type ProductSheetState =
@@ -127,10 +128,14 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
     if (recordedSimulations.current.has(event.simulationId)) return id;
     recordedSimulations.current.add(event.simulationId);
     const succeeded = event.result.status === "simulated-success";
+    const receipt = normalizeOperationReceipt(event.receipt);
+    const failureReason = event.result.status === "simulated-failure" &&
+      ["rejected", "expired", "unavailable"].includes(event.result.reason) ? event.result.reason : undefined;
     const entry: ProductActivity = { id, mode: "simulation", direction: "outgoing", status: succeeded ? "completed" : "failed",
       accountId: route.accountId, accountLabel: route.accountLabel, assetId: route.assetId, assetSymbol: route.symbol,
       networkId: route.networkId, networkLabel: route.networkLabel,
-      quantity: event.quantity, occurredAt: new Date().toISOString() };
+      quantity: event.quantity, occurredAt: new Date().toISOString(),
+      ...(receipt ? { receipt } : {}), ...(failureReason ? { failureReason } : {}) };
     setSimulations(current => [entry, ...current]);
     if (succeeded) saveSendDraft(route, null);
     return id;

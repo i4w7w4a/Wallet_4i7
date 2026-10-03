@@ -90,7 +90,7 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   }, [recordSimulation]);
   const onOperationChange = useCallback((next: SendOperationStatus | null) => {
     setOperation(next);
-    if (next?.status !== "completed") setResultActivityId(null);
+    if (next?.status !== "completed" && next?.status !== "failed") setResultActivityId(null);
   }, []);
   const previousDetails = useRef(false);
   const showAssetDetails = useCallback(() => {
