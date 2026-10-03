@@ -4,7 +4,14 @@
 
 Canonical: `C:/Users/iwwa/.codex/worktrees/mono-showcase/5-wallet-foundation`; branch `codex/product-ux-20261003`; base `c9151ce`. Текущий запущенный preview `http://127.0.0.1:3184/mono` из `8b51146` остаётся доступным до общей сборки.
 
-GitHub: [#52 — компактная отправка](https://github.com/i4w7w4a/Wallet_4i7/issues/52), [#53 — поиск истории](https://github.com/i4w7w4a/Wallet_4i7/issues/53). Оба исполнителя приняли задачи и начали работу; это статус запуска, не готовности интерфейса.
+GitHub: [#52 — компактная отправка](https://github.com/i4w7w4a/Wallet_4i7/issues/52), [#53 — поиск истории](https://github.com/i4w7w4a/Wallet_4i7/issues/53). Обе задачи собраны локально; переданы владельцу на визуальную оценку.
+
+## Локальный результат
+
+- Send `ca55119`, history `306b530`; единый runtime source `306b5304ae4148e1cde31e00943c8465af0e94d9`, buildId `IrBvY0jv1AWWRA0ShB2rI`, launch `e1e30d78b20a4a0ba7e74f1e994ea15d`. Адрес сохранён: http://127.0.0.1:3184/mono. Deploy не выполнялся.
+- Producer:31 targeted Send/shared cases и17 history cases; root actual source review без блокеров. ORACLE один miniapp typecheck и verified stop/build/start — PASS; старые suites не повторялись, next-env сохранён.
+- Root browser390×844: Send menu260×184 → USDC/Ethereum → форма → Back с точным фокусом; Send→Receive оставляет одно меню. Query `usdc ethereum` + Ожидают даёт нужную запись; Ошибки → Нет совпадений; сброс возвращает4 примера. Recent с главной открывает точную BTC-квитанцию. Реальных переводов и повторного полного финансового сценария не было.
+- Скриншоты: `C:/Users/iwwa/.novex-ops/product-ux/2026-10-03/send-menu-mobile.jpg`, `history-search-mobile.jpg` рядом. Временная ширина браузера сброшена, runtime оставлен работающим. Физический телефон и полная theme-матрица в этом срезе не проверялись; эстетическая оценка остаётся владельцу.
 
 ## Global Constraints
 
