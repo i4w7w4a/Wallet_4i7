@@ -1,8 +1,10 @@
 "use client";
 
 import { useId } from "react";
-import { getProductActivityLabels, type ProductActivity } from "./demo-activity";
+import type { ProductActivity } from "./demo-activity";
 import { formatQuantity } from "./product-format";
+import { HistoryDirectionIcon, HistoryStatusIcon } from "./history-direction-icon";
+import { getHistoryPresentation } from "./history-presentation";
 import styles from "./product-account-sections.module.css";
 
 export type ProductRecentActivityProps = {
@@ -29,23 +31,27 @@ export function ProductRecentActivity({ activities, balanceHidden, accountId, on
 
   if (!latest) return null;
 
-  const { directionLabel, statusLabel } = getProductActivityLabels(latest);
+  const { directionLabel, statusLabel, accessibleStatusLabel } = getHistoryPresentation(latest);
   const quantity = balanceHidden ? "••••" : formatQuantity(latest.quantity);
   const accessibleQuantity = balanceHidden ? "Сумма скрыта" : `${quantity} ${latest.assetSymbol}`;
+  const networkLabel = latest.networkLabel?.trim() || "Сеть не указана";
 
   return <section className={`${styles.section} ${styles.recentActivity}`} aria-labelledby={titleId}>
     <div className={styles.recentHeading}>
       <h2 id={titleId}>Последняя операция</h2>
-      <span className={styles.demoBadge}>Демо</span>
     </div>
-    <button type="button" className={`${styles.rowButton} ${styles.recentButton}`}
-      aria-label={`Открыть операцию: ${directionLabel} · ${latest.assetSymbol}, ${statusLabel}, ${accessibleQuantity}`}
+    <button type="button" className={`${styles.rowButton} ${styles.historyRowButton} ${styles.recentButton}`}
+      data-history-interactive data-product-activity-id={latest.id} data-direction={latest.direction} data-status={latest.status}
+      aria-label={`Открыть операцию: ${directionLabel} · ${latest.assetSymbol} · ${networkLabel}, ${accessibleStatusLabel}, ${accessibleQuantity}`}
       onClick={() => onOpenActivity(latest.id)}>
-      <span className={styles.directionMark} aria-hidden="true">{latest.direction === "incoming" ? "↓" : "↑"}</span>
+      <HistoryDirectionIcon direction={latest.direction} status={latest.status} />
       <span className={styles.rowIdentity}>
         <strong>{directionLabel}</strong>
+        <small className={styles.historyNetwork}>{networkLabel}</small>
+      </span>
+      <span className={`${styles.rowMeta} ${styles.historyRowMeta}`}>
         <small className={styles.status} data-status={latest.status}>
-          <span className={styles.statusMark} aria-hidden="true">{latest.status === "completed" ? "✓" : latest.status === "failed" ? "×" : "·"}</span>
+          <HistoryStatusIcon status={latest.status} />
           <span>{statusLabel}</span>
         </small>
       </span>

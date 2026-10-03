@@ -12,6 +12,9 @@
 .money { font-family: var(--mono-type-balance-family, var(--mono-font-numeric, sans-serif)); font-variant-numeric: tabular-nums; }
 .fundingNote { display: block; margin-top: 3px; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; font-variant-numeric: tabular-nums; }
 .context { padding-top: 12px; border-top: 1px solid var(--mono-rule, #343434); }
+.receipt[data-embedded="true"] { gap: 14px; padding: 8px 0 0; }
+.receipt[data-embedded="true"] .context > div { grid-template-columns: minmax(0, .7fr) minmax(0, 1.6fr); }
+.receipt[data-embedded="true"] .context { border-top-color: color-mix(in srgb, var(--mono-rule, #343434) 72%, transparent); }
 @media (prefers-reduced-motion: no-preference) {
   :global(.mono-page[data-mono-motion="ready"]) .receipt { animation: reveal 200ms var(--mono-ease, cubic-bezier(0.2, 0, 0, 1)) both; }
 }

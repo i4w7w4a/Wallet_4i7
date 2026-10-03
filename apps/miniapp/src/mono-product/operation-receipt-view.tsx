@@ -12,9 +12,9 @@ const dateFormat = new Intl.DateTimeFormat("ru-RU", {
 const countFormat = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
 const plurals = new Intl.PluralRules("ru");
 
-export type OperationReceiptViewProps = { activity: ProductActivity; balanceHidden: boolean };
+export type OperationReceiptViewProps = { activity: ProductActivity; balanceHidden: boolean; showStatusHeading?: boolean };
 
-export function OperationReceiptView({ activity, balanceHidden }: OperationReceiptViewProps) {
+export function OperationReceiptView({ activity, balanceHidden, showStatusHeading = true }: OperationReceiptViewProps) {
   const receipt = normalizeOperationReceipt(activity.receipt);
   const simulation = activity.mode === "simulation";
   const { statusLabel } = getProductActivityLabels(activity);
@@ -27,12 +27,12 @@ export function OperationReceiptView({ activity, balanceHidden }: OperationRecei
     ? amountLabel(receipt.networkFee.amount, receipt.networkFee.symbol, balanceHidden) : "Комиссия уточняется"
     : balanceHidden && activity.feeLabel?.trim() ? "••••" : formatProductActivityFee(activity.feeLabel);
 
-  return <section className={styles.receipt} aria-label="Квитанция операции">
+  return <section className={styles.receipt} aria-label="Квитанция операции" data-embedded={!showStatusHeading}>
     <div className={styles.summary}>
-      <p className={styles.status}>
+      {showStatusHeading && <p className={styles.status}>
         <span aria-hidden="true">{activity.status === "completed" ? "✓" : activity.status === "failed" ? "×" : "·"}</span>
         <strong>{statusLabel}</strong>
-      </p>
+      </p>}
       {failure && <p className={styles.reason}>{failure}</p>}
       <p className={styles.explanation}>{simulation
         ? "Демонстрация: средства и заряд батарейки не списаны."

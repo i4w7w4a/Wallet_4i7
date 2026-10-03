@@ -50,6 +50,9 @@ it("offers only the newest selected-account activity without reordering the inpu
   render(<ProductRecentActivity activities={activities} balanceHidden={false}
     accountId="account-a" onOpenActivity={onOpenActivity} />);
   const row = screen.getByRole("button", { name: /Получение.*ETH.*Выполнено.*2,5/i });
+  expect(row.querySelector("[data-history-direction-icon='incoming']")).toBeInTheDocument();
+  expect(row.querySelector("[data-history-status-icon='completed']")).toBeInTheDocument();
+  expect(row).toHaveAttribute("data-product-activity-id", "latest-a");
   expect(screen.getAllByRole("button")).toHaveLength(1);
   expect(screen.queryByText(/USDT|BTC/)).not.toBeInTheDocument();
   fireEvent.click(row);
@@ -134,8 +137,9 @@ it("opens the selected history detail from recent activity and permits collapsin
   fireEvent.click(recent.getByRole("button"));
   const historyRow = history.getByRole("button", { name: /ETH/ });
   expect(historyRow).toHaveAttribute("aria-expanded", "true");
-  expect(history.getByText("Ethereum")).toBeInTheDocument();
+  expect(within(history.getByRole("region", { name: "Квитанция операции" })).getByText("Ethereum")).toBeInTheDocument();
   fireEvent.click(historyRow);
   expect(historyRow).toHaveAttribute("aria-expanded", "false");
-  expect(history.queryByText("Ethereum")).not.toBeInTheDocument();
+  expect(history.queryByRole("region", { name: "Квитанция операции" })).not.toBeInTheDocument();
+  expect(within(historyRow).getByText("Ethereum")).toBeInTheDocument();
 });
