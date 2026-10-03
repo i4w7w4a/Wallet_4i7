@@ -4,6 +4,8 @@
 
 Canonical: `C:/Users/iwwa/.codex/worktrees/mono-showcase/5-wallet-foundation`; branch `codex/product-ux-20261003`; base `c9151ce`. Текущий запущенный preview `http://127.0.0.1:3184/mono` из `8b51146` остаётся доступным до общей сборки.
 
+GitHub: [#52 — компактная отправка](https://github.com/i4w7w4a/Wallet_4i7/issues/52), [#53 — поиск истории](https://github.com/i4w7w4a/Wallet_4i7/issues/53). Оба исполнителя приняли задачи и начали работу; это статус запуска, не готовности интерфейса.
+
 ## Global Constraints
 
 - Работа локальная. Без push/merge/VPS/deploy, реальных переводов, нового backend, библиотек или внешних assets. Семь пресетов, пользовательские материалы, батарейка, черновики и история прежних операций сохраняются. Прежний dirty `apps/miniapp/next-env.d.ts` не трогать и не включать в коммиты.
