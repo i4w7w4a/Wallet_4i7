@@ -64,7 +64,10 @@ it("reveals each asset's separate account and network placements", async () => {
 
 it("shows a single shared network battery pool and returns focus after Escape", async () => {
   await renderHome();
-  const trigger = screen.getByRole("button", { name: /Батарейка/ });
+  const balance = screen.getByRole("region", { name: "Общая стоимость" });
+  const trigger = within(balance).getByRole("button", { name: /Батарейка.*Ethereum.*3 перевода/ });
+  expect(trigger).toHaveAttribute("data-charge-state", "charged");
+  expect(trigger.querySelector("svg")).toBeInTheDocument();
   trigger.focus();
   fireEvent.click(trigger);
   const sheet = screen.getByRole("dialog", { name: "Батарейка" });
@@ -101,6 +104,8 @@ it("shows a single account without a redundant account selector", async () => {
   expect(screen.queryByRole("button", { name: /Выбрать счёт/ })).toBeNull();
   expect(screen.getByRole("heading", { name: "Баланс счёта" })).toBeInTheDocument();
   expect(screen.getByRole("img", { name: /1\s?250,00/ })).toBeInTheDocument();
+  expect(within(screen.getByRole("region", { name: "Баланс счёта" }))
+    .getByRole("button", { name: /Батарейка.*правила неизвестны/i })).toHaveAttribute("data-charge-state", "unknown");
 });
 
 it("scopes demo history to the chosen account instead of inventing activity for an empty account", async () => {

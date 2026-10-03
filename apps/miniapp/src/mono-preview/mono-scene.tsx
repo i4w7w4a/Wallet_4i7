@@ -23,7 +23,7 @@ import { monoTypographyStyle, type MonoTypographyConfigV1 } from "./mono-typogra
 import { useMonoTypographyPreview } from "./mono-typography-preview";
 import { MONO_EYE_DEFAULT, MONO_NAVIGATION_DEFAULT, type MonoEyeAppearance,
   type MonoNavigationAppearance } from "./mono-interface-appearance";
-import { ProductBalance, ProductBatteryLine, ProductContextLine, ProductHoldings } from "../mono-product/product-home";
+import { ProductBalance, ProductContextLine, ProductHoldings } from "../mono-product/product-home";
 import { ProductOverlay } from "../mono-product/product-sheet";
 import { formatFiatMinor } from "../mono-product/product-format";
 import type { MonoProductController } from "../mono-product/product-controller";
@@ -502,7 +502,6 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
               ? "Демо · операции не выполняются" : quickActionStatus}</p>
         </section>
 
-        {product && <ProductBatteryLine {...product} />}
         {product && appearance.layout?.chartPosition === "top" && chart &&
           <div className="mono-scene-domain mono-scene-domain--chart mono-product-chart">{chart}</div>}
         {product && <ProductHoldings {...product} overview
