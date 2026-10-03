@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import type { ProductActivity } from "./demo-activity";
+import { scopeProductActivities } from "./product-activity-scope";
 import { formatQuantity } from "./product-format";
 import { OperationReceiptView } from "./operation-receipt-view";
 import { HistoryDirectionIcon, HistoryStatusIcon } from "./history-direction-icon";
@@ -36,9 +37,7 @@ export function ProductHistory({
   const [openId, setOpenId] = useState<string | null>(null);
   const [directionFilter, setDirectionFilter] = useState<DirectionFilter>("all");
   const activeId = expandedActivityId === undefined ? openId : expandedActivityId;
-  const scopedActivities = accountId === undefined
-    ? activities
-    : activities.filter((activity) => activity.accountId === accountId);
+  const scopedActivities = scopeProductActivities(activities, accountId === undefined ? undefined : [accountId]);
   const activeActivity = scopedActivities.find(activity => activity.id === activeId);
   // An externally selected activity must be visible on the first render, even after another filter.
   const effectiveFilter = activeActivity && directionFilter !== "all" && activeActivity.direction !== directionFilter

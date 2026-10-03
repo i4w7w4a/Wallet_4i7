@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import type { ProductActivity } from "./demo-activity";
+import { scopeProductActivities } from "./product-activity-scope";
 import { formatQuantity } from "./product-format";
 import { HistoryDirectionIcon, HistoryStatusIcon } from "./history-direction-icon";
 import { getHistoryPresentation } from "./history-presentation";
@@ -21,8 +22,7 @@ function occurredAtTime(activity: ProductActivity): number {
 
 export function ProductRecentActivity({ activities, balanceHidden, accountId, onOpenActivity }: ProductRecentActivityProps) {
   const titleId = useId();
-  const latest = activities
-    .filter((activity) => accountId === undefined || activity.accountId === accountId)
+  const latest = scopeProductActivities(activities, accountId === undefined ? undefined : [accountId])
     .sort((left, right) => {
       const leftTime = occurredAtTime(left);
       const rightTime = occurredAtTime(right);

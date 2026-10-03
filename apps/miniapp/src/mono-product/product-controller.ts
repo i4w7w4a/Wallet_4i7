@@ -7,10 +7,12 @@ import {
   type ProductAccount, type ProductActionKind, type ProductActionRoute, type ProductSnapshot,
 } from "@wallet/core";
 
-import { MONO_PRODUCT_DEMO_ADAPTER, type MonoProductAdapter } from "./demo-adapter";
+import { MONO_DEMO_INTERNAL_BINDINGS, MONO_PRODUCT_DEMO_ADAPTER, type MonoProductAdapter } from "./demo-adapter";
 import type { ProductActivity } from "./demo-activity";
 import { normalizeOperationReceipt } from "./operation-receipt";
 import type { SendDraft, SendSimulationResult } from "./send";
+import { validateInternalTransferQuote, type InternalTransferDraft, type InternalTransferSimulation } from "./internal-transfer";
+import { readNonNegativeDecimal } from "./internal-transfer/validation";
 
 export type ProductSheetState =
   | { kind: "accounts" }
@@ -34,6 +36,25 @@ export function receiveRequestAmountKey(route: ProductActionRoute): string {
   return JSON.stringify([route.accountId, route.assetId, route.networkId, route.action === "receive" ? route.receiveMode : null]);
 }
 
+function internalTarget(snapshot: Readonly<ProductSnapshot>, identity: { accountId: string; assetId: string; networkId: string }) {
+  if (snapshot.accounts.filter(account => account.id === identity.accountId).length !== 1) return null;
+  if (!MONO_DEMO_INTERNAL_BINDINGS.some(binding => binding.destinationAccountId === identity.accountId &&
+    binding.assetId === identity.assetId && binding.networkId === identity.networkId)) return null;
+  const routes = resolveActionRoutes(snapshot, { kind: "account", accountId: identity.accountId }, "receive").routes
+    .filter(route => route.action === "receive" && route.receiveMode === "internal-transfer" &&
+      route.assetId === identity.assetId && route.networkId === identity.networkId);
+  return routes.length === 1 ? routes[0]! : null;
+}
+
+function internalSource(snapshot: Readonly<ProductSnapshot>, target: ProductActionRoute, sourceAccountId: string) {
+  if (snapshot.accounts.filter(account => account.id === sourceAccountId).length !== 1) return null;
+  if (!MONO_DEMO_INTERNAL_BINDINGS.some(binding => binding.destinationAccountId === target.accountId &&
+    binding.sourceAccountId === sourceAccountId && binding.assetId === target.assetId && binding.networkId === target.networkId)) return null;
+  const routes = resolveActionRoutes(snapshot, { kind: "account", accountId: sourceAccountId }, "send").routes
+    .filter(route => route.assetId === target.assetId && route.networkId === target.networkId);
+  return routes.length === 1 && routes[0]!.symbol === target.symbol ? routes[0]! : null;
+}
+
 function resolveIntent(snapshot: Readonly<ProductSnapshot>, context: AccountContext, sheet: ProductSheetState) {
   if (sheet?.kind !== "intent") return null;
   if (!sheet.placementId) return resolveActionRoutes(snapshot, context, sheet.action);
@@ -51,6 +72,7 @@ export type MonoProductView = {
   expandedActivityId: string | null;
   sendDrafts: Readonly<Record<string, SendDraft>>;
   receiveRequestAmounts: Readonly<Record<string, string>>;
+  internalTransferDrafts: Readonly<Record<string, InternalTransferDraft>>;
   usesDefaultDemoChart: boolean;
   context: AccountContext;
   account: ProductAccount | null;
@@ -86,6 +108,8 @@ export type MonoProductCommands = {
   saveSendDraft(route: ProductActionRoute, draft: SendDraft | null): void;
   saveReceiveRequestAmount(route: ProductActionRoute, rawAmount: string): void;
   recordSendSimulation(event: SendSimulationResult): string | null;
+  saveInternalTransferDraft(route: ProductActionRoute, draft: InternalTransferDraft | null): void;
+  recordInternalTransferSimulation(event: InternalTransferSimulation): string | null;
   toggleFunds(): void;
   toggleAsset(assetId: string): void;
   closeSheet(): void;
@@ -109,8 +133,10 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [sendDrafts, setSendDrafts] = useState<Record<string, SendDraft>>({});
   const [receiveRequestAmounts, setReceiveRequestAmounts] = useState<Record<string, string>>({});
+  const [internalTransferDrafts, setInternalTransferDrafts] = useState<Record<string, InternalTransferDraft>>({});
   const [simulations, setSimulations] = useState<readonly ProductActivity[]>([]);
   const recordedSimulations = useRef(new Set<string>());
+  const recordedInternalSimulations = useRef(new Set<string>());
   const saveSendDraft = useCallback((route: ProductActionRoute, draft: SendDraft | null) => {
     if (route.action !== "send" || (draft && sendDraftKey(draft.route) !== sendDraftKey(route))) return;
     const key = sendDraftKey(route);
@@ -141,6 +167,51 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       return next;
     });
   }, [snapshot]);
+  const saveInternalTransferDraft = useCallback((route: ProductActionRoute, draft: InternalTransferDraft | null) => {
+    if (route.action !== "receive" || route.receiveMode !== "internal-transfer" || !internalTarget(snapshot, route)) return;
+    if (draft && (typeof draft.amount !== "string" || draft.amount.length > 128 ||
+      (draft.sourceAccountId !== null && !internalSource(snapshot, route, draft.sourceAccountId)))) return;
+    const key = receiveRequestAmountKey(route);
+    const clean = draft ? { sourceAccountId: draft.sourceAccountId, amount: draft.amount } : null;
+    setInternalTransferDrafts(current => {
+      if ((current[key] ?? null)?.sourceAccountId === clean?.sourceAccountId &&
+        (current[key] ?? null)?.amount === clean?.amount) return current;
+      const next = { ...current };
+      if (clean) next[key] = clean;
+      else delete next[key];
+      return next;
+    });
+  }, [snapshot]);
+  const recordInternalTransferSimulation = useCallback((event: InternalTransferSimulation): string | null => {
+    const quote = event?.quote, request = quote?.request;
+    if (typeof event?.simulationId !== "string" || !event.simulationId.trim() || !request ||
+      event.result?.mode !== "demo" || !["simulated-success", "simulated-failure"].includes(event.result.status) ||
+      (event.result.status === "simulated-failure" && !["rejected", "expired", "unavailable"].includes(event.result.reason))) return null;
+    // UI and port enforce freshness before submit. An accepted terminal response may arrive later.
+    if (validateInternalTransferQuote(request, quote, quote.expiresAt - 1)) return null;
+    const target = internalTarget(snapshot, { accountId: request.destinationAccountId, assetId: request.assetId, networkId: request.networkId });
+    const source = target && internalSource(snapshot, target, request.sourceAccountId);
+    if (!target || !source || quote.symbol !== target.symbol) return null;
+    const holdings = snapshot.holdings.filter(holding => holding.accountId === source.accountId &&
+      holding.assetId === source.assetId && holding.networkId === source.networkId);
+    const available = holdings.length === 1 ? readNonNegativeDecimal(holdings[0]!.availableQuantity) : null;
+    if (available === null || available !== readNonNegativeDecimal(quote.available)) return null;
+    const id = `internal-simulation:${event.simulationId}`;
+    if (recordedInternalSimulations.current.has(event.simulationId)) return id;
+    recordedInternalSimulations.current.add(event.simulationId);
+    const succeeded = event.result.status === "simulated-success";
+    const entry: ProductActivity = { id, mode: "simulation", direction: "outgoing", status: succeeded ? "completed" : "failed",
+      accountId: source.accountId, accountLabel: source.accountLabel, assetId: target.assetId, assetSymbol: target.symbol,
+      networkId: target.networkId, networkLabel: target.networkLabel, quantity: request.amount, occurredAt: new Date().toISOString(),
+      internalTransfer: { sourceAccountId: source.accountId, sourceAccountLabel: source.accountLabel,
+        destinationAccountId: target.accountId, destinationAccountLabel: target.accountLabel },
+      receipt: { assetDebit: quote.assetDebit, networkFee: { status: "known", amount: quote.fee.amount, symbol: target.symbol },
+        feeFunding: { kind: "unknown" } },
+      ...(event.result.status === "simulated-failure" ? { failureReason: event.result.reason } : {}) };
+    setSimulations(current => [entry, ...current]);
+    if (succeeded) saveInternalTransferDraft(target, null);
+    return id;
+  }, [snapshot, saveInternalTransferDraft]);
   const recordSendSimulation = useCallback((event: SendSimulationResult): string | null => {
     if (!event.simulationId || event.route.action !== "send" || event.result.mode !== "demo" ||
       !["simulated-success", "simulated-failure"].includes(event.result.status)) return null;
@@ -197,7 +268,7 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
     ? resolveBatteryCoverage(snapshot.batteryPools, sheet.route) : null;
 
   return {
-    view: { snapshot, activities, activityStatus: adapter.activityStatus ?? "ready", expandedActivityId, sendDrafts, receiveRequestAmounts,
+    view: { snapshot, activities, activityStatus: adapter.activityStatus ?? "ready", expandedActivityId, sendDrafts, receiveRequestAmounts, internalTransferDrafts,
       usesDefaultDemoChart: adapter === MONO_PRODUCT_DEMO_ADAPTER,
       context: effectiveContext, account, holdings, balanceMinor, batteryPools,
       balanceHidden, fundsExpanded, expandedAssetIds, assetWorkspace, sheet, intent, coverage, batteryActivity, batteryChargePercent },
@@ -209,7 +280,10 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       openAccounts() { if (snapshot.accounts.length > 1) { updateBatteryActivity(null); setSheet({ kind: "accounts" }); } },
       selectContext(next) { setContext(next); setExpandedActivityId(null); closeAsset(); },
       openBattery() { updateBatteryActivity(null); setSheet(current => current?.kind === "battery" ? null : { kind: "battery" }); },
-      openIntent(action) { updateBatteryActivity(null); setSheet({ kind: "intent", action, route: null }); },
+      openIntent(action) {
+        const routes = resolveActionRoutes(snapshot, effectiveContext, action).routes;
+        updateBatteryActivity(null); setSheet({ kind: "intent", action, route: routes.length === 1 ? routes[0]! : null });
+      },
       openPlacementAction(holdingId, action) {
         const holding = snapshot.holdings.find(candidate => candidate.id === holdingId);
         if (!holding) return;
@@ -240,9 +314,9 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
         return current?.kind === "intent" && valid ? { ...current, route: valid } : current;
       }); },
       backToRoutes(route) { updateBatteryActivity(null); setSheet(current => {
-        if (current?.kind === "intent" && current.placementId && (resolveIntent(snapshot, effectiveContext, current)?.routes.length ?? 0) <= 1) return null;
-        return { kind: "intent", action: route.action, route: null, focusRouteKey: productRouteKey(route),
-          ...(current?.kind === "intent" && current.action === route.action ? { placementId: current.placementId } : {}) };
+        if (current?.kind !== "intent" || current.action !== route.action) return current;
+        if ((resolveIntent(snapshot, effectiveContext, current)?.routes.length ?? 0) <= 1) return null;
+        return { ...current, route: null, focusRouteKey: productRouteKey(route) };
       }); },
       setBatteryActivity,
       expandActivity: setExpandedActivityId,
@@ -250,6 +324,8 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       saveSendDraft,
       saveReceiveRequestAmount,
       recordSendSimulation,
+      saveInternalTransferDraft,
+      recordInternalTransferSimulation,
       toggleFunds() { setFundsExpanded(value => !value); },
       toggleAsset(assetId) {
         setExpandedAssetIds(current => {

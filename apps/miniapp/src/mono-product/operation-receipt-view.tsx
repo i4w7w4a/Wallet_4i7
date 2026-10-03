@@ -17,6 +17,7 @@ export type OperationReceiptViewProps = { activity: ProductActivity; balanceHidd
 export function OperationReceiptView({ activity, balanceHidden, showStatusHeading = true }: OperationReceiptViewProps) {
   const receipt = normalizeOperationReceipt(activity.receipt);
   const simulation = activity.mode === "simulation";
+  const internal = activity.internalTransfer;
   const { statusLabel } = getProductActivityLabels(activity);
   const failure = simulation && activity.status === "failed" ? failureExplanation(activity.failureReason) : null;
   const debitDiffers = receipt && activity.direction === "outgoing" &&
@@ -44,8 +45,8 @@ export function OperationReceiptView({ activity, balanceHidden, showStatusHeadin
       {debitDiffers && <div><dt>Списание по расчёту</dt><dd className={styles.money}>
         {amountLabel(receipt.assetDebit, activity.assetSymbol, balanceHidden)}
       </dd></div>}
-      <div><dt>{receipt ? "Расчёт комиссии" : "Комиссия"}</dt><dd className={styles.money}>{fee}</dd></div>
-      {receipt && <div><dt>Оплата по расчёту</dt><dd>
+      <div><dt>{internal ? "Комиссия примера" : receipt ? "Расчёт комиссии" : "Комиссия"}</dt><dd className={styles.money}>{fee}</dd></div>
+      {receipt && !internal && <div><dt>Оплата по расчёту</dt><dd>
         {receipt.feeFunding.kind === "battery" ? <>
           <span>Батарейка · {receipt.feeFunding.networkLabel}</span>
           <small className={styles.fundingNote}>{balanceHidden ? "Расчёт: •••• зарядов" : `${chargeLabel(receipt.feeFunding.charges)} по расчёту`}</small>
@@ -55,7 +56,10 @@ export function OperationReceiptView({ activity, balanceHidden, showStatusHeadin
     </dl>
 
     <dl className={styles.context}>
-      <div><dt>Счёт</dt><dd>{activity.accountLabel?.trim() || "Счёт не указан"}</dd></div>
+      {internal ? <>
+        <div><dt>Откуда</dt><dd>{internal.sourceAccountLabel}</dd></div>
+        <div><dt>Куда</dt><dd>{internal.destinationAccountLabel}</dd></div>
+      </> : <div><dt>Счёт</dt><dd>{activity.accountLabel?.trim() || "Счёт не указан"}</dd></div>}
       <div><dt>Сеть</dt><dd>{activity.networkLabel?.trim() || "Сеть не указана"}</dd></div>
       <div><dt>Время</dt><dd>{validTime ? <time dateTime={activity.occurredAt}>{dateFormat.format(occurredAt)} · UTC</time> : "Время не указано"}</dd></div>
     </dl>

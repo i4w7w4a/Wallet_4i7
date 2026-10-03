@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { selectFiatBalanceMinor, selectHoldings, type ProductActionKind, type ProductActionRoute,
-  type RouteUnavailableReason } from "@wallet/core";
+import type { ProductActionKind, ProductActionRoute, RouteUnavailableReason } from "@wallet/core";
 import { productRouteKey, receiveRequestAmountKey, sendDraftKey, type MonoProductCommands, type MonoProductView } from "./product-controller";
-import { accountStatus } from "./product-home";
-import { formatFiatMinor } from "./product-format";
 import { createMonoDemoFlowPorts } from "./demo-adapter";
+import { ProductAccountChooser } from "./product-account-chooser";
+import { ProductRouteChooser } from "./product-route-chooser";
+import type { InternalTransferDraft, InternalTransferSimulation } from "./internal-transfer";
 import { ReceiveFlow } from "./receive";
 import { SendFlow, type SendDraft, type SendOperationStatus, type SendSimulationResult } from "./send";
 import { ProductAssetDetail } from "./asset-detail/product-asset-detail";
@@ -28,22 +28,8 @@ function ProductModalOverlay({ view, commands, ports, onOpenActivity }: ProductP
   const sheet = view.sheet;
   if (!sheet || sheet.kind === "battery") return null;
   if (sheet.kind === "accounts") return <ProductSheet title="Выбор счёта" onClose={commands.closeSheet}>
-    <p className="mono-product-sheet__intro">Контекст меняет сумму и доступные маршруты. «Все счета» — обзор, не источник перевода.</p>
-    <div className="mono-product-sheet__options">
-      <button type="button" className="mono-product-sheet__option" aria-current={view.context.kind === "all" ? "true" : undefined}
-        onClick={() => commands.selectContext({ kind: "all" })}>
-        <span><strong>Все счета</strong><small>Общая стоимость</small></span>
-        <span>{view.balanceHidden ? "Значения скрыты" : formatFiatMinor(selectFiatBalanceMinor(view.snapshot.holdings))}</span>
-      </button>
-      {view.snapshot.accounts.map(account => <button type="button" key={account.id}
-        className="mono-product-sheet__option" aria-current={view.context.kind === "account" &&
-          view.context.accountId === account.id ? "true" : undefined}
-        onClick={() => commands.selectContext({ kind: "account", accountId: account.id })}>
-        <span><strong>{account.label}</strong><small>{accountStatus(account)}</small></span>
-        <span>{view.balanceHidden ? "Значения скрыты" : formatFiatMinor(selectFiatBalanceMinor(
-          selectHoldings(view.snapshot, { kind: "account", accountId: account.id })))}</span>
-      </button>)}
-    </div>
+    <ProductAccountChooser snapshot={view.snapshot} context={view.context} balanceHidden={view.balanceHidden}
+      onSelectContext={commands.selectContext} />
   </ProductSheet>;
 
   const action = sheet.action;
@@ -59,18 +45,10 @@ function ProductModalOverlay({ view, commands, ports, onOpenActivity }: ProductP
 function RouteChooser({ view, commands, action, focusRouteKey }: ProductProps & {
   action: ProductActionKind; focusRouteKey?: string;
 }) {
-  const selectedButton = useRef<HTMLButtonElement>(null);
-  useLayoutEffect(() => { selectedButton.current?.focus({ preventScroll: true }); }, [focusRouteKey]);
   return <>
-      <p className="mono-product-sheet__intro">Демо: выберите счёт, актив и сеть. Средства не отправляются.</p>
-      {view.intent?.routes.length ? <div className="mono-product-sheet__options">
-        {view.intent.routes.map((route, index) => <button type="button" key={`${route.accountId}-${route.assetId}-${route.networkId}-${index}`}
-          className="mono-product-sheet__option" onClick={() => commands.selectRoute(route)}
-          ref={productRouteKey(route) === focusRouteKey ? selectedButton : undefined}>
-          <span><strong>{route.symbol} · {route.networkLabel}</strong><small>{route.accountLabel}</small></span>
-          <span>{route.action === "receive" ? receiveLabel(route.receiveMode) : "Выбрать"}</span>
-        </button>)}
-      </div> : <p className="mono-product-sheet__empty">{unavailableReason(view.intent?.reason ?? null, action, view.context.kind === "all")}</p>}
+      {view.intent?.routes.length ? <ProductRouteChooser routes={view.intent.routes} holdings={view.snapshot.holdings}
+        action={action} balanceHidden={view.balanceHidden} focusRouteKey={focusRouteKey} onSelectRoute={commands.selectRoute} />
+        : <p className="mono-product-sheet__empty">{unavailableReason(view.intent?.reason ?? null, action, view.context.kind === "all")}</p>}
   </>;
 }
 
@@ -85,11 +63,20 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   const saveDraft = commands.saveSendDraft;
   const saveReceiveAmount = commands.saveReceiveRequestAmount;
   const recordSimulation = commands.recordSendSimulation;
+  const saveInternalDraft = commands.saveInternalTransferDraft;
+  const recordInternalSimulation = commands.recordInternalTransferSimulation;
   const onDraftChange = useCallback((draft: SendDraft | null) => saveDraft(route, draft), [route, saveDraft]);
   const onRequestAmountChange = useCallback((amount: string) => saveReceiveAmount(route, amount), [route, saveReceiveAmount]);
   const onSimulationResult = useCallback((event: SendSimulationResult) => {
     setResultActivityId(recordSimulation(event));
   }, [recordSimulation]);
+  const onInternalDraftChange = useCallback((draft: InternalTransferDraft | null) => {
+    saveInternalDraft(route, draft);
+    if (draft) setResultActivityId(null);
+  }, [route, saveInternalDraft]);
+  const onInternalSimulationResult = useCallback((event: InternalTransferSimulation) => {
+    setResultActivityId(recordInternalSimulation(event));
+  }, [recordInternalSimulation]);
   const onOperationChange = useCallback((next: SendOperationStatus | null) => {
     setOperation(next);
     if (next?.status !== "completed" && next?.status !== "failed") setResultActivityId(null);
@@ -121,6 +108,11 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
     {route.action === "receive" ? <ReceiveFlow route={route} dataPort={ports.receive} privacy={view.balanceHidden}
       initialRequestAmount={route.receiveMode === "external-address" ? view.receiveRequestAmounts[receiveRequestAmountKey(route)] ?? "" : undefined}
       onRequestAmountChange={route.receiveMode === "external-address" ? onRequestAmountChange : undefined}
+      internalTransferPort={route.receiveMode === "internal-transfer" ? ports.internalTransfer : undefined}
+      initialInternalDraft={route.receiveMode === "internal-transfer" ? view.internalTransferDrafts[receiveRequestAmountKey(route)] : undefined}
+      onInternalDraftChange={route.receiveMode === "internal-transfer" ? onInternalDraftChange : undefined}
+      onInternalSimulationResult={route.receiveMode === "internal-transfer" ? onInternalSimulationResult : undefined}
+      onViewInternalHistory={resultActivityId && onOpenActivity ? () => onOpenActivity(resultActivityId) : undefined}
       onBack={commands.backToRoutes} onClose={commands.closeSheet} showCloseButton={false} onAssetDetails={showAssetDetails} /> :
       route.action === "send" ? <SendFlow route={route} port={ports.send} privacy={view.balanceHidden}
         initialDraft={view.sendDrafts[sendDraftKey(route)] ?? null} onDraftChange={onDraftChange}
@@ -204,10 +196,6 @@ function ProductSheet({ title, onClose, children, returnPlacement }: {
 
 function actionLabel(action: ProductActionKind): string {
   return { send: "Отправить", receive: "Получить", swap: "Обмен", buy: "Купить", withdraw: "Вывести" }[action];
-}
-
-function receiveLabel(mode: "external-address" | "internal-transfer"): string {
-  return mode === "internal-transfer" ? "Внутреннее пополнение" : "Внешний адрес";
 }
 
 function unavailableReason(reason: RouteUnavailableReason | null, action: ProductActionKind, all: boolean): string {

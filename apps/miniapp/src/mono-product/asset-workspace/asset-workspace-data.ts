@@ -1,5 +1,6 @@
 import type { ProductHolding } from "@wallet/core";
 import type { ProductActivity } from "../demo-activity";
+import { scopeProductActivities } from "../product-activity-scope";
 
 /** Holdings are decimal data, not localized user input; unknown values invalidate the total. */
 export function sumDecimalQuantities(values: readonly string[]): string | null {
@@ -34,13 +35,8 @@ export function selectAssetActivities(
   accountIds: readonly string[],
   selectedPlacement: Pick<ProductHolding, "accountId" | "networkId"> | null,
 ): ProductActivity[] {
-  const scopedAccounts = new Set(accountIds);
-  return activities.filter(activity => {
-    if (activity.assetId !== assetId || !activity.networkId || !scopedAccounts.has(activity.accountId)) {
-      return false;
-    }
-    return selectedPlacement === null || (
-      activity.accountId === selectedPlacement.accountId && activity.networkId === selectedPlacement.networkId
-    );
-  });
+  if (selectedPlacement && !accountIds.includes(selectedPlacement.accountId)) return [];
+  const scoped = scopeProductActivities(activities, selectedPlacement ? [selectedPlacement.accountId] : accountIds);
+  return scoped.filter(activity => activity.assetId === assetId && !!activity.networkId &&
+    (selectedPlacement === null || activity.networkId === selectedPlacement.networkId));
 }
