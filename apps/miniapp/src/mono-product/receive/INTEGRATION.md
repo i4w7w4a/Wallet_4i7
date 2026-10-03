@@ -1,6 +1,6 @@
 # ReceiveFlow — интеграция #45
 
-Независимый detail-компонент для уже выбранного `ProductActionRoute`. Общая сцена и chooser не изменены; модуль пока не включён в `/mono`. До backend все реквизиты и внутренние связи демонстрационные.
+Detail-компонент для уже выбранного `ProductActionRoute`. Выбор маршрута и общий popup принадлежат host. До backend все реквизиты и внутренние связи демонстрационные.
 
 ## Exports и props
 
@@ -10,10 +10,12 @@
 | --- | --- |
 | `route: ProductActionRoute` | Уже выбранные account/asset/network/action. Другие actions закрыты без вызова порта. |
 | `dataPort: ReceiveDataPort` | Стабильный read-only объект с `load(request, { signal })`. Новый объект означает новую загрузку. Мемоизировать по неизменяемому snapshot. |
-| `privacy: boolean` | `true` удаляет внешние реквизиты и QR из DOM, блокирует copy/share. Названия счёта, актива и сети остаются для ориентации. Денежных значений модуль не выводит. |
+| `privacy: boolean` | `true` удаляет input/сумму/preview/реквизиты/QR из DOM и блокирует copy/share. Названия счёта, актива и сети остаются для ориентации; raw draft сохраняется в памяти. |
 | `onBack(route)` | Возврат к существующему chooser; передаёт исходный route без изменения контекста. Host сохраняет account context и возвращает фокус выбранной строке chooser. |
 | `onClose()` | Закрытие. Вызывается кнопкой закрытия и `Готово` в просмотре внутреннего маршрута. Не означает операцию. |
 | `onAssetDetails?()` | Делает строку актива/сети кнопкой деталей. Callback не меняет route, load или локальный выбор. Без callback прежние статические строки сохраняются. |
+| `initialRequestAmount?: string` | Однократный raw seed для выбранного route. Изменение этого prop без смены route не перезаписывает ввод. Default — пустая сумма. |
+| `onRequestAmountChange?(amount: string)` | Только пользовательские изменения raw строки, включая невалидный черновик. На mount/restore/privacy/смену route автоматически не вызывается. |
 | `showCloseButton?: boolean` | По умолчанию `true`. В существующем `ProductSheet` передать `false`, поскольку sheet уже имеет закрытие. |
 | `renderQr?: ReceiveQrRenderer` | Необязательный рендер только test-only реквизитов. Без него показан честный не-QR placeholder. |
 
@@ -53,6 +55,12 @@ const receivePort = useMemo(() => createDemoReceiveDataPort(view.snapshot, [
 `openIntent("receive")` уже существует и очищает только выбранный detail, сохраняя account context. Для восстановления фокуса chooser host может использовать переданный в `onBack` route. Новый URL, приложение или wrapper showcase не нужны.
 
 При открытии `ProductAssetDetail` host оставляет `ReceiveFlow` mounted (например, `hidden` + `inert`), сохраняет route/key/dataPort и возвращает focus кнопке актива после Back. Условная замена или remount намеренно сбросят local state. Для обычного Receive `operation` в деталях не передавать: модуль не придумывает ожидающий входящий платёж. Общий header/overlay по-прежнему принадлежит host.
+
+Для восстановления суммы после полного remount ORACLE хранит raw draft в session memory по `accountId/assetId/networkId/receiveMode` и передаёт `initialRequestAmount={savedAmount}` / `onRequestAmountChange={rememberRawAmount}`. В самом flow draft находится выше privacy-key; hidden/show и privacy не теряют ввод. InternalReceive не использует новые props. Storage/URL/backend для draft не нужны.
+
+External Receive теперь имеет один preview и отдельные действия: «Скопировать реквизиты» копирует только raw non-payable reference, «Скопировать запрос» и «Поделиться запросом» используют **один** `buildReceiveRequestText`. В исходящем тексте всегда `ДЕМОНСТРАЦИЯ — НЕ ДЛЯ ОПЛАТЫ`, валюта, сеть, необязательная желаемая сумма и reference. В UI этот же запрос показан компактно, без дублирующего многострочного текста.
+
+`normalizeReceiveRequestAmount` и `buildReceiveRequestText` экспортируются из index. Нормализация только строковая: comma/dot → decimal string, trim/leading zeros/trailing fractional zeros, без float, округления, token precision, баланса или quote. Blank разрешён; zero/sign/exponent/invalid и raw длиннее 128 символов отклоняются. 128 — размер UI-поля, не финансовый лимит. Invalid input сохраняется для исправления и блокирует request actions, но не отдельное копирование реквизитов. QR по-прежнему получает только demo reference, без суммы или request payload.
 
 ## Данные и границы
 

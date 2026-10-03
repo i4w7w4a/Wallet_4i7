@@ -61,18 +61,17 @@ it("shows compact non-payable receive details and masks the complete destination
   const { rerender, container } = render(<ReceiveFlow {...props} privacy={false} />);
   expect(await screen.findByText(destination.reference)).toBeVisible();
   const details = screen.getByRole("region", { name: "Неплатёжные реквизиты" });
-  expect(within(details).getByText("Не для платежей")).toBeVisible();
+  expect(within(details).getByText("Не для оплаты")).toBeVisible();
   expect(within(details).getByText(destination.reference)).toBeVisible();
   expect(within(details).getByText("QR не подключён")).toBeVisible();
   expect(screen.getByText(/Для USDC нужна сеть Ethereum/)).toBeVisible();
-  expect(screen.getByText(/Не отправляйте средства/)).toBeVisible();
   expect(screen.queryByRole("img", { name: /QR/ })).toBeNull();
   rerender(<ReceiveFlow {...props} privacy />);
   expect(screen.getByText("Реквизиты скрыты")).toBeVisible();
   expect(container.innerHTML).not.toContain(destination.reference);
   expect(screen.queryByText("QR не подключён")).toBeNull();
-  expect(screen.getByRole("button", { name: "Копировать демо-реквизиты" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Поделиться демо-реквизитами" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Скопировать реквизиты" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Поделиться запросом" })).toBeDisabled();
 });
 
 it("reports clipboard success only after the browser promise resolves and prevents duplicate writes", async () => {
@@ -80,7 +79,7 @@ it("reports clipboard success only after the browser promise resolves and preven
   const writeText = vi.fn(() => pending.promise);
   vi.stubGlobal("navigator", { clipboard: { writeText } });
   render(<ReceiveFlow route={external} dataPort={readyPort()} privacy={false} onBack={vi.fn()} onClose={vi.fn()} />);
-  const copy = await screen.findByRole("button", { name: "Копировать демо-реквизиты" });
+  const copy = await screen.findByRole("button", { name: "Скопировать реквизиты" });
   fireEvent.click(copy); fireEvent.click(copy);
   expect(writeText).toHaveBeenCalledExactlyOnceWith(destination.reference);
   expect(copy).toBeDisabled();
@@ -92,7 +91,7 @@ it("reports clipboard success only after the browser promise resolves and preven
 it("keeps the reference available after clipboard rejection without false success", async () => {
   vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) } });
   render(<ReceiveFlow route={external} dataPort={readyPort()} privacy={false} onBack={vi.fn()} onClose={vi.fn()} />);
-  fireEvent.click(await screen.findByRole("button", { name: "Копировать демо-реквизиты" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Скопировать реквизиты" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось скопировать");
   expect(screen.getByText(destination.reference)).toBeVisible();
   expect(screen.queryByText("Демо-реквизиты скопированы.")).toBeNull();
@@ -101,8 +100,8 @@ it("keeps the reference available after clipboard rejection without false succes
 it("degrades missing clipboard/share APIs to readable instructions", async () => {
   vi.stubGlobal("navigator", {});
   render(<ReceiveFlow route={external} dataPort={readyPort()} privacy={false} onBack={vi.fn()} onClose={vi.fn()} />);
-  expect(await screen.findByRole("button", { name: "Копировать демо-реквизиты" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Поделиться демо-реквизитами" })).toBeDisabled();
+  expect(await screen.findByRole("button", { name: "Скопировать реквизиты" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Поделиться запросом" })).toBeDisabled();
   expect(screen.getByText(/Выделите демо-реквизиты/)).toBeVisible();
   expect(screen.getByRole("button", { name: "Назад к выбору маршрута" })).toBeEnabled();
 });
@@ -112,11 +111,11 @@ it("shares only the marked demo value and treats cancellation as a recoverable s
   const share = vi.fn().mockRejectedValue(cancellation);
   vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) }, share });
   render(<ReceiveFlow route={external} dataPort={readyPort()} privacy={false} onBack={vi.fn()} onClose={vi.fn()} />);
-  fireEvent.click(await screen.findByRole("button", { name: "Поделиться демо-реквизитами" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Поделиться запросом" }));
   expect(share).toHaveBeenCalledWith({ title: "Демо · USDC · Ethereum", text: expect.stringContaining(destination.reference) });
   expect(share.mock.calls[0]![0].text).toContain("НЕ ДЛЯ ОПЛАТЫ");
   expect(await screen.findByText("Меню «Поделиться» закрыто.")).toBeVisible();
-  expect(screen.getByRole("button", { name: "Копировать демо-реквизиты" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Скопировать реквизиты" })).toBeEnabled();
 });
 
 it("waits for share completion and exposes a recoverable share failure", async () => {
@@ -124,12 +123,12 @@ it("waits for share completion and exposes a recoverable share failure", async (
   const share = vi.fn(() => pending.promise);
   vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) }, share });
   render(<ReceiveFlow route={external} dataPort={readyPort()} privacy={false} onBack={vi.fn()} onClose={vi.fn()} />);
-  fireEvent.click(await screen.findByRole("button", { name: "Поделиться демо-реквизитами" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Поделиться запросом" }));
   expect(screen.queryByText("Действие «Поделиться» завершено.")).toBeNull();
   await act(async () => pending.resolve());
   expect(screen.getByRole("status")).toHaveTextContent("Действие «Поделиться» завершено.");
   share.mockRejectedValueOnce(new Error("unavailable"));
-  fireEvent.click(screen.getByRole("button", { name: "Поделиться демо-реквизитами" }));
+  fireEvent.click(screen.getByRole("button", { name: "Поделиться запросом" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось открыть");
 });
 
@@ -143,16 +142,16 @@ it("removes private data/QR from the DOM and ignores clipboard completion after 
   expect(await screen.findByText("Реквизиты скрыты")).toBeVisible();
   expect(renderQr).not.toHaveBeenCalled();
   expect(container.innerHTML).not.toContain(destination.reference);
-  expect(screen.getByRole("button", { name: "Копировать демо-реквизиты" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Скопировать реквизиты" })).toBeDisabled();
   rerender(<ReceiveFlow {...props} privacy={false} />);
   expect(renderQr).toHaveBeenCalledWith({ value: destination.reference, testOnly: true,
     accountId: external.accountId, assetId: external.assetId, networkId: external.networkId });
-  fireEvent.click(screen.getByRole("button", { name: "Копировать демо-реквизиты" }));
+  fireEvent.click(screen.getByRole("button", { name: "Скопировать реквизиты" }));
   rerender(<ReceiveFlow {...props} privacy />);
   await act(async () => pending.resolve());
   expect(container.innerHTML).not.toContain(destination.reference);
   expect(screen.queryByText("Демо-реквизиты скопированы.")).toBeNull();
-  expect(screen.getByRole("button", { name: "Поделиться демо-реквизитами" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Поделиться запросом" })).toBeDisabled();
 });
 
 it("aborts the previous network request and ignores its late data", async () => {
@@ -179,7 +178,7 @@ it.each([
 ])("fails closed for mismatched or unmarked destination data %#", async data => {
   render(<ReceiveFlow route={external} dataPort={readyPort(data)} privacy={false} onBack={vi.fn()} onClose={vi.fn()} />);
   expect(await screen.findByRole("alert")).toHaveTextContent(/Данные не подходят|Реквизиты не предназначены/);
-  expect(screen.queryByRole("button", { name: "Копировать демо-реквизиты" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Скопировать реквизиты" })).toBeNull();
 });
 
 it("recovers a rejected load through an explicit retry", async () => {

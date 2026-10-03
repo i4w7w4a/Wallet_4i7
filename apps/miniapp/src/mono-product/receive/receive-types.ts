@@ -56,12 +56,16 @@ export type ReceiveQrRenderer = (payload: {
 export type ReceiveFlowProps = {
   route: ProductActionRoute;
   dataPort: ReceiveDataPort;
-  /** Removes reference/QR from the DOM and disables copy/share. Context labels stay visible. */
+  /** Removes input, amount, preview, reference and QR from the DOM; disables copy/share. */
   privacy: boolean;
   onBack: (route: ProductActionRoute) => void;
   onClose: () => void;
   /** Host opens details while keeping this flow mounted, preserving its local state. */
   onAssetDetails?: () => void;
+  /** One-time raw draft seed for the selected route; never a backend amount or quote. */
+  initialRequestAmount?: string;
+  /** Raw user edits only. Host stores the draft under the exact account/asset/network/mode. */
+  onRequestAmountChange?: (amount: string) => void;
   renderQr?: ReceiveQrRenderer;
   /** False when the containing sheet already owns a close control. */
   showCloseButton?: boolean;

@@ -25,6 +25,8 @@ function ReceiveRouteContent(props: ReceiveFlowProps & { route: ReceiveRoute }) 
   const request = useMemo<ReceiveRequest>(() => ({ accountId, assetId, networkId, receiveMode }),
     [accountId, assetId, networkId, receiveMode]);
   const [attempt, setAttempt] = useState(0);
+  // This route-keyed draft survives the privacy-keyed browser-action child.
+  const [requestAmount, setRequestAmount] = useState(() => props.initialRequestAmount ?? "");
   const backButton = useRef<HTMLButtonElement>(null);
   const [completed, setCompleted] = useState<{
     port: ReceiveDataPort; attempt: number; result: ReceiveLoadResult;
@@ -67,7 +69,10 @@ function ReceiveRouteContent(props: ReceiveFlowProps & { route: ReceiveRoute }) 
       </div>}
       {state.status === "ready" && (state.data.mode === "external-address"
         ? <ExternalReceive key={privacy ? "private" : "visible"} route={route} destination={state.data}
-            privacy={privacy} renderQr={renderQr} />
+            privacy={privacy} renderQr={renderQr} requestAmount={requestAmount} onRequestAmountChange={amount => {
+              setRequestAmount(amount);
+              props.onRequestAmountChange?.(amount);
+            }} />
         : <InternalReceive route={route} destination={state.data} onClose={onClose} />)}
     </div>
   </ReceiveFrame>;
