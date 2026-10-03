@@ -10,12 +10,18 @@ import { MonoScene, type MonoSceneProps, type MonoSection } from "./mono-scene";
 import { createDefaultActionArtworkMap } from "./action-artwork/model";
 import { MONO_PRODUCT_DEMO_ADAPTER, type MonoProductAdapter } from "../mono-product/demo-adapter";
 import { useMonoProductController } from "../mono-product/product-controller";
+import { useViewerTheme } from "../mono-product/profile/use-viewer-theme";
 import styles from "./mono-product-scene.module.css";
 
 const DEFAULT_ACTION_ARTWORK = createDefaultActionArtworkMap();
 
 export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_ADAPTER, ...scene }:
   MonoSceneProps & { material: MonoMaterialDirection; productAdapter?: MonoProductAdapter }) {
+  // A supplied session is editor/host-owned; only standalone visitors restore a preference.
+  const visitorTheme = useViewerTheme(scene.appearance.environment.theme, scene.session === undefined);
+  const appearance = visitorTheme.theme === scene.appearance.environment.theme ? scene.appearance : {
+    ...scene.appearance, environment: { ...scene.appearance.environment, theme: visitorTheme.theme },
+  };
   const product = useMonoProductController(productAdapter, {
     initialHidden: scene.snapshot.balance.hidden,
     hidden: scene.session?.balanceHidden,
@@ -33,10 +39,11 @@ export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_
   useEffect(() => {
     if (sectionRef.current !== section) { sectionRef.current = section; closeAsset(); }
   }, [section, closeAsset]);
-  const productScene: MonoSceneProps = { ...scene, product,
+  const productScene: MonoSceneProps = { ...scene, appearance, product,
     session: { balanceHidden: product.view.balanceHidden, onBalanceHiddenChange: product.commands.setBalanceHidden,
       period: scene.session?.period ?? localPeriod, onPeriodChange: scene.session?.onPeriodChange ?? setLocalPeriod,
-      section, onSectionChange: changeSection } };
+      section, onSectionChange: changeSection,
+      onThemeChange: scene.session ? scene.session.onThemeChange : visitorTheme.onThemeChange } };
   const actionFrameMode = material.buttons?.version === 2 || material.buttons?.version === 3
     ? material.buttons.frameMode : "group";
   const actionArtwork = material.buttons?.version === 3 ? material.buttons.artwork : DEFAULT_ACTION_ARTWORK;

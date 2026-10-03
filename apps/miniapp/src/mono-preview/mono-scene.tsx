@@ -84,7 +84,8 @@ export type MonoSceneProps = {
   /** Host session state survives a decorative renderer swap without entering the saved preset. */
   session?: { balanceHidden: boolean; onBalanceHiddenChange: (hidden: boolean) => void;
     period: ChartPeriod; onPeriodChange: (period: ChartPeriod) => void;
-    section?: MonoSection; onSectionChange?: (section: MonoSection) => void };
+    section?: MonoSection; onSectionChange?: (section: MonoSection) => void;
+    onThemeChange?: (theme: "dark" | "light") => void };
   product?: MonoProductController;
 };
 
@@ -628,7 +629,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         </section>}
         {section === "profile" && product && <div className="mono-product-section"><ProductProfile
           profile={snapshot.profile} balanceHidden={product.view.balanceHidden}
-          onBalanceHiddenChange={product.commands.setBalanceHidden} /></div>}
+          onBalanceHiddenChange={product.commands.setBalanceHidden}
+          theme={theme} onThemeChange={session?.onThemeChange} /></div>}
         {section === "profile" && !product && <section className="mono-section-view" aria-labelledby="mono-profile-title">
           <div className="mono-section-view__eyebrow">АККАУНТ / DEMO</div>
           <h1 id="mono-profile-title">Профиль</h1>

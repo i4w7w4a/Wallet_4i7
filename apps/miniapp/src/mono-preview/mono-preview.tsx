@@ -1184,7 +1184,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           active={hostActive}
           session={{ balanceHidden: sceneBalanceHidden, onBalanceHiddenChange: setSceneBalanceHidden,
             period: scenePeriod, onPeriodChange: setScenePeriod,
-            section: sceneSection, onSectionChange: setSceneSection }}
+            section: sceneSection, onSectionChange: setSceneSection,
+            onThemeChange: nextTheme => { if (theme !== nextTheme) colorLab.switchTheme(nextTheme); } }}
           paletteTransitionEnabled={colorLab.workspace.compare === null} quickActionPreset={quickActionPreset} />
       </div>
       <dialog ref={trialDialogRef} className="mono-trial-guard" aria-label="Неприменённые пробы"
