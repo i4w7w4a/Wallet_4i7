@@ -5,6 +5,12 @@ export type ProductActivity = {
   id: string;
   accountId: string;
   accountLabel: string;
+  internalTransfer?: {
+    sourceAccountId: string;
+    sourceAccountLabel: string;
+    destinationAccountId: string;
+    destinationAccountLabel: string;
+  };
   direction: "incoming" | "outgoing";
   status: "pending" | "completed" | "failed";
   /** Undefined is an example. Simulations are session-only UI events, never a balance ledger. */
@@ -36,7 +42,9 @@ export function getProductActivityLabels(activity: ProductActivity) {
   const incoming = activity.direction === "incoming";
   const simulation = activity.mode === "simulation";
   return {
-    directionLabel: simulation
+    directionLabel: activity.internalTransfer
+      ? "Между счетами · демо"
+      : simulation
       ? incoming ? "Демо-получение" : "Демо-отправка"
       : incoming ? "Получение" : "Отправка",
     statusLabel: (simulation ? SIMULATION_STATUS_LABEL : EXAMPLE_STATUS_LABEL)[activity.status],
