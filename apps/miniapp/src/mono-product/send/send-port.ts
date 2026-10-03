@@ -39,6 +39,8 @@ export type SendQuote = {
   id: string;
   request: SendRequest;
   expiresAt: number;
+  // Provider-supplied operation estimate. Missing/null is unknown, never a countdown.
+  estimatedCompletionSeconds?: number | null;
   terms: SendTerms;
   // Supplied by the provider, including any fee paid in the source asset.
   assetDebit: string;

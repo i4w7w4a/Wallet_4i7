@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { ProductActionRoute } from "@wallet/core";
-import { SendFlow, type SendBatteryActivity } from "./send-flow";
+import { SendFlow, type SendBatteryActivity, type SendOperationStatus } from "./send-flow";
 import type { SendDemoResult, SendPort, SendQuote, SendQuoteResult, SendRequest } from "./send-port";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
@@ -273,4 +273,59 @@ it("reports battery activity only while the current pending send owns the pool",
   const afterUnmount = changes.length;
   await act(async () => attempts[3]!.resolve({ mode: "demo", status: "simulated-success" }));
   expect(changes).toHaveLength(afterUnmount);
+});
+
+it("opens asset details without losing the draft or quote on host rerender", async () => {
+  const pending = deferred<SendDemoResult>();
+  const quote = vi.fn<SendPort["quote"]>(async request => makeQuote(request));
+  const onAssetDetails = vi.fn();
+  const props = { route, port: makePort({ quote, send: () => pending.promise }),
+    onBack: vi.fn(), onClose: vi.fn(), onAssetDetails };
+  const rendered = render(<SendFlow {...props} />);
+  await enterAmount("12.3400");
+  fireEvent.click(screen.getByRole("button", { name: "О валюте USDC в сети Ethereum" }));
+  expect(onAssetDetails).toHaveBeenCalledTimes(1);
+  rendered.rerender(<SendFlow {...props} route={{ ...route }} />);
+  expect(screen.getByLabelText("Сумма, USDC")).toHaveValue("12.3400");
+  expect(screen.getByText("demo:recipient")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Рассчитать комиссию" }));
+  expect(await screen.findByRole("button", { name: "Проверить перевод" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "О валюте USDC в сети Ethereum" }));
+  expect(onAssetDetails).toHaveBeenCalledTimes(2);
+  rendered.rerender(<SendFlow {...props} onAssetDetails={undefined} />);
+  expect(screen.queryByRole("button", { name: "О валюте USDC в сети Ethereum" })).toBeNull();
+  expect(screen.getByLabelText("Сумма, USDC")).toHaveValue("12.3400");
+  expect(screen.getByRole("button", { name: "Проверить перевод" })).toBeInTheDocument();
+  expect(quote).toHaveBeenCalledTimes(1);
+  rendered.rerender(<SendFlow {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Проверить перевод" }));
+  fireEvent.click(screen.getByRole("button", { name: "Подтвердить симуляцию" }));
+  const assetButton = screen.getByRole("button", { name: "О валюте USDC в сети Ethereum" });
+  expect(assetButton).toBeEnabled();
+  fireEvent.click(assetButton);
+  expect(onAssetDetails).toHaveBeenCalledTimes(3);
+  await act(async () => pending.resolve({ mode: "demo", status: "simulated-success" }));
+});
+
+it.each([
+  { estimate: undefined, label: "Время уточняется", expected: null },
+  { estimate: 90, label: "Ориентировочно: 1 мин 30 с", expected: 90 },
+  { estimate: 0, label: "Оценка времени: 0 с. Подтверждение ещё ожидается.", expected: 0 },
+])("shows only supplied operation ETA ($estimate) without completing on time", async ({ estimate, label, expected }) => {
+  const pending = deferred<SendDemoResult>();
+  const onOperationChange = vi.fn<(value: SendOperationStatus | null) => void>();
+  mount(makePort({
+    quote: async request => makeQuote(request, { estimatedCompletionSeconds: estimate }),
+    send: () => pending.promise,
+  }), { onOperationChange });
+  await review();
+  expect(onOperationChange).toHaveBeenLastCalledWith({ status: "preparing", estimatedRemainingSeconds: null });
+  expect(screen.queryByText(label)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Подтвердить симуляцию" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Ожидаем завершения");
+  expect(screen.getByText(label)).toBeInTheDocument();
+  expect(onOperationChange).toHaveBeenLastCalledWith({ status: "pending", estimatedRemainingSeconds: expected });
+  expect(screen.queryByRole("heading", { name: "Симуляция завершена" })).toBeNull();
+  await act(async () => pending.resolve({ mode: "demo", status: "simulated-success" }));
+  expect(onOperationChange).toHaveBeenLastCalledWith({ status: "completed", estimatedRemainingSeconds: null });
 });

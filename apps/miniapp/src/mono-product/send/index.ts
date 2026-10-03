@@ -1,4 +1,4 @@
-export { SendFlow, type SendFlowProps, type SendBatteryActivity } from "./send-flow";
+export { SendFlow, type SendFlowProps, type SendBatteryActivity, type SendOperationStatus } from "./send-flow";
 export { createMockSendPort, mockSendPort } from "./mock-send-port";
 export type {
   SendCallOptions, SendDemoResult, SendIssue, SendIssueCode, SendPort, SendQuote, SendQuoteResult,

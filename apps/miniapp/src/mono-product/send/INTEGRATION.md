@@ -6,7 +6,7 @@
 
 Из `./send`:
 
-- `SendFlow`, `SendFlowProps`, `SendBatteryActivity`.
+- `SendFlow`, `SendFlowProps`, `SendBatteryActivity`, `SendOperationStatus`.
 - `createMockSendPort(snapshot?: ProductSnapshot): SendPort`, `mockSendPort`.
 - Типы: `SendPort`, `SendCallOptions`, `SendRouteData`, `SendTerms`, `SendRecipient`, `SendRequest`, `SendQuote`, `SendQuoteResult`, `SendDemoResult`, `SendIssue`, `SendIssueCode`.
 
@@ -17,10 +17,16 @@ type SendFlowProps = {
   privacy?: boolean;    // default false; masks money, recipient and memo
   onBack(): void;       // recipient/result -> existing route chooser
   onClose(): void;      // Escape, success Done, failure Close
+  onAssetDetails?(): void;
   onBatteryActivityChange?(activity: SendBatteryActivity | null): void;
+  onOperationChange?(operation: SendOperationStatus | null): void;
 };
 
 type SendBatteryActivity = { poolId: string; phase: "using" };
+type SendOperationStatus = {
+  status: "preparing" | "pending" | "completed" | "failed";
+  estimatedRemainingSeconds: number | null;
+};
 ```
 
 Back within the flow moves review -> amount -> recipient. Changing account/asset/network/action remounts the session and aborts outstanding work. Equivalent route objects and privacy changes retain the draft. Keep the component mounted across appearance changes; do not key it by preset. A different port instance reloads its route and resets the session, so memoize ports.
@@ -52,6 +58,23 @@ function SendRouteDetail({ route, view, commands }: {
 ```
 
 No hook should be inserted below `ProductOverlay`'s conditional returns. This wrapper avoids that problem. Use `route.action === "send"` before rendering it. An unsupported route fails closed inside the module as well.
+
+### Asset details and operation estimate
+
+`onAssetDetails` turns the existing asset/network header into a 44px-minimum button, labelled e.g. `О валюте USDC в сети Ethereum`. Without the callback it stays a static display. The button remains available during pending because the host detail is read-only. The callback itself changes no form state and performs no send/quote call.
+
+Keep SendFlow mounted with a stable port and route identity while the host shows asset details. Hide/inert its body as appropriate for host focus management; on return restore focus to the header button. Recipient, amount and quote remain in the same session (normal quote expiry still applies). Send remains inside the existing popup. This module does not render another asset-detail route or dialog.
+
+Optional `SendQuote.estimatedCompletionSeconds?: number | null` is a provider-supplied estimate for the current operation. Only finite nonnegative numbers are used; absent/null/invalid values show `Время уточняется` during pending. A positive estimate is formatted as an approximate duration without an interval or countdown. Zero explicitly says that confirmation is still awaited. Only `send()`'s result moves the flow to success/failure. The default mock provides no estimate.
+
+Forward `onOperationChange={handleOperationChange}` to the host's asset detail as the same presentation snapshot shape:
+
+- Route ready and recipient/amount/quote/review: `preparing`, estimate `null`.
+- Pending: `pending`, estimate from the current quote or `null`.
+- Result: `completed` / `failed`, estimate `null`.
+- Loading/reset/unmount: `null`; a new ready route subsequently emits `preparing`.
+
+Callback identity changes do not re-emit; cleanup uses the latest committed handler. These statuses describe the **demo simulation**, not an on-chain confirmation. The host must preserve its demo label. ETA belongs to this operation, never the BatteryPool. No recovery/recharge estimate, charge percentage calculation or new event bus is introduced. When no operation exists, host detail can say `Ожидание появится при отправке`.
 
 ### Battery activity callback
 
@@ -100,5 +123,11 @@ pnpm --filter @wallet/miniapp exec vitest run src/mono-product/send/send-flow.te
 ```
 
 It covers idle/review/back, pending, parent rerenders with a replaced callback identity, hidden/visible icon gating, success/failure, route replacement with an old result arriving during the new send, retry and unmount cleanup.
+
+Asset-details / operation-ETA follow-up: **4 passed / 13 skipped**, covering callback/draft/quote preservation across host rerender, static fallback, read-only details during pending, and absent/positive/zero operation estimates. Neither the 30-test suite nor the battery lifecycle test was rerun:
+
+```powershell
+pnpm --filter @wallet/miniapp exec vitest run src/mono-product/send/send-flow.test.tsx -t "opens asset details without|shows only supplied operation ETA" --reporter=dot
+```
 
 CSS is local, uses existing MONO tokens, 44px controls, tabular digits, finite 220ms/4px stage motion and immediate reduced-motion states. No financial number count-up/blur. The orchestrator/ORACLE still owns overall typecheck/build and the browser review at 320/390/430/480 widths in light/dark and all seven presets. This module has not been visually approved or deployed.

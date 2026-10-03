@@ -9,6 +9,10 @@ import { useSendFlow } from "./use-send-flow";
 import styles from "./send-flow.module.css";
 
 export type SendBatteryActivity = { poolId: string; phase: "using" };
+export type SendOperationStatus = {
+  status: "preparing" | "pending" | "completed" | "failed";
+  estimatedRemainingSeconds: number | null;
+};
 
 export type SendFlowProps = {
   route: ProductActionRoute;
@@ -16,14 +20,17 @@ export type SendFlowProps = {
   privacy?: boolean;
   onBack(): void;
   onClose(): void;
+  onAssetDetails?(): void;
   onBatteryActivityChange?(activity: SendBatteryActivity | null): void;
+  onOperationChange?(operation: SendOperationStatus | null): void;
 };
 
 export function SendFlow({ port = mockSendPort, ...props }: SendFlowProps) {
   return <SendSession key={sendRouteKey(props.route)} {...props} port={port} />;
 }
 
-function SendSession({ route: selectedRoute, port, privacy = false, onBack, onClose, onBatteryActivityChange }: SendFlowProps & { port: SendPort }) {
+function SendSession({ route: selectedRoute, port, privacy = false, onBack, onClose, onAssetDetails,
+  onBatteryActivityChange, onOperationChange }: SendFlowProps & { port: SendPort }) {
   // Equivalent route objects from appearance renders must not reset the form.
   const [route] = useState(selectedRoute);
   const flow = useSendFlow(route, port);
@@ -38,6 +45,12 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
   const error = flow.loadIssue ?? flow.issue;
   const mask = (value: string) => privacy ? "••••" : value;
   const resultSuccess = flow.result?.status === "simulated-success";
+  const operationStatus = !data ? null : pending ? "pending" : stage !== "result" ? "preparing"
+    : resultSuccess ? "completed" : flow.result?.status === "simulated-failure" ? "failed" : null;
+  const providedEstimate = quote?.estimatedCompletionSeconds;
+  const estimate = pending && typeof providedEstimate === "number" && Number.isFinite(providedEstimate) && providedEstimate >= 0
+    ? providedEstimate : null;
+  useOperationChange(operationStatus, estimate, onOperationChange);
   const title = flow.loading ? "Готовим перевод" : !data ? "Отправка недоступна"
     : stage === "recipient" ? "Кому отправляем"
       : stage === "amount" ? "Сумма перевода"
@@ -46,6 +59,12 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
             : resultSuccess ? "Симуляция завершена" : "Симуляция не выполнена";
 
   useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [stage, flow.loading]);
+
+  const routeIdentity = <>
+    <span className={styles.asset} aria-hidden="true">{route.symbol.slice(0, 1)}</span>
+    <span className={styles.routeIdentity}><strong>{route.symbol}</strong><span>{route.accountLabel}</span></span>
+    <span className={styles.network}>{route.networkLabel}</span>
+  </>;
 
   return <section className={styles.flow} aria-label="Демонстрационная отправка" data-send-stage={stage}
     onKeyDown={event => {
@@ -58,11 +77,10 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
       <span className={styles.demo}>DEMO · ОТПРАВКА</span>
     </div>
 
-    <div className={styles.route}>
-      <span className={styles.asset} aria-hidden="true">{route.symbol.slice(0, 1)}</span>
-      <div className={styles.routeIdentity}><strong>{route.symbol}</strong><span>{route.accountLabel}</span></div>
-      <span className={styles.network}>{route.networkLabel}</span>
-    </div>
+    {onAssetDetails ? <button type="button" className={`${styles.route} ${styles.routeButton}`}
+      aria-label={`О валюте ${route.symbol} в сети ${route.networkLabel}`} onClick={onAssetDetails}>
+      {routeIdentity}<span className={styles.routeChevron} aria-hidden="true">›</span>
+    </button> : <div className={styles.route}>{routeIdentity}</div>}
     <p className={styles.note}>Тестовый сценарий. Средства не отправляются.</p>
 
     <div key={stage} className={styles.step}>
@@ -146,7 +164,8 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
 
       {pending && <div className={styles.outcome}>
         <span className={styles.resultMark} aria-hidden="true">…</span>
-        <p role="status" className={styles.status}>Выполняется симуляция. Дождитесь результата.</p>
+        <p role="status" className={styles.status}>Выполняется симуляция. Ожидаем завершения.</p>
+        <p className={styles.note}>{operationEstimateLabel(estimate)}</p>
         {activePoolId !== null && <PendingBatteryNote />}
       </div>}
 
@@ -165,6 +184,24 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
       </div>}
     </div>
   </section>;
+}
+
+function useOperationChange(status: SendOperationStatus["status"] | null, estimatedRemainingSeconds: number | null,
+  onChange: SendFlowProps["onOperationChange"]) {
+  const listener = useRef(onChange);
+  useEffect(() => { listener.current = onChange; }, [onChange]);
+  useEffect(() => {
+    listener.current?.(status === null ? null : { status, estimatedRemainingSeconds });
+  }, [status, estimatedRemainingSeconds]);
+  useEffect(() => () => { listener.current?.(null); }, []);
+}
+
+function operationEstimateLabel(seconds: number | null): string {
+  if (seconds === null) return "Время уточняется";
+  if (seconds === 0) return "Оценка времени: 0 с. Подтверждение ещё ожидается.";
+  const rounded = Math.ceil(seconds);
+  const minutes = Math.floor(rounded / 60), remainder = rounded % 60;
+  return `Ориентировочно: ${[minutes > 0 ? `${minutes} мин` : "", remainder > 0 ? `${remainder} с` : ""].filter(Boolean).join(" ")}`;
 }
 
 function useBatteryActivity(poolId: string | null, onChange: SendFlowProps["onBatteryActivityChange"]) {
