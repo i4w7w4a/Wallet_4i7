@@ -22,6 +22,7 @@ type Props = {
   accessibleLabel?: string;
   productPrimary?: boolean;
   productReceiveExpanded?: boolean;
+  productSendExpanded?: boolean;
   materialTargetId?: ButtonTargetId;
   materialRadiusCss?: number;
   actionId?: ButtonTargetId;
@@ -30,7 +31,7 @@ type Props = {
   manualPreviewTrigger?: number;
 };
 
-export function MonoQuickActionFeedback({ label, path, preset, onActivate, accessibleLabel, productPrimary, productReceiveExpanded,
+export function MonoQuickActionFeedback({ label, path, preset, onActivate, accessibleLabel, productPrimary, productReceiveExpanded, productSendExpanded,
   materialTargetId, materialRadiusCss,
   actionId, artwork, active = true, manualPreviewTrigger = 0 }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -110,8 +111,9 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, acces
     <button className="mono-actions__item" type="button" data-control-effect={effectId}
       data-product-primary={productPrimary || undefined}
       data-mono-product-receive-trigger={productReceiveExpanded !== undefined || undefined}
-      aria-haspopup={productReceiveExpanded !== undefined ? "dialog" : undefined}
-      aria-expanded={productReceiveExpanded}
+      data-mono-product-send-trigger={productSendExpanded !== undefined || undefined}
+      aria-haspopup={productReceiveExpanded !== undefined || productSendExpanded !== undefined ? "dialog" : undefined}
+      aria-expanded={productReceiveExpanded ?? productSendExpanded}
       data-material-target={materialTargetId}
       data-key-pressed={keyboardPressed}
       data-artwork-pack={artwork?.packId}

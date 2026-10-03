@@ -71,6 +71,25 @@ function LiveScene({ onClose = vi.fn(), onSelectRoute = vi.fn(), ...props }: Par
 function menu() { return screen.getByRole("dialog", { name: "Получить" }); }
 function routeButtons() { return menu().querySelectorAll<HTMLButtonElement>("[data-product-route-key]"); }
 
+it("clamps the shared chooser inside the visible frame between lab controls and bottom navigation", () => {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    if (this.classList.contains("mono-preview-frame")) return new DOMRect(80, 54, 230, 600);
+    if (this.classList.contains("mono-nav")) return new DOMRect(80, 300, 230, 56);
+    if (this.hasAttribute("data-mono-preview")) return sceneRect;
+    if (this.hasAttribute("data-mono-product-receive-trigger")) return anchorRect;
+    return new DOMRect();
+  });
+  render(<div data-mono-workbench style={{ paddingTop: 54 }}><div className="mono-preview-frame">
+    <Scene open anchor="missing" routes={routes} onClose={vi.fn()} onSelectRoute={vi.fn()}>
+      <nav className="mono-nav" />
+    </Scene>
+  </div></div>);
+  expect(menu()).toHaveStyle({ width: "206px" });
+  const top = sceneRect.top + parseFloat(menu().style.top);
+  expect(top).toBeGreaterThanOrEqual(66);
+  expect(top + parseFloat(menu().style.height)).toBeLessThanOrEqual(292);
+});
+
 it("keeps same-symbol networks separate and emits the exact route and receive method", () => {
   const select = vi.fn();
   render(<Scene open routes={routes} onClose={vi.fn()} onSelectRoute={select} />);

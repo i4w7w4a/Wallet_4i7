@@ -7,6 +7,7 @@ import { createMonoDemoFlowPorts } from "./demo-adapter";
 import { ProductAccountChooser } from "./product-account-chooser";
 import { ProductRouteChooser } from "./product-route-chooser";
 import { ReceiveMenu } from "./receive-menu";
+import { SendMenu } from "./send-menu";
 import type { InternalTransferDraft, InternalTransferSimulation } from "./internal-transfer";
 import { ReceiveFlow } from "./receive";
 import { SendFlow, type SendDraft, type SendOperationStatus, type SendSimulationResult } from "./send";
@@ -21,25 +22,31 @@ export function ProductOverlay({ view, commands, onOpenActivity }: ProductProps)
   const ports = useMemo(() => createMonoDemoFlowPorts(view.snapshot), [view.snapshot]);
   const currentSheet = useRef(view.sheet);
   currentSheet.current = view.sheet;
-  const canRestoreReceiveFocus = useCallback(() => currentSheet.current === null, []);
+  const canRestoreActionFocus = useCallback(() => currentSheet.current === null, []);
   const receiveChooser = view.sheet?.kind === "intent" && view.sheet.action === "receive" && !view.sheet.route;
+  const sendChooser = view.sheet?.kind === "intent" && view.sheet.action === "send" && !view.sheet.route && !view.sheet.placementId;
   return <>
     <BatteryPopover view={view} open={view.sheet?.kind === "battery"} onClose={commands.closeSheet} />
     <ReceiveMenu open={receiveChooser} routes={receiveChooser ? view.intent?.routes ?? [] : []}
       focusRouteKey={receiveChooser ? view.sheet?.kind === "intent" ? view.sheet.focusRouteKey : undefined : undefined}
       emptyMessage={unavailableReason(view.intent?.reason ?? null, "receive", view.context.kind === "all")}
       onSelectRoute={commands.selectRoute} onClose={commands.closeSheet} />
+    <SendMenu open={sendChooser} routes={sendChooser ? view.intent?.routes ?? [] : []}
+      focusRouteKey={sendChooser && view.sheet?.kind === "intent" ? view.sheet.focusRouteKey : undefined}
+      emptyMessage={unavailableReason(view.intent?.reason ?? null, "send", view.context.kind === "all")}
+      onSelectRoute={commands.selectRoute} onClose={commands.closeSheet} />
     <ProductModalOverlay view={view} commands={commands} ports={ports} onOpenActivity={onOpenActivity}
-      canRestoreReceiveFocus={canRestoreReceiveFocus} />
+      canRestoreActionFocus={canRestoreActionFocus} />
   </>;
 }
 
-function ProductModalOverlay({ view, commands, ports, onOpenActivity, canRestoreReceiveFocus }: ProductProps & {
-  ports: ReturnType<typeof createMonoDemoFlowPorts>; canRestoreReceiveFocus(): boolean;
+function ProductModalOverlay({ view, commands, ports, onOpenActivity, canRestoreActionFocus }: ProductProps & {
+  ports: ReturnType<typeof createMonoDemoFlowPorts>; canRestoreActionFocus(): boolean;
 }) {
   const sheet = view.sheet;
   if (!sheet || sheet.kind === "battery") return null;
-  if (sheet.kind === "intent" && sheet.action === "receive" && !sheet.route) return null;
+  if (sheet.kind === "intent" && !sheet.route &&
+    (sheet.action === "receive" || (sheet.action === "send" && !sheet.placementId))) return null;
   if (sheet.kind === "accounts") return <ProductSheet title="Выбор счёта" onClose={commands.closeSheet}>
     <ProductAccountChooser snapshot={view.snapshot} context={view.context} balanceHidden={view.balanceHidden}
       onSelectContext={commands.selectContext} />
@@ -48,7 +55,8 @@ function ProductModalOverlay({ view, commands, ports, onOpenActivity, canRestore
   const action = sheet.action;
   const title = actionLabel(action);
   return <ProductSheet key={action} title={title} onClose={commands.closeSheet} receiveScreen={action === "receive"}
-    canRestoreFocus={action === "receive" ? canRestoreReceiveFocus : undefined}
+    canRestoreFocus={action === "receive" || action === "send" ? canRestoreActionFocus : undefined}
+    returnAction={action === "receive" || action === "send" ? action : undefined} showHandle={action !== "send"}
     returnPlacement={sheet.placementId ? { id: sheet.placementId, action } : undefined}>
     {sheet.route ? <RouteDetail key={productRouteKey(sheet.route)} route={sheet.route} view={view} commands={commands} ports={ports}
       onOpenActivity={onOpenActivity} /> :
@@ -148,9 +156,10 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   </div>;
 }
 
-function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen = false, canRestoreFocus }: {
+function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen = false, canRestoreFocus, returnAction, showHandle = true }: {
   title: string; onClose(): void; children: ReactNode; returnPlacement?: { id: string; action: ProductActionKind };
   receiveScreen?: boolean; canRestoreFocus?(): boolean;
+  returnAction?: "send" | "receive"; showHandle?: boolean;
 }) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -224,8 +233,8 @@ function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen
           .find(element => element.dataset.monoProductPlacementId === placement.id &&
             element.dataset.monoProductPlacementAction === placement.action);
         if (origin?.isConnected) origin.focus({ preventScroll: true });
-        else if (receiveScreen && page?.querySelector<HTMLElement>("[data-mono-product-receive-trigger]")?.isConnected) {
-          page.querySelector<HTMLElement>("[data-mono-product-receive-trigger]")?.focus({ preventScroll: true });
+        else if (returnAction && page?.querySelector<HTMLElement>(`[data-mono-product-${returnAction}-trigger]`)?.isConnected) {
+          page.querySelector<HTMLElement>(`[data-mono-product-${returnAction}-trigger]`)?.focus({ preventScroll: true });
         }
         else if (previous?.isConnected) previous.focus({ preventScroll: true });
         else document.querySelector<HTMLElement>("[data-mono-product-context-trigger], [data-mono-product-battery-trigger], .mono-actions__item")?.focus({ preventScroll: true });
@@ -257,7 +266,7 @@ function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen
     <div className="mono-product-sheet__scrim" aria-hidden="true" onClick={receiveScreen ? undefined : onClose} />
     <ProductGlassSurface ref={dialogRef} className="mono-product-sheet__panel" role="dialog" aria-modal="true"
       aria-labelledby={titleId} tabIndex={-1} onKeyDown={onKeyDown}>
-      {!receiveScreen && <div className="mono-product-sheet__handle" aria-hidden="true" />}
+      {!receiveScreen && showHandle && <div className="mono-product-sheet__handle" aria-hidden="true" />}
       <header className="mono-product-sheet__header">
         <h2 id={titleId}>{title}</h2>
         <button type="button" onClick={onClose}>Закрыть</button>

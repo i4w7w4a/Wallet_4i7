@@ -421,7 +421,9 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     <MonoChart values={snapshot.chart[period]} format={moneyFormat}
     hidden={balanceHidden} period={period} onPeriodChange={setPeriod} appearance={appearance.chart} />;
   const receiveMenuOpen = product?.view.sheet?.kind === "intent" && product.view.sheet.action === "receive" && !product.view.sheet.route;
-  const productModalOpen = Boolean(product?.view.sheet && product.view.sheet.kind !== "battery" && !receiveMenuOpen);
+  const sendMenuOpen = product?.view.sheet?.kind === "intent" && product.view.sheet.action === "send" &&
+    !product.view.sheet.route && !product.view.sheet.placementId;
+  const productModalOpen = Boolean(product?.view.sheet && product.view.sheet.kind !== "battery" && !receiveMenuOpen && !sendMenuOpen);
   return (
         <main ref={node => { pageRef.current = node; if (surfaceRef) surfaceRef.current = node; }}
           className="mono-page" data-mono-preview data-mono-preset={preset}
@@ -543,6 +545,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
               accessibleLabel={product ? action.label : undefined}
               productPrimary={Boolean(product && (action.kind === "send" || action.kind === "receive"))}
               productReceiveExpanded={product && action.kind === "receive" ? Boolean(receiveMenuOpen) : undefined}
+              productSendExpanded={product && action.kind === "send" ? Boolean(sendMenuOpen) : undefined}
               actionId={action.id} artwork={actionArtwork[action.id]} active={active && !effectsDisabled}
               manualPreviewTrigger={artworkPreview?.targetId === action.id ? artworkPreview.trigger : 0}
               materialTargetId={materialTargets ? action.id : undefined}

@@ -282,10 +282,11 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       openBattery() { updateBatteryActivity(null); setSheet(current => current?.kind === "battery" ? null : { kind: "battery" }); },
       openIntent(action) {
         const routes = resolveActionRoutes(snapshot, effectiveContext, action).routes;
+        const compact = action === "send" || action === "receive";
         updateBatteryActivity(null);
-        setSheet(current => action === "receive" && current?.kind === "intent" && current.action === "receive" &&
+        setSheet(current => compact && current?.kind === "intent" && current.action === action &&
           current.route === null && !current.placementId ? null :
-          { kind: "intent", action, route: action !== "receive" && routes.length === 1 ? routes[0]! : null });
+          { kind: "intent", action, route: !compact && routes.length === 1 ? routes[0]! : null });
       },
       openPlacementAction(holdingId, action) {
         const holding = snapshot.holdings.find(candidate => candidate.id === holdingId);
@@ -318,7 +319,7 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       }); },
       backToRoutes(route) { updateBatteryActivity(null); setSheet(current => {
         if (current?.kind !== "intent" || current.action !== route.action) return current;
-        if ((current.placementId || current.action !== "receive") &&
+        if ((current.placementId || (current.action !== "receive" && current.action !== "send")) &&
           (resolveIntent(snapshot, effectiveContext, current)?.routes.length ?? 0) <= 1) return null;
         return { ...current, route: null, focusRouteKey: productRouteKey(route) };
       }); },
