@@ -163,23 +163,45 @@ function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen
     if (!receiveScreen) return;
     const page = dialogRef.current?.closest<HTMLElement>("[data-mono-preview]");
     if (!page) return;
+    const frame = page.closest<HTMLElement>(".mono-preview-frame");
+    const workbench = page.closest<HTMLElement>("[data-mono-workbench]");
     const viewport = window.visualViewport;
     const place = () => {
       const bounds = page.getBoundingClientRect();
       const viewportLeft = viewport?.offsetLeft ?? 0, viewportTop = viewport?.offsetTop ?? 0;
       const viewportWidth = viewport?.width ?? window.innerWidth, viewportHeight = viewport?.height ?? window.innerHeight;
-      const width = Math.min(bounds.width || 480, viewportWidth);
-      const left = Math.max(viewportLeft, Math.min(bounds.width ? bounds.left : (viewportWidth - width) / 2,
-        viewportLeft + viewportWidth - width));
-      const top = Math.max(viewportTop, bounds.height ? bounds.top : viewportTop);
-      const bottom = Math.min(viewportTop + viewportHeight, bounds.height ? bounds.bottom : viewportTop + viewportHeight);
-      const next = { left, top, width, height: Math.max(0, bottom - top), bottom: "auto", transform: "none" };
+      const pageLeft = bounds.left + page.clientLeft, pageTop = bounds.top + page.clientTop;
+      const pageWidth = page.clientWidth || bounds.width || Math.min(480, viewportWidth);
+      let left = Math.max(viewportLeft, bounds.width ? pageLeft : (viewportWidth - pageWidth) / 2);
+      let right = Math.min(viewportLeft + viewportWidth, bounds.width ? pageLeft + pageWidth : left + pageWidth);
+      let top = Math.max(viewportTop, bounds.height ? pageTop : viewportTop);
+      let bottom = Math.min(viewportTop + viewportHeight, bounds.height
+        ? pageTop + (page.clientHeight || bounds.height) : viewportTop + viewportHeight);
+      if (frame) {
+        const clip = frame.getBoundingClientRect();
+        if (clip.width) {
+          left = Math.max(left, clip.left + frame.clientLeft);
+          right = Math.min(right, clip.left + frame.clientLeft + (frame.clientWidth || clip.width));
+        }
+        if (clip.height) {
+          top = Math.max(top, clip.top + frame.clientTop);
+          bottom = Math.min(bottom, clip.top + frame.clientTop + (frame.clientHeight || clip.height));
+        }
+      }
+      // The workbench reserves this CSS inset for its fixed controls; published viewers have no inset.
+      if (workbench) top = Math.max(top, viewportTop + (Number.parseFloat(getComputedStyle(workbench).paddingTop) || 0));
+      // ProductGlassProvider adds no DOM wrapper. The positioned page is an explicit absolute containing block,
+      // avoiding fixed-position coordinates being reinterpreted by the frame's container-type containment.
+      const next = { position: "absolute" as const, left: left - pageLeft + page.scrollLeft,
+        top: top - pageTop + page.scrollTop, width: Math.max(0, right - left), height: Math.max(0, bottom - top),
+        bottom: "auto", transform: "none" };
       setReceiveBounds(current => current && current.left === next.left && current.top === next.top &&
         current.width === next.width && current.height === next.height ? current : next);
     };
     place();
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place);
     observer?.observe(page);
+    if (frame) observer?.observe(frame);
     window.addEventListener("resize", place); document.addEventListener("scroll", place, true);
     viewport?.addEventListener("resize", place); viewport?.addEventListener("scroll", place);
     return () => {

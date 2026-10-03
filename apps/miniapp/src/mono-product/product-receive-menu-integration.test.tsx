@@ -47,7 +47,7 @@ it("opens a nonmodal receive menu, follows an exact external route, and restores
   const fullScreen = screen.getByRole("dialog", { name: "Получить" });
   expect(fullScreen).toHaveAttribute("aria-modal", "true");
   expect(fullScreen.closest("[data-product-receive-screen]")).not.toBeNull();
-  expect(fullScreen.closest("[data-product-receive-screen]")).toHaveStyle({ left: "250px", top: "0px", width: "390px", height: `${window.innerHeight}px` });
+  expect(fullScreen.closest("[data-product-receive-screen]")).toHaveStyle({ position: "absolute", left: "0px", top: "100px", width: "390px", height: `${window.innerHeight}px` });
   expect(container.querySelector(".mono-product-sheet__handle")).toBeNull();
   expect(container.querySelector(".mono-scene")).toHaveAttribute("inert");
   expect(trigger).not.toHaveFocus();
@@ -106,4 +106,45 @@ it("does not mark laboratory quick actions as real product receive triggers", ()
   expect(action).not.toHaveAttribute("data-mono-product-receive-trigger");
   expect(action).not.toHaveAttribute("aria-haspopup");
   expect(action).not.toHaveAttribute("aria-expanded");
+});
+
+it("keeps the receive screen inside the visible scroll frame below lab chrome and uses the whole viewer viewport", async () => {
+  vi.stubGlobal("innerHeight", 844); vi.stubGlobal("innerWidth", 390);
+  const wallet = await new MockWalletRepository().getSnapshot();
+  const envelope = createMonoAppearanceEnvelope("ledger");
+  const scene = (lab: boolean) => <div data-mono-workbench={lab || undefined} style={{ paddingTop: lab ? 54 : 0 }}>
+    <div className="mono-preview-frame" style={{ position: "relative", containerType: "inline-size", overflow: "hidden auto" }}>
+      <MonoProductScene snapshot={wallet} appearance={envelope.appearance} material={envelope.material} />
+    </div>
+  </div>;
+  const { container, rerender } = render(scene(true));
+  const page = container.querySelector<HTMLElement>("[data-mono-preview]")!;
+  const frame = container.querySelector<HTMLElement>(".mono-preview-frame")!;
+  const trigger = screen.getByRole("button", { name: "Получить" });
+  let pageTop = 27, frameTop = 54, frameHeight = 790;
+  const originalBounds = HTMLElement.prototype.getBoundingClientRect;
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    if (this === page) return new DOMRect(0, pageTop, 390, 1110);
+    if (this === frame) return new DOMRect(0, frameTop, 390, frameHeight);
+    if (this === trigger) return new DOMRect(150, 320, 60, 60);
+    return originalBounds.call(this);
+  });
+  fireEvent.click(trigger);
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Получить" }))
+    .getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Основной)/ }));
+  await screen.findByRole("textbox", { name: /Желаемая сумма/ });
+  const layer = container.querySelector<HTMLElement>("[data-product-receive-screen]")!;
+  expect(layer).toHaveStyle({ position: "absolute", left: "0px", top: "27px", width: "390px", height: "790px" });
+  expect(pageTop + Number.parseFloat(layer.style.top)).toBe(54);
+
+  pageTop = -16; frame.scrollTop = 70;
+  fireEvent.scroll(frame);
+  expect(layer).toHaveStyle({ top: "70px", height: "790px" });
+  expect(pageTop + Number.parseFloat(layer.style.top)).toBe(54);
+
+  frameTop = 0; frameHeight = 844; pageTop = -30;
+  rerender(scene(false));
+  fireEvent(window, new Event("resize"));
+  expect(layer).toHaveStyle({ top: "30px", height: "844px" });
+  expect(pageTop + Number.parseFloat(layer.style.top)).toBe(0);
 });
