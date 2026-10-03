@@ -12,11 +12,12 @@ export type ProductHoldingsProps = {
   appearance: MonoAssetListAppearance;
   overview: boolean;
   onPlacementAction?: (holdingId: string, action: "send" | "receive") => void;
+  onOpenAsset?: (assetId: string) => void;
 };
 
 const plurals = new Intl.PluralRules("ru");
 
-export function ProductHoldings({ view, commands, appearance, overview, onPlacementAction }: ProductHoldingsProps) {
+export function ProductHoldings({ view, commands, appearance, overview, onPlacementAction, onOpenAsset }: ProductHoldingsProps) {
   const headingId = useId();
   const listId = `${headingId}-holdings`;
   const groups = view.holdings;
@@ -39,16 +40,27 @@ export function ProductHoldings({ view, commands, appearance, overview, onPlacem
       {groups.map((group, index) => {
         const expanded = view.expandedAssetIds.has(group.assetId);
         const placementsId = `${headingId}-placements-${index}`;
-        return <li key={group.assetId}>
-          <button type="button" className="mono-product-funds__asset" aria-expanded={expanded}
-            aria-controls={placementsId} onClick={() => commands.toggleAsset(group.assetId)}>
+        const valueId = `${headingId}-value-${index}`;
+        const primary = <button type="button" className="mono-product-funds__asset"
+            aria-label={onOpenAsset ? `Открыть актив ${group.name} (${group.symbol})` : undefined}
+            aria-describedby={onOpenAsset ? valueId : undefined}
+            aria-expanded={onOpenAsset ? undefined : expanded} aria-controls={onOpenAsset ? undefined : placementsId}
+            data-mono-product-asset-trigger={onOpenAsset ? group.assetId : undefined}
+            onClick={() => onOpenAsset ? onOpenAsset(group.assetId) : commands.toggleAsset(group.assetId)}>
             <span className="mono-product-funds__symbol" aria-hidden="true">{group.symbol.slice(0, 1)}</span>
             <span className="mono-product-funds__identity"><strong>{group.name}</strong>
               <small>{countLabel(group.placements.length, ["размещение", "размещения", "размещений"])}</small></span>
-            <span className="mono-product-funds__value"><strong>{view.balanceHidden ? "••••" : formatFiatMinor(group.fiatMinor)}</strong>
+            <span id={valueId} className="mono-product-funds__value"><strong>{view.balanceHidden ? "••••" : formatFiatMinor(group.fiatMinor)}</strong>
               <small>{group.symbol}</small></span>
-            <Chevron expanded={expanded} />
-          </button>
+            {!onOpenAsset && <Chevron expanded={expanded} />}
+          </button>;
+        return <li key={group.assetId}>
+          {onOpenAsset ? <div className="mono-product-funds__asset-entry">
+            {primary}
+            <button type="button" className="mono-product-funds__expand" aria-expanded={expanded}
+              aria-controls={placementsId} aria-label={`${expanded ? "Свернуть" : "Показать"} размещения ${group.symbol}`}
+              onClick={() => commands.toggleAsset(group.assetId)}><Chevron expanded={expanded} /></button>
+          </div> : primary}
           {expanded && <ul id={placementsId} className="mono-product-funds__placements" aria-label={`Размещения ${group.symbol}`}>
             {group.placements.map(placement => <Placement key={placement.id} placement={placement}
               account={accounts.get(placement.accountId)} snapshot={view.snapshot} hidden={view.balanceHidden}

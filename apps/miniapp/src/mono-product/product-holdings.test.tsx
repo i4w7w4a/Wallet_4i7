@@ -8,15 +8,16 @@ import { ProductHoldings } from "./product-home";
 
 afterEach(cleanup);
 
-function Holdings({ snapshot = MULTI_ACCOUNT_DEMO, hidden = false, onPlacementAction }: {
+function Holdings({ snapshot = MULTI_ACCOUNT_DEMO, hidden = false, onPlacementAction, onOpenAsset }: {
   snapshot?: ProductSnapshot;
   hidden?: boolean;
   onPlacementAction?: (holdingId: string, action: "send" | "receive") => void;
+  onOpenAsset?: (assetId: string) => void;
 }) {
   const product = useMonoProductController({ kind: "demo", snapshot }, { initialHidden: hidden });
   return <>
     <ProductHoldings {...product} appearance={MONO_ASSET_LIST_DEFAULT} overview={false}
-      onPlacementAction={onPlacementAction} />
+      onPlacementAction={onPlacementAction} onOpenAsset={onOpenAsset} />
     {product.view.sheet?.kind === "intent" && <output aria-label="Открытое действие">
       {product.view.sheet.action} · {product.view.context.kind === "account" ? product.view.context.accountId : "all"}
     </output>}
@@ -106,4 +107,36 @@ it("does not promise receiving on an empty inactive account", () => {
     accounts: [{ ...SINGLE_ACCOUNT_DEMO.accounts[0], status: "inactive" }] }} />);
   expect(screen.getByText("Счёт не активирован")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Получить активы" })).not.toBeInTheDocument();
+});
+
+it("opens an asset from its primary row and keeps placement disclosure as a separate action", () => {
+  const open = vi.fn();
+  const action = vi.fn();
+  render(<Holdings onOpenAsset={open} onPlacementAction={action} />);
+  const primary = screen.getByRole("button", { name: "Открыть актив USD Coin (USDC)" });
+  const disclosure = screen.getByRole("button", { name: "Показать размещения USDC" });
+
+  expect(primary).not.toContainElement(disclosure);
+  expect(primary).toHaveAccessibleDescription(/900,00/);
+  fireEvent.click(primary);
+  expect(open).toHaveBeenCalledWith("usdc");
+  expect(disclosure).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("button", { name: "Отправить USDC · Основной · Solana" })).not.toBeInTheDocument();
+
+  fireEvent.click(disclosure);
+  expect(disclosure).toHaveAttribute("aria-expanded", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Отправить USDC · Основной · Solana" }));
+  expect(action).toHaveBeenCalledWith("demo-usdc-sol", "send");
+  expect(open).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "Свернуть размещения USDC" }));
+  expect(screen.queryByRole("button", { name: "Отправить USDC · Основной · Solana" })).not.toBeInTheDocument();
+});
+
+it("does not reveal private balances in asset-entry names or inline placements", () => {
+  const { container } = render(<Holdings snapshot={SINGLE_ACCOUNT_DEMO} hidden onOpenAsset={vi.fn()} />);
+  const primary = screen.getByRole("button", { name: "Открыть актив USD Coin (USDC)" });
+  expect(primary).toHaveTextContent("••••");
+  expect(primary).toHaveAccessibleDescription(/••••/);
+  fireEvent.click(screen.getByRole("button", { name: "Показать размещения USDC" }));
+  expect(container.innerHTML).not.toMatch(/1250|1[\s\u00a0\u202f]250/);
 });

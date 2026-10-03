@@ -85,6 +85,10 @@ button.mono-product-funds__heading { cursor: pointer; }
   transition: background-color 190ms var(--mono-ease);
 }
 .mono-product-funds__asset:active { background: var(--mono-surface-high); }
+.mono-product-funds__asset-entry { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; }
+.mono-product-funds__asset-entry .mono-product-funds__asset { grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1.2fr); }
+.mono-product-funds__expand { display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--mono-text-secondary); cursor: pointer; }
+.mono-product-funds__expand:active { background: var(--mono-surface-high); color: var(--mono-text); }
 .mono-product-funds__symbol { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--mono-surface-high); color: var(--mono-text-secondary); font: 13px var(--mono-type-mono-family, var(--mono-font-mono)); }
 .mono-product-funds__identity, .mono-product-funds__value { display: grid; gap: 3px; min-width: 0; }
 .mono-product-funds__identity strong { overflow: hidden; font-family: var(--mono-type-body-family, var(--mono-font-ui)); font-size: var(--mono-type-body-size, 14px); font-weight: var(--mono-type-body-weight, var(--mono-font-weight-medium, 500)); text-overflow: ellipsis; white-space: nowrap; }
@@ -174,6 +178,7 @@ button.mono-product-funds__heading { cursor: pointer; }
   .mono-product-balance-row .mono-balance__amount { font-size: clamp(23px, calc((100cqw - 52px) / var(--mono-balance-fit)), var(--mono-type-balance-size, 52px)); }
   .mono-product-battery { width: 46px; min-width: 46px; }
   .mono-product-funds__asset { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1.2fr) 14px; gap: 8px; }
+  .mono-product-funds__asset-entry .mono-product-funds__asset { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1.2fr); }
   .mono-product-funds__symbol { width: 30px; height: 30px; }
   .mono-product-funds__placements { padding-left: 0; }
   .mono-product-funds[data-variant="tiles"] .mono-product-funds__placements { padding-inline: 11px; }
