@@ -9,6 +9,10 @@ export type ProductHistoryProps = {
   balanceHidden: boolean;
   accountId?: string;
   accountLabel?: string;
+  expandedActivityId?: string | null;
+  onExpandedActivityChange?(id: string | null): void;
+  status?: "ready" | "loading" | "error";
+  onRetry?(): void;
 };
 
 const STATUS_LABEL: Record<ProductActivity["status"], string> = {
@@ -31,13 +35,22 @@ function formatOccurredAt(iso: string): string {
   return Number.isNaN(date.getTime()) ? "Время не указано" : dateFormat.format(date);
 }
 
-export function ProductHistory({ activities, balanceHidden, accountId, accountLabel }: ProductHistoryProps) {
+export function ProductHistory({
+  activities, balanceHidden, accountId, accountLabel,
+  expandedActivityId, onExpandedActivityChange, status = "ready", onRetry,
+}: ProductHistoryProps) {
   const titleId = useId();
   const detailIdPrefix = useId();
   const [openId, setOpenId] = useState<string | null>(null);
+  const activeId = expandedActivityId === undefined ? openId : expandedActivityId;
   const visibleActivities = accountId === undefined
     ? activities
     : activities.filter((activity) => activity.accountId === accountId);
+
+  function changeExpandedActivity(id: string | null) {
+    if (expandedActivityId === undefined) setOpenId(id);
+    onExpandedActivityChange?.(id);
+  }
 
   return <section className={styles.section} aria-labelledby={titleId}>
     <div className={styles.heading}>
@@ -50,14 +63,19 @@ export function ProductHistory({ activities, balanceHidden, accountId, accountLa
     <p className={styles.intro}>
       {accountId === undefined ? "Все счета" : accountLabel ?? "Выбранный счёт"} · примеры состояний, не история переводов
     </p>
-    {visibleActivities.length === 0 ? <p className={styles.empty}>Для этого счёта операций пока нет.</p> :
+    {status === "loading" ? <p className={styles.empty} role="status">Загружаем операции…</p> :
+      status === "error" ? <div className={styles.historyState}>
+        <p role="alert">Не удалось загрузить операции.</p>
+        {onRetry && <button type="button" className={styles.retryButton} onClick={onRetry}>Повторить</button>}
+      </div> :
+      visibleActivities.length === 0 ? <p className={styles.empty}>Для этого счёта операций пока нет.</p> :
       <ol className={styles.rows}>
         {visibleActivities.map((activity, index) => {
-          const expanded = openId === activity.id;
+          const expanded = activeId === activity.id;
           const detailsId = `${detailIdPrefix}-operation-${index}`;
           return <li className={styles.row} key={activity.id} data-status={activity.status}>
             <button type="button" className={styles.rowButton} aria-expanded={expanded}
-              aria-controls={detailsId} onClick={() => setOpenId(expanded ? null : activity.id)}>
+              aria-controls={detailsId} onClick={() => changeExpandedActivity(expanded ? null : activity.id)}>
               <span className={styles.directionMark} aria-hidden="true">{activity.direction === "incoming" ? "↓" : "↑"}</span>
               <span className={styles.rowIdentity}>
                 <strong>{activity.direction === "incoming" ? "Получение" : "Отправка"} · {activity.assetSymbol}</strong>

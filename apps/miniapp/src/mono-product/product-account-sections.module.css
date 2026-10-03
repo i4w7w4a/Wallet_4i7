@@ -33,6 +33,22 @@
 .details > div > span, .detailLine > span { color: var(--mono-text-secondary, #bdbdbd); }
 .details strong, .detailLine strong { max-width: 65%; text-align: right; overflow-wrap: anywhere; font-weight: 500; font-variant-numeric: tabular-nums; }
 
+.recentActivity { margin-top: 18px; }
+.recentHeading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; }
+.recentHeading h2 { margin: 0; font-size: var(--mono-type-body-size, 14px); line-height: 1.3; font-weight: 600; }
+.recentButton { border-top: 1px solid var(--mono-rule, #343434); border-bottom: 1px solid var(--mono-rule, #343434); transition: background-color 190ms cubic-bezier(0.2, 0, 0, 1); }
+.recentButton:active { transition-duration: 80ms; }
+.recentChevron { flex: 0 0 16px; width: 16px; height: 16px; color: var(--mono-text-secondary, #bdbdbd); }
+.historyState { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding: 8px 0; border-top: 1px solid var(--mono-rule, #343434); }
+.historyState p { margin: 0; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; line-height: 1.45; }
+.retryButton { flex-shrink: 0; min-width: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--mono-rule, #343434); border-radius: 8px; background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: 12px; -webkit-tap-highlight-color: transparent; }
+.retryButton:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 2px; }
+.retryButton:active { background: var(--mono-surface-high, #25272e); }
+
+@media (prefers-reduced-motion: reduce) {
+  .recentButton { transition: none; }
+}
+
 .identity { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
 .avatar { display: grid; flex: 0 0 44px; width: 44px; height: 44px; place-items: center; border: 1px solid var(--mono-rule-strong, #777982); border-radius: 50%; background: var(--mono-surface, #1a1c21); font-size: 17px; font-weight: 600; }
 .identity > div { display: grid; gap: 3px; min-width: 0; }

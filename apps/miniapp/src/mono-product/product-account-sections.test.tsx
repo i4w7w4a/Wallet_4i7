@@ -106,6 +106,70 @@ it("keeps an unknown fee unknown instead of calling it zero", () => {
   expect(screen.queryByText(/0(?:[.,]0+)?\s*ETH/)).not.toBeInTheDocument();
 });
 
+it("opens a controlled activity and requests collapse without overriding the parent", () => {
+  const onExpandedActivityChange = vi.fn();
+  const { rerender } = render(<ProductHistory activities={activities} balanceHidden={false}
+    accountId="account-a" expandedActivityId="pending-a" onExpandedActivityChange={onExpandedActivityChange} />);
+  const row = screen.getByRole("button", { name: /USDT/ });
+  expect(row).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByText("0.05 TON")).toBeInTheDocument();
+
+  fireEvent.click(row);
+  expect(onExpandedActivityChange).toHaveBeenCalledExactlyOnceWith(null);
+  expect(row).toHaveAttribute("aria-expanded", "true");
+
+  rerender(<ProductHistory activities={activities} balanceHidden={false}
+    accountId="account-a" expandedActivityId={null} onExpandedActivityChange={onExpandedActivityChange} />);
+  expect(row).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByText("0.05 TON")).not.toBeInTheDocument();
+  fireEvent.click(row);
+  expect(onExpandedActivityChange).toHaveBeenLastCalledWith("pending-a");
+});
+
+it("does not expand a controlled record from another account", () => {
+  const { rerender } = render(<ProductHistory activities={activities} balanceHidden={false}
+    accountId="account-a" expandedActivityId="pending-a" />);
+  expect(screen.getByText("0.05 TON")).toBeInTheDocument();
+
+  rerender(<ProductHistory activities={activities} balanceHidden={false}
+    accountId="account-b" expandedActivityId="pending-a" />);
+  expect(screen.getByRole("button", { name: /BTC/ })).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByText("0.05 TON")).not.toBeInTheDocument();
+  expect(screen.queryByText("Основной счёт")).not.toBeInTheDocument();
+});
+
+it("announces loading and suppresses stale rows and expanded details until ready", () => {
+  const { container, rerender } = render(<ProductHistory activities={activities} balanceHidden={false}
+    expandedActivityId="pending-a" status="loading" />);
+  expect(screen.getByRole("status")).toHaveTextContent(/загружаем операции/i);
+  expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  expect(container.innerHTML).not.toMatch(/12\.345|0\.05/);
+  expect(screen.queryByText(/операций пока нет/i)).not.toBeInTheDocument();
+
+  rerender(<ProductHistory activities={activities} balanceHidden={false}
+    expandedActivityId="pending-a" status="ready" />);
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /USDT/ })).toHaveAttribute("aria-expanded", "true");
+});
+
+it("shows a safe error and exposes the supplied retry instead of stale rows", () => {
+  const onRetry = vi.fn();
+  const { container } = render(<ProductHistory activities={activities} balanceHidden={false}
+    expandedActivityId="pending-a" status="error" onRetry={onRetry} />);
+  expect(screen.getByRole("alert")).toHaveTextContent(/не удалось загрузить операции/i);
+  expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  expect(container.innerHTML).not.toMatch(/12\.345|0\.05/);
+  fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+  expect(onRetry).toHaveBeenCalledOnce();
+});
+
+it("does not offer a retry when no retry command was supplied", () => {
+  render(<ProductHistory activities={[]} balanceHidden status="error" />);
+  expect(screen.getByRole("alert")).toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(screen.queryByText(/операций пока нет/i)).not.toBeInTheDocument();
+});
+
 it("requests a controlled privacy change from the profile", () => {
   const onBalanceHiddenChange = vi.fn();
   const { rerender } = render(<ProductProfile profile={profile} balanceHidden={false} onBalanceHiddenChange={onBalanceHiddenChange} />);
