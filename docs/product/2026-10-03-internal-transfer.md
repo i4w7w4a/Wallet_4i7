@@ -2,7 +2,7 @@
 
 Владелец разрешил разбить следующий срез на агентов и поручил ORACLE общую сборку. Реализуем только счета/выбор маршрута + законченный внутренний demo transfer. Обмен, покупка, расширение профиля и публикация на VPS — не эта волна.
 
-Canonical checkout: `C:/Users/iwwa/.codex/worktrees/mono-showcase/5-wallet-foundation`; branch `codex/product-ux-20261003`; base `ccd6681`. Текущий runtime `33a22ef`, origin `http://127.0.0.1:3184/mono`.
+Canonical checkout: `C:/Users/iwwa/.codex/worktrees/mono-showcase/5-wallet-foundation`; branch `codex/product-ux-20261003`; base `ccd6681`. Runtime до начала волны `33a22ef`, origin `http://127.0.0.1:3184/mono`. Итоговая сборка указана ниже.
 
 ## Global Constraints
 
@@ -87,3 +87,13 @@ Commit only owned files; report `.superpowers/sdd/2026-10-03-internal-transfer/t
 - После handoff трёх исполнителей один scoped review на diff от ccd6681, один miniapp typecheck/build. Текущий3184 держать до freeze, warning root→verified stop/build/start→READY exact SHA/buildId. Root проходит один browser путь390px. Без VPS/push.
 
 Report `.superpowers/sdd/2026-10-03-internal-transfer/task-4-report.md`; сперва ждать contract commit Task1, независимые integration заготовки допустимы. Если contract не стыкуется — root решает, не добавлять вторую parallel API.
+
+## Итог локальной волны — 2026-10-03
+
+- Все четыре задачи интегрированы. Новый выбор счёта и маршрута, внутреннее demo-пополнение Основной → Хранилище (USDC/Ethereum), расчёт/подтверждение/результат, память черновика в текущей сессии и переход к одной операции в истории. В контексте источника она исходящая, получателя — входящая; в «Все счета» не дублируется.
+- Коммиты: контракт `3c20a46`, проекция истории `05575b6`, choosers `3fb1102`, port `9ff5209`, Receive `4894e4a` + компактная правка `7016417`, интеграция `eb53490`.
+- Source/runtime: `eb53490ef2277958dfe748e48284a6c8603dde92`; build `mOplij_3NWoOFqcLn_Eyx`; preview `http://127.0.0.1:3184/mono`. ORACLE выполнил одну production-сборку и штатный verified start, проверив identity и HTTP 200. Общий typecheck и целевые проверки компонентов/стыков прошли; полные смежные suites не повторялись.
+- Root прочитал исходники и стыки один раз, устранил повторяющийся контекст/intro через владельцев модулей. Финальный browser walkthrough не завершён: инструмент отклонил доступ к вкладке по browser security policy. Обход не выполнялся. Визуальная оценка передана владельцу; новых скриншотов этой волны нет. Физический телефон и все темы не проверялись.
+- Это симуляция: реальные средства не перемещаются, остатки и батарейка не списываются; комиссия 0 — явный demo-пример, не будущий тариф. Пресеты и материалы не изменены. Только локальные commits, без push/merge/VPS. Чужой generated `next-env.d.ts` сохранён вне коммитов.
+
+Короткий путь просмотра: «Получить» → «Хранилище» → USDC → ввести сумму → «Рассчитать пример» → «Подтвердить симуляцию» → «В истории». Завершение этой волны не означает готовность реального backend; обмен/покупка/вывод остаются отдельными следующими сценариями.
