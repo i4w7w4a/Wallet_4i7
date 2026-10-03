@@ -1,5 +1,6 @@
 import type { ProductActionRoute } from "@wallet/core";
 import type { SendDemoResult, SendRecipient } from "./send-port";
+import type { SendQuoteReceipt } from "../operation-receipt";
 
 export type SendDraft = {
   route: { accountId: string; assetId: string; networkId: string };
@@ -12,6 +13,7 @@ export type SendSimulationResult = {
   route: ProductActionRoute;
   quantity: string;
   result: SendDemoResult;
+  receipt?: SendQuoteReceipt;
 };
 
 export type SendFormOptions = {

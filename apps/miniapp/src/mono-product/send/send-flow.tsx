@@ -196,7 +196,7 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
           : "Заряд не списан."}</p>}
         {resultSuccess ? <button className={styles.primary} type="button" onClick={onClose}>Готово</button>
           : <button className={styles.primary} type="button" onClick={() => void flow.requestQuote()}>Пересчитать и повторить</button>}
-        {resultSuccess && onViewHistory && <button className={styles.secondary} type="button" onClick={onViewHistory}>В истории</button>}
+        {onViewHistory && <button className={styles.secondary} type="button" onClick={onViewHistory}>В истории</button>}
         {!resultSuccess && <button className={styles.secondary} type="button" onClick={onClose}>Закрыть</button>}
       </div>}
     </div>

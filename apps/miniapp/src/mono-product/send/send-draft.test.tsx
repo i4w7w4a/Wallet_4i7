@@ -158,7 +158,8 @@ it.each(["simulated-success", "simulated-failure"] as const)("reports one %s res
   const result: SendDemoResult = status === "simulated-success" ? { mode: "demo", status }
     : { mode: "demo", status, reason: "rejected" };
   await act(async () => pending.resolve(result));
-  expect(events).toEqual([{ simulationId: send.mock.calls[0]![0].idempotencyKey, route, quantity: "12.34", result }]);
+  expect(events).toHaveLength(1);
+  expect(events[0]).toMatchObject({ simulationId: send.mock.calls[0]![0].idempotencyKey, route, quantity: "12.34", result });
   expect(send).toHaveBeenCalledTimes(1);
   rendered.rerender(<Host />);
   expect(events).toHaveLength(1);

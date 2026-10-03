@@ -3,6 +3,7 @@ import type { ProductActionRoute } from "@wallet/core";
 import type { SendDemoResult, SendIssue, SendPort, SendQuote, SendRecipient, SendRequest, SendRouteData } from "./send-port";
 import { validateAmount, validateQuote } from "./send-validation";
 import { formDraft, matchingDraft, type SendFormOptions } from "./send-form";
+import { normalizeOperationReceipt } from "../operation-receipt";
 
 type Stage = "recipient" | "amount" | "review" | "pending" | "result";
 type Loaded = { port: SendPort; attempt: number; data: SendRouteData | null; issue: SendIssue | null };
@@ -177,6 +178,15 @@ export function useSendFlow(route: ProductActionRoute, port: SendPort, {
     if (!request) return;
     const problem = validateQuote(request, quote, Date.now());
     if (problem) { setQuote(null); setIssue(problem); setStage("amount"); return; }
+    // Capture the accepted quote now: even synchronous mutations inside send
+    // must not rewrite the terminal receipt. Only explicit public fields survive.
+    const receipt = normalizeOperationReceipt({
+      assetDebit: quote.assetDebit,
+      networkFee: quote.networkFee,
+      feeFunding: quote.feeFunding.kind === "battery" ? { kind: "battery", poolId: quote.feeFunding.pool.id,
+        networkLabel: quote.feeFunding.pool.networkLabel, charges: quote.feeFunding.charges } : { kind: quote.feeFunding.kind },
+      estimatedCompletionSeconds: quote.estimatedCompletionSeconds,
+    });
     // Ref lock closes the same-event gap before React renders disabled controls.
     sendLocked.current = true;
     const task = nextOperation();
@@ -197,7 +207,8 @@ export function useSendFlow(route: ProductActionRoute, port: SendPort, {
     setResult(accepted); sendLocked.current = false; setWorking(null); setStage("result");
     // Event-driven, never replayed by renders/effects. Observer errors cannot rewrite the result.
     if (simulationId !== null) {
-      observers.current.onSimulationResult?.({ simulationId, route: { ...route }, quantity: request.amount, result: { ...accepted } });
+      observers.current.onSimulationResult?.({ simulationId, route: { ...route }, quantity: request.amount,
+        result: { ...accepted }, ...(receipt ? { receipt } : {}) });
     }
   }
 
