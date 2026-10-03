@@ -50,22 +50,24 @@ export function ExternalReceive({ route, destination, privacy, renderQr }: {
     accountId: destination.accountId, assetId: destination.assetId, networkId: destination.networkId });
 
   return <>
-    <p className={styles.networkWarning}><span aria-hidden="true">!</span>
-      <span>Для {route.symbol} нужна сеть {route.networkLabel}. Другая сеть может привести к потере средств.</span>
-    </p>
-    <div className={styles.destination}>
-      <div className={styles.destinationVisual}>
-        {privacy ? <><span className={styles.placeholderMark} aria-hidden="true">—</span><strong>Реквизиты скрыты</strong></>
-          : qr ? <div className={styles.qr} role="img" aria-label="Тестовый QR демо-реквизитов — не для оплаты">{qr}</div>
-          : <><span className={styles.placeholderMark} aria-hidden="true">↓</span><strong>QR не подключён</strong>
-              <span>Демо-реквизиты ниже — не платёжный адрес.</span></>}
-      </div>
+    <section className={styles.destination} aria-label="Неплатёжные реквизиты">
       <div className={styles.reference}>
-        <span className={styles.eyebrow}>ДЕМО-РЕКВИЗИТЫ · {route.networkLabel}</span>
-        {privacy ? <p>Выключите скрытие данных, чтобы увидеть реквизиты.</p> : <code>{destination.reference}</code>}
+        <div className={styles.referenceHeading}>
+          <span className={styles.eyebrow}>РЕКВИЗИТЫ · {route.networkLabel}</span>
+          <span className={styles.nonPayable}>Не для платежей</span>
+        </div>
+        {privacy ? <div className={styles.privacyNotice}><strong>Реквизиты скрыты</strong>
+          <p>Выключите скрытие данных, чтобы увидеть реквизиты.</p></div> : <>
+          <code>{destination.reference}</code>
+          <p className={styles.demoNote}>Не отправляйте средства по этим реквизитам.</p>
+          {qr ? <div className={styles.qr} role="img" aria-label="Тестовый QR демо-реквизитов — не для оплаты">{qr}</div>
+            : <p className={styles.qrHint}>QR не подключён</p>}
+        </>}
       </div>
-    </div>
-    <p className={styles.demoNote}>Не отправляйте средства. Это демонстрация, реквизиты не принимают платежи.</p>
+    </section>
+    <p className={styles.networkWarning}><span aria-hidden="true">!</span>
+      <span>Для {route.symbol} нужна сеть {route.networkLabel}. Средства из другой сети могут быть потеряны.</span>
+    </p>
     <div className={styles.actions}>
       <button type="button" className={styles.primaryButton} disabled={privacy || !canCopy || feedback.kind === "pending"}
         aria-label="Копировать демо-реквизиты" onClick={() => void perform("copy")}>Копировать</button>
@@ -74,7 +76,7 @@ export function ExternalReceive({ route, destination, privacy, renderQr }: {
     </div>
     {!privacy && (!canCopy || !canShare) && <p className={styles.supportNote}>{!canCopy
       ? "Копирование недоступно в этом браузере. Выделите демо-реквизиты и скопируйте вручную."
-      : "Меню «Поделиться» недоступно в этом браузере. Реквизиты можно скопировать."}</p>}
+      : "Поделиться недоступно. Реквизиты можно скопировать."}</p>}
     <p className={styles.feedback} role={feedback.kind === "error" ? "alert" : "status"} aria-atomic="true">{feedback.message}</p>
   </>;
 }

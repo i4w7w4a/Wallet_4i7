@@ -21,14 +21,14 @@ export function InternalReceive({ route, destination, onClose }: {
       <span aria-hidden="true">←</span>Назад к счетам-источникам
     </button>
     <h4 id={reviewTitleId} ref={reviewHeading} tabIndex={-1}>Маршрут пополнения</h4>
-    <div className={styles.transferPath}>
-      <div><span>Со счёта</span><strong>{source.accountLabel}</strong></div>
+    <div className={styles.transferPath} role="group" aria-label="Направление пополнения">
+      <div><span>Откуда</span><strong>{source.accountLabel}</strong></div>
       <span className={styles.pathArrow} aria-hidden="true">↓</span>
-      <div><span>На счёт</span><strong>{route.accountLabel}</strong></div>
+      <div><span>Куда</span><strong>{route.accountLabel}</strong></div>
     </div>
     <p className={styles.reviewAsset}>{route.symbol} · {route.networkLabel}</p>
     <div className={styles.operationNote}><strong>Перевод не выполнен</strong>
-      <p>В демо можно проверить только маршрут. Комиссия пока неизвестна; сумма и подтверждение операции недоступны.</p></div>
+      <p>Комиссия пока неизвестна. Сумма и подтверждение недоступны.</p></div>
     <button type="button" className={styles.primaryButton} onClick={onClose}>Готово</button>
   </section>;
 
@@ -38,9 +38,9 @@ export function InternalReceive({ route, destination, onClose }: {
 
   const available = destination.sources.some(candidate => candidate.status === "available");
   return <div>
-    <p className={styles.intro}>Выберите, с какого счёта пополнить «{route.accountLabel}». В этом сценарии внешний адрес не используется.</p>
+    <p className={styles.intro}>Выберите счёт для пополнения.</p>
     <fieldset className={styles.sources}>
-      <legend>Счёт-источник</legend>
+      <legend>Откуда</legend>
       {destination.sources.map(candidate => <label key={candidate.accountId} className={styles.source}
         data-selected={candidate.accountId === sourceId} data-unavailable={candidate.status !== "available"}>
         <input type="radio" name={radioName} checked={candidate.accountId === sourceId}
@@ -51,8 +51,11 @@ export function InternalReceive({ route, destination, onClose }: {
           : `${route.symbol} · ${route.networkLabel}`}</small></span>
       </label>)}
     </fieldset>
+    <div className={styles.receiveTarget}>
+      <span aria-hidden="true">↓</span><div><span>Куда</span><strong>{route.accountLabel}</strong></div>
+    </div>
     {!available && <p className={styles.supportNote} role="status">Нет доступных счетов-источников. Выберите другой маршрут.</p>}
-    <p className={styles.demoNote}>Демонстрационный выбор. Средства не перемещаются.</p>
+    <p className={styles.demoNote}>Средства не перемещаются.</p>
     <button type="button" className={styles.primaryButton} disabled={!source} onClick={() => setStep("review")}>Проверить маршрут</button>
   </div>;
 }

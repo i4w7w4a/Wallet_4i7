@@ -32,9 +32,9 @@ it("shows scoped demo battery data with no invented operation and returns throug
   expect(screen.getByText("64%")).toBeVisible();
   expect(screen.getByText("Ожидание появится при отправке")).toBeVisible();
   expect(screen.queryByText("Время уточняется")).toBeNull();
-  const how = screen.getByText("Как это работает").closest("details")!;
-  expect(how).toHaveTextContent(/общий пул.*сети/);
-  expect(how).toHaveTextContent(/подтверждённый расчёт/);
+  const how = screen.getByText("Как работает").closest("details")!;
+  expect(how).toHaveTextContent("Подходящие счета одной сети используют общий заряд");
+  expect(how).toHaveTextContent("подтверждает расчёт перевода");
   fireEvent.click(screen.getByRole("button", { name: "Назад к операции" }));
   expect(onBack).toHaveBeenCalledOnce();
 });

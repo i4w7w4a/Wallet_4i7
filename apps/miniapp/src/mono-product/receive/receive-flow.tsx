@@ -52,7 +52,6 @@ function ReceiveRouteContent(props: ReceiveFlowProps & { route: ReceiveRoute }) 
       {state.status === "loading" && <div className={styles.empty} role="status">
         <span className={styles.stateMark} aria-hidden="true">…</span>
         <strong>{receiveMode === "external-address" ? "Загружаем реквизиты" : "Проверяем счета-источники"}</strong>
-        <p>Выбранный маршрут сохранён.</p>
       </div>}
       {state.status === "unavailable" && <Unavailable reason={state.reason} />}
       {state.status === "error" && <div className={styles.empty}>
@@ -88,7 +87,7 @@ function ReceiveFrame({ route, onBack, onClose, onAssetDetails, showCloseButton 
     <header className={styles.heading}>
       <div><p className={styles.eyebrow}>{internal ? "МЕЖДУ СЧЕТАМИ" : "ВНЕШНЕЕ ПОПОЛНЕНИЕ"}</p>
         <h3 id={titleId}>{internal ? "Внутреннее пополнение" : `Получить ${route.symbol}`}</h3></div>
-      <span className={styles.demoBadge}>ДЕМО</span>
+      <span className={styles.demoBadge}>Демо</span>
     </header>
     <dl className={styles.context}>
       <div><dt>Счёт{internal ? " зачисления" : ""}</dt><dd>{route.accountLabel}</dd></div>
@@ -108,11 +107,11 @@ function ReceiveFrame({ route, onBack, onClose, onAssetDetails, showCloseButton 
 }
 
 const unavailableCopy: Record<ReceiveUnavailableReason, [string, string]> = {
-  "account-inactive": ["Счёт не активирован", "Для пополнения нужна активация счёта. В демо она не выполняется."],
+  "account-inactive": ["Счёт не активирован", "Для пополнения нужна активация счёта. Сейчас она недоступна."],
   "account-unavailable": ["Счёт недоступен", "Сейчас получить средства на этот счёт нельзя. Выберите другой счёт."],
   "route-unavailable": ["Получение недоступно", "Этот счёт не поддерживает выбранный способ получения, актив или сеть."],
   "destination-not-connected": ["Реквизиты пока недоступны", "Адрес для этого маршрута ещё не предоставлен. Выберите другой маршрут или вернитесь позже."],
-  "sources-not-connected": ["Счета-источники пока недоступны", "Для внутреннего пополнения нужен подходящий счёт-источник. В этом демо такие связи ещё не заданы."],
+  "sources-not-connected": ["Счета-источники пока недоступны", "Подходящих счетов для внутреннего пополнения пока нет."],
 };
 
 function Unavailable({ reason }: { reason: ReceiveUnavailableReason }) {

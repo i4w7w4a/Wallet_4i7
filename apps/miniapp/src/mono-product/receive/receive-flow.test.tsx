@@ -56,13 +56,23 @@ it("keeps account, asset, network and route-back available while loading", () =>
   expect(onClose).toHaveBeenCalledOnce();
 });
 
-it("shows an unmistakable non-payable reference, matching network warning and honest QR placeholder", async () => {
-  render(<ReceiveFlow route={external} dataPort={readyPort()} privacy={false} onBack={vi.fn()} onClose={vi.fn()} />);
+it("shows compact non-payable receive details and masks the complete destination in privacy mode", async () => {
+  const props = { route: external, dataPort: readyPort(), onBack: vi.fn(), onClose: vi.fn() };
+  const { rerender, container } = render(<ReceiveFlow {...props} privacy={false} />);
   expect(await screen.findByText(destination.reference)).toBeVisible();
-  expect(screen.getByText("QR не подключён")).toBeVisible();
+  const details = screen.getByRole("region", { name: "Неплатёжные реквизиты" });
+  expect(within(details).getByText("Не для платежей")).toBeVisible();
+  expect(within(details).getByText(destination.reference)).toBeVisible();
+  expect(within(details).getByText("QR не подключён")).toBeVisible();
   expect(screen.getByText(/Для USDC нужна сеть Ethereum/)).toBeVisible();
   expect(screen.getByText(/Не отправляйте средства/)).toBeVisible();
   expect(screen.queryByRole("img", { name: /QR/ })).toBeNull();
+  rerender(<ReceiveFlow {...props} privacy />);
+  expect(screen.getByText("Реквизиты скрыты")).toBeVisible();
+  expect(container.innerHTML).not.toContain(destination.reference);
+  expect(screen.queryByText("QR не подключён")).toBeNull();
+  expect(screen.getByRole("button", { name: "Копировать демо-реквизиты" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Поделиться демо-реквизитами" })).toBeDisabled();
 });
 
 it("reports clipboard success only after the browser promise resolves and prevents duplicate writes", async () => {

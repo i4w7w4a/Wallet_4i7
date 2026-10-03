@@ -44,8 +44,8 @@ export function ProductAssetDetail({ route, battery, operation, onBack }: Produc
   return <section className={styles.detail} aria-labelledby={titleId}>
     <button type="button" className={styles.back} onClick={onBack}><span aria-hidden="true">←</span>Назад к операции</button>
     <header className={styles.heading}>
-      <span className={styles.symbol}>{route.symbol}</span>
       <h3 id={titleId}>{route.name}</h3>
+      <span className={styles.symbol}>{route.symbol}</span>
     </header>
     <p className={styles.example}>Пример · данные не подключены</p>
     <dl className={styles.context}>
@@ -55,8 +55,8 @@ export function ProductAssetDetail({ route, battery, operation, onBack }: Produc
     <section className={styles.battery} aria-label="Батарейка сети">
       <h4>Батарейка</h4>
       <dl className={styles.metrics}>
-        <div><dt>Заряд</dt><dd>{charge === null ? "Нет данных" : `${percentFormat.format(charge)}%`}</dd></div>
-        {battery?.remainingTransfers !== undefined && <div><dt>Переводов в общем пуле</dt>
+        <div><dt>Заряд</dt><dd className={styles.chargeValue} data-known={charge !== null}>{charge === null ? "Нет данных" : `${percentFormat.format(charge)}%`}</dd></div>
+        {battery?.remainingTransfers !== undefined && <div><dt>Осталось переводов</dt>
           <dd>{typeof remaining === "number" && Number.isSafeInteger(remaining) && remaining >= 0 ? remaining : "Нет данных"}</dd>
         </div>}
       </dl>
@@ -65,16 +65,16 @@ export function ProductAssetDetail({ route, battery, operation, onBack }: Produc
         <span style={{ width: `${charge}%` }} />
       </div>}
       <details className={styles.explanation}>
-        <summary>Как это работает</summary>
-        <p>Батарейка — общий пул для подходящих счетов одной сети. Его заряд не складывается по счетам.</p>
-        <p>Сетевую комиссию покрывает батарейка, если это включает подтверждённый расчёт конкретной операции. Процент заряда сам по себе не обещает бесплатный перевод.</p>
+        <summary>Как работает</summary>
+        <p>Подходящие счета одной сети используют общий заряд.</p>
+        <p>Батарейка покрывает сетевую комиссию, когда это подтверждает расчёт перевода. Сам процент заряда не гарантирует перевод без комиссии.</p>
       </details>
     </section>
     <div className={styles.operation} role="status" aria-atomic="true">
       {operation ? <>
         <strong>{operationLabels[operation.status]}</strong>
         {waiting && <p>{estimate === null ? "Время уточняется" : formatEstimate(estimate)}</p>}
-        {estimate !== null && <small>Оценка текущей демо-операции, не срока работы сети.</small>}
+        {estimate !== null && <small>Оценка этой симуляции. Срок реального перевода неизвестен.</small>}
       </> : <p>Ожидание появится при отправке</p>}
     </div>
   </section>;

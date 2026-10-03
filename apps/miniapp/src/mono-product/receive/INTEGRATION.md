@@ -73,7 +73,7 @@ Clipboard success появляется только после resolved `navigat
 
 ## Представление и проверка
 
-CSS Module наследует MONO text/surface/rule/font/radius/easing variables. Один короткий переход 220 ms, без overshoot; reduced motion выключает переходы, touch-кнопки минимум 44×44, источники имеют полную clickable label высотой 64 px. Новых WebGL/RAF/timer/runtime нет; семь presets и общий material host не изменены.
+CSS Module наследует MONO text/surface/rule/font/radius/easing variables. Один короткий переход 220 ms, без overshoot; reduced motion и MONO static выключают переходы, touch-кнопки минимум 44×44, источники имеют полную clickable label высотой 56 px. Реквизиты стоят первыми; без renderer QR обозначен компактной строкой, без пустой QR-плашки. Новых WebGL/RAF/timer/runtime нет; семь presets и общий material host не изменены.
 
 Focused suite: `pnpm --filter @wallet/miniapp exec vitest run src/mono-product/receive/receive-flow.test.tsx`. Покрывает 20 сценариев routing, stale response, unavailable/inactive, clipboard/share success/rejection/cancel, privacy, internal source/back/close и demo bindings. Проведены локальный lint, изолированная проверка типов модуля/теста и один self-read. Общий build и browser smoke после подключения — у оркестратора/ORACLE. Визуальное одобрение ещё не получено.
 
