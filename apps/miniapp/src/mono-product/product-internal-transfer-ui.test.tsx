@@ -22,7 +22,7 @@ it("restores only the internal draft across appearance/privacy, then opens one e
   const openFromAll = () => {
     fireEvent.click(screen.getByRole("button", { name: "Получить" }));
     fireEvent.click(screen.getByRole("button", { name: "Хранилище" }));
-    fireEvent.click(screen.getByRole("button", { name: "USDC · USD Coin · Ethereum · Хранилище · Между счетами" }));
+    fireEvent.click(screen.getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Хранилище)(?=.*Между счетами)/ }));
   };
   openFromAll();
   fireEvent.change(await screen.findByRole("textbox", { name: "Сумма пополнения" }), { target: { value: "0012,50" } });

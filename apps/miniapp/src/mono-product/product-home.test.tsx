@@ -43,7 +43,8 @@ it("switches account context and offers only that account's receive route", asyn
     .getByRole("button", { name: "Закрыть" }));
   fireEvent.click(screen.getByRole("button", { name: "Получить" }));
   const receiveSheet = screen.getByRole("dialog", { name: "Получить" });
-  expect(receiveSheet).toHaveTextContent("Внутреннее пополнение");
+  expect(receiveSheet).toHaveTextContent("Между счетами");
+  expect(receiveSheet).not.toHaveAttribute("aria-modal", "true");
   expect(receiveSheet).toHaveTextContent("Ethereum");
   expect(receiveSheet).not.toHaveTextContent("Solana");
 });

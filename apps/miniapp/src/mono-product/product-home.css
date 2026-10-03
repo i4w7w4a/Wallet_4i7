@@ -137,6 +137,18 @@ button.mono-product-funds__heading { cursor: pointer; }
 .mono-product-sheet__header h2 { margin: 0; font: 600 20px/1.2 var(--mono-font-display); letter-spacing: -.025em; }
 .mono-product-sheet__header button { min-width: 65px; min-height: 44px; padding: 0 7px; border: 0; background: transparent; color: var(--mono-text-secondary); font: 500 12px var(--mono-font-ui); cursor: pointer; }
 .mono-product-sheet__body { padding-top: 7px; }
+.mono-product-sheet[data-product-receive-screen] .mono-product-sheet__panel {
+  top: env(safe-area-inset-top, 0px); bottom: env(safe-area-inset-bottom, 0px);
+  display: grid; grid-template-rows: auto minmax(0, 1fr); max-height: none; overflow: hidden;
+  padding: 0; border-radius: 0; border: 0;
+  animation: mono-product-receive-in 180ms cubic-bezier(.2, 0, 0, 1) both;
+}
+.mono-product-sheet[data-product-receive-screen] .mono-product-sheet__header { padding: 8px 18px; min-height: 56px; }
+.mono-product-sheet[data-product-receive-screen] .mono-product-sheet__body {
+  min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
+  padding: 7px 18px 20px;
+}
+.mono-page[data-mono-motion="static"] .mono-product-sheet[data-product-receive-screen] :is(.mono-product-sheet__panel, .mono-product-sheet__scrim) { animation: none; }
 .mono-product-sheet__intro, .mono-product-sheet__caution, .mono-product-sheet__empty { margin: 0 0 13px; color: var(--mono-text-secondary); font-size: 12px; line-height: 1.5; }
 .mono-product-sheet__caution { padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--mono-rule); }
 .mono-product-sheet__empty { padding: 13px 0; border: 0; background: transparent; color: var(--mono-text); }
@@ -166,11 +178,13 @@ button.mono-product-funds__heading { cursor: pointer; }
 
 @keyframes mono-product-scrim-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mono-product-panel-in { from { opacity: .7; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mono-product-receive-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) {
   .mono-page[data-mono-product="true"] :is(.mono-product-context > button, .mono-product-battery, .mono-product-funds__asset) { transition: none; }
   .mono-page[data-mono-motion="ready"] .mono-product-battery .mono-product-battery__charge,
   .mono-page[data-mono-motion="ready"] .mono-product-battery svg { animation: none; }
   .mono-product-sheet__scrim, .mono-product-sheet__panel { animation: none; }
+  .mono-product-sheet[data-product-receive-screen] .mono-product-sheet__panel { animation: none; }
 }
 @container mono-preview (max-width: 359px) {
   .mono-product-context { gap: 8px; }

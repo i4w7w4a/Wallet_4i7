@@ -98,14 +98,16 @@ it("rejects unsupported bindings, stale balances, wrong networks and invalid amo
   expect(result.current.view.activities.some(activity => activity.internalTransfer)).toBe(false);
 });
 
-it("opens one exact route directly and closes Back without a loop; All picker preserves context", () => {
+it("keeps a single main Receive route in its chooser and preserves All context on Back", () => {
   const { result } = renderHook(() => useMonoProductController(MONO_PRODUCT_DEMO_ADAPTER, { initialHidden: false }));
   act(() => result.current.commands.selectContext({ kind: "account", accountId: "demo-depositary" }));
   act(() => result.current.commands.openIntent("receive"));
+  expect(result.current.view.sheet).toMatchObject({ kind: "intent", route: null });
+  act(() => result.current.commands.selectRoute(target));
   expect(result.current.view.sheet).toMatchObject({ kind: "intent", route: target });
   act(() => result.current.commands.backToRoutes(target));
-  expect(result.current.view.sheet).toBeNull();
-  act(() => result.current.commands.backToRoutes(target));
+  expect(result.current.view.sheet).toMatchObject({ kind: "intent", route: null });
+  act(() => result.current.commands.openIntent("receive"));
   expect(result.current.view.sheet).toBeNull();
   act(() => result.current.commands.selectContext({ kind: "all" }));
   act(() => result.current.commands.openIntent("receive"));

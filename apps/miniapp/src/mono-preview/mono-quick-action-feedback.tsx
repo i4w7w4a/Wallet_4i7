@@ -21,6 +21,7 @@ type Props = {
   onActivate: () => void;
   accessibleLabel?: string;
   productPrimary?: boolean;
+  productReceiveExpanded?: boolean;
   materialTargetId?: ButtonTargetId;
   materialRadiusCss?: number;
   actionId?: ButtonTargetId;
@@ -29,7 +30,7 @@ type Props = {
   manualPreviewTrigger?: number;
 };
 
-export function MonoQuickActionFeedback({ label, path, preset, onActivate, accessibleLabel, productPrimary,
+export function MonoQuickActionFeedback({ label, path, preset, onActivate, accessibleLabel, productPrimary, productReceiveExpanded,
   materialTargetId, materialRadiusCss,
   actionId, artwork, active = true, manualPreviewTrigger = 0 }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -108,6 +109,9 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, acces
   return (
     <button className="mono-actions__item" type="button" data-control-effect={effectId}
       data-product-primary={productPrimary || undefined}
+      data-mono-product-receive-trigger={productReceiveExpanded !== undefined || undefined}
+      aria-haspopup={productReceiveExpanded !== undefined ? "dialog" : undefined}
+      aria-expanded={productReceiveExpanded}
       data-material-target={materialTargetId}
       data-key-pressed={keyboardPressed}
       data-artwork-pack={artwork?.packId}

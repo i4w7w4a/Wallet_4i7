@@ -282,7 +282,10 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       openBattery() { updateBatteryActivity(null); setSheet(current => current?.kind === "battery" ? null : { kind: "battery" }); },
       openIntent(action) {
         const routes = resolveActionRoutes(snapshot, effectiveContext, action).routes;
-        updateBatteryActivity(null); setSheet({ kind: "intent", action, route: routes.length === 1 ? routes[0]! : null });
+        updateBatteryActivity(null);
+        setSheet(current => action === "receive" && current?.kind === "intent" && current.action === "receive" &&
+          current.route === null && !current.placementId ? null :
+          { kind: "intent", action, route: action !== "receive" && routes.length === 1 ? routes[0]! : null });
       },
       openPlacementAction(holdingId, action) {
         const holding = snapshot.holdings.find(candidate => candidate.id === holdingId);
@@ -315,7 +318,8 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       }); },
       backToRoutes(route) { updateBatteryActivity(null); setSheet(current => {
         if (current?.kind !== "intent" || current.action !== route.action) return current;
-        if ((resolveIntent(snapshot, effectiveContext, current)?.routes.length ?? 0) <= 1) return null;
+        if ((current.placementId || current.action !== "receive") &&
+          (resolveIntent(snapshot, effectiveContext, current)?.routes.length ?? 0) <= 1) return null;
         return { ...current, route: null, focusRouteKey: productRouteKey(route) };
       }); },
       setBatteryActivity,

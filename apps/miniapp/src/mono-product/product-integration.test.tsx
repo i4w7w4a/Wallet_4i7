@@ -50,17 +50,23 @@ function choose(action: "Получить" | "Отправить", route: RegExp
 
 it("integrates external receive, preserves privacy and returns to the selected chooser route", async () => {
   const { rerender, wallet, envelope } = await home();
-  const trigger = choose("Получить", /USDC · Ethereum.*Основной.*Внешний адрес/);
+  const originalBounds = HTMLElement.prototype.getBoundingClientRect;
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    if (this.hasAttribute("data-mono-preview")) return new DOMRect(0, 0, 480, 1100);
+    if (this.hasAttribute("data-mono-product-receive-trigger")) return new DOMRect(180, 300, 60, 60);
+    return originalBounds.call(this);
+  });
+  const trigger = choose("Получить", /(?=.*USDC)(?=.*Ethereum)(?=.*Основной)/);
   await screen.findByText(/^DEMO-NON-PAYABLE:/);
   expect(screen.getAllByRole("dialog")).toHaveLength(1);
   rerender(<MonoProductScene snapshot={wallet} appearance={envelope.appearance} material={envelope.material}
     session={{ balanceHidden: true, onBalanceHiddenChange() {}, period: "1D", onPeriodChange() {} }} />);
   expect(screen.queryByText(/^DEMO-NON-PAYABLE:/)).toBeNull();
-  expect(screen.getByRole("button", { name: "Копировать демо-реквизиты" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Скопировать реквизиты" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: /Назад к выбору маршрута/ }));
   const selected = within(screen.getByRole("dialog", { name: "Получить" }))
-    .getByRole("button", { name: /USDC · Ethereum.*Основной.*Внешний адрес/ });
-  expect(selected).toHaveFocus();
+    .getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Основной)/ });
+  await waitFor(() => expect(selected).toHaveFocus());
   fireEvent.keyDown(selected, { key: "Escape" });
   await waitFor(() => expect(trigger).toHaveFocus());
 });
@@ -70,10 +76,11 @@ it("finishes the explicitly bound internal receive demo in the selected account"
   fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" }))
     .getByRole("button", { name: /Хранилище/ }));
-  choose("Получить", /USDC · Ethereum.*Хранилище/);
-  fireEvent.click(await screen.findByRole("radio", { name: /Основной/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Проверить маршрут" }));
-  expect(screen.getByRole("heading", { name: "Маршрут пополнения" })).toBeInTheDocument();
+  choose("Получить", /(?=.*USDC)(?=.*Ethereum)(?=.*Хранилище)/);
+  fireEvent.change(await screen.findByRole("textbox", { name: "Сумма пополнения" }), { target: { value: "1" } });
+  fireEvent.click(screen.getByRole("button", { name: "Рассчитать пример" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Подтвердить симуляцию" }));
+  expect(await screen.findByRole("heading", { name: "Симуляция завершена" })).toBeInTheDocument();
   expect(screen.queryByText(/^DEMO-NON-PAYABLE:/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Готово" }));
   expect(screen.queryByRole("dialog")).toBeNull();

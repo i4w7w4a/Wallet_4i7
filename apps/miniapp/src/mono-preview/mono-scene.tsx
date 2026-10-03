@@ -420,6 +420,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const chart = (!product || (product.view.usesDefaultDemoChart && product.view.context.kind === "all")) && fullScene && appearance.chart &&
     <MonoChart values={snapshot.chart[period]} format={moneyFormat}
     hidden={balanceHidden} period={period} onPeriodChange={setPeriod} appearance={appearance.chart} />;
+  const receiveMenuOpen = product?.view.sheet?.kind === "intent" && product.view.sheet.action === "receive" && !product.view.sheet.route;
+  const productModalOpen = Boolean(product?.view.sheet && product.view.sheet.kind !== "battery" && !receiveMenuOpen);
   return (
         <main ref={node => { pageRef.current = node; if (surfaceRef) surfaceRef.current = node; }}
           className="mono-page" data-mono-preview data-mono-preset={preset}
@@ -453,7 +455,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             </div>
           </div>}
 
-      <div className="mono-scene" inert={Boolean(product?.view.sheet && product.view.sheet.kind !== "battery")}>
+      <div className="mono-scene" inert={productModalOpen}>
         <header className="mono-app-header">
           <div className="mono-app-header__mark">
             <MonoLogo />
@@ -540,6 +542,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
               label={action.label} path={action.path} preset={quickActionPreset}
               accessibleLabel={product ? action.label : undefined}
               productPrimary={Boolean(product && (action.kind === "send" || action.kind === "receive"))}
+              productReceiveExpanded={product && action.kind === "receive" ? Boolean(receiveMenuOpen) : undefined}
               actionId={action.id} artwork={actionArtwork[action.id]} active={active && !effectsDisabled}
               manualPreviewTrigger={artworkPreview?.targetId === action.id ? artworkPreview.trigger : 0}
               materialTargetId={materialTargets ? action.id : undefined}
@@ -638,7 +641,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         </section>}
       </div>
 
-      <nav className="mono-nav" aria-label="Разделы кошелька" inert={Boolean(product?.view.sheet && product.view.sheet.kind !== "battery")}>
+      <nav className="mono-nav" aria-label="Разделы кошелька" inert={productModalOpen}>
         {NAV_ITEMS.map(item => (
           <button className="mono-nav__item" type="button" data-active={section === item.id ? "true" : "false"}
             aria-current={section === item.id ? "page" : undefined} key={item.id}
