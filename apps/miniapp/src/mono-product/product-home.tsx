@@ -2,22 +2,23 @@
 
 import { useId, type CSSProperties } from "react";
 import type { ProductAccount } from "@wallet/core";
-import type { MonoAssetListAppearance, MonoBalanceAppearance } from "../mono-preview/mono-scene-lab-contract";
+import type { MonoBalanceAppearance } from "../mono-preview/mono-scene-lab-contract";
 import type { MonoProductCommands, MonoProductView } from "./product-controller";
-import { formatFiatMinor, formatFiatMinorParts, formatQuantity } from "./product-format";
+import { formatFiatMinor, formatFiatMinorParts } from "./product-format";
 import "./product-home.css";
+
+export { ProductHoldings, type ProductHoldingsProps } from "./product-holdings";
 
 type ProductProps = { view: MonoProductView; commands: MonoProductCommands };
 
 export function ProductContextLine({ view, commands }: ProductProps) {
   const label = view.context.kind === "all" ? "Все счета" : view.account?.label ?? "Счёт";
   return <div className="mono-product-context">
-    <span className="mono-product-context__prefix">СЧЁТ</span>
     {view.snapshot.accounts.length > 1 ? <button type="button" data-mono-product-context-trigger
-      aria-label={`Выбрать счёт: ${label}`} onClick={commands.openAccounts}>
-      <span>{label}</span><span aria-hidden="true">⌄</span>
+      aria-label={`Выбрать счёт: ${label}`} aria-haspopup="dialog" onClick={commands.openAccounts}>
+      <span>{label}</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
     </button> : <strong>{label}</strong>}
-    <span className="mono-product-context__demo">DEMO</span>
+    <span className="mono-product-context__demo">Демо-режим</span>
   </div>;
 }
 
@@ -57,9 +58,7 @@ export function ProductBalance({ view, commands, appearance, blinkEnabled }: Pro
       </div>
       <ProductBatteryLine view={view} commands={commands} />
     </div>
-    <p className="mono-product-balance-note">{view.context.kind === "all"
-      ? "Оценка всех размещений · не сумма к отправке"
-      : "Оценка активов счёта · доступность проверяется по маршруту"}</p>
+    <p className="mono-product-balance-note">Оценка активов в USD</p>
   </section>;
 }
 
@@ -87,50 +86,6 @@ export function ProductBatteryLine({ view, commands }: ProductProps) {
     </svg>
     <span className="mono-product-battery__count" aria-hidden="true">{count}</span>
   </button>;
-}
-
-export function ProductHoldings({ view, commands, appearance, overview }: ProductProps & {
-  appearance: MonoAssetListAppearance;
-  overview: boolean;
-}) {
-  const headingId = useId();
-  const groups = view.holdings;
-  const accounts = new Map(view.snapshot.accounts.map(account => [account.id, account]));
-  const shown = !overview || view.fundsExpanded;
-  return <section className="mono-product-funds mono-scene-domain" aria-labelledby={headingId}
-    data-variant={appearance.variant} data-density={appearance.density} data-separators={appearance.separators}>
-    {overview ? <button className="mono-product-funds__heading" type="button" id={headingId}
-      aria-expanded={view.fundsExpanded} onClick={commands.toggleFunds}>
-      <span><strong>Мои средства</strong><small>{groups.length} актива · по счетам и сетям</small></span>
-      <span aria-hidden="true">{view.fundsExpanded ? "⌃" : "⌄"}</span>
-    </button> : <h2 id={headingId} className="mono-product-funds__title">Мои средства</h2>}
-    {shown && <ul className="mono-product-funds__list">
-      {groups.map(group => <li key={group.assetId}>
-        <button type="button" className="mono-product-funds__asset" aria-expanded={view.expandedAssetIds.has(group.assetId)}
-          onClick={() => commands.toggleAsset(group.assetId)}>
-          <span className="mono-product-funds__symbol" aria-hidden="true">{group.symbol.slice(0, 1)}</span>
-          <span className="mono-product-funds__identity"><strong>{group.name}</strong>
-            <small>{group.placements.length} {group.placements.length === 1 ? "размещение" : "размещения"}</small></span>
-          <span className="mono-product-funds__value"><strong>{view.balanceHidden ? "••••" : formatFiatMinor(group.fiatMinor)}</strong>
-            <small>{view.balanceHidden ? "Значения скрыты" : group.symbol}</small></span>
-          <span className="mono-product-funds__chevron" aria-hidden="true">{view.expandedAssetIds.has(group.assetId) ? "⌃" : "⌄"}</span>
-        </button>
-        {view.expandedAssetIds.has(group.assetId) && <ul className="mono-product-funds__placements">
-          {group.placements.map(placement => <li key={placement.id}>
-            <div className="mono-product-funds__placement-context">
-              <strong>{accounts.get(placement.accountId)?.label ?? "Счёт недоступен"}</strong>
-              <span>{placement.networkLabel}</span>
-            </div>
-            <div className="mono-product-funds__placement-values">
-              <strong>{view.balanceHidden ? "••••" : `${formatQuantity(placement.quantity)} ${placement.symbol}`}</strong>
-              <small>{view.balanceHidden ? "Значения скрыты" : formatFiatMinor(placement.fiatMinor)}</small>
-            </div>
-          </li>)}
-        </ul>}
-      </li>)}
-      {groups.length === 0 && <li className="mono-product-funds__empty">На этом счёте средств пока нет</li>}
-    </ul>}
-  </section>;
 }
 
 export function accountStatus(account: ProductAccount): string {
