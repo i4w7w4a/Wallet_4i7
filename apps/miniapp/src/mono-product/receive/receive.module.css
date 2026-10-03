@@ -58,7 +58,7 @@
 .amountInput input::placeholder { color: var(--mono-text-secondary, #bdbdbd); font-size: 17px; }
 .amountInput input:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 2px; border-radius: 4px; }
 .amountInput input:disabled { opacity: .7; }
-.amountInput > span { color: var(--mono-text-secondary, #bdbdbd); font-size: 13px; }
+.amountInput > span { flex: 0 0 auto; white-space: nowrap; color: var(--mono-text-secondary, #bdbdbd); font-size: 13px; }
 .amountHint { margin: 5px 0 0; color: var(--mono-text-secondary, #bdbdbd); font-size: 11px; }
 .amountError { margin: 5px 0 0; font-size: 12px; }
 .requestPreview { display: grid; gap: 8px; }
