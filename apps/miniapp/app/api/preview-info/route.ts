@@ -12,13 +12,15 @@ export function GET(request: Request): Response {
     return new Response(null, { status: 404, headers });
   }
   try {
+    const mode = process.env.NOVEX_PREVIEW_MODE === "production" ? "production" : "development";
     const options = { cwd: process.env.NOVEX_PREVIEW_PROJECT_ROOT, encoding: "utf8" as const,
       windowsHide: true, timeout: 2000, stdio: ["ignore", "pipe", "pipe"] as ["ignore", "pipe", "pipe"] };
-    const sourceId = execFileSync("git", ["rev-parse", "HEAD"], options).trim();
+    const sourceId = mode === "production" ? process.env.NOVEX_PREVIEW_SOURCE_ID ?? ""
+      : execFileSync("git", ["rev-parse", "HEAD"], options).trim();
     if (!/^[a-f0-9]{40}$/.test(sourceId)) throw new Error("Missing source id");
-    const changed = execFileSync("git", ["status", "--porcelain=v1", "--untracked-files=normal", "--",
+    const changed = mode === "development" && execFileSync("git", ["status", "--porcelain=v1", "--untracked-files=normal", "--",
       "apps/miniapp/app", "apps/miniapp/src", "packages"], options).trim().length > 0;
-    return Response.json({ kind: "novex-local-preview", mode: "development", sourceId,
+    return Response.json({ kind: "novex-local-preview", mode, sourceId,
       sourceState: changed ? "working-tree" : "committed", launchId: process.env.NOVEX_PREVIEW_LAUNCH_ID,
       sourceAtLaunch: process.env.NOVEX_PREVIEW_SOURCE_ID, startedAt: process.env.NOVEX_PREVIEW_STARTED_AT }, { headers });
   } catch {

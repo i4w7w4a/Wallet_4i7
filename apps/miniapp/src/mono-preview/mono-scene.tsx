@@ -25,6 +25,7 @@ import { MONO_EYE_DEFAULT, MONO_NAVIGATION_DEFAULT, type MonoEyeAppearance,
   type MonoNavigationAppearance } from "./mono-interface-appearance";
 import { ProductBalance, ProductContextLine, ProductHoldings } from "../mono-product/product-home";
 import { ProductOverlay } from "../mono-product/product-sheet";
+import { ProductGlassProvider } from "../mono-product/product-glass-surface";
 import { formatFiatMinor } from "../mono-product/product-format";
 import type { MonoProductController } from "../mono-product/product-controller";
 import { ProductHistory } from "../mono-product/product-history";
@@ -598,9 +599,10 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </button>
         ))}
       </nav>
-      {product && <ProductOverlay {...product} onOpenActivity={id => {
+      {product && <ProductGlassProvider sharedHost={opticalHost} preset={preset} settings={optics} active={active && !effectsDisabled}>
+        <ProductOverlay {...product} onOpenActivity={id => {
         product.commands.expandActivity(id); product.commands.closeSheet(); setSection("history");
-      }} />}
+      }} /></ProductGlassProvider>}
         </main>
   );
 }

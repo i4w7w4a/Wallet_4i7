@@ -11,6 +11,7 @@ import { ReceiveFlow } from "./receive";
 import { SendFlow, type SendDraft, type SendOperationStatus, type SendSimulationResult } from "./send";
 import { ProductAssetDetail } from "./asset-detail/product-asset-detail";
 import { BatteryPopover } from "./battery-popover";
+import { ProductGlassSurface } from "./product-glass-surface";
 import "./product-home.css";
 
 type ProductProps = { view: MonoProductView; commands: MonoProductCommands; onOpenActivity?(id: string): void };
@@ -47,7 +48,8 @@ function ProductModalOverlay({ view, commands, ports, onOpenActivity }: ProductP
 
   const action = sheet.action;
   const title = actionLabel(action);
-  return <ProductSheet title={title} onClose={commands.closeSheet}>
+  return <ProductSheet title={title} onClose={commands.closeSheet}
+    returnPlacement={sheet.placementId ? { id: sheet.placementId, action } : undefined}>
     {sheet.route ? <RouteDetail key={productRouteKey(sheet.route)} route={sheet.route} view={view} commands={commands} ports={ports}
       onOpenActivity={onOpenActivity} /> :
       <RouteChooser view={view} commands={commands} action={action} focusRouteKey={sheet.focusRouteKey} />}
@@ -60,7 +62,7 @@ function RouteChooser({ view, commands, action, focusRouteKey }: ProductProps & 
   const selectedButton = useRef<HTMLButtonElement>(null);
   useLayoutEffect(() => { selectedButton.current?.focus({ preventScroll: true }); }, [focusRouteKey]);
   return <>
-      <p className="mono-product-sheet__intro">Выберите счёт, актив и сеть. Это просмотр демо-маршрутов; перевод здесь не выполняется.</p>
+      <p className="mono-product-sheet__intro">Демо: выберите счёт, актив и сеть. Средства не отправляются.</p>
       {view.intent?.routes.length ? <div className="mono-product-sheet__options">
         {view.intent.routes.map((route, index) => <button type="button" key={`${route.accountId}-${route.assetId}-${route.networkId}-${index}`}
           className="mono-product-sheet__option" onClick={() => commands.selectRoute(route)}
@@ -69,7 +71,6 @@ function RouteChooser({ view, commands, action, focusRouteKey }: ProductProps & 
           <span>{route.action === "receive" ? receiveLabel(route.receiveMode) : "Выбрать"}</span>
         </button>)}
       </div> : <p className="mono-product-sheet__empty">{unavailableReason(view.intent?.reason ?? null, action, view.context.kind === "all")}</p>}
-    <p className="mono-product-sheet__caution">Демо · операции и адреса не подключены. Ни одно действие здесь не отправляет средства.</p>
   </>;
 }
 
@@ -137,18 +138,28 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   </div>;
 }
 
-function ProductSheet({ title, onClose, children }: { title: string; onClose(): void; children: ReactNode }) {
+function ProductSheet({ title, onClose, children, returnPlacement }: {
+  title: string; onClose(): void; children: ReactNode; returnPlacement?: { id: string; action: ProductActionKind };
+}) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
+  const placementRef = useRef(returnPlacement);
+  placementRef.current = returnPlacement;
 
   useLayoutEffect(() => {
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const page = dialogRef.current?.closest<HTMLElement>("[data-mono-preview]");
     dialogRef.current?.focus({ preventScroll: true });
     return () => {
       const previous = returnFocus.current;
+      const placement = placementRef.current;
       queueMicrotask(() => {
-        if (previous?.isConnected) previous.focus({ preventScroll: true });
+        const origin = placement && [...(page?.querySelectorAll<HTMLElement>("[data-mono-product-placement-id]") ?? [])]
+          .find(element => element.dataset.monoProductPlacementId === placement.id &&
+            element.dataset.monoProductPlacementAction === placement.action);
+        if (origin?.isConnected) origin.focus({ preventScroll: true });
+        else if (previous?.isConnected) previous.focus({ preventScroll: true });
         else document.querySelector<HTMLElement>("[data-mono-product-context-trigger], [data-mono-product-battery-trigger], .mono-actions__item")?.focus({ preventScroll: true });
       });
     };
@@ -175,7 +186,7 @@ function ProductSheet({ title, onClose, children }: { title: string; onClose(): 
 
   return <div className="mono-product-sheet" data-product-sheet>
     <div className="mono-product-sheet__scrim" aria-hidden="true" onClick={onClose} />
-    <div ref={dialogRef} className="mono-product-sheet__panel" role="dialog" aria-modal="true"
+    <ProductGlassSurface ref={dialogRef} className="mono-product-sheet__panel" role="dialog" aria-modal="true"
       aria-labelledby={titleId} tabIndex={-1} onKeyDown={onKeyDown}>
       <div className="mono-product-sheet__handle" aria-hidden="true" />
       <header className="mono-product-sheet__header">
@@ -183,7 +194,7 @@ function ProductSheet({ title, onClose, children }: { title: string; onClose(): 
         <button type="button" onClick={onClose}>Закрыть</button>
       </header>
       <div className="mono-product-sheet__body">{children}</div>
-    </div>
+    </ProductGlassSurface>
   </div>;
 }
 

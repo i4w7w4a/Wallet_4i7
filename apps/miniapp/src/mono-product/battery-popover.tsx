@@ -3,6 +3,7 @@
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { MonoProductView } from "./product-controller";
 import { remainingLabel } from "./product-home";
+import { ProductGlassSurface } from "./product-glass-surface";
 import "./battery-popover.css";
 
 type Placement = { left: number; top: number; width: number; maxHeight: number; side: "below" | "above"; origin: number };
@@ -100,7 +101,7 @@ export function BatteryPopover({ view, open, onClose }: {
     maxHeight: placement.maxHeight, transformOrigin: `${placement.origin}px ${placement.side === "below" ? "top" : "bottom"}` }
     : { visibility: "hidden" };
   return <div ref={layer} className="mono-battery-popover-layer">
-    <div ref={panel} className="mono-battery-popover" data-battery-popover data-state={open ? "open" : "closing"}
+    <ProductGlassSurface ref={panel} className="mono-battery-popover" data-battery-popover data-state={open ? "open" : "closing"}
       data-side={placement?.side ?? "below"} style={style} role="dialog" aria-labelledby={titleId}
       aria-hidden={!open || undefined} inert={!open} tabIndex={-1}>
       <header className="mono-battery-popover__header">
@@ -121,6 +122,6 @@ export function BatteryPopover({ view, open, onClose }: {
         </li>)}
       </ul> : <p className="mono-battery-popover__empty">Для этого счёта правила батарейки пока неизвестны.</p>}
       <p className="mono-battery-popover__note">Покрытие проверяется для конкретной операции. В демо заряд не списывается.</p>
-    </div>
+    </ProductGlassSurface>
   </div>;
 }

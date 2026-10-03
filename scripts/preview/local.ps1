@@ -10,7 +10,10 @@ pwsh -NoProfile -File scripts/preview/local.ps1 status
 pwsh -NoProfile -File scripts/preview/local.ps1 stop
 #>
 [CmdletBinding()]
-param([Parameter(Position = 0)][ValidateSet('start', 'status', 'stop')][string]$Action = 'status')
+param(
+    [Parameter(Position = 0)][ValidateSet('start', 'status', 'stop')][string]$Action = 'status',
+    [ValidateSet('development', 'production')][string]$Mode = 'development'
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -87,6 +90,7 @@ function Get-ManagedProcesses($State) {
 function Show-Status([string]$Status, $State, $Managed, $Owners) {
     [pscustomobject]@{
         status = $Status; origin = $Origin; port = $PreviewPort
+        mode = $(if ($State) { $State.mode } else { $null })
         launchId = $(if ($State) { $State.launchId } else { $null })
         sourceAtLaunch = $(if ($State) { $State.sourceAtLaunch } else { $null })
         verifiedProcessIds = @($Managed | ForEach-Object { [int]$_.ProcessId })
@@ -100,6 +104,7 @@ $launcherMutex = [Threading.Mutex]::new($false, 'Local\NovexMonoPreview3184')
 if (-not $launcherMutex.WaitOne(0)) { $launcherMutex.Dispose(); throw 'Another preview launcher action is in progress.' }
 try {
 $state = Read-State
+if ($state -and -not $PSBoundParameters.ContainsKey('Mode')) { $Mode = $state.mode }
 $owners = @(Get-PortOwners)
 $managed = @(Get-ManagedProcesses $state)
 if (@($owners | Where-Object { $_ -notin @($managed | ForEach-Object { $_.ProcessId }) }).Count) {
@@ -127,6 +132,7 @@ if ($Action -eq 'stop') {
 }
 
 if ($managed.Count) {
+    if ($state.mode -ne $Mode) { throw "Preview is running in $($state.mode) mode. Stop this verified instance before switching modes." }
     Show-Status $(if ($owners.Count) { 'RUNNING' } else { 'STARTING' }) $state $managed $owners
     exit 0
 }
@@ -136,6 +142,21 @@ if (@(Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" | Where-Object {
 if (-not (Test-Path -LiteralPath $NextCli)) { throw 'Next is not installed in this checkout. No install was attempted.' }
 $source = (& git -C $ProjectRoot rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $source -notmatch '^[0-9a-f]{40}$') { throw 'Cannot identify the source commit.' }
+$distDir = '.next'
+$nextCommand = 'dev'
+if ($Mode -eq 'production') {
+    $buildStatePath = Join-Path $OpsRoot 'build.json'
+    if (-not (Test-Path -LiteralPath $buildStatePath)) { throw 'No verified preview build. Run scripts/preview/build.ps1 when the integration is frozen.' }
+    $buildState = Get-Content -LiteralPath $buildStatePath -Raw | ConvertFrom-Json
+    $buildIdPath = Join-Path $AppRoot '.next-review/BUILD_ID'
+    if ($buildState.status -ne 'READY' -or $buildState.projectRoot -ne $ProjectRoot -or
+        -not (Test-Path -LiteralPath $buildIdPath) -or (Get-Content -LiteralPath $buildIdPath -Raw).Trim() -ne $buildState.buildId) {
+        throw 'The production preview build identity is missing or does not match.'
+    }
+    $source = $buildState.sourceId
+    $distDir = '.next-review'
+    $nextCommand = 'start'
+}
 if ($ProjectRoot.Contains('"')) { throw 'A quote in the checkout path is unsupported.' }
 New-Item -ItemType Directory -Path $OpsRoot -Force | Out-Null
 $launchId = [guid]::NewGuid().ToString('N')
@@ -145,15 +166,15 @@ $stderrLog = Join-Path $OpsRoot "$launchId.stderr.log"
 $childEnvironment = @{
     NOVEX_LOCAL_PREVIEW = '1'; NOVEX_PREVIEW_LAUNCH_ID = $launchId; NOVEX_PREVIEW_STARTED_AT = $startedAt
     NOVEX_PREVIEW_SOURCE_ID = $source; NOVEX_PREVIEW_PROJECT_ROOT = $ProjectRoot
-    NOVEX_NEXT_DIST_DIR = '.next'; NEXT_TELEMETRY_DISABLED = '1'
+    NOVEX_NEXT_DIST_DIR = $distDir; NOVEX_PREVIEW_MODE = $Mode; NEXT_TELEMETRY_DISABLED = '1'
 }
-$arguments = @(('"' + $NextCli + '"'), 'dev', ('"' + $AppRoot + '"'), '--hostname', '127.0.0.1', '--port', "$PreviewPort")
+$arguments = @(('"' + $NextCli + '"'), $nextCommand, ('"' + $AppRoot + '"'), '--hostname', '127.0.0.1', '--port', "$PreviewPort")
 $started = Start-Process -FilePath $NodeExecutable -ArgumentList $arguments -WorkingDirectory $AppRoot -WindowStyle Hidden `
     -Environment $childEnvironment -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
 $root = Get-ProcessRecord $started.Id
 if (-not (Test-ProjectProcess $root)) { throw "Launched process exited or failed identity check. See $stderrLog" }
 $state = [pscustomobject]@{
-    schemaVersion = 1; projectRoot = $ProjectRoot; port = $PreviewPort; mode = 'development'
+    schemaVersion = 1; projectRoot = $ProjectRoot; port = $PreviewPort; mode = $Mode
     launchId = $launchId; sourceAtLaunch = $source; startedAt = $startedAt; rootPid = [int]$root.ProcessId
     processes = @((Get-Stamp $root)); stdoutLog = $stdoutLog; stderrLog = $stderrLog
 }

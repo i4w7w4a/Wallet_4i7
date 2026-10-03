@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { MockWalletRepository, MULTI_ACCOUNT_DEMO, resolveActionRoutes } from "@wallet/core";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoProductScene } from "../mono-preview/mono-product-scene";
@@ -91,6 +91,7 @@ it("restores a placement draft without its quote and opens the exact simulation 
   fireEvent.click(screen.getByRole("button", { name: "Рассчитать комиссию" }));
   await screen.findByRole("button", { name: "Проверить перевод" });
   fireEvent.click(within(screen.getByRole("dialog", { name: "Отправить" })).getByRole("button", { name: "Закрыть" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Отправить USDC · Основной · Ethereum" })).toHaveFocus());
 
   openPlacement();
   expect(await screen.findByRole("textbox", { name: "Получатель" })).toHaveValue("demo:recipient");
