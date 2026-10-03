@@ -16,6 +16,11 @@ Detail-компонент для уже выбранного `ProductActionRoute
 | `onAssetDetails?()` | Делает строку актива/сети кнопкой деталей. Callback не меняет route, load или локальный выбор. Без callback прежние статические строки сохраняются. |
 | `initialRequestAmount?: string` | Однократный raw seed для выбранного route. Изменение этого prop без смены route не перезаписывает ввод. Default — пустая сумма. |
 | `onRequestAmountChange?(amount: string)` | Только пользовательские изменения raw строки, включая невалидный черновик. На mount/restore/privacy/смену route автоматически не вызывается. |
+| `internalTransferPort?: InternalTransferPort` | Отдельный demo quote/submit port из `../internal-transfer`. Без него internal остаётся совместимым просмотром маршрута. |
+| `initialInternalDraft?: InternalTransferDraft` | Однократный seed `{ sourceAccountId, amount }` для выбранного destination/asset/network/mode. Только raw draft, без quote/result. |
+| `onInternalDraftChange?(draft \| null)` | Пользовательская смена source/raw amount. Единственное автоматическое событие — `null` после принятого success; failure сохраняет draft. |
+| `onInternalSimulationResult?(event)` | Один `InternalTransferSimulation` на принятый success/failure. Нет событий для quote errors, invalid response, abort или закрытого flow. |
+| `onViewInternalHistory?()` | Показывает «В истории» на принятом результате; навигацией владеет host. |
 | `showCloseButton?: boolean` | По умолчанию `true`. В существующем `ProductSheet` передать `false`, поскольку sheet уже имеет закрытие. |
 | `renderQr?: ReceiveQrRenderer` | Необязательный рендер только test-only реквизитов. Без него показан честный не-QR placeholder. |
 
@@ -73,7 +78,27 @@ External Receive теперь имеет один preview и отдельные 
 
 Demo factory проверяет статус счёта и receive capability через core resolver. Для internal требует явных `DemoInternalReceiveBinding`; дополнительно проверяет активность и send capability источника. Само наличие send capability не создаёт внутреннего маршрута. Без bindings — `sources-not-connected`. Для другой модели snapshot передать соответствующие fixtures явно.
 
-Внутренний путь: источник → просмотр маршрута → `Готово`. Возврат к источникам сохраняет выбор и восстанавливает фокус. Возврат в общий chooser сбрасывает локальный выбор источника; account/asset/network остаются в callback и контексте host. Комиссия неизвестна; сумма, авторизация и команда перевода отсутствуют. Нулевая комиссия, лицензия и подтверждённая транзакция не обещаются.
+Без `internalTransferPort` сохранён прежний внутренний путь: источник → просмотр маршрута → `Готово`. Комиссия неизвестна, подтверждения перевода нет.
+
+С `internalTransferPort` путь полный: источник → «Сумма пополнения» → «Рассчитать пример» → review с доступным остатком/комиссией из quote → «Подтвердить симуляцию» → pending → результат/«В истории». Единственный eligible source выбирается автоматически без draft callback. Ввод хранится в route-keyed `ReceiveRouteContent` выше приватного представления; полный remount восстанавливается через `initialInternalDraft` от host. Privacy удаляет input/radio/amount/fee/available из DOM и блокирует quote/confirm, сохраняя draft; pending остаётся read-only.
+
+Импортируются реальные `normalizeInternalTransferAmount` и `validateInternalTransferQuote` из `../internal-transfer`, дополнительного финансового API нет. Quote проверяется по текущему request при получении и независимо перед submit. Любая правка source/amount, `Изменить`, смена route/port/данных источников требует нового quote; старые ответы защищены AbortSignal и generation/scope guard. Back/Close самого flow немедленно отменяет работу, host Close — через unmount. Скрытие для asset details не считается закрытием.
+
+Принятый quote копируется до await; port получает другую копию, поэтому не может переписать receipt. Simulation/idempotency ID — `demo-internal:<useId>:<монотонный номер попытки>`, без random на render. Ref-lock закрывает двойной submit до rerender. Только accepted success/failure вызывает result observer один раз; callback получает собственный снимок quote/result. Success очищает draft, failure оставляет для правки. Реальных денег, балансов, батарейки и времени сети этот модуль не меняет: fee0 обозначена комиссией примера, результат прямо говорит «Средства между счетами не перемещены».
+
+Подключение новых props к уже выбранному внутреннему route:
+
+```tsx
+<ReceiveFlow {...existingProps}
+  internalTransferPort={ports.internalTransfer}
+  initialInternalDraft={savedInternalDraft}
+  onInternalDraftChange={rememberInternalDraft}
+  onInternalSimulationResult={recordInternalSimulation}
+  onViewInternalHistory={openInternalHistory}
+/>
+```
+
+Host хранит raw draft по destination/asset/network/mode и одну запись результата с двумя участниками. Он не восстанавливает quote, pending или result из session memory. Quote/submit порты должны быть стабильными; смена экземпляра инвалидирует авторизацию, сохраняя raw ввод.
 
 Clipboard success появляется только после resolved `navigator.clipboard.writeText`. Отказ оставляет строку для ручного копирования. Share отсутствует или отклонён — copy/back продолжают работать; `AbortError` означает отмену. Повторный click во время browser operation блокируется. Privacy/unmount убирают поздний feedback; уже вызванный системный clipboard/share отменить невозможно.
 
@@ -84,5 +109,7 @@ Clipboard success появляется только после resolved `navigat
 CSS Module наследует MONO text/surface/rule/font/radius/easing variables. Один короткий переход 220 ms, без overshoot; reduced motion и MONO static выключают переходы, touch-кнопки минимум 44×44, источники имеют полную clickable label высотой 56 px. Реквизиты стоят первыми; без renderer QR обозначен компактной строкой, без пустой QR-плашки. Новых WebGL/RAF/timer/runtime нет; семь presets и общий material host не изменены.
 
 Focused suite: `pnpm --filter @wallet/miniapp exec vitest run src/mono-product/receive/receive-flow.test.tsx`. Покрывает 20 сценариев routing, stale response, unavailable/inactive, clipboard/share success/rejection/cancel, privacy, internal source/back/close и demo bindings. Проведены локальный lint, изолированная проверка типов модуля/теста и один self-read. Общий build и browser smoke после подключения — у оркестратора/ORACLE. Визуальное одобрение ещё не получено.
+
+Для optional internal transfer отдельно: `pnpm --filter @wallet/miniapp exec vitest run src/mono-product/receive/receive-internal-transfer.test.tsx` — 14 focused cases, включая независимую проверку expiry, snapshot mutation, stale/close/abort, duplicate submit, privacy и draft. В этой волне external suite/build/typecheck не повторялись.
 
 Перед backend остаются продуктовые вопросы: точные разрешённые внутренние пары счетов; получение и срок действия внешних реквизитов (включая memo/tag, если нужны); источник комиссии и этап авторизации/подтверждения. Они не блокируют текущий demo.

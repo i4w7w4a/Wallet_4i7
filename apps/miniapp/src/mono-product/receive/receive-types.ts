@@ -1,5 +1,6 @@
 import type { ProductActionRoute } from "@wallet/core";
 import type { ReactNode } from "react";
+import type { InternalTransferDraft, InternalTransferPort, InternalTransferSimulation } from "../internal-transfer";
 
 export type ReceiveRoute = Extract<ProductActionRoute, { action: "receive" }>;
 export type ReceiveRequest = Pick<ReceiveRoute, "accountId" | "assetId" | "networkId" | "receiveMode">;
@@ -66,6 +67,11 @@ export type ReceiveFlowProps = {
   initialRequestAmount?: string;
   /** Raw user edits only. Host stores the draft under the exact account/asset/network/mode. */
   onRequestAmountChange?: (amount: string) => void;
+  internalTransferPort?: InternalTransferPort;
+  initialInternalDraft?: InternalTransferDraft;
+  onInternalDraftChange?: (draft: InternalTransferDraft | null) => void;
+  onInternalSimulationResult?: (event: InternalTransferSimulation) => void;
+  onViewInternalHistory?: () => void;
   renderQr?: ReceiveQrRenderer;
   /** False when the containing sheet already owns a close control. */
   showCloseButton?: boolean;

@@ -3,6 +3,8 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { ExternalReceive } from "./receive-external";
 import { InternalReceive } from "./receive-internal";
+import { InternalTransferReceive } from "./receive-internal-transfer";
+import type { InternalTransferDraft } from "../internal-transfer";
 import type { ReceiveDataPort, ReceiveFlowProps, ReceiveLoadResult, ReceiveRequest,
   ReceiveRoute, ReceiveUnavailableReason } from "./receive-types";
 import styles from "./receive.module.css";
@@ -27,6 +29,11 @@ function ReceiveRouteContent(props: ReceiveFlowProps & { route: ReceiveRoute }) 
   const [attempt, setAttempt] = useState(0);
   // This route-keyed draft survives the privacy-keyed browser-action child.
   const [requestAmount, setRequestAmount] = useState(() => props.initialRequestAmount ?? "");
+  const [internalDraft, setInternalDraft] = useState<InternalTransferDraft>(() => ({
+    sourceAccountId: props.initialInternalDraft?.sourceAccountId ?? null, amount: props.initialInternalDraft?.amount ?? "",
+  }));
+  const internalAbort = useRef<(() => void) | null>(null);
+  const close = () => { internalAbort.current?.(); onClose(); };
   const backButton = useRef<HTMLButtonElement>(null);
   const [completed, setCompleted] = useState<{
     port: ReceiveDataPort; attempt: number; result: ReceiveLoadResult;
@@ -49,7 +56,8 @@ function ReceiveRouteContent(props: ReceiveFlowProps & { route: ReceiveRoute }) 
     return () => controller.abort();
   }, [request, dataPort, attempt]);
 
-  return <ReceiveFrame {...props} state={state.status} backButtonRef={backButton}>
+  return <ReceiveFrame {...props} state={state.status} backButtonRef={backButton} onClose={close}
+    onBack={selected => { internalAbort.current?.(); props.onBack(selected); }}>
     <div key={state.status} className={styles.state} aria-busy={state.status === "loading"}>
       {state.status === "loading" && <div className={styles.empty} role="status">
         <span className={styles.stateMark} aria-hidden="true">…</span>
@@ -73,7 +81,14 @@ function ReceiveRouteContent(props: ReceiveFlowProps & { route: ReceiveRoute }) 
               setRequestAmount(amount);
               props.onRequestAmountChange?.(amount);
             }} />
-        : <InternalReceive route={route} destination={state.data} onClose={onClose} />)}
+        : props.internalTransferPort ? <InternalTransferReceive route={route} destination={state.data}
+            port={props.internalTransferPort} draft={internalDraft} privacy={privacy} abortRef={internalAbort}
+            onClose={close} onViewHistory={props.onViewInternalHistory} onSimulationResult={props.onInternalSimulationResult}
+            onDraftChange={draft => {
+              setInternalDraft(draft ? { ...draft } : { sourceAccountId: null, amount: "" });
+              props.onInternalDraftChange?.(draft);
+            }} />
+          : <InternalReceive route={route} destination={state.data} onClose={onClose} />)}
     </div>
   </ReceiveFrame>;
 }
