@@ -1,8 +1,9 @@
 "use client";
 
 import { useId, useState } from "react";
-import { formatProductActivityFee, getProductActivityLabels, type ProductActivity } from "./demo-activity";
+import { getProductActivityLabels, type ProductActivity } from "./demo-activity";
 import { formatQuantity } from "./product-format";
+import { OperationReceiptView } from "./operation-receipt-view";
 import styles from "./product-account-sections.module.css";
 
 export type ProductHistoryProps = {
@@ -16,23 +17,9 @@ export type ProductHistoryProps = {
   onRetry?(): void;
 };
 
-const dateFormat = new Intl.DateTimeFormat("ru-RU", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
-
 const rowDateFormat = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric", month: "short", timeZone: "UTC",
 });
-
-function formatOccurredAt(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? "Время не указано" : dateFormat.format(date);
-}
 
 export function ProductHistory({
   activities, balanceHidden, accountId, accountLabel,
@@ -73,10 +60,11 @@ export function ProductHistory({
           const quantity = balanceHidden ? "••••" : formatQuantity(activity.quantity);
           const occurredAt = new Date(activity.occurredAt);
           const validTime = !Number.isNaN(occurredAt.getTime());
+          const networkLabel = activity.networkLabel?.trim() || "Сеть не указана";
           const accessibleQuantity = balanceHidden ? "Сумма скрыта" : `${quantity} ${activity.assetSymbol}`;
           return <li className={styles.row} key={activity.id} data-status={activity.status} data-mode={activity.mode ?? "example"}>
             <button type="button" className={styles.rowButton} aria-expanded={expanded}
-              aria-label={`${directionLabel} · ${activity.assetSymbol}, ${statusLabel}, ${accessibleQuantity}`}
+              aria-label={`${directionLabel} · ${activity.assetSymbol} · ${networkLabel}, ${statusLabel}, ${accessibleQuantity}`}
               aria-controls={detailsId} onClick={() => changeExpandedActivity(expanded ? null : activity.id)}>
               <span className={styles.directionMark} aria-hidden="true">{activity.direction === "incoming" ? "↓" : "↑"}</span>
               <span className={styles.rowIdentity}>
@@ -93,23 +81,15 @@ export function ProductHistory({
               </span>
               <span className={styles.rowAmount}>
                 <strong>{quantity}</strong>
-                <small>{activity.assetSymbol}</small>
+                <small className={styles.rowAssetMeta}><span>{activity.assetSymbol}</span><span aria-hidden="true">·</span><span>{networkLabel}</span></small>
               </span>
               <svg className={styles.rowChevron} viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            <dl className={styles.details} id={detailsId} hidden={!expanded}>
-              {expanded && <>
-              <div><dt>Количество</dt><dd className={styles.moneyDetail}>{quantity} {activity.assetSymbol}</dd></div>
-              <div><dt>Комиссия</dt><dd className={styles.moneyDetail}>{balanceHidden && activity.feeLabel?.trim() ? "••••" : formatProductActivityFee(activity.feeLabel)}</dd></div>
-              <div><dt>Сеть</dt><dd>{activity.networkLabel}</dd></div>
-              <div><dt>Счёт</dt><dd>{activity.accountLabel}</dd></div>
-              <div><dt>Время</dt><dd>{formatOccurredAt(activity.occurredAt)}{validTime ? " · UTC" : ""}</dd></div>
-              <div><dt>Направление</dt><dd>{activity.direction === "incoming" ? "Входящая" : "Исходящая"}</dd></div>
-              <div><dt>Статус</dt><dd>{statusLabel}</dd></div>
-              </>}
-            </dl>
+            <div className={styles.receiptDetails} id={detailsId} hidden={!expanded}>
+              {expanded && <OperationReceiptView activity={activity} balanceHidden={balanceHidden} />}
+            </div>
           </li>;
         })}
       </ol>}

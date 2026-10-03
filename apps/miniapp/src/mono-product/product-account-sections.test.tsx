@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { WalletProfile } from "@wallet/core";
 import { afterEach, expect, it, vi } from "vitest";
 import { createDemoActivities, type ProductActivity } from "./demo-activity";
@@ -84,7 +84,7 @@ it("exposes each operation status and expands network, account, time and known f
   fireEvent.click(row);
   expect(row).toHaveAttribute("aria-expanded", "true");
   expect(document.getElementById(row.getAttribute("aria-controls") ?? "")).not.toHaveAttribute("hidden");
-  expect(screen.getByText("TON")).toBeInTheDocument();
+  expect(within(screen.getByRole("region", { name: "Квитанция операции" })).getByText("TON")).toBeInTheDocument();
   expect(screen.getByText("Основной счёт")).toBeInTheDocument();
   expect(screen.getByText("0,05 TON")).toBeInTheDocument();
   expect(screen.getByText(/1 октября 2026/i)).toBeInTheDocument();
@@ -93,7 +93,7 @@ it("exposes each operation status and expands network, account, time and known f
 it("hides quantities and fees from visible and accessible details when privacy is on", () => {
   const { container } = render(<ProductHistory activities={[activities[0]]} balanceHidden />);
   fireEvent.click(screen.getByRole("button", { name: /USDT/ }));
-  expect(screen.getByText("TON")).toBeInTheDocument();
+  expect(within(screen.getByRole("region", { name: "Квитанция операции" })).getByText("TON")).toBeInTheDocument();
   expect(container.innerHTML).not.toMatch(/12[.,]345|0[.,]05/);
   expect(screen.getByText("Комиссия")).toBeInTheDocument();
   expect(screen.getAllByText("••••").length).toBeGreaterThan(0);
