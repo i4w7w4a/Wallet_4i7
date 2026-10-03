@@ -9,6 +9,7 @@
 .stage[data-mono-effect-background="false"] .content :global(.mono-scene) { z-index: auto; }
 .stage[data-mono-effect-background="false"] .content :global(.mono-actions) { animation-fill-mode: none; }
 .stage[data-mono-effect-background="false"] .content :global(.mono-actions__status) { z-index: 2; }
+.stage[data-mono-effect-background="false"] .content:has(:global([data-product-sheet])) { position: relative; z-index: 3; }
 .stage[data-mono-effect-background="false"] .content :global(.mono-promo-frame:has([data-optics="shared-webgl"])) { z-index: 2; background: transparent; }
 .stage[data-mono-effect-background="false"] .content :global(.mono-actions__item[data-material-fill-presented="true"]),
 .stage[data-mono-effect-background="false"] .content :global(.mono-actions__item[data-material-icon-presented="true"]),

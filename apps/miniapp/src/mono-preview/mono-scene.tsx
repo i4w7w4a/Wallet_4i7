@@ -16,13 +16,19 @@ import { stepTideMotion, type TideMotionState } from "./mono-tide-motion";
 import { MonoBalance } from "./mono-balance";
 import { MonoChart } from "./mono-chart";
 import { MonoAssetList } from "./mono-asset-list";
-import { MONO_ASSET_LIST_DEFAULT, type MonoSceneAppearance } from "./mono-scene-lab-contract";
+import { MONO_ASSET_LIST_DEFAULT, MONO_BALANCE_LEGACY, type MonoSceneAppearance } from "./mono-scene-lab-contract";
 import { MonoBackgroundRecipes } from "./mono-background-recipes-view";
 import type { MonoBackgroundRecipeConfig } from "./mono-background-recipes";
 import { monoTypographyStyle, type MonoTypographyConfigV1 } from "./mono-typography";
 import { useMonoTypographyPreview } from "./mono-typography-preview";
 import { MONO_EYE_DEFAULT, MONO_NAVIGATION_DEFAULT, type MonoEyeAppearance,
   type MonoNavigationAppearance } from "./mono-interface-appearance";
+import { ProductBalance, ProductBatteryLine, ProductContextLine, ProductHoldings } from "../mono-product/product-home";
+import { ProductOverlay } from "../mono-product/product-sheet";
+import { formatFiatMinor } from "../mono-product/product-format";
+import type { MonoProductController } from "../mono-product/product-controller";
+import { ProductHistory } from "../mono-product/product-history";
+import { ProductProfile } from "../mono-product/product-profile";
 
 import "./mono-fonts.css";
 import "./mono-font-candidates.css";
@@ -76,6 +82,7 @@ export type MonoSceneProps = {
   session?: { balanceHidden: boolean; onBalanceHiddenChange: (hidden: boolean) => void;
     period: ChartPeriod; onPeriodChange: (period: ChartPeriod) => void;
     section?: MonoSection; onSectionChange?: (section: MonoSection) => void };
+  product?: MonoProductController;
 };
 
 export type MonoSection = "overview" | "assets" | "history" | "profile";
@@ -87,10 +94,10 @@ const FIELD_NODES = [
 ] as const;
 
 const ACTIONS = [
-  { id: "quick.send", label: "Отправить", path: monoActionIconPath("quick.send") },
-  { id: "quick.receive", label: "Получить", path: monoActionIconPath("quick.receive") },
-  { id: "quick.swap", label: "Обмен", path: monoActionIconPath("quick.swap") },
-  { id: "quick.buy", label: "Купить", path: monoActionIconPath("quick.buy") },
+  { id: "quick.send", kind: "send", label: "Отправить", path: monoActionIconPath("quick.send") },
+  { id: "quick.receive", kind: "receive", label: "Получить", path: monoActionIconPath("quick.receive") },
+  { id: "quick.swap", kind: "swap", label: "Обмен", path: monoActionIconPath("quick.swap") },
+  { id: "quick.buy", kind: "buy", label: "Купить", path: monoActionIconPath("quick.buy") },
 ] as const;
 
 const NAV_ITEMS = [
@@ -124,7 +131,7 @@ export function MonoScene(props: MonoSceneProps) {
 function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady = true,
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true, effectsDisabled = false,
   atmosphere, surfaceRef, typography, opticalHost, materialTargets = false, actionFrameMode = "group", actionRadii,
-  actionArtwork = DEFAULT_ACTION_ARTWORK, artworkPreview, session,
+  actionArtwork = DEFAULT_ACTION_ARTWORK, artworkPreview, session, product,
 }: MonoSceneProps & { typography: ReturnType<typeof useMonoTypographyPreview> }) {
   const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
@@ -365,7 +372,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     "--mono-nav-period": `${navigation.periodSeconds}s`,
     ...(typography.active ? monoTypographyStyle(typography.active) : {}),
   } as CSSProperties;
-  const chart = fullScene && appearance.chart && <MonoChart values={snapshot.chart[period]} format={moneyFormat}
+  const chart = (!product || product.view.context.kind === "all") && fullScene && appearance.chart &&
+    <MonoChart values={snapshot.chart[period]} format={moneyFormat}
     hidden={balanceHidden} period={period} onPeriodChange={setPeriod} appearance={appearance.chart} />;
   return (
         <main ref={node => { pageRef.current = node; if (surfaceRef) surfaceRef.current = node; }}
@@ -374,6 +382,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           data-palette-enabled={Boolean(palette.enabled)} data-palette-ready={paletteReady} style={shapeStyle}
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
           data-mono-section={section}
+          data-mono-product={product ? "true" : undefined}
           data-mono-motion="static" data-nav-indicator={navigation.indicator}
           data-nav-shimmer={navigation.shimmerEnabled}
           data-mono-typography={typography.active ? "true" : "false"}
@@ -399,7 +408,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             </div>
           </div>}
 
-      <div className="mono-scene">
+      <div className="mono-scene" inert={Boolean(product?.view.sheet)}>
         <header className="mono-app-header">
           <div className="mono-app-header__mark">
             <MonoLogo />
@@ -413,9 +422,15 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             <span aria-hidden="true">{snapshot.profile.name.trim().slice(0, 1).toLocaleUpperCase("ru-RU")}</span>
           </button>
         </header>
+        {product && <ProductContextLine {...product} />}
 
         {section === "overview" && <>
-        {fullScene && appearance.balance ? <section className="mono-hero">
+        {product ? <section className="mono-hero">
+          <div className="mono-scene-domain">
+            <ProductBalance {...product} appearance={appearance.balance ?? MONO_BALANCE_LEGACY}
+              blinkEnabled={eye.blinkEnabled} />
+          </div>
+        </section> : fullScene && appearance.balance ? <section className="mono-hero">
           <div className="mono-hero__eyebrow"><span>ЛИЧНЫЙ СЧЁТ</span></div>
           <div className="mono-scene-domain">
             <MonoBalance value={snapshot.balance.amount} format={moneyFormat} change24h={snapshot.balance.change24h}
@@ -467,20 +482,31 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </div>
         </section>}
 
-        <section className="mono-actions" data-frame-mode={actionFrameMode} aria-label="Действия — визуальный прототип">
+        <section className="mono-actions" data-frame-mode={actionFrameMode}
+          aria-label={product ? "Действия" : "Действия — визуальный прототип"}>
           {ACTIONS.map((action) => (
             <MonoQuickActionFeedback
               key={`${action.label}:${quickActionPreset?.effectId ?? "baseline"}:${quickActionPreset?.config.magneticTravel ?? 0}`}
               label={action.label} path={action.path} preset={quickActionPreset}
+              accessibleLabel={product ? action.label : undefined}
+              productPrimary={Boolean(product && (action.kind === "send" || action.kind === "receive"))}
               actionId={action.id} artwork={actionArtwork[action.id]} active={active && !effectsDisabled}
               manualPreviewTrigger={artworkPreview?.targetId === action.id ? artworkPreview.trigger : 0}
               materialTargetId={materialTargets ? action.id : undefined}
               materialRadiusCss={actionFrameMode === "separate" ? actionRadii?.[action.id] : undefined}
-              onActivate={() => setQuickActionStatus(`${action.label} — операция недоступна в демо.`)} />
+              onActivate={() => product ? product.commands.openIntent(action.kind)
+                : setQuickActionStatus(`${action.label} — операция недоступна в демо.`)} />
           ))}
           <p id="mono-actions-status" className="mono-actions__status" role="status"
-            aria-label="Статус быстрых действий" aria-live="polite">{quickActionStatus}</p>
+            aria-label="Статус быстрых действий" aria-live="polite">{product
+              ? "Демо · операции не выполняются" : quickActionStatus}</p>
         </section>
+
+        {product && <ProductBatteryLine {...product} />}
+        {product && appearance.layout?.chartPosition === "top" && chart &&
+          <div className="mono-scene-domain mono-scene-domain--chart mono-product-chart">{chart}</div>}
+        {product && <ProductHoldings {...product} overview
+          appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />}
 
         <div className="mono-promo-frame">
           <MonoOpticalGlass preset={preset} settings={optics} active={active} className="mono-promo" sharedHost={opticalHost}>
@@ -493,10 +519,10 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </MonoOpticalGlass>
         </div>
 
-        {fullScene && appearance.assets ? <div className="mono-assets mono-scene-domain">
+        {!product && fullScene && appearance.assets ? <div className="mono-assets mono-scene-domain">
           <MonoAssetList assets={snapshot.assets} format={moneyFormat} hidden={balanceHidden} appearance={appearance.assets} />
           <p className="mono-assets__disclaimer">Демонстрационные данные. Операции здесь недоступны.</p>
-        </div> : <section className="mono-assets" aria-labelledby="mono-assets-title">
+        </div> : !product && <section className="mono-assets" aria-labelledby="mono-assets-title">
           <div className="mono-assets__heading"><h2 id="mono-assets-title">Активы</h2></div>
           <div className="mono-assets__list">
             {snapshot.assets.map((asset) => (
@@ -509,27 +535,38 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </div>
           <p className="mono-assets__disclaimer">Демонстрационные данные. Операции здесь недоступны.</p>
         </section>}
-        {fullScene && appearance.layout?.chartPosition === "bottom" && <div className="mono-scene-domain mono-scene-domain--chart">{chart}</div>}
+        {fullScene && appearance.layout?.chartPosition === "bottom" && chart &&
+          <div className="mono-scene-domain mono-scene-domain--chart">{chart}</div>}
         </>}
         {section === "assets" && <section className="mono-section-view" aria-labelledby="mono-all-assets-title">
           <div className="mono-section-view__eyebrow">ПОРТФЕЛЬ / DEMO</div>
           <h1 id="mono-all-assets-title">Все активы</h1>
-          <div className="mono-section-view__balance"><span>Общий баланс</span>
-            <strong>{balanceHidden ? "••••••" : `${balance} $`}</strong></div>
-          <div className="mono-section-view__assets mono-scene-domain">
+          <div className="mono-section-view__balance"><span>{product?.view.context.kind === "account" ? "Баланс счёта" :
+            product ? "Общая стоимость" : "Общий баланс"}</span>
+            <strong>{balanceHidden ? "••••••" : product ? formatFiatMinor(product.view.balanceMinor) : `${balance} $`}</strong></div>
+          {product ? <ProductHoldings {...product} overview={false}
+            appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} /> : <div className="mono-section-view__assets mono-scene-domain">
             <MonoAssetList assets={snapshot.assets} format={moneyFormat} hidden={balanceHidden}
               appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />
-          </div>
-          <p className="mono-section-view__note">Демонстрационные данные. Операции недоступны.</p>
+          </div>}
+          <p className="mono-section-view__note">{product ? "Демонстрационные данные. Операции не выполняются."
+            : "Демонстрационные данные. Операции недоступны."}</p>
         </section>}
-        {section === "history" && <section className="mono-section-view" aria-labelledby="mono-history-title">
+        {section === "history" && product && <div className="mono-product-section"><ProductHistory
+          activities={product.view.activities} balanceHidden={product.view.balanceHidden}
+          accountId={product.view.context.kind === "account" ? product.view.context.accountId : undefined}
+          accountLabel={product.view.account?.label} /></div>}
+        {section === "history" && !product && <section className="mono-section-view" aria-labelledby="mono-history-title">
           <div className="mono-section-view__eyebrow">ОПЕРАЦИИ / DEMO</div>
           <h1 id="mono-history-title">История операций</h1>
           <div className="mono-section-view__empty"><span aria-hidden="true">↗</span>
             <strong>История операций пока не подключена</strong>
             <p>Эта демо-сцена не загружает операции. Быстрые действия не совершают переводы.</p></div>
         </section>}
-        {section === "profile" && <section className="mono-section-view" aria-labelledby="mono-profile-title">
+        {section === "profile" && product && <div className="mono-product-section"><ProductProfile
+          profile={snapshot.profile} balanceHidden={product.view.balanceHidden}
+          onBalanceHiddenChange={product.commands.setBalanceHidden} /></div>}
+        {section === "profile" && !product && <section className="mono-section-view" aria-labelledby="mono-profile-title">
           <div className="mono-section-view__eyebrow">АККАУНТ / DEMO</div>
           <h1 id="mono-profile-title">Профиль</h1>
           <div className="mono-section-view__profile"><span className="mono-section-view__avatar" aria-hidden="true">{snapshot.profile.name.slice(0, 1)}</span>
@@ -544,7 +581,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         </section>}
       </div>
 
-      <nav className="mono-nav" aria-label="Разделы кошелька">
+      <nav className="mono-nav" aria-label="Разделы кошелька" inert={Boolean(product?.view.sheet)}>
         {NAV_ITEMS.map(item => (
           <button className="mono-nav__item" type="button" data-active={section === item.id ? "true" : "false"}
             aria-current={section === item.id ? "page" : undefined} key={item.id}
@@ -555,6 +592,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </button>
         ))}
       </nav>
+      {product && <ProductOverlay {...product} />}
         </main>
   );
 }
