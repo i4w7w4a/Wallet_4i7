@@ -32,6 +32,7 @@ import type { MonoProductController } from "../mono-product/product-controller";
 import { ProductHistory } from "../mono-product/product-history";
 import { ProductRecentActivity } from "../mono-product/product-recent-activity";
 import { ProductProfile } from "../mono-product/product-profile";
+import { useProductViewMotion } from "../mono-product/motion/product-view-motion";
 
 import "./mono-fonts.css";
 import "./mono-font-candidates.css";
@@ -44,6 +45,7 @@ import "./mono-theme.css";
 import "./mono-scene-layout.css";
 import "./mono-typography-scene.css";
 import "./mono-interface.css";
+import "../mono-product/motion/product-view-motion.css";
 
 /** Normalized presentation only. Storage envelopes and editor history stay at the host. */
 export type MonoScenePresentation = {
@@ -161,6 +163,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const setBalanceHidden = session?.onBalanceHiddenChange ?? setLocalBalanceHidden;
   const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
   const pageRef = useRef<HTMLElement>(null);
+  const productContentRef = useRef<HTMLDivElement>(null);
   const previousSection = useRef(section);
   const previousAsset = useRef<{ assetId: string; section: MonoSection } | null>(null);
   const activityFocusRequest = useRef<string | null>(null);
@@ -177,6 +180,10 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const chartPoints = values
     .map((value, index) => `${(index / Math.max(1, values.length - 1)) * 100},${74 - ((value - low) / span) * 54}`)
     .join(" ");
+
+  useProductViewMotion({ surfaceRef: pageRef, contentRef: productContentRef,
+    view: { section, assetId: assetWorkspaceId },
+    enabled: Boolean(product) && active && !effectsDisabled && !appearance.background?.calm });
 
   useLayoutEffect(() => {
     if (previousSection.current === section) return;
@@ -458,7 +465,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             </div>
           </div>}
 
-      <div className="mono-scene" inert={productModalOpen}>
+      <div ref={productContentRef} className="mono-scene" data-product-view-motion={product ? "" : undefined}
+        inert={productModalOpen}>
         <header className="mono-app-header">
           <div className="mono-app-header__mark">
             <MonoLogo />

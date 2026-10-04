@@ -1,0 +1,29 @@
+.mono-page[data-mono-product="true"] {
+  --mono-product-reveal-open: 320ms;
+  --mono-product-reveal-close: 240ms;
+  --mono-product-motion-ease: cubic-bezier(.2,0,0,1);
+}
+
+/* Product view entry owns the finite transition; mounted preview choreography must not replay. */
+.mono-page[data-mono-product="true"] .mono-scene[data-product-view-motion] :is(
+  .mono-logo__icon-primary, .mono-logo__icon-depth, .mono-logo__icon-gradient, .mono-logo__wordmark,
+  .mono-hero__eyebrow, .mono-hero__amount, .mono-hero__change,
+  .mono-actions, .mono-actions__item, .mono-promo-frame, .mono-assets__heading,
+  .mono-chart__line, .mono-chart__terminal
+) { animation: none; }
+.mono-page[data-mono-product="true"] .mono-scene[data-product-view-motion] .mono-promo-frame::before {
+  animation: none;
+  opacity: 0;
+}
+
+/* The gate also wins before the observer cancels WAAPI in the following microtask. */
+.mono-page[data-mono-motion="static"] [data-product-view-motion-target] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mono-page [data-product-view-motion-target] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
