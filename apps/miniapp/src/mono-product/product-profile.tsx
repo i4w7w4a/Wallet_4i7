@@ -1,11 +1,14 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { WalletProfile } from "@wallet/core";
 import { createDemoProfileResource, isProfileLinkAllowed, type ProductProfileActions,
   type ProductProfileDetails, type ProductProfileResource } from "./profile";
 import { DisclosureMotion } from "./motion/disclosure-motion";
 import styles from "./product-profile.module.css";
+
+export type ProductProfileSection = "personal" | "settings" | "security" | "help";
+export type ProductProfileOpenSectionRequest = { section: ProductProfileSection; revision: number };
 
 export type ProductProfileProps = {
   profile: WalletProfile;
@@ -16,9 +19,10 @@ export type ProductProfileProps = {
   onRetry?(): void;
   theme?: "dark" | "light";
   onThemeChange?(theme: "dark" | "light"): void;
+  /** A new revision opens an existing disclosure; manual toggles remain profile-owned. */
+  openSectionRequest?: ProductProfileOpenSectionRequest;
 };
 
-type ProfileGroup = "personal" | "settings" | "security" | "help";
 const verificationLabels: Record<ProductProfileDetails["verification"], string> = {
   unknown: "Данные не подключены", "not-started": "Не начата", pending: "На проверке",
   verified: "Подтверждена", rejected: "Не пройдена",
@@ -37,10 +41,22 @@ const securityActionLabels = [
 ] as const;
 
 export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange, resource, actions,
-  onRetry, theme, onThemeChange }: ProductProfileProps) {
+  onRetry, theme, onThemeChange, openSectionRequest }: ProductProfileProps) {
   const titleId = useId();
   const groupIdPrefix = useId();
-  const [openGroup, setOpenGroup] = useState<ProfileGroup | null>(null);
+  const requestedSection = openSectionRequest?.section;
+  const requestedRevision = openSectionRequest?.revision;
+  const [openGroup, setOpenGroup] = useState<ProductProfileSection | null>(requestedSection ?? null);
+  const [consumedRequest, setConsumedRequest] = useState(requestedRevision);
+  const requestTarget = useRef<HTMLButtonElement>(null);
+  if (requestedSection && consumedRequest !== requestedRevision) {
+    setConsumedRequest(requestedRevision);
+    setOpenGroup(requestedSection);
+  }
+  useEffect(() => {
+    // Run after the host's section scroll reset so the requested disclosure can become visible.
+    if (requestedSection) requestTarget.current?.focus();
+  }, [requestedRevision, requestedSection]);
   const current = resource ?? createDemoProfileResource();
   const details = current.status === "ready" ? current.data : null;
   const securityActions = securityActionLabels.filter(([action]) => actions?.[action]);
@@ -52,13 +68,14 @@ export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange, 
       ? "Данные не подключены" : "Проверка личности и доступ"
     : current.status === "loading" ? "Загрузка данных" : "Данные недоступны";
 
-  function disclosure(group: ProfileGroup, label: string, summary: string, content: ReactNode) {
+  function disclosure(group: ProductProfileSection, label: string, summary: string, content: ReactNode) {
     const expanded = openGroup === group;
     const detailsId = `${groupIdPrefix}-${group}`;
     const summaryId = `${detailsId}-summary`;
     const triggerId = `${detailsId}-trigger`;
     return <div className={styles.group}>
       <h2 className={styles.groupHeading}><button type="button" id={triggerId} className={styles.groupButton} aria-expanded={expanded}
+        ref={requestedSection === group ? requestTarget : undefined}
         aria-label={label} aria-describedby={summaryId}
         aria-controls={detailsId} onClick={() => setOpenGroup(expanded ? null : group)}>
         <span className={styles.groupCopy}><strong>{label}</strong><small id={summaryId}>{summary}</small></span>

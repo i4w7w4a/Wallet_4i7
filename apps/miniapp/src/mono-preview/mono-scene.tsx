@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
   type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefObject } from "react";
 import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
@@ -31,7 +31,10 @@ import { formatFiatMinor } from "../mono-product/product-format";
 import type { MonoProductController } from "../mono-product/product-controller";
 import { ProductHistory } from "../mono-product/product-history";
 import { ProductRecentActivity } from "../mono-product/product-recent-activity";
-import { ProductProfile } from "../mono-product/product-profile";
+import { ProductProfile, type ProductProfileOpenSectionRequest } from "../mono-product/product-profile";
+import { ProfileQuickMenu, type ProfileQuickMenuDismissReason } from "../mono-product/profile-quick-menu";
+import { AvatarControl, MONO_DEMO_AVATAR } from "../mono-product/avatar-control";
+import profileMenuStyles from "../mono-product/profile-quick-menu/profile-quick-menu.module.css";
 import { useProductViewMotion } from "../mono-product/motion/product-view-motion";
 
 import "./mono-fonts.css";
@@ -147,6 +150,17 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const [localPeriod, setLocalPeriod] = useState<ChartPeriod>("1D");
   const [localSection, setLocalSection] = useState<MonoSection>("overview");
   const section = session?.section ?? localSection;
+  const [profileMenuOrigin, setProfileMenuOrigin] = useState<{
+    section: MonoSection; context: MonoProductController["view"]["context"];
+  } | null>(null);
+  const profileMenuAnchor = useRef<HTMLButtonElement>(null);
+  const profileMenuId = useId();
+  const profileRequestRevision = useRef(0);
+  const [profileSectionRequest, setProfileSectionRequest] = useState<ProductProfileOpenSectionRequest>();
+  const canOpenProfileMenu = Boolean(product && active && !product.view.sheet && !product.view.commerceBusy);
+  const profileMenuVisible = Boolean(profileMenuOrigin && canOpenProfileMenu &&
+    profileMenuOrigin.section === section && profileMenuOrigin.context === product?.view.context);
+  if (profileMenuOrigin && !profileMenuVisible) setProfileMenuOrigin(null);
   const assetWorkspace = section === "overview" || section === "assets" ? product?.view.assetWorkspace ?? null : null;
   const assetWorkspaceId = assetWorkspace?.assetId ?? null;
   const setSection = session?.onSectionChange ?? setLocalSection;
@@ -161,6 +175,26 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const [localBalanceHidden, setLocalBalanceHidden] = useState(snapshot.balance.hidden);
   const balanceHidden = session?.balanceHidden ?? localBalanceHidden;
   const setBalanceHidden = session?.onBalanceHiddenChange ?? setLocalBalanceHidden;
+  const dismissProfileMenu = useCallback((reason: ProfileQuickMenuDismissReason) => {
+    if (reason === "close" || reason === "escape") profileMenuAnchor.current?.focus({ preventScroll: true });
+    setProfileMenuOrigin(null);
+  }, []);
+  function headerContextAllowed() {
+    if (!active || (product && !product.commands.requestContextChange())) return false;
+    return !product?.view.sheet;
+  }
+  function openProfile() {
+    if (!headerContextAllowed()) return;
+    setProfileMenuOrigin(null);
+    setProfileSectionRequest(undefined);
+    setSection("profile");
+  }
+  function openProfileHelp() {
+    if (!headerContextAllowed() || !product) return;
+    setProfileMenuOrigin(null);
+    setProfileSectionRequest({ section: "help", revision: ++profileRequestRevision.current });
+    setSection("profile");
+  }
   const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
   const pageRef = useRef<HTMLElement>(null);
   const productContentRef = useRef<HTMLDivElement>(null);
@@ -433,6 +467,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     !product.view.sheet.route && !product.view.sheet.placementId;
   const productModalOpen = Boolean(product?.view.sheet && product.view.sheet.kind !== "battery" && !receiveMenuOpen && !sendMenuOpen);
   return (
+      <ProductGlassProvider sharedHost={opticalHost} preset={preset} settings={optics}
+        active={active && !effectsDisabled} opaque={effectsDisabled}>
         <main ref={node => { pageRef.current = node; if (surfaceRef) surfaceRef.current = node; }}
           className="mono-page" data-mono-preview data-mono-preset={preset}
           data-mono-logo-variant={logoPreview.variant} data-mono-logo-custom={logoPreview.customColor}
@@ -474,11 +510,25 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <div className="mono-app-header__person">
             <strong>{snapshot.profile.name}</strong>
           </div>
-          <button className="mono-app-header__profile" type="button" aria-label="Открыть профиль"
+          <div className={profileMenuStyles.headerControls} inert={!active} aria-hidden={!active || undefined}>
+          <AvatarControl aria-label="Открыть профиль"
             aria-current={section === "profile" ? "page" : undefined}
-            onClick={() => setSection("profile")}>
-            <span aria-hidden="true">{snapshot.profile.name.trim().slice(0, 1).toLocaleUpperCase("ru-RU")}</span>
-          </button>
+            avatarSrc={product?.view.flowPorts.buy.mode === "demo" && product.view.flowPorts.swap.mode === "demo"
+              ? MONO_DEMO_AVATAR.src : undefined}
+            fallback={snapshot.profile.name} motionEnabled={active && !effectsDisabled && !appearance.background?.calm}
+            onClick={openProfile} />
+          {product && <button ref={profileMenuAnchor} className={profileMenuStyles.trigger} type="button"
+            aria-label="Быстрые настройки" aria-haspopup="dialog" aria-expanded={profileMenuVisible}
+            aria-controls={profileMenuId} data-profile-quick-menu-trigger
+            onClick={() => {
+              if (!headerContextAllowed()) return;
+              setProfileMenuOrigin(current => current ? null : { section, context: product.view.context });
+            }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" focusable="false">
+              <path d="M4 8h14M4 14h14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+          </button>}
+          </div>
         </header>
         {product && <ProductContextLine {...product} />}
 
@@ -638,7 +688,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {section === "profile" && product && <div className="mono-product-section"><ProductProfile
           profile={snapshot.profile} balanceHidden={product.view.balanceHidden}
           onBalanceHiddenChange={product.commands.setBalanceHidden}
-          theme={theme} onThemeChange={session?.onThemeChange} /></div>}
+          theme={theme} onThemeChange={session?.onThemeChange} openSectionRequest={profileSectionRequest} /></div>}
         {section === "profile" && !product && <section className="mono-section-view" aria-labelledby="mono-profile-title">
           <div className="mono-section-view__eyebrow">АККАУНТ / DEMO</div>
           <h1 id="mono-profile-title">Профиль</h1>
@@ -658,15 +708,24 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {NAV_ITEMS.map(item => (
           <button className="mono-nav__item" type="button" data-active={section === item.id ? "true" : "false"}
             aria-current={section === item.id ? "page" : undefined} key={item.id}
-            onClick={() => setSection(item.id)}>
+            onClick={() => {
+              if (product && !product.commands.requestContextChange()) return;
+              setProfileMenuOrigin(null);
+              setProfileSectionRequest(undefined);
+              setSection(item.id);
+            }}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d={item.path} /></svg>
             <span>{item.label}</span>
             <span className="mono-nav__indicator" aria-hidden="true"><i className="mono-nav__glint" /></span>
           </button>
         ))}
       </nav>
-      {product && <ProductGlassProvider sharedHost={opticalHost} preset={preset} settings={optics} active={active && !effectsDisabled}>
-        <ProductOverlay {...product} onOpenActivity={openActivity} /></ProductGlassProvider>}
+      {product && <ProfileQuickMenu id={profileMenuId} open={profileMenuVisible} anchorRef={profileMenuAnchor}
+        theme={theme} onThemeChange={session?.onThemeChange} balanceHidden={product.view.balanceHidden}
+        onBalanceHiddenChange={product.commands.setBalanceHidden} onOpenHelp={openProfileHelp} onDismiss={dismissProfileMenu}
+        motionEnabled={active && !effectsDisabled && !appearance.background?.calm} />}
+      {product && <ProductOverlay {...product} onOpenActivity={openActivity} />}
         </main>
+      </ProductGlassProvider>
   );
 }
