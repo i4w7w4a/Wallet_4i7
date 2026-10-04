@@ -11,7 +11,7 @@ const nonblank = (value: unknown): value is string => typeof value === "string" 
 const precision = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 36;
 const fields = ["accountId", "accountKind", "accountLabel", "assetId", "symbol", "name", "networkId", "networkLabel"] as const;
 
-function placement(value: unknown): value is CryptoPlacement {
+function placement(value: unknown): value is CryptoPlacement & Record<string, unknown> {
   return record(value) && fields.every(field => nonblank(value[field])) && value.accountId !== "all" &&
     ["custodial", "depositary", "private"].includes(value.accountKind as string);
 }

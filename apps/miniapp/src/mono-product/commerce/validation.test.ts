@@ -51,13 +51,14 @@ describe("commerce quote boundary", () => {
     const quote = swapQuote();
     const unit = { kind: "fiat" as const, currency: "USD", decimals: 2 };
     quote.fee = { status: "known", amount: "2", unit }; quote.debit.quantity = "100";
-    quote.feeFunding = { kind: "balance", unit: { ...unit }, available: null };
+    const fiatFundingUnit = { ...unit };
+    quote.feeFunding = { kind: "balance", unit: fiatFundingUnit, available: null };
     expect(validateSwapQuote(quote.request, quote, 1000, "swap-port")).toEqual({ code: "unknown-funding" });
     quote.feeFunding.available = "1.99";
     expect(validateSwapQuote(quote.request, quote, 1000, "swap-port")).toEqual({ code: "insufficient-fee" });
     quote.feeFunding.available = "2";
     expect(validateSwapQuote(quote.request, quote, 1000, "swap-port")).toBeNull();
-    quote.feeFunding.unit.currency = "EUR";
+    fiatFundingUnit.currency = "EUR";
     expect(validateSwapQuote(quote.request, quote, 1000, "swap-port")).toEqual({ code: "invalid-quote" });
   });
   it("rejects missing fees and malformed monetary legs", () => {
