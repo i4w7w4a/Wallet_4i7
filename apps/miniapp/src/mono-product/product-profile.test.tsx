@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import type { WalletProfile } from "@wallet/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductProfileDetails, ProductProfileResource } from "./profile";
+import type { ProductHelpActions, ProductHelpTopicId } from "./product-help";
 import { ProductProfile } from "./product-profile";
 import { disclosureTestAnimations } from "./motion/disclosure-test-animations";
 
@@ -165,12 +166,118 @@ describe("ProductProfile", () => {
   });
 });
 
+describe("ProductProfile help handoff", () => {
+  // Catches a default help UI that offers actions without host eligibility/callbacks.
+  it("hosts four read-only topics in the existing help group when helpActions is omitted", () => {
+    render(<ProductProfile {...base} />);
+    open("Помощь и документы");
+    const help = within(section("Помощь и документы"));
+    expect(help.getAllByRole("heading", { level: 3 })).toHaveLength(4);
+    expect(help.getAllByText(/это демо.*не перемещают реальные средства/i)).toHaveLength(1);
+    open("Отправить");
+    const send = within(help.getByRole("region", { name: "Отправить" }));
+    expect(send.getByText("Открытие этой операции сейчас недоступно.")).toBeInTheDocument();
+    expect(send.queryByRole("button")).not.toBeInTheDocument();
+    expect(help.getByText("Контакт поддержки пока не указан.")).toBeInTheDocument();
+    expect(help.getByText("Документы пока не подключены.")).toBeInTheDocument();
+    expect(help.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  // Catches helpActions being ignored/remapped or disclosure toggles opening an operation.
+  it("passes only supplied opening callbacks through the existing profile help group", () => {
+    const openings: ProductHelpTopicId[] = [], payloads: unknown[][] = [];
+    const record = (topic: ProductHelpTopicId) => (...args: unknown[]) => { openings.push(topic); payloads.push(args); };
+    const helpActions: ProductHelpActions = {
+      receive: { allowed: true, onOpen: record("receive") },
+      send: { allowed: true, onOpen: record("send") },
+      buy: { allowed: true, onOpen: record("buy") },
+      swap: { allowed: true, onOpen: record("swap") },
+    };
+    render(<ProductProfile {...base} helpActions={helpActions} />);
+    expect(screen.queryByRole("button", { name: "Получить" })).not.toBeInTheDocument();
+    open("Помощь и документы");
+    expect(openings).toEqual([]);
+    const topics = [
+      { id: "receive", title: "Получить", cta: "Открыть получение" },
+      { id: "send", title: "Отправить", cta: "Открыть отправку" },
+      { id: "buy", title: "Купить", cta: "Открыть покупку" },
+      { id: "swap", title: "Обменять", cta: "Открыть обмен" },
+    ] as const;
+    for (const [index, topic] of topics.entries()) {
+      open(topic.title);
+      expect(openings).toHaveLength(index);
+      const help = within(section("Помощь и документы"));
+      expect(help.getAllByRole("region")).toHaveLength(1);
+      fireEvent.click(help.getByRole("button", { name: topic.cta }), { detail: 0 });
+      expect(openings.at(-1)).toBe(topic.id);
+    }
+    expect(openings).toEqual(["receive", "send", "buy", "swap"]);
+    expect(payloads).toEqual([[], [], [], []]);
+  });
+
+  // Catches inner state being reset by profile updates/remounts or request focus being stolen on the same revision.
+  it("preserves the selected topic through profile updates and existing revision-based help requests", () => {
+    const openings: string[] = [];
+    const request = { section: "help" as const, revision: 1 };
+    const helpActions: ProductHelpActions = { send: { allowed: true, onOpen: () => { openings.push("send"); } } };
+    const { rerender } = render(<ProductProfile {...base} resource={ready()}
+      openSectionRequest={request} helpActions={helpActions} />);
+    const helpTrigger = screen.getByRole("button", { name: "Помощь и документы" });
+    expect(helpTrigger).toHaveFocus();
+    const send = screen.getByRole("button", { name: "Отправить" });
+    send.focus();
+    fireEvent.click(send, { detail: 0 });
+    expect(send).toHaveFocus();
+    expect(send).toHaveAttribute("aria-expanded", "true");
+    rerender(<ProductProfile {...base} balanceHidden theme="light" resource={{ status: "loading" }}
+      openSectionRequest={{ ...request }} helpActions={{ send: { allowed: false, reason: "Завершите текущий сценарий." } }} />);
+    expect(send).toHaveFocus();
+    expect(send).toHaveAttribute("aria-expanded", "true");
+    expect(section("Отправить")).toHaveTextContent("Завершите текущий сценарий.");
+    expect(screen.queryByRole("button", { name: "Открыть отправку" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Показать суммы" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByText(/^(Тема|Светлая|Тёмная)$/)).toBeNull();
+    open("Личные данные");
+    expect(screen.queryByRole("button", { name: "Отправить" })).not.toBeInTheDocument();
+
+    rerender(<ProductProfile {...base} resource={ready()} helpActions={helpActions}
+      openSectionRequest={{ section: "help", revision: 2 }} />);
+    expect(helpTrigger).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Отправить" })).toHaveAttribute("aria-expanded", "true");
+    expect(within(section("Помощь и документы")).getAllByRole("region")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть отправку" }));
+    expect(openings).toEqual(["send"]);
+  });
+});
+
 describe("ProductProfile disclosure motion", () => {
   let animations: ReturnType<typeof disclosureTestAnimations>;
   beforeEach(() => { animations = disclosureTestAnimations(); });
   afterEach(() => animations.restore());
   const motionProfile = (resource = ready({ email: "fresh@example.test" }), mode = "ready") =>
     <div data-mono-motion={mode}><ProductProfile {...base} resource={resource} actions={{ "edit-contacts": () => undefined }} /></div>;
+
+  // Catches nested help CTAs remaining active or losing the correct outer launcher on profile-group close.
+  it("returns focus to the help group and blocks its nested action during the outer close", async () => {
+    const openings: string[] = [];
+    render(<div data-mono-motion="ready"><ProductProfile {...base}
+      helpActions={{ receive: { allowed: true, onOpen: () => { openings.push("receive"); } } }} /></div>);
+    open("Помощь и документы");
+    const help = section("Помощь и документы");
+    open("Получить");
+    const cta = screen.getByRole("button", { name: "Открыть получение" });
+    cta.focus();
+    open("Помощь и документы");
+    expect(screen.getByRole("button", { name: "Помощь и документы" })).toHaveFocus();
+    expect(help).toHaveAttribute("inert");
+    expect(help).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByRole("button", { name: "Открыть получение" })).not.toBeInTheDocument();
+    fireEvent.click(cta);
+    expect(openings).toEqual([]);
+    await animations.finish(help);
+    expect(help).toHaveAttribute("hidden");
+    expect(cta).not.toBeInTheDocument();
+  });
 
   it("returns focus before inert, excludes outgoing actions and unmounts them only after close", async () => {
     render(motionProfile());

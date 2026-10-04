@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { WalletProfile } from "@wallet/core";
 import { createDemoProfileResource, isProfileLinkAllowed, type ProductProfileActions,
   type ProductProfileDetails, type ProductProfileResource } from "./profile";
+import { ProductHelp, type ProductHelpActions, type ProductHelpTopicId } from "./product-help";
 import { DisclosureMotion } from "./motion/disclosure-motion";
 import styles from "./product-profile.module.css";
 
@@ -16,6 +17,7 @@ export type ProductProfileProps = {
   onBalanceHiddenChange: (hidden: boolean) => void;
   resource?: ProductProfileResource;
   actions?: ProductProfileActions;
+  helpActions?: ProductHelpActions;
   onRetry?(): void;
   theme?: "dark" | "light";
   onThemeChange?(theme: "dark" | "light"): void;
@@ -40,13 +42,14 @@ const securityActionLabels = [
   ["manage-addresses", "Управлять разрешёнными адресами"],
 ] as const;
 
-export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange, resource, actions,
+export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange, resource, actions, helpActions,
   onRetry, openSectionRequest }: ProductProfileProps) {
   const titleId = useId();
   const groupIdPrefix = useId();
   const requestedSection = openSectionRequest?.section;
   const requestedRevision = openSectionRequest?.revision;
   const [openGroup, setOpenGroup] = useState<ProductProfileSection | null>(requestedSection ?? null);
+  const [openHelpTopic, setOpenHelpTopic] = useState<ProductHelpTopicId | null>(null);
   const [consumedRequest, setConsumedRequest] = useState(requestedRevision);
   const requestTarget = useRef<HTMLButtonElement>(null);
   if (requestedSection && consumedRequest !== requestedRevision) {
@@ -151,11 +154,7 @@ export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange, 
       </> : <p className={styles.note}>{unavailableCopy}</p>)}
 
       {disclosure("help", "Помощь и документы", "Как устроены операции", <>
-        <dl className={styles.helpTopics}>
-          <div><dt>Счёт и сеть</dt><dd>Для операции выбирается конкретный счёт, актив и сеть.</dd></div>
-          <div><dt>Батарейка</dt><dd>Покрытие проверяется для конкретного перевода и зависит от сети и счёта.</dd></div>
-          <div><dt>Демонстрационный режим</dt><dd>Операции здесь не перемещают реальные средства.</dd></div>
-        </dl>
+        <ProductHelp openTopic={openHelpTopic} onOpenTopicChange={setOpenHelpTopic} actions={helpActions} />
         {details ? <div className={styles.links}>
           {support ? <ProfileLink href={support.href}>{support.label || "Поддержка"}</ProfileLink>
             : <p className={styles.note}>Контакт поддержки пока не указан.</p>}
