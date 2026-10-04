@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import type { ProductActionKind, ProductActionRoute, RouteUnavailableReason } from "@wallet/core";
 import { productRouteKey, receiveRequestAmountKey, sendDraftKey, type MonoProductCommands, type MonoProductView } from "./product-controller";
 import { createMonoDemoFlowPorts } from "./demo-adapter";
@@ -19,7 +19,7 @@ import "./product-home.css";
 type ProductProps = { view: MonoProductView; commands: MonoProductCommands; onOpenActivity?(id: string): void };
 
 export function ProductOverlay({ view, commands, onOpenActivity }: ProductProps) {
-  const ports = useMemo(() => createMonoDemoFlowPorts(view.snapshot), [view.snapshot]);
+  const ports = view.flowPorts;
   const currentSheet = useRef(view.sheet);
   currentSheet.current = view.sheet;
   const canRestoreActionFocus = useCallback(() => currentSheet.current === null, []);

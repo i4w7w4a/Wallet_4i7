@@ -142,3 +142,16 @@ it("handles loading, retry only when connected, and the asset-specific empty his
   expect(screen.getByText("По этому активу операций пока нет")).toBeInTheDocument();
   expect(screen.queryByText("Для этого счёта операций пока нет.")).not.toBeInTheDocument();
 });
+
+it("offers commerce on the exact fixture placement and removes those entries on unsupported networks or accounts", () => {
+  const input = props({ selectedHoldingId: "demo-usdc-eth" });
+  const { rerender } = render(<Harness {...input} />);
+  expect(screen.getByRole("button", { name: "Купить USDC · Основной · Ethereum" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Обмен USDC · Основной · Ethereum" })).toBeInTheDocument();
+  rerender(<Harness {...input} selectedHoldingId="demo-usdc-sol" />);
+  expect(screen.queryByRole("button", { name: /^(Купить|Обмен) USDC/ })).toBeNull();
+  expect(screen.getByRole("button", { name: "Отправить USDC · Основной · Solana" })).toBeInTheDocument();
+  rerender(<Harness {...input} selectedHoldingId="demo-inactive-usdc" />);
+  expect(screen.queryByRole("button", { name: /^(Купить|Обмен) USDC/ })).toBeNull();
+  expect(screen.getByText("Счёт не активирован. Операции недоступны.")).toBeInTheDocument();
+});

@@ -214,7 +214,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   }, [assetWorkspaceId, section]);
 
   function openActivity(id: string) {
-    if (!product) return;
+    if (!product || !product.commands.requestContextChange()) return;
     activityFocusRequest.current = id;
     product.commands.expandActivity(id);
     product.commands.closeSheet();

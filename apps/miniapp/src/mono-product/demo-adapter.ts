@@ -3,6 +3,7 @@ import { createSnapshotDemoActivities, type ProductActivity } from "./demo-activ
 import { createDemoReceiveDataPort, type DemoInternalReceiveBinding } from "./receive";
 import { createMockSendPort } from "./send";
 import { createDemoInternalTransferPort } from "./internal-transfer";
+import { createDemoCommercePorts } from "./commerce";
 
 /** Explicit synthetic binding; it does not infer a live transfer capability. */
 export const MONO_DEMO_INTERNAL_BINDINGS: readonly DemoInternalReceiveBinding[] = [
@@ -14,6 +15,7 @@ export function createMonoDemoFlowPorts(snapshot: Readonly<ProductSnapshot>) {
     receive: createDemoReceiveDataPort(snapshot, MONO_DEMO_INTERNAL_BINDINGS),
     internalTransfer: createDemoInternalTransferPort(snapshot, MONO_DEMO_INTERNAL_BINDINGS),
     send: createMockSendPort(snapshot),
+    ...createDemoCommercePorts(snapshot),
   };
 }
 

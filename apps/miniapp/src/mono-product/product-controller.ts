@@ -1,18 +1,23 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   groupHoldingsByAsset, resolveActionRoutes, resolveBatteryCoverage, selectBatteryPools, selectFiatBalanceMinor, selectHoldings,
   type AccountContext, type ActionRouteResolution, type AssetHoldingGroup, type BatteryCoverage, type BatteryPool,
   type ProductAccount, type ProductActionKind, type ProductActionRoute, type ProductSnapshot,
 } from "@wallet/core";
 
-import { MONO_DEMO_INTERNAL_BINDINGS, MONO_PRODUCT_DEMO_ADAPTER, type MonoProductAdapter } from "./demo-adapter";
+import { createMonoDemoFlowPorts, MONO_DEMO_INTERNAL_BINDINGS, MONO_PRODUCT_DEMO_ADAPTER, type MonoProductAdapter } from "./demo-adapter";
 import type { ProductActivity } from "./demo-activity";
 import { normalizeOperationReceipt } from "./operation-receipt";
 import type { SendDraft, SendSimulationResult } from "./send";
 import { validateInternalTransferQuote, type InternalTransferDraft, type InternalTransferSimulation } from "./internal-transfer";
 import { readNonNegativeDecimal } from "./internal-transfer/validation";
+import {
+  commerceRouteKey, commerceOperationId, validateBuyQuote, validateSwapQuote, validateCommerceSimulation,
+  type BuyRoute, type SwapRoute, type BuyDraft, type SwapDraft, type CommerceAcceptedSubmit,
+  type CommerceSimulation, type CommerceSubmitState,
+} from "./commerce";
 
 export type ProductSheetState =
   | { kind: "accounts" }
@@ -22,6 +27,9 @@ export type ProductSheetState =
 
 export type ProductBatteryActivity = { poolId: string; phase: "using" } | null;
 export type ProductAssetWorkspaceState = { assetId: string; holdingId: string | null } | null;
+export type ProductPlacementAction = "send" | "receive" | "buy" | "swap";
+
+type CommerceFlowLease = { ports: ReturnType<typeof createMonoDemoFlowPorts>; route: BuyRoute | SwapRoute };
 
 export function productRouteKey(route: ProductActionRoute): string {
   return [route.action, route.accountId, route.assetId, route.networkId,
@@ -73,6 +81,11 @@ export type MonoProductView = {
   sendDrafts: Readonly<Record<string, SendDraft>>;
   receiveRequestAmounts: Readonly<Record<string, string>>;
   internalTransferDrafts: Readonly<Record<string, InternalTransferDraft>>;
+  buyDrafts: Readonly<Record<string, BuyDraft>>;
+  swapDrafts: Readonly<Record<string, SwapDraft>>;
+  flowPorts: ReturnType<typeof createMonoDemoFlowPorts>;
+  commerceBusy: boolean;
+  commerceGuardMessage: string | null;
   usesDefaultDemoChart: boolean;
   context: AccountContext;
   account: ProductAccount | null;
@@ -96,7 +109,7 @@ export type MonoProductCommands = {
   selectContext(context: AccountContext): void;
   openBattery(): void;
   openIntent(action: ProductActionKind): void;
-  openPlacementAction(holdingId: string, action: "send" | "receive"): void;
+  openPlacementAction(holdingId: string, action: ProductPlacementAction): void;
   openAsset(assetId: string): void;
   selectAssetHolding(holdingId: string): void;
   closeAsset(): void;
@@ -110,6 +123,11 @@ export type MonoProductCommands = {
   recordSendSimulation(event: SendSimulationResult): string | null;
   saveInternalTransferDraft(route: ProductActionRoute, draft: InternalTransferDraft | null): void;
   recordInternalTransferSimulation(event: InternalTransferSimulation): string | null;
+  saveBuyDraft(route: BuyRoute, draft: BuyDraft | null): void;
+  saveSwapDraft(route: SwapRoute, draft: SwapDraft | null): void;
+  setCommerceSubmitState(route: BuyRoute | SwapRoute, state: CommerceSubmitState): void;
+  recordCommerceSimulation(event: CommerceSimulation): string | null;
+  requestContextChange(): boolean;
   toggleFunds(): void;
   toggleAsset(assetId: string): void;
   closeSheet(): void;
@@ -134,6 +152,120 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
   const [sendDrafts, setSendDrafts] = useState<Record<string, SendDraft>>({});
   const [receiveRequestAmounts, setReceiveRequestAmounts] = useState<Record<string, string>>({});
   const [internalTransferDrafts, setInternalTransferDrafts] = useState<Record<string, InternalTransferDraft>>({});
+  const [buyDrafts, setBuyDrafts] = useState<Record<string, BuyDraft>>({});
+  const [swapDrafts, setSwapDrafts] = useState<Record<string, SwapDraft>>({});
+  // Adapter identity is a data/port session boundary, even when its snapshot object is reused.
+  const flowPorts = useMemo(() => createMonoDemoFlowPorts(snapshot), [adapter, snapshot]);
+  const account = context.kind === "account"
+    ? snapshot.accounts.find(candidate => candidate.id === context.accountId) ?? null : null;
+  const effectiveContext = useMemo(() => context.kind === "account" && !account
+    ? { kind: "all" } as const : context, [context, account]);
+  const intent = useMemo(() => resolveIntent(snapshot, effectiveContext, sheet), [snapshot, effectiveContext, sheet]);
+  const sheetRoute = sheet?.kind === "intent" ? sheet.route : null;
+  const activeRoute = sheetRoute ? intent?.routes.find(route => productRouteKey(route) === productRouteKey(sheetRoute)) : null;
+  if (sheet?.kind === "intent" && sheet.route && !activeRoute) setSheet({ ...sheet, route: null });
+  const commerceLease = useMemo<CommerceFlowLease | null>(() => activeRoute &&
+    (activeRoute.action === "buy" || activeRoute.action === "swap")
+    ? { ports: flowPorts, route: activeRoute as BuyRoute | SwapRoute } : null, [flowPorts, sheet, activeRoute]);
+  const currentLease = useRef(commerceLease);
+  currentLease.current = commerceLease;
+  const mounted = useRef(true);
+  const acceptedCommerce = useRef<{ lease: CommerceFlowLease; attempt: CommerceAcceptedSubmit } | null>(null);
+  const [commerceBusy, setCommerceBusy] = useState(false);
+  const [commerceGuardMessage, setCommerceGuardMessage] = useState<string | null>(null);
+  if (acceptedCommerce.current && acceptedCommerce.current.lease !== commerceLease) {
+    acceptedCommerce.current = null;
+    if (commerceBusy) setCommerceBusy(false);
+    if (commerceGuardMessage) setCommerceGuardMessage(null);
+  }
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; acceptedCommerce.current = null; };
+  }, []);
+  const ownsCommerceRoute = useCallback((route: BuyRoute | SwapRoute) => mounted.current && commerceLease !== null &&
+    currentLease.current === commerceLease && commerceRouteKey(commerceLease.route) === commerceRouteKey(route), [commerceLease]);
+  const saveBuyDraft = useCallback((route: BuyRoute, draft: BuyDraft | null) => {
+    if (!ownsCommerceRoute(route) || route.action !== "buy" || acceptedCommerce.current) return;
+    const key = commerceRouteKey(route);
+    if (draft && (!draft.route || commerceRouteKey(draft.route) !== key ||
+      typeof draft.fiatAmount !== "string" || draft.fiatAmount.length > 128 ||
+      (draft.methodId !== null && typeof draft.methodId !== "string"))) return;
+    const clean: BuyDraft | null = draft ? { route: { ...route }, methodId: draft.methodId, fiatAmount: draft.fiatAmount } : null;
+    setBuyDrafts(current => {
+      if (JSON.stringify(current[key] ?? null) === JSON.stringify(clean)) return current;
+      const next = { ...current };
+      if (clean) next[key] = clean; else delete next[key];
+      return next;
+    });
+  }, [ownsCommerceRoute]);
+  const saveSwapDraft = useCallback((route: SwapRoute, draft: SwapDraft | null) => {
+    if (!ownsCommerceRoute(route) || route.action !== "swap" || acceptedCommerce.current) return;
+    const key = commerceRouteKey(route);
+    if (draft && (!draft.route || commerceRouteKey(draft.route) !== key ||
+      typeof draft.sourceAmount !== "string" || draft.sourceAmount.length > 128 ||
+      (draft.pairId !== null && typeof draft.pairId !== "string"))) return;
+    const clean: SwapDraft | null = draft ? { route: { ...route }, pairId: draft.pairId, sourceAmount: draft.sourceAmount } : null;
+    setSwapDrafts(current => {
+      if (JSON.stringify(current[key] ?? null) === JSON.stringify(clean)) return current;
+      const next = { ...current };
+      if (clean) next[key] = clean; else delete next[key];
+      return next;
+    });
+  }, [ownsCommerceRoute]);
+  const setCommerceSubmitState = useCallback((route: BuyRoute | SwapRoute, state: CommerceSubmitState) => {
+    if (!ownsCommerceRoute(route) || !commerceLease) return;
+    if (!state.busy) {
+      if (acceptedCommerce.current?.lease !== commerceLease || acceptedCommerce.current.attempt.operationId !== state.operationId) return;
+      acceptedCommerce.current = null;
+      setCommerceBusy(false); setCommerceGuardMessage(null);
+      return;
+    }
+    if (acceptedCommerce.current) return;
+    const attempt = state.attempt, quote = attempt?.quote;
+    if (!quote || !attempt.operationId || attempt.kind !== route.action || quote.kind !== attempt.kind ||
+      attempt.operationId !== commerceOperationId(quote, attempt.idempotencyKey)) return;
+    const issue = quote.kind === "buy"
+      ? validateBuyQuote({ ...quote.request, route: commerceLease.route as BuyRoute }, quote, Date.now(), commerceLease.ports.buy.id)
+      : validateSwapQuote({ ...quote.request, route: commerceLease.route as SwapRoute }, quote, Date.now(), commerceLease.ports.swap.id);
+    if (issue) return;
+    acceptedCommerce.current = { lease: commerceLease, attempt: structuredClone(attempt) };
+    setCommerceBusy(true); setCommerceGuardMessage(null);
+  }, [ownsCommerceRoute, commerceLease]);
+  const recordedCommerceSimulations = useRef(new Map<string, string>());
+  const recordCommerceSimulation = useCallback((event: CommerceSimulation): string | null => {
+    const accepted = acceptedCommerce.current;
+    if (!mounted.current || !commerceLease || currentLease.current !== commerceLease || accepted?.lease !== commerceLease ||
+      accepted.attempt.operationId !== event?.simulationId || event?.kind !== commerceLease.route.action ||
+      validateCommerceSimulation(accepted.attempt.quote, event, accepted.attempt.idempotencyKey)) return null;
+    const prior = recordedCommerceSimulations.current.get(event.simulationId);
+    if (prior) return prior;
+    const checked = structuredClone(event);
+    const quote = checked.quote;
+    const primary = quote.kind === "buy" ? quote.credit : quote.debit;
+    const succeeded = checked.result.status === "simulated-success";
+    const id = `commerce-simulation:${checked.simulationId}`;
+    const entry: ProductActivity = { id, mode: "simulation", direction: checked.kind === "swap" ? "exchange" : "incoming",
+      status: succeeded ? "completed" : "failed", accountId: primary.accountId, accountLabel: primary.accountLabel,
+      assetId: primary.assetId, assetSymbol: primary.symbol, networkId: primary.networkId, networkLabel: primary.networkLabel,
+      quantity: primary.quantity, occurredAt: new Date().toISOString(), commerce: checked,
+      ...(checked.result.status === "simulated-failure" ? { failureReason: checked.result.reason } : {}) };
+    recordedCommerceSimulations.current.set(checked.simulationId, id);
+    setSimulations(current => [entry, ...current]);
+    if (succeeded) {
+      const key = commerceRouteKey(commerceLease.route);
+      if (checked.kind === "buy") setBuyDrafts(current => { const next = { ...current }; delete next[key]; return next; });
+      else setSwapDrafts(current => { const next = { ...current }; delete next[key]; return next; });
+    }
+    return id;
+  }, [commerceLease]);
+  const requestContextChange = useCallback(() => {
+    if (acceptedCommerce.current && currentLease.current === acceptedCommerce.current.lease) {
+      setCommerceGuardMessage("Симуляция выполняется. Дождитесь результата.");
+      return false;
+    }
+    setCommerceGuardMessage(null);
+    return true;
+  }, []);
   const [simulations, setSimulations] = useState<readonly ProductActivity[]>([]);
   const recordedSimulations = useRef(new Set<string>());
   const recordedInternalSimulations = useRef(new Set<string>());
@@ -240,13 +372,15 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
     updateBatteryActivity(current => current?.poolId === activity?.poolId && current?.phase === activity?.phase
       ? current : activity);
   }, []);
-  const closeSheet = useCallback(() => { setSheet(null); updateBatteryActivity(null); }, []);
-  const closeAsset = useCallback(() => { setAssetWorkspace(null); closeSheet(); }, [closeSheet]);
+  const closeSheet = useCallback(() => {
+    if (!requestContextChange()) return;
+    setSheet(null); updateBatteryActivity(null);
+  }, [requestContextChange]);
+  const closeAsset = useCallback(() => {
+    if (!requestContextChange()) return;
+    setAssetWorkspace(null); closeSheet();
+  }, [closeSheet, requestContextChange]);
   const balanceHidden = privacy.hidden ?? localHidden;
-  const account = context.kind === "account"
-    ? snapshot.accounts.find(candidate => candidate.id === context.accountId) ?? null : null;
-  const effectiveContext = context.kind === "account" && !account
-    ? { kind: "all" } as const : context;
   const selectedHoldings = useMemo(() => selectHoldings(snapshot, effectiveContext), [snapshot, effectiveContext]);
   const holdings = useMemo(() => groupHoldingsByAsset(selectedHoldings), [selectedHoldings]);
   const workspaceGroup = assetWorkspace ? holdings.find(group => group.assetId === assetWorkspace.assetId) : null;
@@ -263,12 +397,12 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
     return [pool.id, typeof percent === "number" && Number.isFinite(percent) && percent >= 0 && percent <= 100
       ? percent : null];
   })), [snapshot, adapter.batteryChargePercent]);
-  const intent = resolveIntent(snapshot, effectiveContext, sheet);
   const coverage = sheet?.kind === "intent" && sheet.route
     ? resolveBatteryCoverage(snapshot.batteryPools, sheet.route) : null;
 
   return {
     view: { snapshot, activities, activityStatus: adapter.activityStatus ?? "ready", expandedActivityId, sendDrafts, receiveRequestAmounts, internalTransferDrafts,
+      buyDrafts, swapDrafts, flowPorts, commerceBusy, commerceGuardMessage,
       usesDefaultDemoChart: adapter === MONO_PRODUCT_DEMO_ADAPTER,
       context: effectiveContext, account, holdings, balanceMinor, batteryPools,
       balanceHidden, fundsExpanded, expandedAssetIds, assetWorkspace, sheet, intent, coverage, batteryActivity, batteryChargePercent },
@@ -277,10 +411,11 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
         if (privacy.onHiddenChange) privacy.onHiddenChange(hidden);
         else setLocalHidden(hidden);
       },
-      openAccounts() { if (snapshot.accounts.length > 1) { updateBatteryActivity(null); setSheet({ kind: "accounts" }); } },
-      selectContext(next) { setContext(next); setExpandedActivityId(null); closeAsset(); },
-      openBattery() { updateBatteryActivity(null); setSheet(current => current?.kind === "battery" ? null : { kind: "battery" }); },
+      openAccounts() { if (requestContextChange() && snapshot.accounts.length > 1) { updateBatteryActivity(null); setSheet({ kind: "accounts" }); } },
+      selectContext(next) { if (!requestContextChange()) return; setContext(next); setExpandedActivityId(null); closeAsset(); },
+      openBattery() { if (!requestContextChange()) return; updateBatteryActivity(null); setSheet(current => current?.kind === "battery" ? null : { kind: "battery" }); },
       openIntent(action) {
+        if (!requestContextChange()) return;
         const routes = resolveActionRoutes(snapshot, effectiveContext, action).routes;
         const compact = action === "send" || action === "receive";
         updateBatteryActivity(null);
@@ -289,6 +424,7 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
           { kind: "intent", action, route: !compact && routes.length === 1 ? routes[0]! : null });
       },
       openPlacementAction(holdingId, action) {
+        if (!requestContextChange()) return;
         const holding = snapshot.holdings.find(candidate => candidate.id === holdingId);
         if (!holding) return;
         if (assetWorkspace && (assetWorkspace.holdingId !== holdingId ||
@@ -301,36 +437,43 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
         setSheet({ ...nextSheet, route: routes.length === 1 ? routes[0]! : null });
       },
       openAsset(assetId) {
+        if (!requestContextChange()) return;
         const group = holdings.find(candidate => candidate.assetId === assetId);
         if (!group) return;
         closeSheet(); setExpandedActivityId(null);
         setAssetWorkspace({ assetId, holdingId: group.placements.length === 1 ? group.placements[0]!.id : null });
       },
       selectAssetHolding(holdingId) {
+        if (!requestContextChange()) return;
         if (!assetWorkspace || !workspaceGroup?.placements.some(holding => holding.id === holdingId)) return;
         closeSheet(); setExpandedActivityId(null);
         setAssetWorkspace({ ...assetWorkspace, holdingId });
       },
       closeAsset,
-      selectRoute(route) { updateBatteryActivity(null); setSheet(current => {
+      selectRoute(route) { if (!requestContextChange()) return; updateBatteryActivity(null); setSheet(current => {
         const valid = resolveIntent(snapshot, effectiveContext, current)?.routes
           .find(candidate => productRouteKey(candidate) === productRouteKey(route));
         return current?.kind === "intent" && valid ? { ...current, route: valid } : current;
       }); },
-      backToRoutes(route) { updateBatteryActivity(null); setSheet(current => {
+      backToRoutes(route) { if (!requestContextChange()) return; updateBatteryActivity(null); setSheet(current => {
         if (current?.kind !== "intent" || current.action !== route.action) return current;
         if ((current.placementId || (current.action !== "receive" && current.action !== "send")) &&
           (resolveIntent(snapshot, effectiveContext, current)?.routes.length ?? 0) <= 1) return null;
         return { ...current, route: null, focusRouteKey: productRouteKey(route) };
       }); },
       setBatteryActivity,
-      expandActivity: setExpandedActivityId,
+      expandActivity(id) { if (requestContextChange()) setExpandedActivityId(id); },
       retryActivities: adapter.retryActivities,
       saveSendDraft,
       saveReceiveRequestAmount,
       recordSendSimulation,
       saveInternalTransferDraft,
       recordInternalTransferSimulation,
+      saveBuyDraft,
+      saveSwapDraft,
+      setCommerceSubmitState,
+      recordCommerceSimulation,
+      requestContextChange,
       toggleFunds() { setFundsExpanded(value => !value); },
       toggleAsset(assetId) {
         setExpandedAssetIds(current => {

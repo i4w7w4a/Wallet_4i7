@@ -32,10 +32,12 @@ export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_
   const section = scene.session?.section ?? localSection;
   const sectionRef = useRef(section);
   const closeAsset = product.commands.closeAsset;
+  const requestContextChange = product.commands.requestContextChange;
   const onSectionChange = scene.session?.onSectionChange ?? setLocalSection;
   const changeSection = useCallback((next: MonoSection) => {
+    if (!requestContextChange()) return;
     closeAsset(); onSectionChange(next);
-  }, [closeAsset, onSectionChange]);
+  }, [closeAsset, onSectionChange, requestContextChange]);
   useEffect(() => {
     if (sectionRef.current !== section) { sectionRef.current = section; closeAsset(); }
   }, [section, closeAsset]);

@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import { resolveActionRoutes, type ProductAccount, type ProductHolding, type ProductSnapshot } from "@wallet/core";
-import type { MonoProductView } from "../product-controller";
+import type { MonoProductView, ProductPlacementAction } from "../product-controller";
 import { formatFiatMinor, formatQuantity } from "../product-format";
 import { ProductHistory } from "../product-history";
 import { selectAssetActivities, sumDecimalQuantities } from "./asset-workspace-data";
@@ -14,7 +14,7 @@ export type ProductAssetWorkspaceProps = {
   selectedHoldingId: string | null;
   onSelectHolding(holdingId: string): void;
   onBack(): void;
-  onPlacementAction(holdingId: string, action: "send" | "receive"): void;
+  onPlacementAction(holdingId: string, action: ProductPlacementAction): void;
   onExpandActivity(id: string | null): void;
   onRetryActivities?(): void;
 };
@@ -98,10 +98,14 @@ function SelectedPlacement({ holding, account, snapshot, hidden, onAction }: {
   onAction: ProductAssetWorkspaceProps["onPlacementAction"];
 }) {
   const context = { kind: "account", accountId: holding.accountId } as const;
-  const allows = (action: "send" | "receive") => resolveActionRoutes(snapshot, context, action).routes.some(route =>
+  const allows = (action: ProductPlacementAction) => resolveActionRoutes(snapshot, context, action).routes.some(route =>
     route.accountId === holding.accountId && route.assetId === holding.assetId && route.networkId === holding.networkId);
   const canSend = allows("send");
   const canReceive = allows("receive");
+  const actions = (["receive", "send", "buy", "swap"] as const).filter(allows);
+  const labels = { send: "Отправить", receive: "Получить", buy: "Купить", swap: "Обмен" } as const;
+  const icons = { send: "M6 18 18 6M7 6h11v11", receive: "M18 6 6 18M6 7v11h11",
+    buy: "M12 4v16M4 12h16", swap: "M4 8h16m-4-4 4 4-4 4M20 16H4m4-4-4 4 4 4" } as const;
   const explanation = !account || account.status === "unavailable" ? "Счёт недоступен. Операции пока недоступны."
     : account.status === "inactive" ? "Счёт не активирован. Операции недоступны."
       : !canSend && !canReceive ? "Для этого размещения отправка и получение недоступны."
@@ -114,14 +118,14 @@ function SelectedPlacement({ holding, account, snapshot, hidden, onAction }: {
         {quantityLabel(holding.availableQuantity, holding.symbol, hidden)}
       </span></dd></div>
     </dl>
-    {(canReceive || canSend) && <div className={styles.actions} role="group" aria-label={`Операции: ${account?.label} · ${holding.networkLabel}`}>
-      {(["receive", "send"] as const).filter(action => action === "send" ? canSend : canReceive).map(action =>
+    {actions.length > 0 && <div className={styles.actions} role="group" aria-label={`Операции: ${account?.label} · ${holding.networkLabel}`}>
+      {actions.map(action =>
         <button key={action} type="button" className={styles.action}
-          aria-label={`${action === "send" ? "Отправить" : "Получить"} ${holding.symbol} · ${account?.label} · ${holding.networkLabel}`}
+          aria-label={`${labels[action]} ${holding.symbol} · ${account?.label} · ${holding.networkLabel}`}
           data-mono-product-placement-id={holding.id} data-mono-product-placement-action={action}
           onClick={() => onAction(holding.id, action)}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d={action === "send" ? "M6 18 18 6M7 6h11v11" : "M18 6 6 18M6 7v11h11"} /></svg>
-          {action === "send" ? "Отправить" : "Получить"}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d={icons[action]} /></svg>
+          {labels[action]}
         </button>)}
     </div>}
     {explanation && <p className={styles.hint}>{explanation}</p>}
