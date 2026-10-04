@@ -19,22 +19,22 @@ const section = (name: string) => screen.getByRole("region", { name });
 function open(name: string) { fireEvent.click(screen.getByRole("button", { name })); }
 
 describe("ProductProfile", () => {
-  it("requests controlled theme and shared privacy changes even while server data is loading", () => {
+  it("hides theme choice while shared privacy remains controlled during server loading", () => {
     const privacy = vi.fn(), theme = vi.fn();
     const { rerender } = render(<ProductProfile profile={profile} balanceHidden={false} onBalanceHiddenChange={privacy}
       theme="dark" onThemeChange={theme} resource={{ status: "loading" }} />);
-    const light = screen.getByRole("button", { name: "Светлая" });
-    light.focus();
-    fireEvent.click(light);
-    expect(theme).toHaveBeenCalledExactlyOnceWith("light");
-    expect(screen.getByRole("button", { name: "Тёмная" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: "Скрыть суммы" }));
+    expect(screen.queryByRole("group", { name: "Тема оформления" })).toBeNull();
+    expect(screen.queryByText(/^(Тема|Светлая|Тёмная)$/)).toBeNull();
+    const toggle = screen.getByRole("button", { name: "Скрыть суммы" });
+    toggle.focus();
+    fireEvent.click(toggle);
     expect(privacy).toHaveBeenCalledExactlyOnceWith(true);
     expect(screen.getByRole("button", { name: "Скрыть суммы" })).toHaveAttribute("aria-pressed", "false");
     rerender(<ProductProfile profile={profile} balanceHidden onBalanceHiddenChange={privacy}
       theme="light" onThemeChange={theme} resource={{ status: "loading" }} />);
-    expect(light).toHaveAttribute("aria-pressed", "true");
-    expect(light).toHaveFocus();
+    expect(toggle).toHaveFocus();
+    expect(screen.queryByText(/^(Тема|Светлая|Тёмная)$/)).toBeNull();
+    expect(theme).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Показать суммы" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByRole("button", { name: /анимаци/i })).not.toBeInTheDocument();
   });
@@ -142,18 +142,18 @@ describe("ProductProfile", () => {
     fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
     expect(retry).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "Скрыть суммы" }));
-    fireEvent.click(screen.getByRole("button", { name: "Светлая" }));
+    expect(screen.queryByRole("group", { name: "Тема оформления" })).toBeNull();
     expect(privacy).toHaveBeenCalledWith(true);
-    expect(theme).toHaveBeenCalledWith("light");
+    expect(theme).not.toHaveBeenCalled();
     rerender(<ProductProfile {...local} resource={{ status: "error", retryable: false }} onRetry={retry} />);
     expect(screen.queryByRole("button", { name: "Повторить" })).not.toBeInTheDocument();
     rerender(<ProductProfile {...local} resource={{ status: "error", retryable: true }} />);
     expect(screen.queryByRole("button", { name: "Повторить" })).not.toBeInTheDocument();
   });
 
-  it("shows read-only theme and short unsupported-action notes without fake controls", () => {
+  it("omits the theme placeholder and shows short unsupported-action notes without fake controls", () => {
     render(<ProductProfile {...base} theme="dark" />);
-    expect(screen.getByText("Тёмная")).toBeInTheDocument();
+    expect(screen.queryByText(/^(Тема|Светлая|Тёмная)$/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Тёмная" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Светлая" })).not.toBeInTheDocument();
     open("Личные данные");

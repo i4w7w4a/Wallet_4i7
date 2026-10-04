@@ -25,11 +25,11 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-async function controlledHome() {
+async function controlledHome(initialTheme: "dark" | "light" = "dark") {
   const snapshot = await new MockWalletRepository().getSnapshot();
   const envelope = createMonoAppearanceEnvelope("ledger");
   function Host() {
-    const [theme, setTheme] = useState<"dark" | "light">("dark");
+    const [theme, setTheme] = useState<"dark" | "light">(initialTheme);
     const [hidden, setHidden] = useState(false);
     const [section, setSection] = useState<MonoSection>("overview");
     return <MonoProductScene snapshot={snapshot} material={envelope.material} viewport={320}
@@ -62,19 +62,23 @@ it("consumes a profile disclosure request once and honours a new revision after 
   expect(help).toHaveFocus();
 });
 
-it("changes shared preferences in place and the avatar reaches the same profile state", async () => {
-  const { container } = await controlledHome();
+it.each(["dark", "light"] as const)("hides theme choice in menu and profile while preserving supplied %s appearance and shared privacy", async theme => {
+  const { container } = await controlledHome(theme);
   const { panel } = openSettings();
   expect(panel).not.toHaveAttribute("aria-modal", "true");
-  fireEvent.click(within(panel).getByRole("button", { name: "Светлая" }));
-  expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "light");
+  expect(within(panel).queryByRole("group", { name: "Тема оформления" })).toBeNull();
+  expect(within(panel).queryByText(/^(Тема|Светлая|Тёмная)$/)).toBeNull();
+  expect(within(panel).getByRole("button", { name: "Скрывать суммы" })).toHaveFocus();
+  expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", theme);
   fireEvent.click(within(panel).getByRole("button", { name: "Скрывать суммы" }));
   expect(within(panel).getByRole("button", { name: "Скрывать суммы" })).toHaveAttribute("aria-pressed", "true");
   expect(panel).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Открыть профиль" }));
   expect(screen.queryByRole("dialog", { name: "Быстрые настройки" })).toBeNull();
   expect(screen.getByRole("heading", { name: "Профиль" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Светлая" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("group", { name: "Тема оформления" })).toBeNull();
+  expect(screen.queryByText(/^(Тема|Светлая|Тёмная)$/)).toBeNull();
+  expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", theme);
   expect(screen.getByRole("button", { name: "Показать суммы" })).toHaveAttribute("aria-pressed", "true");
 });
 
@@ -101,7 +105,7 @@ it("opens existing help with destination focus and repeats the request inside pr
 it("restores the launcher on Escape while outside navigation keeps its action and focus", async () => {
   await controlledHome();
   const { trigger, panel } = openSettings();
-  expect(within(panel).getByRole("button", { name: "Светлая" })).toHaveFocus();
+  expect(within(panel).getByRole("button", { name: "Скрывать суммы" })).toHaveFocus();
   fireEvent.keyDown(document, { key: "Escape" });
   expect(trigger).toHaveFocus();
   expect(screen.queryByRole("dialog", { name: "Быстрые настройки" })).toBeNull();
@@ -113,7 +117,7 @@ it("restores the launcher on Escape while outside navigation keeps its action an
   expect(screen.queryByRole("dialog", { name: "Быстрые настройки" })).toBeNull();
 });
 
-it("keeps a host without a theme callback read-only", async () => {
+it("omits the theme row and placeholder when the host has no theme callback", async () => {
   const snapshot = await new MockWalletRepository().getSnapshot();
   const envelope = createMonoAppearanceEnvelope("ledger");
   render(<MonoProductScene snapshot={snapshot} appearance={envelope.appearance} material={envelope.material}
@@ -121,7 +125,7 @@ it("keeps a host without a theme callback read-only", async () => {
   const { panel } = openSettings();
   expect(within(panel).queryByRole("button", { name: "Светлая" })).toBeNull();
   expect(within(panel).queryByRole("button", { name: "Тёмная" })).toBeNull();
-  expect(within(panel).getByText("Тёмная")).toBeVisible();
+  expect(within(panel).queryByText(/^(Тема|Светлая|Тёмная)$/)).toBeNull();
   expect(within(panel).getByRole("button", { name: "Скрывать суммы" })).toHaveFocus();
 });
 

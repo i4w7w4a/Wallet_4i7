@@ -16,12 +16,7 @@
 .heading { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 .heading h2 { margin: 0; color: var(--mono-text-secondary, #bdbdbd); font: 500 12px/1.3 var(--mono-font-ui, sans-serif); }
 .close { margin-right: -7px; }
-.themeRow, .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 52px; }
-.themeRow { padding: 2px 3px; }
-.themeChoices { display: flex; gap: 2px; }
-.themeChoices button { min-width: 60px; min-height: 44px; padding: 6px; border: 0; border-radius: 16px; background: transparent; color: var(--mono-text-secondary, #bdbdbd); font: inherit; font-size: 12px; cursor: pointer; }
-.themeChoices button[aria-pressed="true"] { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); color: var(--mono-text, #f4f4f4); }
-.value { color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 52px; }
 .row { padding: 6px 3px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .row:active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 6%, transparent); }
 .toggle { position: relative; flex: 0 0 32px; width: 32px; height: 20px; border-radius: 10px; background: var(--mono-surface-high, #25272e); box-shadow: inset 0 0 0 1px var(--mono-rule, #343434); }
@@ -35,7 +30,7 @@
   .trigger { transition: color 190ms cubic-bezier(.2,0,0,1), background-color 190ms cubic-bezier(.2,0,0,1); }
   .trigger:hover { color: var(--mono-text, #f4f4f4); background: color-mix(in srgb, var(--mono-text, #f4f4f4) 4%, transparent); transition-duration: 90ms; }
   .trigger:active { transition-duration: 80ms; }
-  .panel :is(.row, .close, .themeChoices button):hover { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 4%, transparent); }
+  .panel :is(.row, .close):hover { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 4%, transparent); }
 }
 @media (prefers-reduced-motion: no-preference) {
   :global([data-mono-motion="ready"]) .panel[data-motion="true"][data-positioned="true"] { animation: quickSettingsEnter 200ms cubic-bezier(.2,0,0,1); }
@@ -45,8 +40,7 @@
 @media (prefers-reduced-motion: reduce) { .trigger { transition: none; } }
 :global([data-mono-motion="static"]) .trigger { transition: none; }
 @media (forced-colors: active) {
-  .trigger, .row, .close, .themeChoices button, .value, .heading h2 { color: CanvasText; }
-  .themeChoices button[aria-pressed="true"] { background: Highlight; color: HighlightText; }
+  .trigger, .row, .close, .heading h2 { color: CanvasText; }
   .toggle { border: 1px solid CanvasText; background: Canvas; box-shadow: none; }
   .toggle::after { background: CanvasText; }
   .toggle[data-checked="true"] { background: Highlight; }

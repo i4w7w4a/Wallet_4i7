@@ -41,7 +41,7 @@ const securityActionLabels = [
 ] as const;
 
 export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange, resource, actions,
-  onRetry, theme, onThemeChange, openSectionRequest }: ProductProfileProps) {
+  onRetry, openSectionRequest }: ProductProfileProps) {
   const titleId = useId();
   const groupIdPrefix = useId();
   const requestedSection = openSectionRequest?.section;
@@ -102,17 +102,6 @@ export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange, 
     <p className={styles.identityNote}>Не используется для получения средств.</p>
 
     <div className={styles.preferences}>
-      <div className={styles.preferenceRow}>
-        <span>Тема</span>
-        {theme && onThemeChange ? <div className={styles.themeChoices} role="group" aria-label="Тема оформления" data-theme={theme}>
-          <span className={styles.themeIndicator} aria-hidden="true" />
-          <button type="button" aria-pressed={theme === "light"} onClick={() => onThemeChange("light")}>Светлая</button>
-          <button type="button" aria-pressed={theme === "dark"} onClick={() => onThemeChange("dark")}>Тёмная</button>
-        </div> : <span className={styles.readOnlyTheme}>
-          <strong>{theme === "light" ? "Светлая" : theme === "dark" ? "Тёмная" : "Не подключена"}</strong>
-          <small>Смена темы здесь пока недоступна.</small>
-        </span>}
-      </div>
       <button type="button" className={`${styles.preferenceRow} ${styles.privacyButton}`} aria-pressed={balanceHidden}
         aria-label={balanceHidden ? "Показать суммы" : "Скрыть суммы"}
         onClick={() => onBalanceHiddenChange(!balanceHidden)}>

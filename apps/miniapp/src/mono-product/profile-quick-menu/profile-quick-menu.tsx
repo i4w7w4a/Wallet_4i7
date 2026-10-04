@@ -24,7 +24,7 @@ export function ProfileQuickMenu({ open, ...props }: ProfileQuickMenuProps) {
   return open ? <OpenProfileQuickMenu {...props} /> : null;
 }
 
-function OpenProfileQuickMenu({ id, anchorRef, theme, onThemeChange, balanceHidden, onBalanceHiddenChange,
+function OpenProfileQuickMenu({ id, anchorRef, balanceHidden, onBalanceHiddenChange,
   onOpenHelp, onDismiss, motionEnabled = true }: Omit<ProfileQuickMenuProps, "open">) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -110,14 +110,7 @@ function OpenProfileQuickMenu({ id, anchorRef, theme, onThemeChange, balanceHidd
           </svg>
         </button>
       </div>
-      <div className={styles.themeRow}>
-        <span>Тема</span>
-        {onThemeChange ? <div className={styles.themeChoices} role="group" aria-label="Тема оформления">
-          <button ref={firstControl} type="button" aria-pressed={theme === "light"} onClick={() => onThemeChange("light")}>Светлая</button>
-          <button type="button" aria-pressed={theme === "dark"} onClick={() => onThemeChange("dark")}>Тёмная</button>
-        </div> : <span className={styles.value}>{theme === "light" ? "Светлая" : "Тёмная"}</span>}
-      </div>
-      <button ref={onThemeChange ? undefined : firstControl} type="button" className={styles.row}
+      <button ref={firstControl} type="button" className={styles.row}
         aria-label="Скрывать суммы" aria-pressed={balanceHidden} onClick={() => onBalanceHiddenChange(!balanceHidden)}>
         <span>Скрывать суммы</span>
         <span className={styles.toggle} data-checked={balanceHidden} aria-hidden="true" />
@@ -148,7 +141,7 @@ function measurePlacement(scene: HTMLElement, anchor: HTMLButtonElement, panel: 
   if (rect.width <= 0 || rect.height <= 0 || rect.bottom <= topEdge || rect.top >= bottomEdge ||
     rect.right <= leftEdge || rect.left >= rightEdge || rightEdge <= leftEdge || bottomEdge <= topEdge) return null;
   const width = Math.min(280, rightEdge - leftEdge);
-  const naturalHeight = Math.min(320, panel.scrollHeight || 236);
+  const naturalHeight = Math.min(320, panel.scrollHeight || 176);
   const below = Math.max(0, bottomEdge - rect.bottom - 8), above = Math.max(0, rect.top - topEdge - 8);
   const side = below >= naturalHeight || below >= above ? "below" : "above";
   const maxHeight = Math.min(320, side === "below" ? below : above);

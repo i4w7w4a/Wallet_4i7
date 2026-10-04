@@ -10,14 +10,6 @@
 .identityNote { margin: 10px 0 16px; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; line-height: 1.45; }
 .preferences { margin-bottom: 14px; border-block: 1px solid var(--mono-rule, #343434); }
 .preferenceRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 56px; width: 100%; padding: 6px 0; }
-.themeChoices { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); flex: 0 1 176px; min-width: 148px; height: 44px; }
-.themeChoices button { position: relative; z-index: 1; min-width: 44px; min-height: 44px; padding: 8px 6px; border: 0; border-radius: 20px; background: transparent; color: var(--mono-text-secondary, #bdbdbd); cursor: pointer; font: inherit; font-size: 12px; -webkit-tap-highlight-color: transparent; }
-.themeChoices button[aria-pressed="true"] { color: var(--mono-text, #f4f4f4); font-weight: 600; }
-.themeIndicator { position: absolute; z-index: 0; left: 2px; top: 6px; width: calc(50% - 4px); height: 32px; border-radius: 18px; pointer-events: none; background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%); }
-.themeChoices[data-theme="dark"] .themeIndicator { transform: translateX(calc(100% + 4px)); }
-.readOnlyTheme { display: grid; gap: 2px; max-width: 62%; text-align: right; }
-.readOnlyTheme strong { font-size: 13px; font-weight: 500; }
-.readOnlyTheme small { color: var(--mono-text-secondary, #bdbdbd); font-size: 11px; line-height: 1.35; }
 .privacyButton { border: 0; border-radius: 10px; background: transparent; color: inherit; cursor: pointer; font: inherit; text-align: left; -webkit-tap-highlight-color: transparent; }
 .privacyState { display: inline-flex; align-items: center; gap: 9px; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; }
 .privacyToggle { position: relative; flex: 0 0 32px; width: 32px; height: 20px; border-radius: 10px; background: var(--mono-surface-high, #25272e); box-shadow: inset 0 0 0 1px var(--mono-rule, #343434); }
@@ -58,19 +50,16 @@
   .profile :is(.privacyButton, .groupButton, .textAction, .link):hover:not(:active) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 3%, transparent); }
 }
 @media (prefers-reduced-motion: no-preference) {
-  :global([data-mono-motion="ready"]) .themeIndicator { transition: transform 260ms cubic-bezier(.2, 0, 0, 1); }
   :global([data-mono-motion="ready"]) .privacyToggle::after { transition: transform 190ms cubic-bezier(.2, 0, 0, 1); }
   :global([data-mono-motion="ready"]) .chevron { transition: transform var(--mono-product-reveal-close, 240ms) var(--mono-product-motion-ease, cubic-bezier(.2, 0, 0, 1)); }
   :global([data-mono-motion="ready"]) .groupButton[aria-expanded="true"] .chevron { transition-duration: var(--mono-product-reveal-open, 320ms); }
 }
-:global([data-mono-motion="static"]) :is(.themeIndicator, .chevron),
+:global([data-mono-motion="static"]) .chevron,
 :global([data-mono-motion="static"]) .privacyToggle::after { transition: none; }
 @media (prefers-reduced-motion: reduce) {
-  .themeIndicator, .chevron, .privacyToggle::after { transition: none; }
+  .chevron, .privacyToggle::after { transition: none; }
 }
 @media (forced-colors: active) {
-  .themeIndicator { background: Highlight; box-shadow: none; }
-  .themeChoices button[aria-pressed="true"] { color: HighlightText; }
   .privacyToggle { background: Canvas; border: 1px solid CanvasText; box-shadow: none; }
   .privacyToggle::after { background: CanvasText; }
   .privacyToggle[data-checked="true"] { background: Highlight; }
