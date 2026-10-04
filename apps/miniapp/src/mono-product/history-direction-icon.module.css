@@ -23,6 +23,10 @@
   color: var(--history-outgoing-ink, #b2acff);
 }
 
+.icon[data-history-direction-icon="exchange"] {
+  color: var(--history-outgoing-ink, #b2acff);
+}
+
 .icon::before {
   position: absolute;
   z-index: -1;

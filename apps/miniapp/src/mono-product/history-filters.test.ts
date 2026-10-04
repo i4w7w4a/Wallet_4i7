@@ -2,6 +2,37 @@ import { expect, it } from "vitest";
 import type { ProductActivity } from "./demo-activity";
 import { scopeProductActivities } from "./product-activity-scope";
 import { filterHistoryActivities } from "./history-filters";
+import { createBuyActivityFixture, createSwapActivityFixture, createSwapSimulationFixture } from "./commerce-test-fixtures";
+
+it("searches public asset, account and network labels from both swap legs", () => {
+  const commerce = createSwapSimulationFixture();
+  commerce.quote.credit = {
+    ...commerce.quote.credit, name: "Эфириум", accountId: "demo-depositary", accountKind: "depositary", accountLabel: "Хранилище",
+    networkId: "solana", networkLabel: "Solana",
+  };
+  commerce.quote.request.destination = { ...commerce.quote.credit };
+  const record = createSwapActivityFixture({ commerce });
+
+  expect(filterHistoryActivities([record], {
+    query: " usdc USD Coin основной Ethereum ETH Эфириум Хранилище Solana ", direction: "exchange", status: "completed",
+  }).map(({ id }) => id)).toEqual(["commerce-swap-fixture"]);
+});
+
+it("can find a buy by its public fiat currency and crypto name without searching its money", () => {
+  const record = createBuyActivityFixture();
+
+  expect(filterHistoryActivities([record], { query: "USD USD Coin", direction: "incoming", status: "completed" })
+    .map(({ id }) => id)).toEqual(["commerce-buy-fixture"]);
+});
+
+it.each([
+  "101", "100", "0.04", "2500", "0.0004", "2000000000000", "commerce-swap-fixture",
+  "swap-attempt-fixture", "swap-quote-fixture", "swap-port-fixture", "demo-custody", "demo-usdc-eth-ethereum",
+])("does not search commerce quantities, rates, timestamps or identifiers: %s", query => {
+  expect(filterHistoryActivities([createSwapActivityFixture(), createBuyActivityFixture()], {
+    query, direction: "all", status: "all",
+  })).toEqual([]);
+});
 
 const ethereum: ProductActivity = {
   id: "eth-main", accountId: "main", accountLabel: "Основной счёт", assetId: "usdc", assetSymbol: "USDC",

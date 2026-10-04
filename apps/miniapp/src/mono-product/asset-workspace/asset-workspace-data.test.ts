@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProductActivity } from "../demo-activity";
 import { selectAssetActivities, sumDecimalQuantities } from "./asset-workspace-data";
+import { createBuyActivityFixture, createSwapActivityFixture, createSwapSimulationFixture } from "../commerce-test-fixtures";
 
 function activity(id: string, overrides: Partial<ProductActivity> = {}): ProductActivity {
   return Object.freeze({
@@ -57,6 +58,63 @@ describe("sumDecimalQuantities", () => {
 });
 
 describe("selectAssetActivities", () => {
+  it("retains one swap record for either asset without duplicating it in the combined account scope", () => {
+    const records = [createSwapActivityFixture()];
+
+    expect(selectAssetActivities(records, "usdc", ["demo-custody"], null).map(({ id }) => id))
+      .toEqual(["commerce-swap-fixture"]);
+    expect(selectAssetActivities(records, "eth", ["demo-custody"], null).map(({ id }) => id))
+      .toEqual(["commerce-swap-fixture"]);
+  });
+
+  it("matches asset, account and network on the same swap leg", () => {
+    const commerce = createSwapSimulationFixture();
+    commerce.quote.credit = {
+      ...commerce.quote.credit, accountId: "demo-depositary", accountKind: "depositary", accountLabel: "Хранилище",
+      networkId: "solana", networkLabel: "Solana",
+    };
+    commerce.quote.request.destination = { ...commerce.quote.credit };
+    const record = createSwapActivityFixture({ commerce });
+
+    expect(selectAssetActivities([record], "eth", ["demo-custody", "demo-depositary"], {
+      accountId: "demo-depositary", networkId: "solana",
+    }).map(({ id }) => id)).toEqual(["commerce-swap-fixture"]);
+    expect(selectAssetActivities([record], "eth", ["demo-custody"], null)).toEqual([]);
+    expect(selectAssetActivities([record], "eth", ["demo-custody", "demo-depositary"], {
+      accountId: "demo-custody", networkId: "solana",
+    })).toEqual([]);
+    expect(selectAssetActivities([record], "eth", ["demo-custody", "demo-depositary"], {
+      accountId: "demo-depositary", networkId: "ethereum",
+    })).toEqual([]);
+    expect(selectAssetActivities([record], "usdc", ["demo-custody", "demo-depositary"], {
+      accountId: "demo-depositary", networkId: "ethereum",
+    })).toEqual([]);
+  });
+
+  it("uses exact commerce asset identity instead of a same-symbol legacy field", () => {
+    const commerce = createSwapSimulationFixture();
+    commerce.quote.source.assetId = "wrapped-usdc";
+    commerce.quote.debit.assetId = "wrapped-usdc";
+    commerce.quote.request.route.assetId = "wrapped-usdc";
+    if (commerce.quote.fee.status === "known" && commerce.quote.fee.unit.kind === "crypto") {
+      commerce.quote.fee.unit.assetId = "wrapped-usdc";
+    }
+    const record = createSwapActivityFixture({ commerce });
+
+    expect(selectAssetActivities([record], "usdc", ["demo-custody"], null)).toEqual([]);
+    expect(selectAssetActivities([record], "wrapped-usdc", ["demo-custody"], null).map(({ id }) => id))
+      .toEqual(["commerce-swap-fixture"]);
+  });
+
+  it("retains a buy by its exact crypto credit placement without treating fiat debit as an asset", () => {
+    const record = createBuyActivityFixture({ assetId: "foreign-legacy-asset", networkId: "foreign-legacy-network" });
+
+    expect(selectAssetActivities([record], "usdc", ["demo-custody"], {
+      accountId: "demo-custody", networkId: "ethereum",
+    }).map(({ id }) => id)).toEqual(["commerce-buy-fixture"]);
+    expect(selectAssetActivities([record], "usd", ["demo-custody"], null)).toEqual([]);
+  });
+
   const activities: readonly ProductActivity[] = Object.freeze([
     activity("ethereum-account-b", {
       accountId: "account-b", networkId: "ethereum", networkLabel: "Ethereum",

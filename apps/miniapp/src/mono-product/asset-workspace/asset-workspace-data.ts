@@ -1,5 +1,5 @@
 import type { ProductHolding } from "@wallet/core";
-import type { ProductActivity } from "../demo-activity";
+import { productActivityCryptoLegs, type ProductActivity } from "../demo-activity";
 import { scopeProductActivities } from "../product-activity-scope";
 
 /** Holdings are decimal data, not localized user input; unknown values invalidate the total. */
@@ -36,7 +36,12 @@ export function selectAssetActivities(
   selectedPlacement: Pick<ProductHolding, "accountId" | "networkId"> | null,
 ): ProductActivity[] {
   if (selectedPlacement && !accountIds.includes(selectedPlacement.accountId)) return [];
-  const scoped = scopeProductActivities(activities, selectedPlacement ? [selectedPlacement.accountId] : accountIds);
-  return scoped.filter(activity => activity.assetId === assetId && !!activity.networkId &&
-    (selectedPlacement === null || activity.networkId === selectedPlacement.networkId));
+  const scopedAccountIds = selectedPlacement ? [selectedPlacement.accountId] : accountIds;
+  const accounts = new Set(scopedAccountIds);
+  const scoped = scopeProductActivities(activities, scopedAccountIds);
+  return scoped.filter(activity => activity.commerce
+    ? productActivityCryptoLegs(activity).some(leg => leg.assetId === assetId && !!leg.networkId &&
+      accounts.has(leg.accountId) && (selectedPlacement === null || leg.networkId === selectedPlacement.networkId))
+    : activity.assetId === assetId && !!activity.networkId &&
+      (selectedPlacement === null || activity.networkId === selectedPlacement.networkId));
 }

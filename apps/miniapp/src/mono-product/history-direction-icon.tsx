@@ -1,6 +1,6 @@
 import styles from "./history-direction-icon.module.css";
 
-type HistoryDirection = "incoming" | "outgoing";
+type HistoryDirection = "incoming" | "outgoing" | "exchange";
 type HistoryStatus = "pending" | "completed" | "failed";
 
 export type HistoryDirectionIconProps = {
@@ -27,6 +27,10 @@ export function HistoryDirectionIcon({ direction, status }: HistoryDirectionIcon
           <path className={styles.direction} d="M20 6.2v16.2m-5.3-5.3 5.3 5.3 5.3-5.3" />
           <path className={styles.highlight} d="M19.7 6.6v7.1" />
         </g>
+      </> : direction === "exchange" ? <>
+        <path className={styles.depth} transform="translate(0 1)" d="M8 13h24m-6-6 6 6-6 6M32 27H8m6-6-6 6 6 6" />
+        <path className={styles.direction} d="M8 13h24m-6-6 6 6-6 6M32 27H8m6-6-6 6 6 6" />
+        <path className={styles.highlight} d="M9 12.7h12M19 26.7h12" />
       </> : <>
         <path className={styles.surface} d="M17.8 9.9A12.1 12.1 0 1 0 29.9 22" />
         <path className={styles.depth} transform="translate(0 1)" d="M17.8 9.9A12.1 12.1 0 1 0 29.9 22" />

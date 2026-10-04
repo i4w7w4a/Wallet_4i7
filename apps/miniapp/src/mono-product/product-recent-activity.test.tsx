@@ -3,10 +3,22 @@ import { useState } from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { ProductActivity } from "./demo-activity";
+import type { CommerceSimulation } from "./commerce";
+import { buyQuote, swapQuote } from "./commerce/test-fixtures";
 import { ProductHistory } from "./product-history";
 import { ProductRecentActivity } from "./product-recent-activity";
 
 afterEach(cleanup);
+
+function commerceActivity(kind: "buy" | "swap"): ProductActivity {
+  const result = { mode: "demo" as const, status: "simulated-success" as const };
+  const commerce: CommerceSimulation = kind === "buy"
+    ? { mode: "demo", kind, simulationId: "recent-buy", idempotencyKey: "recent", quote: buyQuote(), result }
+    : { mode: "demo", kind, simulationId: "recent-swap", idempotencyKey: "recent", quote: swapQuote(), result };
+  return { id: commerce.simulationId, accountId: "demo-custody", accountLabel: "Основной", assetId: "usdc", assetSymbol: "USDC",
+    direction: kind === "buy" ? "incoming" : "exchange", mode: "simulation", status: "completed", networkId: "ethereum",
+    networkLabel: "Ethereum", quantity: "987.654321", occurredAt: "2026-10-03T12:00:00Z", commerce };
+}
 
 const activities: readonly ProductActivity[] = Object.freeze([
   {
@@ -142,4 +154,32 @@ it("opens the selected history detail from recent activity and permits collapsin
   expect(historyRow).toHaveAttribute("aria-expanded", "false");
   expect(history.queryByRole("region", { name: "Квитанция операции" })).not.toBeInTheDocument();
   expect(within(historyRow).getByText("Ethereum")).toBeInTheDocument();
+});
+
+it.each([
+  { kind: "buy" as const, label: "Демо-покупка", debitLabel: "Оплата", debit: "101 USD", credit: "100 USDC" },
+  { kind: "swap" as const, label: "Демо-обмен", debitLabel: "Списание", debit: "101 USDC", credit: "0,04 ETH" },
+])("shows both accepted $kind legs in recent activity and opens their one history operation", ({ kind, label, debitLabel, debit, credit }) => {
+  const activity = commerceActivity(kind);
+  const open = vi.fn();
+  const { container } = render(<ProductRecentActivity activities={[activity]} balanceHidden={false} onOpenActivity={open} />);
+  const row = screen.getByRole("button", { name: new RegExp(label) });
+  expect(within(row).getByText(debitLabel).nextElementSibling).toHaveTextContent(debit);
+  expect(within(row).getByText("Получение").nextElementSibling).toHaveTextContent(credit);
+  expect(row).toHaveAccessibleName(new RegExp(`${debitLabel}: ${debit}`));
+  expect(row).toHaveAccessibleName(new RegExp(`Получение: ${credit}`));
+  expect(container.innerHTML).not.toMatch(/987[.,]654321|0[.,]0404|102 USD/);
+  expect(screen.getAllByRole("button")).toHaveLength(1);
+  fireEvent.click(row);
+  expect(open).toHaveBeenCalledExactlyOnceWith(activity.id);
+});
+
+it.each(["buy", "swap"] as const)("masks both recent %s legs in DOM and accessible attributes while preserving units", kind => {
+  const activity = commerceActivity(kind);
+  const { container, rerender } = render(<ProductRecentActivity activities={[activity]} balanceHidden={false} onOpenActivity={() => undefined} />);
+  rerender(<ProductRecentActivity activities={[activity]} balanceHidden onOpenActivity={() => undefined} />);
+  const row = screen.getByRole("button");
+  expect(row).toHaveAccessibleName(/Получение: Сумма скрыта/);
+  expect(container.innerHTML).not.toMatch(/101|100 USDC|0[.,]04|987[.,]654321|1 (?:USD|USDC)/);
+  expect(within(row).getByText("Получение").nextElementSibling).toHaveTextContent(kind === "buy" ? "•••• USDC" : "•••• ETH");
 });

@@ -2,6 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import type { ProductActivity } from "./demo-activity";
+import type { CommerceSimulation } from "./commerce";
+import { buyQuote, swapQuote } from "./commerce/test-fixtures";
 import type { SendQuoteReceipt } from "./operation-receipt";
 import { OperationReceiptView } from "./operation-receipt-view";
 import { ProductHistory } from "./product-history";
@@ -18,6 +20,16 @@ const activity: ProductActivity = {
   networkId: "ethereum", networkLabel: "Ethereum", direction: "outgoing", status: "pending", mode: "simulation",
   quantity: "23.456789", occurredAt: "2026-10-03T08:00:00Z", receipt,
 };
+
+function commerceActivity(kind: "buy" | "swap", failed = false): ProductActivity {
+  const result = failed ? { mode: "demo" as const, status: "simulated-failure" as const, reason: "rejected" as const }
+    : { mode: "demo" as const, status: "simulated-success" as const };
+  const commerce: CommerceSimulation = kind === "buy"
+    ? { mode: "demo", kind, simulationId: "receipt-buy", idempotencyKey: "receipt", quote: buyQuote(), result }
+    : { mode: "demo", kind, simulationId: "receipt-swap", idempotencyKey: "receipt", quote: swapQuote(), result };
+  return { ...activity, id: commerce.simulationId, accountId: "demo-custody", direction: kind === "buy" ? "incoming" : "exchange",
+    quantity: "987.654321", status: failed ? "failed" : "completed", failureReason: "expired", commerce };
+}
 
 it.each([
   { seconds: undefined, expected: "Время уточняется" },
@@ -109,5 +121,42 @@ it("exposes network in a history row and preserves controlled disclosure with a 
   expect(document.getElementById(row.getAttribute("aria-controls")!)).not.toHaveAttribute("hidden");
   fireEvent.click(row);
   expect(change).toHaveBeenLastCalledWith(null);
-  expect(row).toHaveAttribute("aria-expanded", "true");
+  expect(row).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("region", { name: "Квитанция операции" })).not.toBeInTheDocument();
+});
+
+it.each([
+  { kind: "buy" as const, debitLabel: "Оплата по расчёту", debit: "101 USD", credit: "100 USDC", fee: "1 USD" },
+  { kind: "swap" as const, debitLabel: "Списание по расчёту", debit: "101 USDC", credit: "0,04 ETH", fee: "1 USDC" },
+])("shows the accepted $kind legs and fee in separate units without a mixed currency total", ({ kind, debitLabel, debit, credit, fee }) => {
+  const { container } = render(<OperationReceiptView activity={commerceActivity(kind)} balanceHidden={false} />);
+  expect(screen.getByText(debitLabel).nextElementSibling).toHaveTextContent(debit);
+  expect(screen.getByText("Получение по расчёту").nextElementSibling).toHaveTextContent(credit);
+  expect(screen.getByText("Расчёт комиссии").nextElementSibling).toHaveTextContent(fee);
+  expect(screen.queryByText("Сумма операции")).not.toBeInTheDocument();
+  expect(screen.queryByText("Количество")).not.toBeInTheDocument();
+  expect(container.innerHTML).not.toMatch(/987[.,]654321|24[.,]456789|0[.,]000003|17 зарядов|0[.,]0404|102 USD/);
+  expect(screen.getByText("Счёт получения").nextElementSibling).toHaveTextContent("Основной");
+  expect(screen.getByText("Сеть получения").nextElementSibling).toHaveTextContent("Ethereum");
+});
+
+it("explains a failed exchange from its accepted simulation while retaining exchange semantics", () => {
+  render(<OperationReceiptView activity={commerceActivity("swap", true)} balanceHidden={false} />);
+  expect(screen.getByText("Демо-обмен")).toBeInTheDocument();
+  expect(screen.getByText("Симуляция не выполнена")).toBeInTheDocument();
+  expect(screen.getByText("Симуляция отклонена.")).toBeInTheDocument();
+  expect(screen.queryByText("Срок действия расчёта истёк.")).not.toBeInTheDocument();
+  expect(screen.getByText("Списание по расчёту").nextElementSibling).toHaveTextContent("101 USDC");
+  expect(screen.getByText("Получение по расчёту").nextElementSibling).toHaveTextContent("0,04 ETH");
+});
+
+it("preserves the legacy internal transfer quantity, account context and example fee", () => {
+  render(<OperationReceiptView activity={{ ...activity, status: "completed", quantity: "25", receipt: undefined, feeLabel: "0 USDC",
+    internalTransfer: { sourceAccountId: "source", sourceAccountLabel: "Отправляющий", destinationAccountId: "destination",
+      destinationAccountLabel: "Принимающий" } }} balanceHidden={false} />);
+  expect(screen.getByText("Количество").nextElementSibling).toHaveTextContent("25 USDC");
+  expect(screen.getByText("Комиссия примера").nextElementSibling).toHaveTextContent("0 USDC");
+  expect(screen.getByText("Откуда").nextElementSibling).toHaveTextContent("Отправляющий");
+  expect(screen.getByText("Куда").nextElementSibling).toHaveTextContent("Принимающий");
+  expect(screen.queryByText("Получение по расчёту")).not.toBeInTheDocument();
 });

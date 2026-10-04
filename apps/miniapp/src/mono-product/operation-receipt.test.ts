@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { normalizeOperationReceipt } from "./operation-receipt";
+import { getCommerceReceiptAmounts, normalizeOperationReceipt } from "./operation-receipt";
+import type { CommerceSimulation } from "./commerce";
+import { buyQuote, swapQuote } from "./commerce/test-fixtures";
 
 describe("operation receipt normalization", () => {
   it("copies only the receipt allowlist, retaining exact decimals without private quote data", () => {
@@ -63,4 +65,19 @@ describe("operation receipt normalization", () => {
     expect(normalizeOperationReceipt({ ...base, estimatedCompletionSeconds: 0.5 })).toEqual({ ...base, estimatedCompletionSeconds: 0.5 });
     expect(normalizeOperationReceipt(base)).not.toHaveProperty("estimatedCompletionSeconds");
   });
+});
+
+it.each([
+  { kind: "buy" as const, wanted: [
+    { label: "Оплата", value: "101", unit: "USD" }, { label: "Получение", value: "100", unit: "USDC" },
+  ] },
+  { kind: "swap" as const, wanted: [
+    { label: "Списание", value: "101", unit: "USDC" }, { label: "Получение", value: "0.04", unit: "ETH" },
+  ] },
+])("uses the two accepted $kind amounts without adding fee again or converting total debit", ({ kind, wanted }) => {
+  const result = { mode: "demo" as const, status: "simulated-success" as const };
+  const simulation: CommerceSimulation = kind === "buy"
+    ? { mode: "demo", kind, simulationId: "receipt-buy", idempotencyKey: "receipt", quote: buyQuote(), result }
+    : { mode: "demo", kind, simulationId: "receipt-swap", idempotencyKey: "receipt", quote: swapQuote(), result };
+  expect(getCommerceReceiptAmounts(simulation)).toEqual(wanted);
 });

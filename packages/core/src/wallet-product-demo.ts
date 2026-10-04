@@ -10,6 +10,23 @@ export const MULTI_ACCOUNT_DEMO = {
       label: "Основной",
       status: "active",
       capabilities: [
+        // Local commerce fixtures grant only this exact placement; no provider is connected.
+        {
+          action: "buy",
+          assetId: "usdc",
+          symbol: "USDC",
+          name: "USD Coin",
+          networkId: "ethereum",
+          networkLabel: "Ethereum",
+        },
+        {
+          action: "swap",
+          assetId: "usdc",
+          symbol: "USDC",
+          name: "USD Coin",
+          networkId: "ethereum",
+          networkLabel: "Ethereum",
+        },
         {
           action: "send",
           assetId: "btc",

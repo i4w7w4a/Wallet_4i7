@@ -1,6 +1,51 @@
 import { expect, it } from "vitest";
 import { getProductActivityLabels, type ProductActivity } from "./demo-activity";
 import { scopeProductActivities } from "./product-activity-scope";
+import { createBuyActivityFixture, createSwapActivityFixture, createSwapSimulationFixture } from "./commerce-test-fixtures";
+
+function crossAccountSwap(): ProductActivity {
+  const commerce = createSwapSimulationFixture();
+  commerce.quote.credit = {
+    ...commerce.quote.credit, accountId: "demo-depositary", accountKind: "depositary", accountLabel: "Хранилище",
+    networkId: "solana", networkLabel: "Solana",
+  };
+  commerce.quote.request.destination = { ...commerce.quote.credit };
+  return Object.freeze(createSwapActivityFixture({ commerce }));
+}
+
+it("keeps a two-leg swap once in All and in a scope containing both participants", () => {
+  const activity = crossAccountSwap();
+
+  expect(scopeProductActivities([activity]).map(({ id }) => id)).toEqual(["commerce-swap-fixture"]);
+  expect(scopeProductActivities([activity], ["demo-depositary", "demo-custody", "demo-depositary"])
+    .map(({ id, accountId, direction, assetSymbol, quantity }) => ({ id, accountId, direction, assetSymbol, quantity })))
+    .toEqual([{ id: "commerce-swap-fixture", accountId: "demo-custody", direction: "exchange", assetSymbol: "USDC", quantity: "101" }]);
+});
+
+it("projects the swap credit placement for its account while retaining the complete accepted record", () => {
+  const activity = crossAccountSwap();
+  const before = structuredClone(activity);
+  const projected = scopeProductActivities([activity], ["demo-depositary"]);
+
+  expect(projected.map(({ id, accountId, accountLabel, direction, assetId, assetSymbol, quantity, networkId, networkLabel }) => ({
+    id, accountId, accountLabel, direction, assetId, assetSymbol, quantity, networkId, networkLabel,
+  }))).toEqual([{
+    id: "commerce-swap-fixture", accountId: "demo-depositary", accountLabel: "Хранилище", direction: "exchange",
+    assetId: "eth", assetSymbol: "ETH", quantity: "0.04", networkId: "solana", networkLabel: "Solana",
+  }]);
+  expect(projected[0]?.commerce).toBe(activity.commerce);
+  expect(activity).toEqual(before);
+  expect(scopeProductActivities([activity], ["third-account"])).toEqual([]);
+});
+
+it("uses the buy credit account even when legacy primary metadata points elsewhere", () => {
+  const activity = createBuyActivityFixture({ accountId: "foreign-legacy-account", accountLabel: "Старое поле" });
+
+  expect(scopeProductActivities([activity], ["demo-custody"]).map(({ id, accountId, direction, quantity }) => ({
+    id, accountId, direction, quantity,
+  }))).toEqual([{ id: "commerce-buy-fixture", accountId: "demo-custody", direction: "incoming", quantity: "100" }]);
+  expect(scopeProductActivities([activity], ["foreign-legacy-account"])).toEqual([]);
+});
 
 const internalTransfer = Object.freeze({
   sourceAccountId: "demo-custody",

@@ -1,4 +1,4 @@
-import type { ProductActivity } from "./demo-activity";
+import { productActivityCryptoLegs, type ProductActivity } from "./demo-activity";
 
 export function scopeProductActivities(
   activities: readonly ProductActivity[],
@@ -10,6 +10,22 @@ export function scopeProductActivities(
   const scoped: ProductActivity[] = [];
 
   for (const activity of activities) {
+    if (activity.commerce) {
+      const leg = productActivityCryptoLegs(activity).find(({ accountId }) => accounts.has(accountId));
+      if (!leg) continue;
+      scoped.push({
+        ...activity,
+        accountId: leg.accountId,
+        accountLabel: leg.accountLabel,
+        assetId: leg.assetId,
+        assetSymbol: leg.symbol,
+        quantity: leg.quantity,
+        networkId: leg.networkId,
+        networkLabel: leg.networkLabel,
+      });
+      continue;
+    }
+
     const transfer = activity.internalTransfer;
     if (!transfer) {
       if (accounts.has(activity.accountId)) scoped.push(activity);

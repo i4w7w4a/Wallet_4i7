@@ -1,3 +1,18 @@
+import type { CommerceSimulation } from "./commerce";
+
+export type CommerceReceiptAmount = { label: string; value: string; unit: string };
+
+/** Accepted quote legs keep their own units; debit already includes any source-funded fee. */
+export function getCommerceReceiptAmounts(simulation: CommerceSimulation): readonly [CommerceReceiptAmount, CommerceReceiptAmount] {
+  const quote = simulation.quote;
+  return [
+    quote.kind === "buy"
+      ? { label: "Оплата", value: quote.debit.amount, unit: quote.debit.currency }
+      : { label: "Списание", value: quote.debit.quantity, unit: quote.debit.symbol },
+    { label: "Получение", value: quote.credit.quantity, unit: quote.credit.symbol },
+  ];
+}
+
 export type SendQuoteReceipt = {
   assetDebit: string;
   networkFee: { status: "unknown" } | { status: "known"; amount: string; symbol: string };

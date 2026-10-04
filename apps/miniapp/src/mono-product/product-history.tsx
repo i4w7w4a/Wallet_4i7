@@ -1,9 +1,8 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ProductActivity } from "./demo-activity";
 import { scopeProductActivities } from "./product-activity-scope";
-import { formatQuantity } from "./product-format";
 import { OperationReceiptView } from "./operation-receipt-view";
 import { HistoryDirectionIcon, HistoryStatusIcon } from "./history-direction-icon";
 import { getHistoryPresentation } from "./history-presentation";
@@ -27,6 +26,7 @@ const rowDateFormat = new Intl.DateTimeFormat("ru-RU", {
 });
 const directionFilters = [
   { id: "all", label: "Все" }, { id: "incoming", label: "Получения" }, { id: "outgoing", label: "Отправки" },
+  { id: "exchange", label: "Обмены" },
 ] as const;
 const statusFilters = [
   { id: "all", label: "Все статусы" }, { id: "pending", label: "Ожидают" },
@@ -138,17 +138,15 @@ export function ProductHistory({
         {visibleActivities.map(activity => {
           const expanded = activeId === activity.id;
           const detailsId = `${detailIdPrefix}-operation-${encodeURIComponent(activity.id)}`;
-          const { directionLabel, statusLabel, accessibleStatusLabel } = getHistoryPresentation(activity);
-          const quantity = balanceHidden ? "••••" : formatQuantity(activity.quantity);
+          const { directionLabel, statusLabel, accessibleStatusLabel, assetLabel, networkLabel,
+            commerceAmounts, legacyAmount, accessibleAmountLabel } = getHistoryPresentation(activity, balanceHidden);
           const occurredAt = new Date(activity.occurredAt);
           const validTime = !Number.isNaN(occurredAt.getTime());
-          const networkLabel = activity.networkLabel?.trim() || "Сеть не указана";
-          const accessibleQuantity = balanceHidden ? "Сумма скрыта" : `${quantity} ${activity.assetSymbol}`;
           return <li className={styles.row} key={activity.id} data-direction={activity.direction}
             data-status={activity.status} data-mode={activity.mode ?? "example"} data-expanded={expanded}>
             <button type="button" className={`${styles.rowButton} ${styles.historyRowButton}`} aria-expanded={expanded}
               data-history-interactive data-product-activity-id={activity.id} data-direction={activity.direction} data-status={activity.status}
-              aria-label={`${directionLabel} · ${activity.assetSymbol} · ${networkLabel}, ${accessibleStatusLabel}, ${accessibleQuantity}`}
+              aria-label={`${directionLabel} · ${assetLabel} · ${networkLabel}, ${accessibleStatusLabel}, ${accessibleAmountLabel}`}
               aria-controls={detailsId} onClick={() => changeExpandedActivity(expanded ? null : activity.id)}>
               <HistoryDirectionIcon direction={activity.direction} status={activity.status} />
               <span className={styles.rowIdentity}>
@@ -165,8 +163,13 @@ export function ProductHistory({
                 </time>
               </span>
               <span className={styles.rowAmount}>
-                <strong>{quantity}</strong>
-                <small>{activity.assetSymbol}</small>
+                {commerceAmounts ? commerceAmounts.map(amount => <Fragment key={amount.label}>
+                  <small>{amount.label}</small>
+                  <strong>{amount.value} {amount.unit}</strong>
+                </Fragment>) : <>
+                  <strong>{legacyAmount}</strong>
+                  <small>{activity.assetSymbol}</small>
+                </>}
               </span>
               <svg className={styles.rowChevron} viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />

@@ -1,9 +1,8 @@
 "use client";
 
-import { useId } from "react";
+import { Fragment, useId } from "react";
 import type { ProductActivity } from "./demo-activity";
 import { scopeProductActivities } from "./product-activity-scope";
-import { formatQuantity } from "./product-format";
 import { HistoryDirectionIcon, HistoryStatusIcon } from "./history-direction-icon";
 import { getHistoryPresentation } from "./history-presentation";
 import styles from "./product-account-sections.module.css";
@@ -31,10 +30,8 @@ export function ProductRecentActivity({ activities, balanceHidden, accountId, on
 
   if (!latest) return null;
 
-  const { directionLabel, statusLabel, accessibleStatusLabel } = getHistoryPresentation(latest);
-  const quantity = balanceHidden ? "••••" : formatQuantity(latest.quantity);
-  const accessibleQuantity = balanceHidden ? "Сумма скрыта" : `${quantity} ${latest.assetSymbol}`;
-  const networkLabel = latest.networkLabel?.trim() || "Сеть не указана";
+  const { directionLabel, statusLabel, accessibleStatusLabel, assetLabel, networkLabel,
+    commerceAmounts, legacyAmount, accessibleAmountLabel } = getHistoryPresentation(latest, balanceHidden);
 
   return <section className={`${styles.section} ${styles.recentActivity}`} aria-labelledby={titleId}>
     <div className={styles.recentHeading}>
@@ -42,7 +39,7 @@ export function ProductRecentActivity({ activities, balanceHidden, accountId, on
     </div>
     <button type="button" className={`${styles.rowButton} ${styles.historyRowButton} ${styles.recentButton}`}
       data-history-interactive data-product-activity-id={latest.id} data-direction={latest.direction} data-status={latest.status}
-      aria-label={`Открыть операцию: ${directionLabel} · ${latest.assetSymbol} · ${networkLabel}, ${accessibleStatusLabel}, ${accessibleQuantity}`}
+      aria-label={`Открыть операцию: ${directionLabel} · ${assetLabel} · ${networkLabel}, ${accessibleStatusLabel}, ${accessibleAmountLabel}`}
       onClick={() => onOpenActivity(latest.id)}>
       <HistoryDirectionIcon direction={latest.direction} status={latest.status} />
       <span className={styles.rowIdentity}>
@@ -56,8 +53,13 @@ export function ProductRecentActivity({ activities, balanceHidden, accountId, on
         </small>
       </span>
       <span className={styles.rowAmount}>
-        <strong>{quantity}</strong>
-        <small>{latest.assetSymbol}</small>
+        {commerceAmounts ? commerceAmounts.map(amount => <Fragment key={amount.label}>
+          <small>{amount.label}</small>
+          <strong>{amount.value} {amount.unit}</strong>
+        </Fragment>) : <>
+          <strong>{legacyAmount}</strong>
+          <small>{latest.assetSymbol}</small>
+        </>}
       </span>
       <svg className={styles.recentChevron} viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />

@@ -1,8 +1,47 @@
 import { MULTI_ACCOUNT_DEMO, type ProductSnapshot } from "@wallet/core";
 import { afterEach, expect, it, vi } from "vitest";
 import * as demoActivity from "./demo-activity";
+import { createBuyActivityFixture, createSwapActivityFixture, createSwapSimulationFixture } from "./commerce-test-fixtures";
 
 afterEach(() => vi.useRealTimers());
+
+it("exposes swap total debit and net credit without replacing debit with its pre-fee source", () => {
+  const activity = createSwapActivityFixture();
+
+  expect(demoActivity.productActivityCryptoLegs?.(activity).map(({ symbol, quantity, assetId, networkId }) => ({
+    symbol, quantity, assetId, networkId,
+  }))).toEqual([
+    { symbol: "USDC", quantity: "101", assetId: "usdc", networkId: "ethereum" },
+    { symbol: "ETH", quantity: "0.04", assetId: "eth", networkId: "ethereum" },
+  ]);
+  expect(activity.commerce?.quote).toMatchObject({ source: { quantity: "100" } });
+});
+
+it("exposes only the crypto credit of a buy while retaining the separate fiat debit", () => {
+  const activity = createBuyActivityFixture();
+
+  expect(demoActivity.productActivityCryptoLegs?.(activity).map(({ kind, symbol, quantity }) => ({
+    kind, symbol, quantity,
+  }))).toEqual([{ kind: "crypto", symbol: "USDC", quantity: "100" }]);
+  expect(activity.commerce?.quote).toMatchObject({
+    payment: { kind: "fiat", currency: "USD", amount: "100" },
+    debit: { kind: "fiat", currency: "USD", amount: "101" },
+  });
+});
+
+it.each([
+  { activity: createBuyActivityFixture(), directionLabel: "Демо-покупка", statusLabel: "Симуляция завершена" },
+  { activity: createSwapActivityFixture(), directionLabel: "Демо-обмен", statusLabel: "Симуляция завершена" },
+  {
+    activity: createSwapActivityFixture({
+      status: "failed", failureReason: "rejected",
+      commerce: createSwapSimulationFixture({ result: { mode: "demo", status: "simulated-failure", reason: "rejected" } }),
+    }),
+    directionLabel: "Демо-обмен", statusLabel: "Симуляция не выполнена",
+  },
+])("labels $directionLabel independently of its terminal status", ({ activity, directionLabel, statusLabel }) => {
+  expect(demoActivity.getProductActivityLabels(activity)).toEqual({ directionLabel, statusLabel });
+});
 
 it("keeps example history tied to four unique known snapshot placements", () => {
   vi.useFakeTimers();

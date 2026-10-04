@@ -1,4 +1,5 @@
 import type { ProductHolding, ProductSnapshot } from "@wallet/core";
+import type { CommerceSimulation, CryptoAmount } from "./commerce";
 import type { SendQuoteReceipt } from "./operation-receipt";
 
 export type ProductActivity = {
@@ -11,7 +12,7 @@ export type ProductActivity = {
     destinationAccountId: string;
     destinationAccountLabel: string;
   };
-  direction: "incoming" | "outgoing";
+  direction: "incoming" | "outgoing" | "exchange";
   status: "pending" | "completed" | "failed";
   /** Undefined is an example. Simulations are session-only UI events, never a balance ledger. */
   mode?: "example" | "simulation";
@@ -23,8 +24,17 @@ export type ProductActivity = {
   occurredAt: string;
   feeLabel?: string;
   receipt?: SendQuoteReceipt;
+  /** One controller-checked accepted simulation, shared intact by every history projection. */
+  commerce?: CommerceSimulation;
   failureReason?: "rejected" | "expired" | "unavailable";
 };
+
+/** Canonical crypto placements only; fiat and legacy activity fields are handled separately. */
+export function productActivityCryptoLegs(activity: ProductActivity): CryptoAmount[] {
+  const commerce = activity.commerce;
+  if (!commerce) return [];
+  return commerce.kind === "buy" ? [commerce.quote.credit] : [commerce.quote.debit, commerce.quote.credit];
+}
 
 const EXAMPLE_STATUS_LABEL: Record<ProductActivity["status"], string> = {
   pending: "В обработке",
@@ -42,7 +52,9 @@ export function getProductActivityLabels(activity: ProductActivity) {
   const incoming = activity.direction === "incoming";
   const simulation = activity.mode === "simulation";
   return {
-    directionLabel: activity.internalTransfer
+    directionLabel: activity.commerce
+      ? activity.commerce.kind === "buy" ? "Демо-покупка" : "Демо-обмен"
+      : activity.internalTransfer
       ? "Между счетами · демо"
       : simulation
       ? incoming ? "Демо-получение" : "Демо-отправка"
