@@ -89,7 +89,7 @@ it("finishes the explicitly bound internal receive demo in the selected account"
 
 it("keeps the send draft across appearance changes and signals battery use only during pending", async () => {
   const { rerender, wallet, envelope, container } = await home();
-  const trigger = choose("Отправить", /USDC · Ethereum.*Основной/);
+  const trigger = choose("Отправить", /(?=.*USDC)(?=.*Ethereum)(?=.*Основной)/);
   const recipient = await screen.findByRole("textbox", { name: "Получатель" });
   fireEvent.change(recipient, { target: { value: "demo:recipient" } });
   const frost = createMonoAppearanceEnvelope("frost");

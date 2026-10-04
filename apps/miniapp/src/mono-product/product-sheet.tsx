@@ -11,6 +11,10 @@ import { SendMenu } from "./send-menu";
 import type { InternalTransferDraft, InternalTransferSimulation } from "./internal-transfer";
 import { ReceiveFlow } from "./receive";
 import { SendFlow, type SendDraft, type SendOperationStatus, type SendSimulationResult } from "./send";
+import { BuyFlow } from "./buy";
+import { SwapFlow } from "./swap";
+import { commerceRouteKey, type BuyRoute, type SwapRoute, type BuyDraft, type SwapDraft,
+  type CommerceSimulation, type CommerceSubmitState } from "./commerce";
 import { ProductAssetDetail } from "./asset-detail/product-asset-detail";
 import { BatteryPopover } from "./battery-popover";
 import { ProductGlassSurface } from "./product-glass-surface";
@@ -54,14 +58,21 @@ function ProductModalOverlay({ view, commands, ports, onOpenActivity, canRestore
 
   const action = sheet.action;
   const title = actionLabel(action);
+  const detailKey = sheet.route ? routeFlowKey(sheet.route, ports) : "";
   return <ProductSheet key={action} title={title} onClose={commands.closeSheet} receiveScreen={action === "receive"}
-    canRestoreFocus={action === "receive" || action === "send" ? canRestoreActionFocus : undefined}
-    returnAction={action === "receive" || action === "send" ? action : undefined} showHandle={action !== "send"}
+    canRestoreFocus={canRestoreActionFocus} returnAction={action} showHandle={action !== "send"}
+    guardMessage={view.commerceGuardMessage}
     returnPlacement={sheet.placementId ? { id: sheet.placementId, action } : undefined}>
-    {sheet.route ? <RouteDetail key={productRouteKey(sheet.route)} route={sheet.route} view={view} commands={commands} ports={ports}
+    {sheet.route ? <RouteDetail key={detailKey} route={sheet.route} view={view} commands={commands} ports={ports}
       onOpenActivity={onOpenActivity} /> :
       <RouteChooser view={view} commands={commands} action={action} focusRouteKey={sheet.focusRouteKey} />}
   </ProductSheet>;
+}
+
+function routeFlowKey(route: ProductActionRoute, ports: ReturnType<typeof createMonoDemoFlowPorts>): string {
+  if (route.action === "buy") return `${commerceRouteKey(route as BuyRoute)}:${ports.buy.id}`;
+  if (route.action === "swap") return `${commerceRouteKey(route as SwapRoute)}:${ports.swap.id}`;
+  return productRouteKey(route);
 }
 
 function RouteChooser({ view, commands, action, focusRouteKey }: ProductProps & {
@@ -87,6 +98,10 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   const recordSimulation = commands.recordSendSimulation;
   const saveInternalDraft = commands.saveInternalTransferDraft;
   const recordInternalSimulation = commands.recordInternalTransferSimulation;
+  const saveBuyDraft = commands.saveBuyDraft;
+  const saveSwapDraft = commands.saveSwapDraft;
+  const recordCommerceSimulation = commands.recordCommerceSimulation;
+  const setCommerceSubmitState = commands.setCommerceSubmitState;
   const onDraftChange = useCallback((draft: SendDraft | null) => saveDraft(route, draft), [route, saveDraft]);
   const onRequestAmountChange = useCallback((amount: string) => saveReceiveAmount(route, amount), [route, saveReceiveAmount]);
   const onSimulationResult = useCallback((event: SendSimulationResult) => {
@@ -99,6 +114,24 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   const onInternalSimulationResult = useCallback((event: InternalTransferSimulation) => {
     setResultActivityId(recordInternalSimulation(event));
   }, [recordInternalSimulation]);
+  const onBuyDraftChange = useCallback((draft: BuyDraft | null) => {
+    if (route.action !== "buy") return;
+    saveBuyDraft(route as BuyRoute, draft);
+    if (draft) setResultActivityId(null);
+  }, [route, saveBuyDraft]);
+  const onSwapDraftChange = useCallback((draft: SwapDraft | null) => {
+    if (route.action !== "swap") return;
+    saveSwapDraft(route as SwapRoute, draft);
+    if (draft) setResultActivityId(null);
+  }, [route, saveSwapDraft]);
+  const onCommerceSimulationResult = useCallback((event: CommerceSimulation) => {
+    setResultActivityId(recordCommerceSimulation(event));
+  }, [recordCommerceSimulation]);
+  const onCommerceSubmitBusyChange = useCallback((state: CommerceSubmitState) => {
+    if (route.action !== "buy" && route.action !== "swap") return;
+    setCommerceSubmitState(route as BuyRoute | SwapRoute, state);
+    if (state.busy) setResultActivityId(null);
+  }, [route, setCommerceSubmitState]);
   const onOperationChange = useCallback((next: SendOperationStatus | null) => {
     setOperation(next);
     if (next?.status !== "completed" && next?.status !== "failed") setResultActivityId(null);
@@ -142,7 +175,17 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
         onViewHistory={resultActivityId && onOpenActivity ? () => onOpenActivity(resultActivityId) : undefined}
         onBack={() => commands.backToRoutes(route)} onClose={commands.closeSheet}
         onAssetDetails={showAssetDetails} onOperationChange={onOperationChange}
-        onBatteryActivityChange={commands.setBatteryActivity} /> : <div className="mono-product-sheet__route">
+        onBatteryActivityChange={commands.setBatteryActivity} /> :
+      route.action === "buy" ? <BuyFlow route={route as BuyRoute} port={ports.buy} privacy={view.balanceHidden}
+        initialDraft={view.buyDrafts[commerceRouteKey(route as BuyRoute)] ?? null} onDraftChange={onBuyDraftChange}
+        onSimulationResult={onCommerceSimulationResult} onSubmitBusyChange={onCommerceSubmitBusyChange}
+        onViewHistory={resultActivityId && onOpenActivity ? () => onOpenActivity(resultActivityId) : undefined}
+        onBack={commands.backToRoutes} onClose={commands.closeSheet} showCloseButton={false} /> :
+      route.action === "swap" ? <SwapFlow route={route as SwapRoute} port={ports.swap} privacy={view.balanceHidden}
+        initialDraft={view.swapDrafts[commerceRouteKey(route as SwapRoute)] ?? null} onDraftChange={onSwapDraftChange}
+        onSimulationResult={onCommerceSimulationResult} onSubmitBusyChange={onCommerceSubmitBusyChange}
+        onViewHistory={resultActivityId && onOpenActivity ? () => onOpenActivity(resultActivityId) : undefined}
+        onBack={commands.backToRoutes} onClose={commands.closeSheet} showCloseButton={false} /> : <div className="mono-product-sheet__route">
     <button type="button" className="mono-product-sheet__back" onClick={() => commands.backToRoutes(route)}>← Назад к выбору маршрута</button>
     <span className="mono-product-sheet__overline">ВЫБРАННЫЙ МАРШРУТ</span>
     <h3>{route.symbol} · {route.networkLabel}</h3>
@@ -156,10 +199,10 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   </div>;
 }
 
-function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen = false, canRestoreFocus, returnAction, showHandle = true }: {
+function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen = false, canRestoreFocus, returnAction, showHandle = true, guardMessage }: {
   title: string; onClose(): void; children: ReactNode; returnPlacement?: { id: string; action: ProductActionKind };
   receiveScreen?: boolean; canRestoreFocus?(): boolean;
-  returnAction?: "send" | "receive"; showHandle?: boolean;
+  returnAction?: ProductActionKind; showHandle?: boolean; guardMessage?: string | null;
 }) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -236,6 +279,9 @@ function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen
         else if (returnAction && page?.querySelector<HTMLElement>(`[data-mono-product-${returnAction}-trigger]`)?.isConnected) {
           page.querySelector<HTMLElement>(`[data-mono-product-${returnAction}-trigger]`)?.focus({ preventScroll: true });
         }
+        else if (returnAction && page?.querySelector<HTMLElement>(`.mono-actions__item[aria-label="${actionLabel(returnAction)}"]`)?.isConnected) {
+          page.querySelector<HTMLElement>(`.mono-actions__item[aria-label="${actionLabel(returnAction)}"]`)?.focus({ preventScroll: true });
+        }
         else if (previous?.isConnected) previous.focus({ preventScroll: true });
         else document.querySelector<HTMLElement>("[data-mono-product-context-trigger], [data-mono-product-battery-trigger], .mono-actions__item")?.focus({ preventScroll: true });
       });
@@ -271,7 +317,10 @@ function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen
         <h2 id={titleId}>{title}</h2>
         <button type="button" onClick={onClose}>Закрыть</button>
       </header>
-      <div className="mono-product-sheet__body">{children}</div>
+      <div className="mono-product-sheet__body">
+        {guardMessage && <p className="mono-product-sheet__empty" role="status" aria-label="Состояние симуляции">{guardMessage}</p>}
+        {children}
+      </div>
     </ProductGlassSurface>
   </div>;
 }
