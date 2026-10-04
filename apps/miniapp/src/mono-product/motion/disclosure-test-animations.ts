@@ -27,7 +27,7 @@ export function disclosureTestAnimations() {
       await act(async () => { request.finish(); });
     },
     async cancel(element: Element) {
-      const request = requests.findLast(candidate => candidate.element === element);
+      const request = requests.filter(candidate => candidate.element === element).at(-1);
       if (!request) throw new Error("No disclosure transition was observed");
       await act(async () => { request.cancel(); });
     },
