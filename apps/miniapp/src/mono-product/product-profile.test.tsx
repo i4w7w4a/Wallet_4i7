@@ -1,9 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { WalletProfile } from "@wallet/core";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductProfileDetails, ProductProfileResource } from "./profile";
 import { ProductProfile } from "./product-profile";
+import { disclosureTestAnimations } from "./motion/disclosure-test-animations";
 
 afterEach(cleanup);
 
@@ -161,5 +162,99 @@ describe("ProductProfile", () => {
     open("Безопасность");
     expect(section("Безопасность")).toHaveTextContent("Управление защитой здесь пока недоступно.");
     expect(screen.queryByRole("button", { name: "Изменить пароль" })).not.toBeInTheDocument();
+  });
+});
+
+describe("ProductProfile disclosure motion", () => {
+  let animations: ReturnType<typeof disclosureTestAnimations>;
+  beforeEach(() => { animations = disclosureTestAnimations(); });
+  afterEach(() => animations.restore());
+  const motionProfile = (resource = ready({ email: "fresh@example.test" }), mode = "ready") =>
+    <div data-mono-motion={mode}><ProductProfile {...base} resource={resource} actions={{ "edit-contacts": () => undefined }} /></div>;
+
+  it("returns focus before inert, excludes outgoing actions and unmounts them only after close", async () => {
+    render(motionProfile());
+    const personal = screen.getByRole("button", { name: "Личные данные" });
+    personal.focus();
+    fireEvent.click(personal);
+    expect(personal).toHaveFocus();
+    const panel = section("Личные данные");
+    const edit = screen.getByRole("button", { name: "Изменить контакты" });
+    edit.focus();
+    const toggleAttribute = panel.toggleAttribute.bind(panel);
+    vi.spyOn(panel, "toggleAttribute").mockImplementation((name, force) => {
+      if (name === "inert" && force) expect(personal).toHaveFocus();
+      return toggleAttribute(name, force);
+    });
+    fireEvent.click(personal);
+    expect(personal).toHaveFocus();
+    expect(panel).toHaveAttribute("inert");
+    expect(panel).toHaveAttribute("aria-hidden", "true");
+    expect(panel).not.toHaveAttribute("hidden");
+    expect(panel).toContainElement(edit);
+    expect(screen.queryByRole("button", { name: "Изменить контакты" })).not.toBeInTheDocument();
+    await animations.finish(panel);
+    expect(panel).toHaveAttribute("hidden");
+    expect(edit).not.toBeInTheDocument();
+    expect(panel).not.toHaveTextContent("fresh@example.test");
+  });
+
+  it("reverses rapid toggles, ignores old completion and exposes at most one group", async () => {
+    render(motionProfile());
+    const personal = screen.getByRole("button", { name: "Личные данные" });
+    fireEvent.click(personal);
+    const panel = section("Личные данные");
+    fireEvent.click(personal);
+    fireEvent.click(personal);
+    await animations.finish(panel, 0);
+    expect(panel).not.toHaveAttribute("inert");
+    expect(panel).not.toHaveAttribute("aria-hidden");
+    expect(section("Личные данные")).toBe(panel);
+    open("Безопасность");
+    expect(screen.getAllByRole("region", { name: /^(Личные данные|Настройки|Безопасность|Помощь и документы)$/ })).toHaveLength(1);
+    expect(personal).toHaveAttribute("aria-expanded", "false");
+    expect(panel).toHaveAttribute("inert");
+    expect(document.getElementById(personal.getAttribute("aria-controls")!)).toBe(panel);
+    await animations.finish(panel);
+    expect(panel).toHaveAttribute("hidden");
+  });
+
+  it.each(["loading", "error"] as const)("removes contacts, protection data and actions during exit when resource becomes %s", status => {
+    const supplied = ready({ email: "fresh@example.test", verification: "verified", twoFactor: "enabled" });
+    const { container, rerender } = render(motionProfile(supplied));
+    open("Личные данные");
+    const personal = section("Личные данные");
+    open("Безопасность");
+    const security = section("Безопасность");
+    open("Безопасность");
+    expect(personal).toHaveTextContent("fresh@example.test");
+    expect(security).toHaveTextContent("Подтверждена");
+    rerender(motionProfile(status === "loading" ? { status } : { status, retryable: false }));
+    expect(personal).toHaveAttribute("inert");
+    expect(security).toHaveAttribute("inert");
+    expect(container).not.toHaveTextContent("fresh@example.test");
+    expect(container).not.toHaveTextContent("Подтверждена");
+    expect(container).not.toHaveTextContent("Включена");
+    expect(container.querySelectorAll("[inert] button")).toHaveLength(0);
+  });
+
+  it("uses immediate final states for static scenes and system reduced motion", async () => {
+    const { rerender } = render(motionProfile(ready(), "static"));
+    open("Личные данные");
+    const personal = section("Личные данные");
+    open("Личные данные");
+    expect(personal).toHaveAttribute("hidden");
+    expect(personal.querySelector("dl")).toBeNull();
+    expect(animations.requests).toHaveLength(0);
+    rerender(motionProfile());
+    open("Личные данные");
+    open("Личные данные");
+    expect(personal).not.toHaveAttribute("hidden");
+    await animations.reduceMotion();
+    expect(personal).toHaveAttribute("hidden");
+    expect(personal.querySelector("dl")).toBeNull();
+    open("Личные данные");
+    open("Личные данные");
+    expect(personal).toHaveAttribute("hidden");
   });
 });

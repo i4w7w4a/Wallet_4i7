@@ -5,6 +5,8 @@ import { resolveActionRoutes, type ProductAccount, type ProductHolding, type Pro
 import type { MonoAssetListAppearance } from "../mono-preview/mono-scene-lab-contract";
 import type { MonoProductCommands, MonoProductView } from "./product-controller";
 import { formatFiatMinor, formatQuantity } from "./product-format";
+import { DisclosureMotion } from "./motion/disclosure-motion";
+import disclosureStyles from "./motion/disclosure-motion.module.css";
 
 export type ProductHoldingsProps = {
   view: MonoProductView;
@@ -20,6 +22,7 @@ const plurals = new Intl.PluralRules("ru");
 export function ProductHoldings({ view, commands, appearance, overview, onPlacementAction, onOpenAsset }: ProductHoldingsProps) {
   const headingId = useId();
   const listId = `${headingId}-holdings`;
+  const fundsTriggerId = `${headingId}-trigger`;
   const groups = view.holdings;
   const accounts = new Map(view.snapshot.accounts.map(account => [account.id, account]));
   const expandable = overview && groups.length > 0;
@@ -29,19 +32,21 @@ export function ProductHoldings({ view, commands, appearance, overview, onPlacem
   return <section className="mono-product-funds mono-scene-domain" aria-labelledby={headingId}
     data-variant={appearance.variant} data-density={appearance.density} data-separators={appearance.separators}>
     <h2 id={headingId} className="mono-product-funds__title">
-      {expandable ? <button className="mono-product-funds__heading" type="button"
+      {expandable ? <button id={fundsTriggerId} className="mono-product-funds__heading" type="button"
         aria-expanded={view.fundsExpanded} aria-controls={listId} onClick={commands.toggleFunds}>
         <span>Мои средства</span><small>{count}</small><Chevron expanded={view.fundsExpanded} />
       </button> : <span className="mono-product-funds__heading">
         <span>Мои средства</span>{groups.length > 0 && <small>{count}</small>}
       </span>}
     </h2>
-    {shown && (groups.length > 0 ? <ul id={listId} className="mono-product-funds__list">
+    <DisclosureMotion open={shown} id={listId} launcherId={fundsTriggerId}>
+    {groups.length > 0 ? <ul className="mono-product-funds__list">
       {groups.map((group, index) => {
         const expanded = view.expandedAssetIds.has(group.assetId);
         const placementsId = `${headingId}-placements-${index}`;
         const valueId = `${headingId}-value-${index}`;
-        const primary = <button type="button" className="mono-product-funds__asset"
+        const placementTriggerId = `${placementsId}-trigger`;
+        const primary = <button type="button" id={onOpenAsset ? undefined : placementTriggerId} className="mono-product-funds__asset"
             aria-label={onOpenAsset ? `Открыть актив ${group.name} (${group.symbol})` : undefined}
             aria-describedby={onOpenAsset ? valueId : undefined}
             aria-expanded={onOpenAsset ? undefined : expanded} aria-controls={onOpenAsset ? undefined : placementsId}
@@ -57,18 +62,21 @@ export function ProductHoldings({ view, commands, appearance, overview, onPlacem
         return <li key={group.assetId}>
           {onOpenAsset ? <div className="mono-product-funds__asset-entry">
             {primary}
-            <button type="button" className="mono-product-funds__expand" aria-expanded={expanded}
+            <button type="button" id={placementTriggerId} className="mono-product-funds__expand" aria-expanded={expanded}
               aria-controls={placementsId} aria-label={`${expanded ? "Свернуть" : "Показать"} размещения ${group.symbol}`}
               onClick={() => commands.toggleAsset(group.assetId)}><Chevron expanded={expanded} /></button>
           </div> : primary}
-          {expanded && <ul id={placementsId} className="mono-product-funds__placements" aria-label={`Размещения ${group.symbol}`}>
+          <DisclosureMotion open={expanded} id={placementsId} launcherId={placementTriggerId}>
+          <ul className="mono-product-funds__placements" aria-label={`Размещения ${group.symbol}`}>
             {group.placements.map(placement => <Placement key={placement.id} placement={placement}
               account={accounts.get(placement.accountId)} snapshot={view.snapshot} hidden={view.balanceHidden}
               onAction={onPlacementAction} />)}
-          </ul>}
+          </ul>
+          </DisclosureMotion>
         </li>;
       })}
-    </ul> : <EmptyHoldings view={view} commands={commands} />)}
+    </ul> : <EmptyHoldings view={view} commands={commands} />}
+    </DisclosureMotion>
   </section>;
 }
 
@@ -130,8 +138,8 @@ function EmptyHoldings({ view, commands }: Pick<ProductHoldingsProps, "view" | "
 }
 
 function Chevron({ expanded }: { expanded: boolean }) {
-  return <svg className="mono-product-funds__chevron" data-expanded={expanded} viewBox="0 0 16 16" aria-hidden="true">
-    <path d={expanded ? "m4 10 4-4 4 4" : "m4 6 4 4 4-4"} />
+  return <svg className={`mono-product-funds__chevron ${disclosureStyles.chevron}`} data-mono-disclosure-chevron="" data-expanded={expanded} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <path d="m4 6 4 4 4-4" />
   </svg>;
 }
 

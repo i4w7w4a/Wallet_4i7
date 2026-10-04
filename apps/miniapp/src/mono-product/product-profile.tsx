@@ -4,6 +4,7 @@ import { useId, useState, type ReactNode } from "react";
 import type { WalletProfile } from "@wallet/core";
 import { createDemoProfileResource, isProfileLinkAllowed, type ProductProfileActions,
   type ProductProfileDetails, type ProductProfileResource } from "./profile";
+import { DisclosureMotion } from "./motion/disclosure-motion";
 import styles from "./product-profile.module.css";
 
 export type ProductProfileProps = {
@@ -65,9 +66,9 @@ export function ProductProfile({ profile, balanceHidden, onBalanceHiddenChange, 
           <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button></h2>
-      <div className={styles.groupDetails} id={detailsId} role="region" aria-labelledby={triggerId} hidden={!expanded}>
-        {expanded && content}
-      </div>
+      <DisclosureMotion open={expanded} id={detailsId} launcherId={triggerId} role="region" labelledBy={triggerId}>
+        <div className={styles.groupDetails}>{content}</div>
+      </DisclosureMotion>
     </div>;
   }
 
