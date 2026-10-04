@@ -28,7 +28,7 @@
 | Source archive SHA-256 | `65f27bcbc01bed8763f622029210621378818cb38459ad047d0edce75a37a5e6` |
 | Release ID | `20261003T190633Z-85d33d2` |
 
-Последующие documentation-only commits этой ветки не означают новый runtime image. Live identity проверяется по `/source-manifest.json`, а не по самому свежему Git HEAD. Локальный preview 3184 использует тот же source, но отдельный Windows build ID `sCkDflYnHlcl-QzMMQIjs`.
+Последующие documentation-only commits этой ветки не означают новый runtime image. Live identity проверяется по `/source-manifest.json`, а не по самому свежему Git HEAD. Локальный preview 3184 на момент выпуска 03.10 использовал тот же source, но отдельный Windows build ID `sCkDflYnHlcl-QzMMQIjs`.
 
 ## Проверки и сохранность
 

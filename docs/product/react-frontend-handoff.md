@@ -1,6 +1,6 @@
 # React frontend handoff — MONO
 
-Срез: 2026-10-05, локальный runtime source `c0fbca89835d74480242c71b15d02b145916c866`. Рядом находится [карта состояний](./product-state-map.md). Buy/Swap — подключённые демосценарии с черновиками, accepted lease и двухсторонней историей. Целевые проверки, source review, общий typecheck/build и один связный браузерный проход оркестратора пройдены; визуальная приёмка владельца не подтверждена. [Локальный milestone](../releases/2026-10-05-commerce-local-preview.md) отделён от публичного `85d33d2`; реальные API/платежи остаются отдельным контрактом.
+Срез: 2026-10-05, локальный runtime source `00052f959749382e7456f84929dd077244578760`. Commerce-контракты c0f сохранены, avatar/quick menu подключены поверх них. [Карта состояний](./product-state-map.md), [локальный header milestone](../releases/2026-10-05-header-local-preview.md) и [единый вход](../../README.md) отделяют source/local/public/owner decision. Source review и local gate/root browser pass пройдены; owner visual approval и public release новых изменений не подтверждены. Public source `85d33d2`, реальные API/платежи — отдельный контракт.
 
 ## Вход и разделение данных
 
@@ -79,6 +79,14 @@ URL guard допускает абсолютный HTTPS с явным authority 
 
 UI и host wiring реализованы. Четыре раздела раскрываются на месте: личные данные, настройки, безопасность, помощь и документы. Модель не добавляет транспорта или auth. Manage-password только открывает workflow: поля «пароль установлен» в данных нет.
 
+Header использует controlled [AvatarControl](../../apps/miniapp/src/mono-product/avatar-control/index.ts) с явным `avatarSrc`/fictional-demo manifest и ref на native button. Avatar открывает текущий profile; отдельный launcher открывает [ProfileQuickMenu](../../apps/miniapp/src/mono-product/profile-quick-menu/index.ts), без собственного routing/storage/preference owner. DTO не расширен выдуманным `profile.avatarUrl`.
+
+Menu получает те же theme/optional onThemeChange и balanceHidden/onBalanceHiddenChange, что профиль; theme/privacy меняются на месте. Третья строка Help закрывает menu и передаёт focus существующей группе. Typed `ProductProfileSection` и optional `openSectionRequest: { section, revision }` экспортируются из product-profile.tsx; новая revision означает одно явное действие, а не persistent копию disclosure state.
+
+Host проверяет наличие sheet/commerce pending и действующий context/section guard до открытия/перехода; inactive и смена view снимают menu. Немодальный dialog без Tab trap: initial focus на доступном control, Escape/явное закрытие возвращают trigger, outside/focus-out сохраняют следующую цель. Closing/closed content сразу недоступен и unmount-ится; 0ms exit — source-reviewed tradeoff, не full visual approval.
+
+ProductGlassProvider использует существующий общий host, без нового canvas/context/RAF. В просмотренных main/standalone темах menu показало fallback; не утверждаем наблюдённую live refraction или измеренную производительность. Root просмотрел dark390/light320 и focus/actions, без полной матрицы. Весь lint не GREEN: известен прежний `react-hooks/immutability` на asset scrollport (`mono-scene.tsx:241`), вне header scope; source review и typecheck/build пройдены.
+
 `MonoScene.session.onThemeChange` — controlled callback. Если session передан без callback, тема read-only: visitor fallback не включается. В `/mono` профиль использует существующий Lab owner, не выполняя Save/Apply/publish. В `/p/N` и portable viewer без host session [useViewerTheme](../../apps/miniapp/src/mono-product/profile/use-viewer-theme.ts) восстанавливает строго `{version:1,theme:'dark'|'light'}` после mount. SSR/первая hydration используют supplied appearance; повреждённая запись игнорируется, отказ storage оставляет выбор в памяти. Presentation clone не меняет исходный envelope. Editor не читает этот viewer key.
 
 [integration-example.tsx](../../apps/miniapp/src/mono-product/profile/integration-example.tsx) — небольшой controlled wrapper с переключением loading/error/ready. Он не монтируется в production route, не делает HTTP и не пишет storage. View передаёт потребитель; импорт ProductProfile внутри example только типовой.
@@ -118,4 +126,4 @@ Actions edit-contacts/manage-verification/manage-2fa/manage-password/manage-addr
 6. Battery entitlement, остаток переводов, процент и quote, подтверждающий оплату конкретной комиссии?
 7. Contacts/security DTO, workflows и разрешённые HTTPS URLs поддержки/документов; где сохраняются preferences?
 
-Ответы фиксируются отдельным live/backend-контрактом. Этот handoff и отдельный custody-аудит не утверждают финансовые правила, тарифы, адреса поддержки или проверку личности. Header/avatar/menu следующей волны не входят в описанную commerce-поставку.
+Ответы фиксируются отдельным live/backend-контрактом. Header/avatar/menu реализованы локально и не добавляют финансовых/security разрешений. Аналитический custody-аудит не утверждает правила обеспечения/погашения T-единиц, активации, private readiness или battery applicability; эти customer decisions сохраняются в [#40](https://github.com/i4w7w4a/Wallet_4i7/issues/40) и [#42](https://github.com/i4w7w4a/Wallet_4i7/issues/42). Точный Light5-образец (published slot5rev2 либо local draft) не выбран, полное равенство семи light видов не реализовано ([#59](https://github.com/i4w7w4a/Wallet_4i7/issues/59)).

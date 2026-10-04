@@ -1,8 +1,10 @@
 # Карта состояний MONO
 
-Срез: 2026-10-05, локальный runtime source `c0fbca89835d74480242c71b15d02b145916c866`. BuyFlow/SwapFlow подключены; целевые проверки исполнителей, один cross-contract source review, общий typecheck/build ORACLE и связный браузерный проход оркестратора выполнены. Это демонстрационная локальная поставка, визуальная приёмка владельца не подтверждена. Публичный MONO остаётся на `85d33d2a2b105efeaab419f194424fa7ce553d5a`; точный runtime и границы — [локальный milestone](../releases/2026-10-05-commerce-local-preview.md).
+Срез: 2026-10-05, локальный runtime source `00052f959749382e7456f84929dd077244578760`. Commerce c0f и header/avatar/quick menu интегрированы; focused evidence, source review, общий local gate и один связный браузерный проход оркестратора выполнены. Owner visual approval не подтверждён. Public MONO остаётся `85d33d2a2b105efeaab419f194424fa7ce553d5a`; уровни состояния — [README](../../README.md), точный local header — [milestone](../releases/2026-10-05-header-local-preview.md).
 
 Идентичность операции: accountId/assetId/networkId/action; у Receive ещё receiveMode, у internal transfer оба счёта. Buy связывает отдельную fiat payment и crypto destination; Swap — две полные crypto legs и pairId. Символ валюты, USD-оценка и All context не заменяют IDs.
+
+Открытые customer decisions: account kind сам по себе не определяет разрешение операции; единицы с префиксом T не приравниваются к базовым активам без контракта обеспечения/погашения. Уровень активации — счёт, инструмент, сеть или сервис — ещё требуется согласовать; текущие account statuses не подменяют это решение. Применимость battery и гипотеза boost не утверждены. Аналитический аудит не меняет текущие capabilities: [#40](https://github.com/i4w7w4a/Wallet_4i7/issues/40), [#42](https://github.com/i4w7w4a/Wallet_4i7/issues/42).
 
 ## Счета и маршруты
 
@@ -47,12 +49,21 @@
 | Состояние | Current component / props / port | Что показывается и разрешено | Данные backend | Открытое правило |
 | --- | --- | --- | --- | --- |
 | Profile security unknown | ProductProfile; createDemoProfileResource | verification/twoFactor/addressAllowlist unknown, null contacts/support и пустые documents. Demo ID не является адресом получения. | Подтверждённые contacts/security states. | Unknown не равен disabled/not-started. Auth/KYC не выводятся из frontend. |
+| Avatar / direct profile | AvatarControl, explicit avatarSrc + MONO_DEMO_AVATAR | Native button 44px, портрет 40px; прямой guarded переход в профиль. Изображение вымышленное demo, не личность/KYC; нового profile.avatarUrl DTO нет. | Авторизованный источник настоящего avatar при отдельном подключении. | Upload/identity/storage этой волной не добавлены. |
+| Header quick settings | ProfileQuickMenu, shared theme/privacy/help callbacks | Три строки: Тема / Скрывать суммы / Помощь. Nonmodal dialog, initial focus; Escape возвращает trigger, outside сохраняет следующую цель. Existing sheet/pending/inactive не обходятся. | Те же preference owners; новых финансовых commands нет. | Entry finite, exit0ms — принятый source tradeoff; owner visual pending. |
+| Help open request | ProductProfile.openSectionRequest {section, revision} | Явный Help открывает существующую группу и передаёт focus. Новая revision повторяет запрос; ручное закрытие и обычный возврат не переоткрывают его. | Существующие supplied support/docs при их появлении. | Это локальная помощь, не подключённый support backend. |
 | Profile loading/error/ready | ProductProfileResource; optional ProductProfile.resource | Stale contacts/security скрыты при loading/error, retry требует retryable+onRetry, preferences доступны. | Host загружает/валидирует resource и отслеживает актуальность ответа. | Пример controlled wrapper есть; реальный profile transport и account auth resource ещё не подключены. |
 | Security/contact action | ProductProfileActions | Callback открывает workflow потребителя. Missing callback — недоступное действие с объяснением; security flag не переключается. | Commands/auth и свежий resource после результата. | Password state в модель не входит; recovery/verification workflows не реализуются этой волной. |
 | Support/documents | ProductProfileDetails, isProfileLinkAllowed | Только предоставленные допустимые HTTPS links; default ссылок нет. Guard не удостоверяет доверие домену. | Авторизованные URLs, titles, document IDs. | Источник/версии документов и support URLs не назначены. |
 | Light/dark | ProductProfile theme/onThemeChange; appearance.environment.theme; useViewerTheme | Editor вызывает существующий Lab owner. Visitor без host session хранит только versioned theme preference и применяет presentation clone, не меняя published envelope. Host session без callback — read-only. | При необходимости серверное preference отдельно от presets. | Синхронизация предпочтения между устройствами отсутствует. Profile не вызывает Save/Apply/publish. |
 | Privacy | Controller/session balanceHidden, Receive/Send/Buy/Swap, money components | Деньги и receipts маскируются. Receive скрывает реквизиты/inputs/QR и copy/share. Buy/Swap скрывают суммы/ввод, обе legs, fee/rate и aria; новый submit закрыт. Accepted pending может завершиться скрытым. Raw drafts остаются в памяти. | Уже полученные данные; новых permissions не создаёт. | UI privacy не заменяет auth/encryption; persist/delete policy отдельная. |
 | Reduced motion | Системное media preference, MONO static | Существующие переходы соблюдают reduced/static. Пункта уменьшения анимаций в профиле нет. | Не требуется. | Решение владельца: отдельный profile control не добавлять. |
+
+## Проверки и пределы
+
+Root browser pass: isolated viewer dark390/light320, theme/privacy/Help, focus/dismiss и direct profile; main saved preset2 сохранён. Menu surface показывала fallback, наблюдённая live refraction не заявляется. Нет замера производительности или полной матрицы оформлений/устройств.
+
+Общий lint GREEN не заявлен: прежний `react-hooks/immutability` в asset scrollport (`mono-scene.tsx:241`) вне header scope. Source review и локальный typecheck/build пройдены; новых проверок этим документом не назначается.
 
 ## Исходники
 
@@ -61,5 +72,6 @@
 - [SendPort](../../apps/miniapp/src/mono-product/send/send-port.ts), [Send validation](../../apps/miniapp/src/mono-product/send/send-validation.ts), [Send lifecycle](../../apps/miniapp/src/mono-product/send/use-send-flow.ts), [Receive contract](../../apps/miniapp/src/mono-product/receive/receive-types.ts), [ReceiveFlow](../../apps/miniapp/src/mono-product/receive/receive-flow.tsx), [internal contract](../../apps/miniapp/src/mono-product/internal-transfer/types.ts).
 - [Commerce contracts/guards/ports](../../apps/miniapp/src/mono-product/commerce/index.ts), [BuyFlow](../../apps/miniapp/src/mono-product/buy/index.ts), [SwapFlow](../../apps/miniapp/src/mono-product/swap/index.ts), [scope обеих crypto legs](../../apps/miniapp/src/mono-product/product-activity-scope.ts).
 - [History](../../apps/miniapp/src/mono-product/product-history.tsx), [asset detail](../../apps/miniapp/src/mono-product/asset-detail/product-asset-detail.tsx), [profile UI](../../apps/miniapp/src/mono-product/product-profile.tsx), [profile model](../../apps/miniapp/src/mono-product/profile/model.ts).
+- [AvatarControl](../../apps/miniapp/src/mono-product/avatar-control/index.ts), [ProfileQuickMenu](../../apps/miniapp/src/mono-product/profile-quick-menu/index.ts).
 
 Порядок подключения и вопросы к backend: [React handoff](./react-frontend-handoff.md). Исторические инструкции module INTEGRATION описывают свои этапы; точное текущее подключение определяется controller/host файлами.
