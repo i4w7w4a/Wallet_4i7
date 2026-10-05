@@ -201,18 +201,23 @@ it("explicitly uses an inspected account and returns from profile to overview wi
   expect(screen.queryByRole("heading", { name: "Профиль" })).toBeNull();
 });
 
-it("enters the exact selected send route directly and restores its route button after closing the existing flow", async () => {
+it("enters Send from the exact disclosed placement and restores its visible action after Back", async () => {
   await controlledHome();
   openAccountsWorkspace();
   fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
-  const solana = screen.getByRole("button", { name: "Подготовить отправку USDC · Основной · Solana" });
-  const ethereum = screen.getByRole("button", { name: "Подготовить отправку USDC · Основной · Ethereum" });
+  const account = screen.getByRole("region", { name: "Основной" });
+  const holding = account.querySelector<HTMLButtonElement>('[data-product-holding-id="demo-usdc-sol"]')!;
+  const ethereum = account.querySelector<HTMLButtonElement>('[data-product-holding-id="demo-usdc-eth"]')!;
+  fireEvent.click(holding);
+  expect(holding).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("button", { name: "Выбрать счёт: Все счета" })).toBeInTheDocument();
+  const solana = account.querySelector<HTMLButtonElement>('[data-product-holding-action-id="demo-usdc-sol"][data-product-holding-action="send"]')!;
   solana.focus(); fireEvent.click(solana);
   expect(screen.queryByRole("dialog", { name: "Выбрать размещение для отправки" })).toBeNull();
   const recipient = await screen.findByRole("textbox", { name: "Получатель" });
   expect(screen.getByRole("dialog", { name: "Отправить" })).toHaveTextContent("Solana");
   fireEvent.change(recipient, { target: { value: "demo:kept" } });
-  fireEvent.click(within(screen.getByRole("dialog", { name: "Отправить" })).getByRole("button", { name: "Назад" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Отправить" })).getByRole("button", { name: /Назад.*Основной|Назад.*размещени/i }));
   await waitFor(() => expect(solana).toHaveFocus());
   expect(screen.queryByRole("dialog", { name: "Отправить" })).toBeNull();
   expect(ethereum).not.toHaveFocus();
@@ -221,11 +226,13 @@ it("enters the exact selected send route directly and restores its route button 
   expect(await screen.findByRole("textbox", { name: "Получатель" })).toHaveValue("demo:kept");
 });
 
-it("returns account receive Back to the exact inspected route button without opening an overview chooser", async () => {
+it("returns account receive Back to the exact placement action without opening an overview chooser", async () => {
   await controlledHome();
   openAccountsWorkspace();
   fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
-  const source = screen.getByRole("button", { name: "Подготовить получение USDC · Основной · Solana · Внешнее получение" });
+  const account = screen.getByRole("region", { name: "Основной" });
+  fireEvent.click(account.querySelector<HTMLButtonElement>('[data-product-holding-id="demo-usdc-sol"]')!);
+  const source = account.querySelector<HTMLButtonElement>('[data-product-holding-action-id="demo-usdc-sol"][data-product-holding-action="receive"]')!;
   source.focus(); fireEvent.click(source);
   fireEvent.click(await screen.findByRole("button", { name: "Назад к выбору маршрута" }));
   await waitFor(() => expect(source).toHaveFocus());
@@ -233,18 +240,24 @@ it("returns account receive Back to the exact inspected route button without ope
   expect(screen.getByRole("heading", { name: "Основной" })).toBeInTheDocument();
 });
 
-it("opens an exact holding from profile inside the existing asset workspace and returns to its account row", async () => {
+it("opens explicit Details from profile and returns to the restored placement disclosure", async () => {
   await controlledHome();
   fireEvent.click(screen.getByRole("button", { name: "Профиль" }));
   openAccountsWorkspace();
   fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
-  const holding = screen.getByRole("button", { name: "Открыть актив: USD Coin · USDC · Solana" });
+  const account = screen.getByRole("region", { name: "Основной" });
+  const holding = account.querySelector<HTMLButtonElement>('[data-product-holding-id="demo-usdc-sol"]')!;
   holding.focus(); fireEvent.click(holding);
+  expect(screen.queryByRole("heading", { name: "USD Coin" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Выбрать счёт: Все счета" })).toBeInTheDocument();
+  fireEvent.click(account.querySelector<HTMLButtonElement>('[data-product-holding-detail-id="demo-usdc-sol"]')!);
   expect(screen.getByRole("heading", { name: "USD Coin" })).toHaveFocus();
   expect(screen.getByRole("region", { name: "USD Coin" })).toHaveTextContent("Solana");
-  fireEvent.click(screen.getByRole("button", { name: "Назад к активам" }));
+  fireEvent.click(screen.getByRole("button", { name: /Назад.*Основной|Назад.*размещени/i }));
   expect(screen.getByRole("heading", { name: "Основной" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Открыть актив: USD Coin · USDC · Solana" })).toHaveFocus();
+  const returned = screen.getByRole("region", { name: "Основной" });
+  expect(returned.querySelector('[data-product-holding-id="demo-usdc-sol"]')).toHaveAttribute("aria-expanded", "true");
+  expect(returned.querySelector('[data-product-holding-detail-id="demo-usdc-sol"]')).toHaveFocus();
 });
 
 it("clears the workspace when navigating to another or the already-active tab", async () => {

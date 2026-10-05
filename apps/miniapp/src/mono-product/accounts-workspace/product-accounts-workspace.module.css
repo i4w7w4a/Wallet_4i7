@@ -5,7 +5,7 @@
   font: var(--mono-type-body-size, 14px)/1.45 var(--mono-type-body-family, var(--mono-font-ui, sans-serif));
   font-synthesis: none;
 }
-.workspace, .workspace *, .workspace *::after { box-sizing: border-box; }
+.workspace, .workspace *, .workspace *::before, .workspace *::after { box-sizing: border-box; }
 .workspace button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .workspace svg { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .workspace :is(button, h1):focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 3px; }
@@ -34,6 +34,7 @@
 .balanceLabel { margin: 0 0 9px; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; }
 .balance { min-width: 0; font-family: var(--mono-type-balance-family, var(--mono-font-numeric, sans-serif)); font-size: clamp(26px, 9cqw, 38px); font-weight: var(--mono-type-balance-weight, var(--mono-font-weight-strong, 600)); line-height: 1.2; letter-spacing: -.025em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .contextLine { min-height: 44px; margin-top: 8px; }
+.contextHint { margin: 12px 0 0; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .useAccount { display: inline-flex; align-items: center; justify-content: flex-start; gap: 10px; min-height: 44px; min-width: 44px; max-width: 100%; margin-left: -6px; padding: 8px 6px; border: 0; border-radius: 8px; background: transparent; text-align: left; }
 .workspace .useAccount { font-size: 13px; }
 .useAccount svg { flex: 0 0 18px; width: 18px; height: 18px; }
@@ -44,33 +45,53 @@
 .sectionHeading h2, .sectionTitle { margin: 0; font: var(--mono-font-weight-strong, 600) 17px/1.3 var(--mono-font-display, var(--mono-font-ui, sans-serif)); letter-spacing: -.02em; }
 .sectionHeading > span { color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; }
 .holdingList { margin-top: 9px; }
-.holding { padding-block: 7px 14px; }
-.holdingButton { display: flex; align-items: center; gap: 10px; width: calc(100% + 12px); min-height: 50px; margin-inline: -6px; padding: 6px; border: 0; border-radius: 8px; background: transparent; text-align: left; }
-.currencyIcon { flex: 0 0 26px; width: 26px; height: 26px; }
-.holdingCopy { display: grid; flex: 1; min-width: 0; gap: 3px; }
+.holding { width: calc(100% + 16px); margin-inline: -8px; padding: 7px 8px 8px; border-radius: 12px; }
+.holding[data-expanded="true"] { background: linear-gradient(110deg, color-mix(in srgb, var(--mono-text, #f4f4f4) 5%, transparent), color-mix(in srgb, var(--mono-surface-high, #202020) 38%, transparent)); }
+.holdingButton { display: grid; grid-template-columns: 26px minmax(0, 1fr) minmax(0, auto); align-items: center; gap: 5px 10px; width: 100%; min-height: 76px; padding: 9px 0; border: 0; border-radius: 8px; background: transparent; text-align: left; }
+.currencyIcon { width: 26px; height: 26px; }
+.holdingCopy { display: grid; min-width: 0; gap: 3px; }
 .holdingCopy > span { color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
-.holdingValues { display: grid; gap: 6px; margin: 7px 0 0 36px; font-size: 12px; }
-.holdingValues > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.holdingValues dt { color: var(--mono-text-secondary, #bdbdbd); }
-.holdingValues dd { min-width: 0; max-width: 70%; margin: 0; text-align: right; font-family: var(--mono-type-balance-family, var(--mono-font-numeric, sans-serif)); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.holdingBalance { display: grid; min-width: 0; max-width: 142px; gap: 4px; text-align: right; font: var(--mono-font-weight-medium, 500) 13px/1.4 var(--mono-type-balance-family, var(--mono-font-numeric, sans-serif)); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.holdingEstimate { color: var(--mono-text-secondary, #bdbdbd); font-size: 11px; font-weight: var(--mono-font-weight-regular, 400); }
+.holdingAffordance { display: inline-flex; grid-column: 2 / -1; justify-self: start; align-items: center; gap: 8px; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; line-height: 1.4; }
+.holdingAffordance .chevron { width: 14px; height: 14px; }
+.restriction { margin: 1px 0 7px 36px; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.holdingContent { min-width: 0; padding: 5px 6px 6px 36px; }
+.available { margin: 0 0 8px; font-size: 12px; line-height: 1.5; }
+.available > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.available dt { color: var(--mono-text-secondary, #bdbdbd); }
+.available dd { min-width: 0; max-width: 100%; margin: 0; text-align: right; font-family: var(--mono-type-balance-family, var(--mono-font-numeric, sans-serif)); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.holdingActions { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.primaryAction, .moreAction, .details { display: inline-flex; align-items: center; justify-content: flex-start; gap: 7px; min-height: 44px; min-width: 44px; max-width: 100%; padding: 9px 6px; border: 0; border-radius: 8px; background: transparent; text-align: left; overflow-wrap: anywhere; }
+.primaryAction { flex: 1 1 112px; }
+.workspace .primaryAction { font-size: 13px; font-weight: var(--mono-font-weight-medium, 500); }
+.workspace .moreAction, .workspace .details { color: var(--mono-text-secondary, #bdbdbd); font-size: 13px; }
+.moreAction { flex: 0 1 auto; }
+.details { margin-left: -6px; }
+.details .chevron { margin-left: 3px; }
+.accountEntry { margin-top: 6px; }
+.accountEntry + .accountEntry { border-top: 1px solid color-mix(in srgb, var(--mono-rule, #343434) 72%, transparent); }
+.accountEntryButton { display: flex; align-items: center; gap: 11px; width: calc(100% + 12px); min-height: 60px; margin-inline: -6px; padding: 10px 6px; border: 0; border-radius: 8px; background: transparent; text-align: left; }
+.accountEntryButton > span { flex: 1; min-width: 0; font-size: 14px; font-weight: var(--mono-font-weight-medium, 500); overflow-wrap: anywhere; }
+.accountEntryButton small { display: block; margin-top: 3px; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; font-weight: var(--mono-font-weight-regular, 400); line-height: 1.5; }
 .hint, .empty { margin: 9px 0 0; color: var(--mono-text-secondary, #bdbdbd); font-size: 13px; line-height: 1.5; }
 .empty { padding-block: 10px; }
 .missing { margin-top: 20px; }
-.actionList { display: grid; margin-top: 10px; }
-.action { display: flex; align-items: center; gap: 12px; width: calc(100% + 12px); min-height: 60px; margin-inline: -6px; padding: 10px 6px; border: 0; border-radius: 9px; background: transparent; text-align: left; }
+.actionList { display: grid; min-width: 0; padding: 5px 6px; }
+.action { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 6px; border: 0; border-radius: 9px; background: transparent; text-align: left; }
 .action + .action { border-top: 1px solid color-mix(in srgb, var(--mono-rule, #343434) 72%, transparent); }
 .actionIcon { flex: 0 0 21px; width: 21px; height: 21px; color: var(--mono-text-secondary, #bdbdbd); }
 .actionCopy { display: grid; flex: 1; min-width: 0; gap: 4px; }
 .actionCopy > span { color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .receiveMode { display: block; margin-top: 2px; font-size: 11px; }
-.workspace :is(.back, .accountRow, .useAccount, .holdingButton, .action):active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); }
+.workspace :is(.back, .accountRow, .useAccount, .holdingButton, .primaryAction, .moreAction, .details, .accountEntryButton, .action):active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); }
 @media (hover: hover) and (pointer: fine) {
-  .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .action):hover:not(:active) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 3%, transparent); }
+  .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .primaryAction, .moreAction, .details, .accountEntryButton, .action):hover:not(:active) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 3%, transparent); }
 }
 @media (prefers-reduced-motion: no-preference) {
   :global([data-mono-motion="ready"]) .identity { animation: arrive 190ms var(--mono-product-motion-ease, cubic-bezier(.2, 0, 0, 1)) both; }
-  :global([data-mono-motion="ready"]) .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .action) { transition: background-color 190ms var(--mono-product-motion-ease, cubic-bezier(.2, 0, 0, 1)); }
-  :global([data-mono-motion="ready"]) .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .action):active { transition-duration: 80ms; }
+  :global([data-mono-motion="ready"]) .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .primaryAction, .moreAction, .details, .accountEntryButton, .action) { transition: background-color 190ms var(--mono-product-motion-ease, cubic-bezier(.2, 0, 0, 1)); }
+  :global([data-mono-motion="ready"]) .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .primaryAction, .moreAction, .details, .accountEntryButton, .action):active { transition-duration: 80ms; }
 }
 @keyframes arrive { from { opacity: .7; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 :global([data-mono-motion="static"]) .identity { animation: none; }
@@ -81,5 +102,15 @@
   .accountIcon { width: 24px; height: 24px; }
   .rowEstimate { max-width: 96px; font-size: 12px; }
   .accountCopy .meta { font-size: 11px; }
-  .holdingValues { margin-left: 0; }
+  .holdingButton { grid-template-columns: 26px minmax(0, 1fr); }
+  .holdingBalance { display: flex; flex-wrap: wrap; grid-column: 2 / -1; align-items: baseline; gap: 4px 12px; max-width: 100%; text-align: left; }
+  .holdingBalance > span { min-width: 0; max-width: 100%; }
+  .holdingContent { padding-left: 6px; }
+  .restriction { margin-left: 0; }
+}
+@media (prefers-reduced-transparency: reduce) { .holding[data-expanded="true"] { background: var(--mono-surface-high, #202020); } }
+@media (forced-colors: active) {
+  .holding[data-expanded="true"] { background: Canvas; }
+  .holding, .accountEntry + .accountEntry, .action + .action { border-color: CanvasText; }
+  .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .primaryAction, .moreAction, .details, .accountEntryButton, .action):is(:hover, :active) { background: Highlight; color: HighlightText; }
 }

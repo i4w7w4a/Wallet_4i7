@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
   type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefObject } from "react";
-import { resolveActionRoutes, type ChartPeriod, type ProductActionRoute, type WalletSnapshot } from "@wallet/core";
+import { resolveActionRoutes, type ChartPeriod, type ProductActionRoute, type ProductHolding, type WalletSnapshot } from "@wallet/core";
 import { MATERIAL_VIEWPORT_MOTION_REBASE_EVENT, MonoOpticalGlass, monoActionIconPath,
   type ButtonTargetId, type MonoGlassSettings, type MonoPaletteConfigV1, type MonoSharedOpticalHost } from "@wallet/ui";
 import { MonoLogo } from "./mono-logo";
@@ -27,6 +27,7 @@ import { ProductBalance, ProductContextLine, ProductHoldings } from "../mono-pro
 import { ProductOverlay } from "../mono-product/product-sheet";
 import { ProductAssetWorkspace } from "../mono-product/asset-workspace";
 import { ProductAccountsWorkspace } from "../mono-product/accounts-workspace";
+import type { AccountsActionOrigin } from "../mono-product/accounts-workspace/account-placement-actions";
 import { ProductGlassProvider } from "../mono-product/product-glass-surface";
 import { formatFiatMinor } from "../mono-product/product-format";
 import { productRouteKey, type MonoProductController } from "../mono-product/product-controller";
@@ -119,7 +120,46 @@ const NAV_ITEMS = [
 ] as const;
 const DEFAULT_ACTION_ARTWORK = createDefaultActionArtworkMap();
 type AccountsFocusTarget = { kind: "title" } | { kind: "launcher" } | { kind: "context" }
-  | { kind: "account" | "holding" | "route"; id: string };
+  | { kind: "account" | "holding" | "holding-detail"; id: string } | AccountsActionOrigin;
+type AccountsHoldingIdentity = Pick<ProductHolding, "id" | "accountId" | "assetId" | "networkId">;
+type AccountsChildReturn = {
+  accountId: string; target: AccountsFocusTarget; holding: AccountsHoldingIdentity | null;
+};
+
+function exactAccountHolding(snapshot: MonoProductController["view"]["snapshot"] | undefined,
+  accountId: string, holdingId: string): ProductHolding | null {
+  const matches = snapshot?.holdings.filter(holding => holding.id === holdingId) ?? [];
+  return matches.length === 1 && matches[0]!.accountId === accountId ? matches[0]! : null;
+}
+
+function sameHoldingIdentity(holding: ProductHolding | null, identity: AccountsHoldingIdentity): boolean {
+  return Boolean(holding && holding.id === identity.id && holding.accountId === identity.accountId &&
+    holding.assetId === identity.assetId && holding.networkId === identity.networkId);
+}
+
+function holdingIdentity(holding: ProductHolding): AccountsHoldingIdentity {
+  return { id: holding.id, accountId: holding.accountId, assetId: holding.assetId, networkId: holding.networkId };
+}
+
+function revealAccountsTarget(root: HTMLElement, element: HTMLElement) {
+  const doc = root.ownerDocument;
+  const scrollport = root.closest<HTMLElement>("[data-material-scrollport]") ?? doc.scrollingElement;
+  if (!scrollport) return;
+  const view = doc.defaultView, bounds = scrollport.getBoundingClientRect();
+  const documentScroll = scrollport === doc.scrollingElement;
+  const top = documentScroll ? 0 : Math.max(0, bounds.top + scrollport.clientTop);
+  let bottom = documentScroll ? view?.innerHeight ?? 0
+    : Math.min(bounds.top + scrollport.clientTop + scrollport.clientHeight, view?.innerHeight ?? bounds.bottom);
+  const navigation = root.querySelector<HTMLElement>(".mono-nav")?.getBoundingClientRect();
+  if (navigation?.height && navigation.top > top) bottom = Math.min(bottom, navigation.top);
+  if (bottom <= top) return;
+  const target = element.getBoundingClientRect();
+  const offset = target.top < top ? target.top - top : target.bottom > bottom ? target.bottom - bottom : 0;
+  if (!offset) return;
+  const previous = scrollport.scrollTop;
+  scrollport.scrollTop += offset;
+  if (scrollport.scrollTop !== previous) scrollport.dispatchEvent(new Event(MATERIAL_VIEWPORT_MOTION_REBASE_EVENT));
+}
 type HelpEntryRequest = {
   action: ProductHelpTopicId;
   context: MonoProductController["view"]["context"];
@@ -175,11 +215,31 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const accountsWorkspace = product?.view.accountsWorkspace ?? null;
   const assetWorkspace = accountsWorkspace || section === "overview" || section === "assets" ? product?.view.assetWorkspace ?? null : null;
   const assetWorkspaceId = assetWorkspace?.assetId ?? null;
+  const [expandedHoldingId, setExpandedHoldingId] = useState<string | null>(null);
+  const expandedHoldingSource = useRef<AccountsHoldingIdentity | null>(null);
+  const inspectedAccountId = accountsWorkspace?.accountId ?? null;
+  const inspectedAccountMatches = product?.view.snapshot.accounts.filter(account => account.id === inspectedAccountId) ?? [];
+  const inspectedAccount = inspectedAccountMatches.length === 1 ? inspectedAccountMatches[0]! : null;
+  const expandedHolding = expandedHoldingId && inspectedAccountId
+    ? exactAccountHolding(product?.view.snapshot, inspectedAccountId, expandedHoldingId) : null;
+  const currentExpandedHoldingId = inspectedAccount && expandedHoldingSource.current &&
+    sameHoldingIdentity(expandedHolding, expandedHoldingSource.current) ? expandedHoldingId : null;
   const accountsOrigin = useRef<MonoSection | null>(null);
   const accountsFocusRequest = useRef<AccountsFocusTarget | null>(null);
-  const accountsChildReturn = useRef<AccountsFocusTarget | null>(null);
-  const accountsLive = useRef({ accountsWorkspace, assetWorkspace, section, active, sheet: product?.view.sheet });
-  accountsLive.current = { accountsWorkspace, assetWorkspace, section, active, sheet: product?.view.sheet };
+  const accountsChildReturn = useRef<AccountsChildReturn | null>(null);
+  const accountsLive = useRef({ accountsWorkspace, assetWorkspace, section, active, sheet: product?.view.sheet,
+    snapshot: product?.view.snapshot, ports: product?.view.flowPorts });
+  accountsLive.current = { accountsWorkspace, assetWorkspace, section, active, sheet: product?.view.sheet,
+    snapshot: product?.view.snapshot, ports: product?.view.flowPorts };
+  const previousInspectedAccount = useRef(inspectedAccountId);
+  useLayoutEffect(() => {
+    const changedAccount = previousInspectedAccount.current !== inspectedAccountId;
+    previousInspectedAccount.current = inspectedAccountId;
+    if (changedAccount || (expandedHoldingId !== null && currentExpandedHoldingId === null)) {
+      expandedHoldingSource.current = null; setExpandedHoldingId(null);
+    }
+    if (changedAccount) accountsChildReturn.current = null;
+  }, [inspectedAccountId, expandedHoldingId, currentExpandedHoldingId]);
   const previousAccountsView = useRef({ accountsWorkspace, assetWorkspace, sheet: product?.view.sheet, ports: product?.view.flowPorts });
   const allowedAccountActions = useMemo(() => {
     const source = product?.view.snapshot, accountId = accountsWorkspace?.accountId;
@@ -236,39 +296,78 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     if (accountsWorkspace && !product?.commands.closeAccountsWorkspace()) return false;
     cancelHelpEntry();
     accountsOrigin.current = null; accountsFocusRequest.current = null; accountsChildReturn.current = null;
+    resetAccountsDisclosure();
     return true;
   }
   function openAccountsWorkspace() {
     if (!headerContextAllowed() || !product?.commands.openAccountsWorkspace()) return;
     cancelHelpEntry();
     accountsOrigin.current = section; accountsFocusRequest.current = { kind: "title" }; accountsChildReturn.current = null;
+    resetAccountsDisclosure();
     setProfileMenuOrigin(null); setProfileSectionRequest(undefined);
   }
   function inspectAccount(accountId: string) {
-    if (active && product?.commands.inspectAccount(accountId)) accountsFocusRequest.current = { kind: "title" };
+    if (active && product?.commands.inspectAccount(accountId)) {
+      if (accountsWorkspace?.accountId !== accountId) resetAccountsDisclosure();
+      accountsFocusRequest.current = { kind: "title" };
+    }
   }
   function backAccountsWorkspace() {
     if (!active || !accountsWorkspace || !product?.commands.backAccountsWorkspace()) return;
     accountsFocusRequest.current = accountsWorkspace.accountId === null
       ? { kind: "launcher" } : { kind: "account", id: accountsWorkspace.accountId };
     accountsChildReturn.current = null;
+    resetAccountsDisclosure();
   }
   function useAccount(accountId: string) {
     if (!active || !canUseAccount || !product?.commands.useAccount(accountId)) return;
     accountsOrigin.current = null; accountsChildReturn.current = null;
+    resetAccountsDisclosure();
     accountsFocusRequest.current = { kind: "context" };
     if (section !== "overview") setSection("overview");
   }
-  function openAccountRoute(route: ProductActionRoute) {
-    if (active && product?.commands.openAccountRoute(route)) {
-      accountsChildReturn.current = { kind: "route", id: productRouteKey(route) };
+  function resetAccountsDisclosure() {
+    expandedHoldingSource.current = null; setExpandedHoldingId(null);
+  }
+  function currentAccountsSource() {
+    const current = accountsLive.current;
+    return Boolean(active && product && accountsWorkspace && current.active &&
+      current.accountsWorkspace === accountsWorkspace && current.section === section &&
+      current.snapshot === product.view.snapshot && current.ports === product.view.flowPorts &&
+      !current.sheet && !current.assetWorkspace);
+  }
+  function changeExpandedHolding(holdingId: string | null) {
+    if (!currentAccountsSource() || !inspectedAccount) return;
+    if (holdingId === null) { resetAccountsDisclosure(); return; }
+    const holding = exactAccountHolding(product?.view.snapshot, inspectedAccount.id, holdingId);
+    if (!holding) return;
+    expandedHoldingSource.current = holdingIdentity(holding); setExpandedHoldingId(holdingId);
+  }
+  function openAccountRoute(route: ProductActionRoute, origin?: AccountsActionOrigin): boolean {
+    if (!currentAccountsSource() || !product || !inspectedAccount || route.accountId !== inspectedAccount.id) return false;
+    const key = productRouteKey(route);
+    const matches = allowedAccountActions.filter(candidate => productRouteKey(candidate) === key);
+    if (matches.length !== 1 || (origin && (origin.routeKey !== key || origin.action !== route.action))) return false;
+    let holding: ProductHolding | null = null;
+    if (origin?.kind === "holding-action") {
+      holding = exactAccountHolding(product.view.snapshot, inspectedAccount.id, origin.holdingId);
+      if (!holding || holding.assetId !== route.assetId || holding.networkId !== route.networkId) return false;
+    } else if (origin?.kind === "account-action") {
+      const placed = product.view.snapshot.holdings.some(candidate => candidate.accountId === route.accountId &&
+        candidate.assetId === route.assetId && candidate.networkId === route.networkId);
+      if (origin.entry === "receive" ? route.action !== "receive" : route.action === "receive" || placed) return false;
     }
+    if (!product.commands.openAccountRoute(matches[0]!)) return false;
+    accountsChildReturn.current = { accountId: inspectedAccount.id, target: origin ? { ...origin } : { kind: "title" },
+      holding: holding ? holdingIdentity(holding) : null };
+    return true;
   }
   function openAccountHolding(holdingId: string) {
-    const accountId = accountsWorkspace?.accountId;
-    if (active && accountId && product?.commands.openAccountHolding(accountId, holdingId)) {
-      accountsChildReturn.current = { kind: "holding", id: holdingId };
-    }
+    if (!currentAccountsSource() || !product || !inspectedAccount) return;
+    const holding = exactAccountHolding(product.view.snapshot, inspectedAccount.id, holdingId);
+    if (!holding || !product.commands.openAccountHolding(inspectedAccount.id, holdingId)) return;
+    accountsChildReturn.current = { accountId: inspectedAccount.id, target: { kind: "holding-detail", id: holdingId },
+      holding: holdingIdentity(holding) };
   }
   function cancelHelpEntry() {
     if (!helpEntryRef.current) return;
@@ -390,9 +489,13 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     previousAccountsView.current = { accountsWorkspace, assetWorkspace, sheet: product?.view.sheet, ports: product?.view.flowPorts };
     if (!active || product?.view.sheet || assetWorkspace) return;
     let target = accountsFocusRequest.current;
+    let childReturn: AccountsChildReturn | null = null;
     if (!target && accountsWorkspace) {
       if (!previous.accountsWorkspace || previous.accountsWorkspace.accountId !== accountsWorkspace.accountId) target = { kind: "title" };
-      else if (previous.assetWorkspace || previous.sheet) target = accountsChildReturn.current ?? { kind: "title" };
+      else if (previous.assetWorkspace || previous.sheet) {
+        childReturn = accountsChildReturn.current;
+        target = childReturn?.accountId === accountsWorkspace.accountId ? childReturn.target : { kind: "title" };
+      }
     }
     if (!target && previous.accountsWorkspace && !accountsWorkspace && accountsOrigin.current !== null &&
       previous.ports !== product?.view.flowPorts) target = { kind: "launcher" };
@@ -403,23 +506,51 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       const current = accountsLive.current, root = pageRef.current;
       if (!root || !current.active || current.sheet || current.assetWorkspace ||
         current.accountsWorkspace !== accountsWorkspace || current.section !== section) return;
-      let element: HTMLElement | null | undefined;
-      if (focusTarget.kind === "launcher") element = profileMenuAnchor.current;
-      else if (focusTarget.kind === "context") element = root.querySelector<HTMLElement>("[data-mono-product-context-trigger]")
-        ?? root.querySelector<HTMLElement>('.mono-nav__item[aria-current="page"]');
-      else if (focusTarget.kind !== "title") {
-        const attribute = focusTarget.kind === "account" ? "data-product-account-id"
-          : focusTarget.kind === "holding" ? "data-product-holding-id" : "data-product-account-route-key";
-        element = [...root.querySelectorAll<HTMLElement>(`[${attribute}]`)]
-          .find(candidate => candidate.getAttribute(attribute) === focusTarget.id && !candidate.closest("[hidden], [inert]"));
+      const visible = (candidate: HTMLElement | null | undefined): candidate is HTMLElement => Boolean(candidate?.isConnected &&
+        !candidate.closest("[hidden], [inert], [aria-hidden='true']") && !candidate.matches(":disabled") &&
+        getComputedStyle(candidate).display !== "none" && getComputedStyle(candidate).visibility !== "hidden");
+      const byAttribute = (attribute: string, value: string) => [...root.querySelectorAll<HTMLElement>(`[${attribute}]`)]
+        .find(candidate => candidate.getAttribute(attribute) === value && visible(candidate));
+      const holding = childReturn?.holding;
+      const currentHolding = childReturn && holding && childReturn.accountId === current.accountsWorkspace?.accountId
+        ? exactAccountHolding(current.snapshot, childReturn.accountId, holding.id) : null;
+      const validHolding = Boolean(holding && sameHoldingIdentity(currentHolding, holding));
+      let requested = focusTarget;
+      if (holding && !validHolding) requested = { kind: "title" };
+      else if (requested.kind === "holding-action" || requested.kind === "account-action") {
+        const origin = requested;
+        const matchingRoutes = current.snapshot && current.accountsWorkspace?.accountId
+          ? resolveActionRoutes(current.snapshot, { kind: "account", accountId: current.accountsWorkspace.accountId }, origin.action)
+            .routes.filter(route => productRouteKey(route) === origin.routeKey) : [];
+        if (matchingRoutes.length !== 1) requested = validHolding && holding
+          ? { kind: "holding", id: holding.id } : { kind: "title" };
       }
-      (element ?? root.querySelector<HTMLElement>("[data-mono-product-accounts-title]") ?? profileMenuAnchor.current)
-        ?.focus({ preventScroll: true });
+      let element: HTMLElement | null | undefined;
+      if (requested.kind === "launcher") element = profileMenuAnchor.current;
+      else if (requested.kind === "context") element = root.querySelector<HTMLElement>("[data-mono-product-context-trigger]")
+        ?? root.querySelector<HTMLElement>('.mono-nav__item[aria-current="page"]');
+      else if (requested.kind === "holding-action") {
+        const holdingId = requested.holdingId;
+        const actionTarget = (action: string) => [...root.querySelectorAll<HTMLElement>("[data-product-holding-action-id]")]
+          .find(candidate => candidate.dataset.productHoldingActionId === holdingId &&
+            candidate.dataset.productHoldingAction === action && visible(candidate));
+        element = actionTarget(requested.action);
+        if (!element && (requested.action === "buy" || requested.action === "swap")) element = actionTarget("more");
+      } else if (requested.kind === "account-action") element = byAttribute("data-product-account-entry", requested.entry);
+      else if (requested.kind !== "title") {
+        const attribute = requested.kind === "account" ? "data-product-account-id"
+          : requested.kind === "holding-detail" ? "data-product-holding-detail-id" : "data-product-holding-id";
+        element = byAttribute(attribute, requested.id);
+      }
+      if (!visible(element) && validHolding && holding) element = byAttribute("data-product-holding-id", holding.id);
+      if (!visible(element)) element = [...root.querySelectorAll<HTMLElement>("[data-mono-product-accounts-title]")].find(visible);
+      if (!visible(element) && visible(profileMenuAnchor.current)) element = profileMenuAnchor.current;
+      if (visible(element)) { element.focus({ preventScroll: true }); revealAccountsTarget(root, element); }
       if (!accountsWorkspace) accountsOrigin.current = null;
     };
     // Existing flow cleanup restores its own launcher in a microtask; the exact account origin wins afterwards.
     if (previous.sheet) queueMicrotask(focus); else focus();
-  }, [accountsWorkspace, assetWorkspace, section, active, product?.view.sheet, product?.view.flowPorts]);
+  }, [accountsWorkspace, assetWorkspace, section, active, product?.view.sheet, product?.view.flowPorts, product?.view.snapshot]);
 
   useEffect(() => {
     if (!active || !accountsWorkspace || !product || profileMenuVisible || product.view.sheet) return;
@@ -729,6 +860,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {product && accountsWorkspace && !assetWorkspace && <div className="mono-product-section" inert={!active}>
           <ProductAccountsWorkspace snapshot={product.view.snapshot} selectedAccountId={accountsWorkspace.accountId}
             context={product.view.context} balanceHidden={product.view.balanceHidden} allowedActions={allowedAccountActions}
+            expandedHoldingId={currentExpandedHoldingId} onExpandedHoldingChange={changeExpandedHolding}
             onInspectAccount={inspectAccount} onBack={backAccountsWorkspace} onUseAccount={useAccount}
             useAccountUnavailableReason={canUseAccount ? undefined : "Переход к обзору сейчас недоступен."}
             onOpenAction={openAccountRoute} onOpenHolding={openAccountHolding} />
@@ -736,6 +868,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {product && assetWorkspace && <div className="mono-product-section"><ProductAssetWorkspace
           view={product.view} assetId={assetWorkspace.assetId} selectedHoldingId={assetWorkspace.holdingId}
           onSelectHolding={product.commands.selectAssetHolding} onBack={product.commands.closeAsset}
+          backLabel={accountsWorkspace ? inspectedAccount ? `Назад к счёту ${inspectedAccount.label}` : "Назад к счёту" : undefined}
           onPlacementAction={product.commands.openPlacementAction} onExpandActivity={product.commands.expandActivity}
           onRetryActivities={product.commands.retryActivities} /></div>}
         {section === "overview" && !assetWorkspace && !accountsWorkspace && <>

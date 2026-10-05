@@ -52,18 +52,34 @@ function ProductModalOverlay({ view, commands, ports, onOpenActivity, canRestore
   ports: ReturnType<typeof createMonoDemoFlowPorts>; canRestoreActionFocus(): boolean;
 }) {
   const sheet = view.sheet;
+  const detailKey = sheet?.kind === "intent" && sheet.route ? routeFlowKey(sheet.route, ports) : null;
+  const [assetDetailsRouteKey, setAssetDetailsRouteKey] = useState<string | null>(null);
+  if (assetDetailsRouteKey !== null && assetDetailsRouteKey !== detailKey) setAssetDetailsRouteKey(null);
+  const assetDetails = detailKey !== null && assetDetailsRouteKey === detailKey;
+  const showAssetDetails = useCallback(() => {
+    if (detailKey !== null) setAssetDetailsRouteKey(detailKey);
+  }, [detailKey]);
+  const hideAssetDetails = useCallback(() => {
+    setAssetDetailsRouteKey(current => current === detailKey ? null : current);
+  }, [detailKey]);
   if (!sheet || sheet.kind === "battery" || sheet.kind === "accounts") return null;
   if (sheet.kind === "intent" && !sheet.route &&
     (sheet.action === "receive" || (sheet.action === "send" && !sheet.placementId))) return null;
   const action = sheet.action;
   const title = actionLabel(action);
-  const detailKey = sheet.route ? routeFlowKey(sheet.route, ports) : "";
+  const parentAccounts = sheet.returnToAccountId !== undefined && sheet.returnToAccountId === sheet.route?.accountId &&
+    sheet.returnToAccountId === view.accountsWorkspace?.accountId;
+  const parentAccountMatches = parentAccounts
+    ? view.snapshot.accounts.filter(account => account.id === sheet.returnToAccountId) : [];
+  const backLabel = parentAccountMatches.length === 1 ? `Назад к счёту ${parentAccountMatches[0]!.label}` : undefined;
   return <ProductSheet key={action} title={title} onClose={commands.closeSheet} receiveScreen={action === "receive"}
+    sendScreen={action === "send" && Boolean(sheet.route) && !assetDetails}
     canRestoreFocus={canRestoreActionFocus} returnAction={action} showHandle={action !== "send"}
     guardMessage={view.commerceGuardMessage}
     returnPlacement={sheet.placementId ? { id: sheet.placementId, action } : undefined}>
     {sheet.route ? <RouteDetail key={detailKey} route={sheet.route} view={view} commands={commands} ports={ports}
-      onOpenActivity={onOpenActivity} /> :
+      onOpenActivity={onOpenActivity} backLabel={backLabel} assetDetails={assetDetails}
+      onShowAssetDetails={showAssetDetails} onHideAssetDetails={hideAssetDetails} /> :
       <RouteChooser view={view} commands={commands} action={action} focusRouteKey={sheet.focusRouteKey} />}
   </ProductSheet>;
 }
@@ -84,12 +100,13 @@ function RouteChooser({ view, commands, action, focusRouteKey }: ProductProps & 
   </>;
 }
 
-function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductProps & {
+function RouteDetail({ route, view, commands, ports, onOpenActivity, backLabel, assetDetails,
+  onShowAssetDetails, onHideAssetDetails }: ProductProps & {
   route: ProductActionRoute; ports: ReturnType<typeof createMonoDemoFlowPorts>;
+  backLabel?: string; assetDetails: boolean; onShowAssetDetails(): void; onHideAssetDetails(): void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const returnToAsset = useRef<HTMLElement | null>(null);
-  const [assetDetails, setAssetDetails] = useState(false);
   const [operation, setOperation] = useState<SendOperationStatus | null>(null);
   const [resultActivityId, setResultActivityId] = useState<string | null>(null);
   const saveDraft = commands.saveSendDraft;
@@ -140,9 +157,9 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
     if (!returnToAsset.current?.isConnected) {
       returnToAsset.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     }
-    setAssetDetails(true);
-  }, []);
-  const hideAssetDetails = useCallback(() => setAssetDetails(false), []);
+    onShowAssetDetails();
+  }, [onShowAssetDetails]);
+  const hideAssetDetails = onHideAssetDetails;
   useLayoutEffect(() => {
     if (assetDetails) container.current?.querySelector<HTMLElement>("[data-product-asset-content] button")?.focus({ preventScroll: true });
     else if (previousDetails.current) returnToAsset.current?.focus({ preventScroll: true });
@@ -169,6 +186,7 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
       onViewInternalHistory={resultActivityId && onOpenActivity ? () => onOpenActivity(resultActivityId) : undefined}
       onBack={commands.backToRoutes} onClose={commands.closeSheet} showCloseButton={false} onAssetDetails={showAssetDetails} /> :
       route.action === "send" ? <SendFlow route={route} port={ports.send} privacy={view.balanceHidden}
+        backLabel={backLabel}
         initialDraft={view.sendDrafts[sendDraftKey(route)] ?? null} onDraftChange={onDraftChange}
         onSimulationResult={onSimulationResult}
         onViewHistory={resultActivityId && onOpenActivity ? () => onOpenActivity(resultActivityId) : undefined}
@@ -198,9 +216,10 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity }: ProductPr
   </div>;
 }
 
-function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen = false, canRestoreFocus, returnAction, showHandle = true, guardMessage }: {
+function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen = false, sendScreen = false,
+  canRestoreFocus, returnAction, showHandle = true, guardMessage }: {
   title: string; onClose(): void; children: ReactNode; returnPlacement?: { id: string; action: ProductActionKind };
-  receiveScreen?: boolean; canRestoreFocus?(): boolean;
+  receiveScreen?: boolean; sendScreen?: boolean; canRestoreFocus?(): boolean;
   returnAction?: ProductActionKind; showHandle?: boolean; guardMessage?: string | null;
 }) {
   const titleId = useId();
@@ -310,6 +329,7 @@ function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen
     style={receiveScreen ? receiveBounds : undefined}>
     <div className="mono-product-sheet__scrim" aria-hidden="true" onClick={receiveScreen ? undefined : onClose} />
     <ProductGlassSurface ref={dialogRef} className="mono-product-sheet__panel" role="dialog" aria-modal="true"
+      data-product-flow-surface={sendScreen ? "send" : undefined}
       aria-labelledby={titleId} tabIndex={-1} onKeyDown={onKeyDown}>
       {!receiveScreen && showHandle && <div className="mono-product-sheet__handle" aria-hidden="true" />}
       <header className="mono-product-sheet__header">
