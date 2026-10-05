@@ -48,8 +48,8 @@ async function home(adapter: MonoProductAdapter = MONO_PRODUCT_DEMO_ADAPTER) {
 
 function openTopic(topic: string) {
   fireEvent.click(screen.getByRole("button", { name: "Помощь и документы" }));
-  fireEvent.click(screen.getByRole("button", { name: topic, exact: true }));
-  return screen.getByRole("region", { name: topic, exact: true });
+  fireEvent.click(screen.getByRole("button", { name: topic }));
+  return screen.getByRole("region", { name: topic });
 }
 
 function motionBoundary() {
@@ -116,7 +116,7 @@ it("keeps a read-only externally controlled host without a navigation handler ho
   const panel = openTopic("Получить");
   expect(within(panel).queryByRole("button", { name: "Открыть получение" })).toBeNull();
   expect(panel).toHaveTextContent(/переход.*недоступен/i);
-  expect(screen.getByRole("heading", { name: "Профиль", exact: true })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Профиль" })).toBeInTheDocument();
 });
 
 it("waits for the existing finite view animation and retries on its completion without another navigation render", async () => {
@@ -129,7 +129,7 @@ it("waits for the existing finite view animation and retries on its completion w
   await motion.finish();
   expect(await screen.findByRole("dialog", { name: "Отправить" })).toBeInTheDocument();
   fireEvent.keyDown(document, { key: "Escape" });
-  await waitFor(() => expect(screen.getByRole("button", { name: "Отправить", exact: true })).toHaveFocus());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Отправить" })).toHaveFocus());
 });
 
 it.each(["navigation", "context", "adapter"])("cancels a queued opening after a later %s change", async change => {
@@ -137,7 +137,7 @@ it.each(["navigation", "context", "adapter"])("cancels a queued opening after a 
   const view = await home();
   fireEvent.click(within(openTopic("Отправить")).getByRole("button", { name: "Открыть отправку" }));
   expect(view.current().view.sheet).toBeNull();
-  if (change === "navigation") fireEvent.click(screen.getByRole("button", { name: "История", exact: true }));
+  if (change === "navigation") fireEvent.click(screen.getByRole("button", { name: "История" }));
   else if (change === "context") act(() => view.current().commands.selectContext({ kind: "account", accountId: "demo-depositary" }));
   else view.replace({ kind: "demo", snapshot: MULTI_ACCOUNT_DEMO });
   await motion.finish();

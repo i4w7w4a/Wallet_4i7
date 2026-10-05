@@ -172,33 +172,33 @@ function openAccountsWorkspace() {
 
 it("opens account content from profile and backs through exact detail/list origins without an extra tab or sheet", async () => {
   const { container } = await controlledHome();
-  fireEvent.click(screen.getByRole("button", { name: "Профиль", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Профиль" }));
   openAccountsWorkspace();
   expect(screen.getByRole("heading", { name: "Мои счета" })).toHaveFocus();
   expect(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getAllByRole("button")).toHaveLength(4);
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.queryByRole("heading", { name: "Профиль", exact: true })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Профиль" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Хранилище" }));
-  expect(screen.getByRole("heading", { name: "Хранилище", exact: true })).toHaveFocus();
+  expect(screen.getByRole("heading", { name: "Хранилище" })).toHaveFocus();
   expect(screen.getByRole("button", { name: /Выбрать счёт: Все счета/ })).toBeInTheDocument();
   expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "profile");
   fireEvent.keyDown(document, { key: "Escape" });
   expect(screen.getByRole("button", { name: "Открыть счёт: Хранилище" })).toHaveFocus();
   fireEvent.keyDown(document, { key: "Escape" });
-  expect(screen.getByRole("heading", { name: "Профиль", exact: true })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Профиль" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Быстрые настройки" })).toHaveFocus();
 });
 
 it("explicitly uses an inspected account and returns from profile to overview with that exact context", async () => {
   await controlledHome();
-  fireEvent.click(screen.getByRole("button", { name: "Профиль", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Профиль" }));
   openAccountsWorkspace();
   fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
   fireEvent.click(screen.getByRole("button", { name: "Выбрать счёт в кошельке" }));
-  expect(screen.queryByRole("region", { name: "Основной", exact: true })).toBeNull();
-  expect(screen.getByRole("button", { name: "Обзор", exact: true })).toHaveAttribute("aria-current", "page");
+  expect(screen.queryByRole("region", { name: "Основной" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Обзор" })).toHaveAttribute("aria-current", "page");
   expect(screen.getByRole("button", { name: /Выбрать счёт: Основной/ })).toBeInTheDocument();
-  expect(screen.queryByRole("heading", { name: "Профиль", exact: true })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Профиль" })).toBeNull();
 });
 
 it("enters the exact selected send route directly and restores its route button after closing the existing flow", async () => {
@@ -212,11 +212,11 @@ it("enters the exact selected send route directly and restores its route button 
   const recipient = await screen.findByRole("textbox", { name: "Получатель" });
   expect(screen.getByRole("dialog", { name: "Отправить" })).toHaveTextContent("Solana");
   fireEvent.change(recipient, { target: { value: "demo:kept" } });
-  fireEvent.click(within(screen.getByRole("dialog", { name: "Отправить" })).getByRole("button", { name: "Назад", exact: true }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Отправить" })).getByRole("button", { name: "Назад" }));
   await waitFor(() => expect(solana).toHaveFocus());
   expect(screen.queryByRole("dialog", { name: "Отправить" })).toBeNull();
   expect(ethereum).not.toHaveFocus();
-  expect(screen.getByRole("heading", { name: "Основной", exact: true })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Основной" })).toBeInTheDocument();
   fireEvent.click(solana);
   expect(await screen.findByRole("textbox", { name: "Получатель" })).toHaveValue("demo:kept");
 });
@@ -230,33 +230,33 @@ it("returns account receive Back to the exact inspected route button without ope
   fireEvent.click(await screen.findByRole("button", { name: "Назад к выбору маршрута" }));
   await waitFor(() => expect(source).toHaveFocus());
   expect(screen.queryByRole("dialog", { name: "Получить" })).toBeNull();
-  expect(screen.getByRole("heading", { name: "Основной", exact: true })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Основной" })).toBeInTheDocument();
 });
 
 it("opens an exact holding from profile inside the existing asset workspace and returns to its account row", async () => {
   await controlledHome();
-  fireEvent.click(screen.getByRole("button", { name: "Профиль", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Профиль" }));
   openAccountsWorkspace();
   fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
   const holding = screen.getByRole("button", { name: "Открыть актив: USD Coin · USDC · Solana" });
   holding.focus(); fireEvent.click(holding);
-  expect(screen.getByRole("heading", { name: "USD Coin", exact: true })).toHaveFocus();
-  expect(screen.getByRole("region", { name: "USD Coin", exact: true })).toHaveTextContent("Solana");
+  expect(screen.getByRole("heading", { name: "USD Coin" })).toHaveFocus();
+  expect(screen.getByRole("region", { name: "USD Coin" })).toHaveTextContent("Solana");
   fireEvent.click(screen.getByRole("button", { name: "Назад к активам" }));
-  expect(screen.getByRole("heading", { name: "Основной", exact: true })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Основной" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Открыть актив: USD Coin · USDC · Solana" })).toHaveFocus();
 });
 
 it("clears the workspace when navigating to another or the already-active tab", async () => {
   await controlledHome();
   openAccountsWorkspace();
-  fireEvent.click(screen.getByRole("button", { name: "Обзор", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Обзор" }));
   expect(screen.queryByRole("heading", { name: "Мои счета" })).toBeNull();
   openAccountsWorkspace();
   fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
-  fireEvent.click(screen.getByRole("button", { name: "История", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "История" }));
   expect(screen.getByRole("heading", { name: "История операций" })).toBeInTheDocument();
-  expect(screen.queryByRole("region", { name: "Основной", exact: true })).toBeNull();
+  expect(screen.queryByRole("region", { name: "Основной" })).toBeNull();
   openAccountsWorkspace();
   expect(screen.getByRole("heading", { name: "Мои счета" })).toHaveFocus();
 });
@@ -272,7 +272,7 @@ it.each([
   if (count === 0) expect(accounts).toHaveTextContent("Счетов пока нет.");
   else {
     fireEvent.click(within(accounts).getByRole("button", { name: "Открыть счёт: Основной" }));
-    expect(screen.getByRole("heading", { name: "Основной", exact: true })).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "Основной" })).toHaveFocus();
   }
 });
 
@@ -282,7 +282,7 @@ it("shares privacy with the real accounts list/details and keeps the supplied li
   fireEvent.click(within(panel).getByRole("button", { name: "Скрывать суммы" }));
   fireEvent.click(within(panel).getByRole("button", { name: "Мои счета" }));
   fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
-  const details = screen.getByRole("region", { name: "Основной", exact: true });
+  const details = screen.getByRole("region", { name: "Основной" });
   expect(details.textContent).not.toMatch(/500|400|1,1|0,12|12\s?840/);
   expect(within(details).getAllByText("••••").length).toBeGreaterThan(3);
   expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "light");
@@ -319,9 +319,9 @@ it("keeps Use account unavailable in a read-only controlled section without muta
   fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
   const use = screen.getByRole("button", { name: "Выбрать счёт в кошельке" });
   expect(use).toBeDisabled();
-  expect(screen.getByRole("region", { name: "Основной", exact: true })).toHaveTextContent(/выбор счёта.*недоступен|переход.*недоступен/i);
+  expect(screen.getByRole("region", { name: "Основной" })).toHaveTextContent(/выбор счёта.*недоступен|переход.*недоступен/i);
   fireEvent.click(use);
-  expect(screen.getByRole("region", { name: "Основной", exact: true })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Основной" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Выбрать счёт: Все счета/ })).toBeInTheDocument();
   expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "profile");
 });
@@ -336,7 +336,7 @@ it("allows Use account in a read-only overview because no section transition is 
   const use = screen.getByRole("button", { name: "Выбрать счёт в кошельке" });
   expect(use).toBeEnabled();
   fireEvent.click(use);
-  expect(screen.queryByRole("region", { name: "Основной", exact: true })).toBeNull();
+  expect(screen.queryByRole("region", { name: "Основной" })).toBeNull();
   expect(screen.getByRole("button", { name: /Выбрать счёт: Основной/ })).toBeInTheDocument();
   expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "overview");
 });
