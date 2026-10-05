@@ -75,6 +75,64 @@
 .batteryIndicator { flex: 0 0 28px; width: 28px; height: 18px; color: #29945b; }
 .batteryCharge { opacity: 0.75; }
 
+/* Keep the form open on the shared Send reading field, without per-field panels. */
+:global([data-product-flow-surface="send"]) .flow {
+  --mono-send-reading-secondary: color-mix(in srgb, var(--mono-text-secondary, #bdbdbd) 85%, var(--mono-text, #f4f4f4));
+  --mono-send-reading-rule: color-mix(in srgb, var(--mono-rule-strong, #777982) 80%, var(--mono-text, #f4f4f4));
+}
+:global([data-product-flow-surface="send"]) .flow :is(.demo, .network, .note, .hint, .draftNotice, .stepNumber, .sampleButton, .feeUnknown, .status),
+:global([data-product-flow-surface="send"]) .routeIdentity > span,
+:global([data-product-flow-surface="send"]) .label span,
+:global([data-product-flow-surface="send"]) .amountInput > span,
+:global([data-product-flow-surface="send"]) .details dt,
+:global([data-product-flow-surface="send"]) .battery :is(summary, p) {
+  color: var(--mono-send-reading-secondary);
+}
+:global([data-product-flow-surface="send"]) .flow :is(.input, .amountInput) {
+  border-bottom-color: var(--mono-send-reading-rule);
+}
+:global([data-product-flow-surface="send"]) .input,
+:global([data-product-flow-surface="send"]) .amountInput input {
+  color: var(--mono-text, #f4f4f4);
+  caret-color: var(--mono-text, #f4f4f4);
+}
+:global([data-product-flow-surface="send"]) .input::placeholder,
+:global([data-product-flow-surface="send"]) .amountInput input::placeholder {
+  color: var(--mono-send-reading-secondary);
+}
+:global([data-product-flow-surface="send"]) .flow :is(.textButton, .sampleButton, .primary, .secondary):disabled {
+  color: var(--mono-send-reading-secondary);
+  opacity: 1;
+}
+:global([data-product-flow-surface="send"]) .primary:disabled {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--mono-text, #f4f4f4) 10%, var(--mono-surface-high, #1c1c1c));
+}
+@media (forced-colors: active) {
+  :global([data-product-flow-surface="send"]) .flow {
+    --mono-send-reading-secondary: CanvasText;
+    --mono-send-reading-rule: CanvasText;
+    color: CanvasText;
+  }
+  :global([data-product-flow-surface="send"]) .input,
+  :global([data-product-flow-surface="send"]) .amountInput input {
+    color: CanvasText;
+    caret-color: auto;
+  }
+  :global([data-product-flow-surface="send"]) .flow :is(.textButton, .sampleButton, .primary, .secondary):disabled {
+    color: GrayText;
+  }
+  :global([data-product-flow-surface="send"]) .primary,
+  :global([data-product-flow-surface="send"]) .primary:disabled {
+    border-color: ButtonText;
+    background: ButtonFace;
+  }
+  :global([data-product-flow-surface="send"]) .primary:not(:disabled) { color: ButtonText; }
+  :global([data-product-flow-surface="send"]) .flow :is(.input:focus-visible, .amountInput:focus-within, .routeButton:focus-visible, .textButton:focus-visible, .sampleButton:focus-visible, .primary:focus-visible, .secondary:focus-visible, .stepHeading h3:focus-visible, .battery summary:focus-visible) {
+    outline-color: Highlight;
+  }
+}
+
 @keyframes batteryBreath { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: no-preference) {
   .batteryIndicator[data-visible="true"] .batteryCharge { animation: batteryBreath 1600ms cubic-bezier(0.4, 0, 0.6, 1) infinite; }
