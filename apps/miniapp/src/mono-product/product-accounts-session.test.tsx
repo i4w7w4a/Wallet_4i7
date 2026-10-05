@@ -82,7 +82,7 @@ it("opens the exact selected network atomically and replaces stale labels with t
   act(() => { opened = result.current.commands.openAccountRoute?.({ ...sendSolana, accountLabel: "stale", networkLabel: "stale" }); });
   expect(opened).toBe(true);
   expect(result.current.view.context).toEqual({ kind: "account", accountId: "demo-custody" });
-  expect(result.current.view.sheet).toEqual({ kind: "intent", action: "send", route: sendSolana });
+  expect(result.current.view.sheet).toMatchObject({ kind: "intent", action: "send", route: sendSolana });
   expect(result.current.view.accountsWorkspace).toEqual({ accountId: "demo-custody" });
   act(() => result.current.commands.closeSheet());
   expect(result.current.view.accountsWorkspace).toEqual({ accountId: "demo-custody" });
@@ -103,7 +103,7 @@ it("fails closed on a wrong receive mode or unimplemented action and opens the e
   expect(result.current.view.sheet).toBeNull();
   act(() => { opened = result.current.commands.openAccountRoute?.(internalReceive); });
   expect(opened).toBe(true);
-  expect(result.current.view.sheet).toEqual({ kind: "intent", action: "receive", route: internalReceive });
+  expect(result.current.view.sheet).toMatchObject({ kind: "intent", action: "receive", route: internalReceive });
   expect(result.current.view.context).toEqual({ kind: "account", accountId: "demo-depositary" });
 });
 
@@ -232,6 +232,7 @@ it("preserves the accepted commerce lease and raw draft when account navigation 
     denied.push(result.current.commands.useAccount?.("demo-custody"));
     denied.push(result.current.commands.openAccountRoute?.(sendSolana));
     denied.push(result.current.commands.openAccountHolding?.("demo-custody", "demo-usdc-sol"));
+    result.current.commands.backToRoutes(buyRoute);
     result.current.commands.setBalanceHidden(true);
   });
   expect(denied).toEqual([false, false, false, false, false, false, false]);
@@ -257,4 +258,44 @@ it("clears the account parent on explicit quick context selection while preservi
   expect(result.current.view.accountsWorkspace).toBeNull();
   expect(result.current.view.context).toEqual({ kind: "account", accountId: "demo-depositary" });
   expect(Object.values(result.current.view.sendDrafts)[0]?.amount).toBe("8,");
+});
+
+it.each([sendSolana, internalReceive])("returns account $action Back directly to the inspected parent without a compact chooser", route => {
+  const { result } = renderHook(() => useMonoProductController(MONO_PRODUCT_DEMO_ADAPTER, { initialHidden: false }));
+  act(() => result.current.commands.openAccountsWorkspace());
+  act(() => result.current.commands.inspectAccount(route.accountId));
+  act(() => result.current.commands.openAccountRoute(route));
+  act(() => result.current.commands.backToRoutes(route));
+  expect(result.current.view.sheet).toBeNull();
+  expect(result.current.view.accountsWorkspace).toEqual({ accountId: route.accountId });
+  expect(result.current.view.context).toEqual({ kind: "account", accountId: route.accountId });
+});
+
+it.each([
+  { route: sendSolana, key: "send:demo-custody:usdc:solana:" },
+  { route: internalReceive, key: "receive:demo-depositary:usdc:ethereum:internal-transfer" },
+])("keeps ordinary overview $route.action Back on its chooser with the exact route focus", ({ route, key }) => {
+  const { result } = renderHook(() => useMonoProductController(MONO_PRODUCT_DEMO_ADAPTER, { initialHidden: false }));
+  act(() => result.current.commands.openIntent(route.action));
+  act(() => result.current.commands.selectRoute(route));
+  act(() => result.current.commands.backToRoutes(route));
+  expect(result.current.view.sheet).toEqual({ kind: "intent", action: route.action, route: null, focusRouteKey: key });
+  expect(result.current.view.accountsWorkspace).toBeNull();
+  expect(result.current.view.context).toEqual({ kind: "all" });
+});
+
+it("ignores a stale Back from another route while the current account flow remains exact", () => {
+  const { result } = renderHook(() => useMonoProductController(MONO_PRODUCT_DEMO_ADAPTER, { initialHidden: false }));
+  const ethereum: ProductActionRoute = { ...sendSolana, networkId: "ethereum", networkLabel: "Ethereum" };
+  act(() => result.current.commands.openAccountsWorkspace());
+  act(() => result.current.commands.inspectAccount("demo-custody"));
+  act(() => result.current.commands.openAccountRoute(sendSolana));
+  const oldBack = result.current.commands.backToRoutes;
+  act(() => result.current.commands.openAccountRoute(ethereum));
+  const currentSheet = result.current.view.sheet;
+  act(() => oldBack(sendSolana));
+  expect(result.current.view.sheet).toBe(currentSheet);
+  expect(result.current.view.accountsWorkspace).toEqual({ accountId: "demo-custody" });
+  act(() => result.current.commands.backToRoutes(ethereum));
+  expect(result.current.view.sheet).toBeNull();
 });

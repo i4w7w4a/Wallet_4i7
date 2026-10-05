@@ -22,7 +22,7 @@ import {
 export type ProductSheetState =
   | { kind: "accounts" }
   | { kind: "battery" }
-  | { kind: "intent"; action: ProductActionKind; route: ProductActionRoute | null; focusRouteKey?: string; placementId?: string }
+  | { kind: "intent"; action: ProductActionKind; route: ProductActionRoute | null; focusRouteKey?: string; placementId?: string; returnToAccountId?: string }
   | null;
 
 export type ProductBatteryActivity = { poolId: string; phase: "using" } | null;
@@ -484,7 +484,7 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
         if (matches.length !== 1) return false;
         const canonical = matches[0]!;
         setContext(nextContext); setAssetWorkspace(null); setExpandedActivityId(null); updateBatteryActivity(null);
-        setSheet({ kind: "intent", action: canonical.action, route: canonical });
+        setSheet({ kind: "intent", action: canonical.action, route: canonical, returnToAccountId: canonical.accountId });
         return true;
       },
       openAccountHolding(accountId, holdingId) {
@@ -545,6 +545,11 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
       }); },
       backToRoutes(route) { if (!requestContextChange()) return; updateBatteryActivity(null); setSheet(current => {
         if (current?.kind !== "intent" || current.action !== route.action) return current;
+        if (current.returnToAccountId !== undefined) {
+          if (!ownsAccountsSession() || accountsWorkspaceRef.current?.accountId !== current.returnToAccountId ||
+            !current.route || productRouteKey(current.route) !== productRouteKey(route)) return current;
+          return null;
+        }
         if ((current.placementId || (current.action !== "receive" && current.action !== "send")) &&
           (resolveIntent(snapshot, effectiveContext, current)?.routes.length ?? 0) <= 1) return null;
         return { ...current, route: null, focusRouteKey: productRouteKey(route) };

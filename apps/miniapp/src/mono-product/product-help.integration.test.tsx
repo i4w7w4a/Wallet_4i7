@@ -168,3 +168,26 @@ it("does not overwrite an accepted commerce flow or its raw draft when queued He
   expect(view.current().view.balanceHidden).toBe(true);
   expect(view.current().view.activities.filter(activity => activity.mode === "simulation")).toEqual([]);
 });
+
+it("cancels Help after external navigation leaves committed overview even if a later overview arrives", async () => {
+  const motion = motionBoundary();
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const envelope = createMonoAppearanceEnvelope("ledger");
+  let controller!: MonoProductController;
+  function Host({ section }: { section: MonoSection }) {
+    controller = useMonoProductController(MONO_PRODUCT_DEMO_ADAPTER, { initialHidden: false });
+    return <MonoScene snapshot={snapshot} appearance={envelope.appearance} product={controller}
+      session={{ section, onSectionChange: next => view.rerender(<Host section={next} />),
+        period: "1D", onPeriodChange() {}, balanceHidden: false, onBalanceHiddenChange() {} }} />;
+  }
+  const view = render(<Host section="profile" />);
+  fireEvent.click(within(openTopic("Отправить")).getByRole("button", { name: "Открыть отправку" }));
+  expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "overview");
+  expect(controller.view.sheet).toBeNull();
+  view.rerender(<Host section="profile" />);
+  await motion.finish();
+  view.rerender(<Host section="overview" />);
+  await motion.finish();
+  expect(controller.view.sheet).toBeNull();
+  expect(screen.queryByRole("dialog")).toBeNull();
+});

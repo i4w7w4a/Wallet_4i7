@@ -6,6 +6,22 @@ import { ProductAccountsWorkspace, type ProductAccountsWorkspaceProps } from "./
 
 afterEach(cleanup);
 
+it("shows unavailable Use with its reason and preserves the default enabled callback contract", () => {
+  const input = props({ selectedAccountId: "main" });
+  const { rerender } = render(<ProductAccountsWorkspace {...input}
+    useAccountUnavailableReason="Переход к обзору сейчас недоступен." />);
+  const use = screen.getByRole("button", { name: "Выбрать счёт в кошельке" });
+  expect(use).toBeDisabled();
+  expect(use).toHaveAccessibleDescription("Переход к обзору сейчас недоступен.");
+  fireEvent.click(use);
+  expect(input.onUseAccount).not.toHaveBeenCalled();
+  rerender(<ProductAccountsWorkspace {...input} />);
+  expect(screen.getByRole("button", { name: "Выбрать счёт в кошельке" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "Выбрать счёт в кошельке" }));
+  expect(input.onUseAccount).toHaveBeenCalledOnce();
+  expect(input.onUseAccount).toHaveBeenCalledWith("main");
+});
+
 const usdc = { assetId: "usdc", symbol: "USDC", name: "USD Coin", networkId: "ethereum", networkLabel: "Ethereum" };
 const solana = { ...usdc, networkId: "solana", networkLabel: "Solana" };
 const snapshot: ProductSnapshot = {

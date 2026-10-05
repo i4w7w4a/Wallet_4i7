@@ -18,15 +18,17 @@ export type ProductAccountsWorkspaceProps = {
   onInspectAccount(accountId: string): void;
   onBack(): void;
   onUseAccount(accountId: string): void;
+  useAccountUnavailableReason?: string;
   onOpenAction(route: ProductActionRoute): void;
   onOpenHolding(holdingId: string): void;
 };
 
 export function ProductAccountsWorkspace({ snapshot, selectedAccountId, context, balanceHidden, allowedActions,
-  onInspectAccount, onBack, onUseAccount, onOpenAction, onOpenHolding }: ProductAccountsWorkspaceProps): JSX.Element {
+  onInspectAccount, onBack, onUseAccount, useAccountUnavailableReason, onOpenAction, onOpenHolding }: ProductAccountsWorkspaceProps): JSX.Element {
   const titleId = useId(), placementsId = useId(), actionsId = useId();
   const { accounts, selected, permittedRoutes } = selectAccountsWorkspace(snapshot, context, selectedAccountId, allowedActions);
   const detail = selectedAccountId !== null;
+  const useAccountReason = useAccountUnavailableReason?.trim() || null;
 
   return <section className={styles.workspace} aria-labelledby={titleId}
     data-mono-product-accounts-workspace={selectedAccountId ?? "list"}>
@@ -76,9 +78,11 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, context,
         </div>
         <div className={styles.contextLine}>{selected.current ? <span className={styles.contextCurrent}>
           <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m3 8 3 3 7-7" /></svg>Выбран в кошельке
-        </span> : <button type="button" className={styles.useAccount} onClick={() => onUseAccount(selected.account.id)}>
+        </span> : <button type="button" className={styles.useAccount} onClick={() => onUseAccount(selected.account.id)}
+          disabled={Boolean(useAccountReason)} aria-describedby={useAccountReason ? `${titleId}-use-unavailable` : undefined}>
           Выбрать счёт в кошельке<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4 10h12m-5-5 5 5-5 5" /></svg>
         </button>}</div>
+        {!selected.current && useAccountReason && <p id={`${titleId}-use-unavailable`} className={styles.hint}>{useAccountReason}</p>}
       </div>
 
       <section className={styles.placements} aria-labelledby={placementsId}>

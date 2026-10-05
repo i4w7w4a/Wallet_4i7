@@ -212,12 +212,25 @@ it("enters the exact selected send route directly and restores its route button 
   const recipient = await screen.findByRole("textbox", { name: "Получатель" });
   expect(screen.getByRole("dialog", { name: "Отправить" })).toHaveTextContent("Solana");
   fireEvent.change(recipient, { target: { value: "demo:kept" } });
-  fireEvent.keyDown(screen.getByRole("dialog", { name: "Отправить" }), { key: "Escape" });
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Отправить" })).getByRole("button", { name: "Назад", exact: true }));
   await waitFor(() => expect(solana).toHaveFocus());
+  expect(screen.queryByRole("dialog", { name: "Отправить" })).toBeNull();
   expect(ethereum).not.toHaveFocus();
   expect(screen.getByRole("heading", { name: "Основной", exact: true })).toBeInTheDocument();
   fireEvent.click(solana);
   expect(await screen.findByRole("textbox", { name: "Получатель" })).toHaveValue("demo:kept");
+});
+
+it("returns account receive Back to the exact inspected route button without opening an overview chooser", async () => {
+  await controlledHome();
+  openAccountsWorkspace();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  const source = screen.getByRole("button", { name: "Подготовить получение USDC · Основной · Solana · Внешнее получение" });
+  source.focus(); fireEvent.click(source);
+  fireEvent.click(await screen.findByRole("button", { name: "Назад к выбору маршрута" }));
+  await waitFor(() => expect(source).toHaveFocus());
+  expect(screen.queryByRole("dialog", { name: "Получить" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "Основной", exact: true })).toBeInTheDocument();
 });
 
 it("opens an exact holding from profile inside the existing asset workspace and returns to its account row", async () => {
@@ -295,4 +308,35 @@ it("shows a removed account explicitly and backs to the list heading when its ex
   expect(screen.queryByRole("button", { name: /Подготовить отправку/ })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Назад к счетам" }));
   expect(screen.getByRole("heading", { name: "Мои счета" })).toHaveFocus();
+});
+
+it("keeps Use account unavailable in a read-only controlled section without mutating wallet context", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const envelope = createMonoAppearanceEnvelope("ledger");
+  const view = render(<MonoProductScene snapshot={snapshot} appearance={envelope.appearance} material={envelope.material}
+    session={{ section: "profile", period: "1D", onPeriodChange() {}, balanceHidden: false, onBalanceHiddenChange() {} }} />);
+  openAccountsWorkspace();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  const use = screen.getByRole("button", { name: "Выбрать счёт в кошельке" });
+  expect(use).toBeDisabled();
+  expect(screen.getByRole("region", { name: "Основной", exact: true })).toHaveTextContent(/выбор счёта.*недоступен|переход.*недоступен/i);
+  fireEvent.click(use);
+  expect(screen.getByRole("region", { name: "Основной", exact: true })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Все счета/ })).toBeInTheDocument();
+  expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "profile");
+});
+
+it("allows Use account in a read-only overview because no section transition is needed", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const envelope = createMonoAppearanceEnvelope("ledger");
+  const view = render(<MonoProductScene snapshot={snapshot} appearance={envelope.appearance} material={envelope.material}
+    session={{ section: "overview", period: "1D", onPeriodChange() {}, balanceHidden: false, onBalanceHiddenChange() {} }} />);
+  openAccountsWorkspace();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  const use = screen.getByRole("button", { name: "Выбрать счёт в кошельке" });
+  expect(use).toBeEnabled();
+  fireEvent.click(use);
+  expect(screen.queryByRole("region", { name: "Основной", exact: true })).toBeNull();
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Основной/ })).toBeInTheDocument();
+  expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "overview");
 });
