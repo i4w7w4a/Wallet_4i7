@@ -1,6 +1,6 @@
 # React frontend handoff — MONO
 
-Срез: 2026-10-05, локальный runtime source `00052f959749382e7456f84929dd077244578760`. Commerce-контракты c0f сохранены, avatar/quick menu подключены поверх них. [Карта состояний](./product-state-map.md), [локальный header milestone](../releases/2026-10-05-header-local-preview.md) и [единый вход](../../README.md) отделяют source/local/public/owner decision. Source review и local gate/root browser pass пройдены; owner visual approval и public release новых изменений не подтверждены. Public source `85d33d2`, реальные API/платежи — отдельный контракт.
+Срез: 2026-10-05, sealed source/local runtime `0acfde84655850d01c76cbc4d47f34f03c326181`. Accounts workspace, actionable Help, visitor theme hiding и root307→MONO интегрированы поверх прежних пяти commerce/receive/send ports. Source review20e23 PASS, bounded test delta0acfde8 accepted, common typecheck/build и один browser smoke PASS. Public runtime/source — `0acfde8`, image `novex-wallet:20261005T005801Z-0acfde8`; rollback85d33 сохранён, семь snapshots/history после switch совпали побайтно. Owner artistic approval ещё не получено. [Карта состояний](./product-state-map.md), [release05.10](../releases/2026-10-05-mono-product-release.md) и [единый вход](../../README.md); реальные API/платежи — отдельный контракт.
 
 ## Вход и разделение данных
 
@@ -26,7 +26,7 @@
 
 ## Состояние и навигация
 
-[useMonoProductController](../../apps/miniapp/src/mono-product/product-controller.ts) владеет context, overlay/intent, workspace актива, открытой записью истории, raw drafts и журналом симуляций. Смена оформления должна сохранять controller и активную форму mounted.
+[useMonoProductController](../../apps/miniapp/src/mono-product/product-controller.ts) владеет context, overlay/intent, workspace актива, accountsWorkspace, открытой записью истории, raw drafts и журналом симуляций. Смена оформления должна сохранять controller и активную форму mounted.
 
 | Состояние | Ключ и срок жизни |
 | --- | --- |
@@ -67,6 +67,16 @@ Buy и Swap получают общие Flow props из commerce: route, stable 
 
 В демофабрике memory bounded: до 64 issued quotes и accepted attempts на lifetime порта; принятые idempotency keys не вытесняются. После capacity новые попытки отклоняются до acceptance и требуют новой port session. Это ограничение локального демо, не live retention policy. Балансы и battery не списываются, тарифы/TTL/курс — подписанные fixtures.
 
+## Мои счета
+
+[ProductAccountsWorkspace / props](../../apps/miniapp/src/mono-product/accounts-workspace/index.ts) принимает current readonly snapshot, selectedAccountId, context, balanceHidden, allowedActions; callbacks onInspectAccount, onBack, onUseAccount, onOpenAction(full ProductActionRoute), onOpenHolding(holdingId). Optional useAccountUnavailableReason добавлен в correction20e23: disabled Use с видимой и accessible причиной для controlled Profile/History без navigation callback. Без этого reason прежний leaf contract совместим; read-only Overview может использовать счёт без перехода раздела.
+
+Controller accountsWorkspace: outer null — закрыт, inner accountId:null — список, ID — detail. Inspect не меняет global context; только explicit Use/action меняет его через current pending/session guard. Commands: openAccountsWorkspace, inspectAccount, backAccountsWorkspace, closeAccountsWorkspace, useAccount, openAccountRoute(full route), openAccountHolding(accountId, holdingId). Начальный single-account список и missing ID сохраняются, другой account не выбирается молча. Host origin/focus отделены от controller; четыре nav tabs и compact quick context chooser сохранены.
+
+AllowedActions intersect с canonical core routes по полному productRouteKey, включая action/account/asset/network/receiveMode; known unsupported entries не предлагаются. Entry — только preparation, existing Flow остаётся владельцем окончательных load/available/quote/fee/funding/submit checks. Capabilities не являются обещанием выполнения; withdraw не добавлен. Holding request resolves exact current unique account/holding IDs atomically, без selectContext→stale openAsset последовательности.
+
+Account-origin intent сохраняет returnToAccountId. Back проверяет текущий parent/session/full route identity, закрывает child и восстанавливает detail/точный route focus; asset child возвращает к точному holding. Обычный overview chooser и placement Back сохраняют свои пути. Старый network callback не закрывает новый flow; adapter replacement закрывает workspace, removed account показывает missing view и запрещает действия. Privacy маскирует quantity/available/estimate и aria, missing/malformed available остаётся неизвестным.
+
 ## Профиль
 
 Из [profile/index.ts](../../apps/miniapp/src/mono-product/profile/index.ts) экспортируются ProductProfileAction, ProductProfileActions, ProductProfileDetails, ProductProfileResource, createDemoProfileResource и isProfileLinkAllowed.
@@ -81,11 +91,11 @@ UI и host wiring реализованы. Четыре раздела раскр
 
 Header использует controlled [AvatarControl](../../apps/miniapp/src/mono-product/avatar-control/index.ts) с явным `avatarSrc`/fictional-demo manifest и ref на native button. Avatar открывает текущий profile; отдельный launcher открывает [ProfileQuickMenu](../../apps/miniapp/src/mono-product/profile-quick-menu/index.ts), без собственного routing/storage/preference owner. DTO не расширен выдуманным `profile.avatarUrl`.
 
-Menu сохраняет совместимые theme/optional onThemeChange props, но с 05.10.2026 выбор темы и read-only placeholder полностью убраны из menu и Profile. Остаются две строки: «Скрывать суммы» меняет общий balanceHidden на месте, «Помощь» закрывает menu и передаёт focus существующей группе. Initial keyboard focus — privacy; пустого ряда/заголовка темы нет. Typed `ProductProfileSection` и optional `openSectionRequest: { section, revision }` экспортируются из product-profile.tsx; новая revision означает одно явное действие, а не persistent копию disclosure state.
+Menu сохраняет совместимые theme/optional onThemeChange props, но с 05.10.2026 выбор темы и read-only placeholder полностью убраны из menu и Profile. Три строки: «Скрывать суммы» меняет общий balanceHidden, «Мои счета» открывает content workspace, «Помощь» закрывает menu и передаёт focus группе профиля. Initial keyboard focus — privacy; пустого ряда/заголовка темы нет. Typed `ProductProfileSection` и optional `openSectionRequest: { section, revision }` экспортируются из product-profile.tsx; новая revision означает одно явное действие, не persistent копию disclosure state.
 
 Host проверяет наличие sheet/commerce pending и действующий context/section guard до открытия/перехода; inactive и смена view снимают menu. Немодальный dialog без Tab trap: initial focus на доступном control, Escape/явное закрытие возвращают trigger, outside/focus-out сохраняют следующую цель. Closing/closed content сразу недоступен и unmount-ится; 0ms exit — source-reviewed tradeoff, не full visual approval.
 
-ProductGlassProvider использует существующий общий host, без нового canvas/context/RAF. В просмотренных main/standalone темах menu показало fallback; не утверждаем наблюдённую live refraction или измеренную производительность. До скрытия выбора темы root просмотрел dark390/light320 и focus/actions, без полной матрицы. Весь lint не GREEN: известен прежний `react-hooks/immutability` на asset scrollport (`mono-scene.tsx:241`), вне header scope. Source review и typecheck/build прежнего UI пройдены; новая сборка и визуальная проверка скрытия choice ещё ожидаются.
+ProductGlassProvider использует существующий общий host, без нового canvas/context/RAF. Исторический header pass наблюдал menu fallback; живую refraction/измеренную производительность не заявляем. Текущий один local browser smoke0acfde8 на390px подтверждает theme hiding, Accounts exact Back/focus и Help readiness; минимальный public pass — root→MONO и /p/2→Accounts list без editor/theme controls. Source review/common typecheck/local build PASS; после 28 mechanical test-prop removals повторялся только failed miniapp typecheck. Общий lint GREEN и полная device/preset matrix не заявлены; известный прежний asset-scrollport lint debt не пересматривался.
 
 `MonoScene.session.onThemeChange` остаётся совместимым controlled callback; Profile/quick menu сейчас его не вызывают и не показывают даже read-only строку темы. Session без callback по-прежнему не включает visitor fallback. Тема `/mono` принадлежит существующему Lab owner; editor controls работают, не выполняя Profile Save/Apply/publish. В `/p/N` и portable viewer без host session [useViewerTheme](../../apps/miniapp/src/mono-product/profile/use-viewer-theme.ts) продолжает восстанавливать строго `{version:1,theme:'dark'|'light'}` после mount. SSR/первая hydration используют supplied appearance; повреждённая запись игнорируется, отказ storage оставляет effective theme в памяти. Существующий callback сохранён, новых writes/миграций при скрытии UI нет. Presentation clone не меняет исходный envelope. Editor не читает этот viewer key.
 
@@ -116,6 +126,14 @@ Local retry явно возвращает demo defaults. Для backend host с�
 
 Actions edit-contacts/manage-verification/manage-2fa/manage-password/manage-addresses открывают реализованный host workflow. Они не переключают security flags и не означают успех. После подтверждённого сервером изменения host обновляет resource. Не передавайте заглушку callback, если открывать нечего. Нового profile control уменьшения анимаций нет; системный reduced-motion остаётся.
 
+## Помощь и вход в действия
+
+[ProductHelp](../../apps/miniapp/src/mono-product/product-help/index.ts) — controlled openTopic/onOpenTopicChange и optional actions. ProductHelpTopicId: receive/send/buy/swap. ProductHelpAction: allowed:true + onOpen либо allowed:false + reason; ProductHelpActions — Partial Record этих четырёх тем. ProductProfile получает optional helpActions и хранит topic state. Отсутствующие actions оставляют объяснения без ложных CTA; supplied support/docs остаются в своей группе.
+
+Scene callbacks разрешают current-context entry при существующей route/navigation. HelpEntryRequest фиксирует action/context/snapshot/flow-port session, honour requestContextChange и просит Overview. Layout handshake ждёт committed actual anchor и только existing finite Animation.finished, затем повторно проверяет context/route/session/section/active/sheet/pending, consumes request и вызывает guarded openIntent один раз с focus на существующий control. Нет DOM.click, RAF/polling, нового router/render engine или port/quote preload.
+
+Externally controlled section без onSectionChange сохраняет отсутствие executable navigation: wrapper не создаёт ложный callback. Nav/context/adapter/inactive и возврат из уже committed Overview отменяют очередь; поздняя animation completion не открывает flow после следующего посещения. Static/reduced path проходит после layout без ожидания. Операция/quote/submit автоматически не выполняются; accepted lease, raw drafts и privacy сохраняются.
+
 ## Вопросы к backend
 
 1. Версии DTO, стабильные user/account/asset/network IDs, auth/session и обработка истёкшей авторизации?
@@ -126,4 +144,4 @@ Actions edit-contacts/manage-verification/manage-2fa/manage-password/manage-addr
 6. Battery entitlement, остаток переводов, процент и quote, подтверждающий оплату конкретной комиссии?
 7. Contacts/security DTO, workflows и разрешённые HTTPS URLs поддержки/документов; где сохраняются preferences?
 
-Ответы фиксируются отдельным live/backend-контрактом. Header/avatar/menu реализованы локально и не добавляют финансовых/security разрешений. Аналитический custody-аудит не утверждает правила обеспечения/погашения T-единиц, активации, private readiness или battery applicability; эти customer decisions сохраняются в [#40](https://github.com/i4w7w4a/Wallet_4i7/issues/40) и [#42](https://github.com/i4w7w4a/Wallet_4i7/issues/42). Точный Light5-образец (published slot5rev2 либо local draft) не выбран, полное равенство семи light видов не реализовано ([#59](https://github.com/i4w7w4a/Wallet_4i7/issues/59)).
+Ответы фиксируются отдельным live/backend-контрактом. Header/avatar/menu, Accounts и Help включены в public0acfde8 и не добавляют финансовых/security разрешений. Аналитический custody-аудит не утверждает правила обеспечения/погашения T-единиц, активации, private readiness или battery applicability; эти customer decisions сохраняются в [#40](https://github.com/i4w7w4a/Wallet_4i7/issues/40) и [#42](https://github.com/i4w7w4a/Wallet_4i7/issues/42). Точный Light5-образец (published slot5rev2 либо local draft) не выбран, полное равенство семи light видов не реализовано ([#59](https://github.com/i4w7w4a/Wallet_4i7/issues/59)).
