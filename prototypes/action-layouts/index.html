@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Novex · три композиции действий</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="studio-header">
+    <div><a class="studio-home" href="index.html">Novex · примерка</a><p id="studio-caption">Три композиции действий</p></div>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Включить тёмную тему"><span id="theme-icon" aria-hidden="true"></span><span id="theme-label">Светлая</span></button>
+  </header>
+  <main id="comparison" class="comparison" hidden>
+    <div class="comparison-intro"><span class="eyebrow">КОМПОЗИЦИЯ ДЕЙСТВИЙ</span><h1>Один кошелёк.<br>Три способа расставить акценты.</h1><p>Баланс, средства и навигация одинаковые. Сравните расположение кнопок и откройте компактные меню.</p></div>
+    <div class="comparison-grid">
+      <a class="variant-card" href="?variant=priority"><div class="mini-preview" aria-hidden="true"><span class="mini-balance"></span><div class="mini-pair"><i></i><i></i></div><div class="mini-secondary"><i></i><i></i></div><span class="mini-line"></span><span class="mini-line short"></span></div><span class="variant-letter">A</span><h2>Два + два</h2><p>Отправка и получение заметнее. Купить и обмен остаются на виду.</p><span class="variant-open">Открыть примерку <span aria-hidden="true">↗</span></span></a>
+      <a class="variant-card" href="?variant=strip"><div class="mini-preview" aria-hidden="true"><span class="mini-balance"></span><div class="mini-strip"><i></i><i></i><i></i><i></i></div><span class="mini-line"></span><span class="mini-line short"></span></div><span class="variant-letter">B</span><h2>Общая полоса</h2><p>Все четыре действия в одном компактном ряду.</p><span class="variant-open">Открыть примерку <span aria-hidden="true">↗</span></span></a>
+      <a class="variant-card" href="?variant=more"><div class="mini-preview" aria-hidden="true"><span class="mini-balance"></span><div class="mini-pair"><i></i><i></i></div><div class="mini-more"><i></i></div><span class="mini-line"></span><span class="mini-line short"></span></div><span class="variant-letter">C</span><h2>Другие действия</h2><p>Два основных входа. Купить и обмен раскрываются маленьким меню.</p><span class="variant-open">Открыть примерку <span aria-hidden="true">↗</span></span></a>
+    </div>
+    <p class="comparison-note">Отдельные HTML-примерки · локальные взаимодействия · без денежных операций и сохранения настроек</p>
+  </main>
+  <main id="variant-view" class="variant-view" hidden>
+    <nav class="variant-links" aria-label="Варианты композиции"><a href="?variant=priority" data-variant-link="priority">A · 2 + 2</a><a href="?variant=strip" data-variant-link="strip">B · Полоса</a><a href="?variant=more" data-variant-link="more">C · Ещё</a></nav>
+    <section class="wallet" aria-label="Композиционная примерка кошелька">
+      <div class="wallet-scroll" id="wallet-scroll">
+        <header class="wallet-header"><img class="novex-logo" src="assets/novex-logo.svg" alt="Novex"><span class="user-label">Демо пользователь</span><button class="profile-button" type="button" data-panel="profile" aria-label="Открыть примерку профиля">Д</button></header>
+        <div class="context-row"><button class="context-button" type="button" data-panel="accounts">Все счета <span data-icon="chevron" aria-hidden="true"></span></button><span>Примерка</span></div>
+        <section class="balance-surface" aria-label="Общая стоимость">
+          <div class="balance-heading"><span>Общая стоимость</span><button type="button" class="icon-button privacy-button" id="privacy-toggle" aria-label="Скрыть суммы" aria-pressed="false"><span data-icon="eye" aria-hidden="true"></span></button></div>
+          <div class="balance-row"><div class="balance-value" data-money aria-label="12 840 долларов 75 центов"><span class="whole">12 840</span><span class="fraction">,75</span><span class="currency">$</span></div><button type="button" class="battery-button" data-panel="battery" aria-label="Батарейка: 60 процентов. Открыть примерку деталей"><span data-icon="battery" aria-hidden="true"></span><span>60%</span></button></div>
+          <p>Оценка активов в USD</p>
+        </section>
+        <section id="actions" class="actions" aria-label="Действия с криптовалютой"></section>
+        <p class="demo-note">Примерка интерфейса · операции не выполняются</p>
+        <section class="funds" aria-labelledby="funds-title"><h2 id="funds-title"><button id="funds-toggle" type="button" aria-expanded="true" aria-controls="funds-list"><span>Мои средства</span><span class="funds-summary">3 актива <span data-icon="chevron" aria-hidden="true"></span></span></button></h2><div id="funds-list">
+          <button type="button" class="asset-row" data-asset="btc"><span class="asset-symbol">B</span><span class="asset-name"><strong>Bitcoin</strong><small>1 размещение</small></span><span class="asset-value"><strong data-money>8 040,25 $</strong><small>BTC</small></span><span class="row-arrow" data-icon="chevron" aria-hidden="true"></span></button>
+          <button type="button" class="asset-row" data-asset="eth"><span class="asset-symbol">E</span><span class="asset-name"><strong>Ethereum</strong><small>1 размещение</small></span><span class="asset-value"><strong data-money>3 900,50 $</strong><small>ETH</small></span><span class="row-arrow" data-icon="chevron" aria-hidden="true"></span></button>
+          <button type="button" class="asset-row" data-asset="usdc"><span class="asset-symbol">U</span><span class="asset-name"><strong>USD Coin</strong><small>3 размещения</small></span><span class="asset-value"><strong data-money>900,00 $</strong><small>USDC</small></span><span class="row-arrow" data-icon="chevron" aria-hidden="true"></span></button>
+        </div></section>
+        <section class="last-operation" aria-labelledby="last-title"><h2 id="last-title">Последняя операция</h2><button class="operation-row" type="button" data-panel="operation"><span class="operation-icon" data-icon="receive" aria-hidden="true"></span><span class="operation-copy"><strong>Получение</strong><small>Bitcoin</small><span class="operation-state"><span aria-hidden="true">✓</span> Выполнено · пример</span></span><span class="operation-value"><strong data-money>0,0042</strong><small>BTC</small></span><span data-icon="arrow-right" aria-hidden="true"></span></button></section>
+        <p class="wallet-footnote">Статичная примерка оформления. Материалы и WebGL рабочего MONO здесь не воспроизводятся.</p>
+      </div>
+      <nav class="bottom-nav" aria-label="Разделы кошелька"><button type="button" data-panel="overview" aria-current="page"><span data-icon="home" aria-hidden="true"></span><span>Обзор</span><i></i></button><button type="button" data-panel="assets"><span data-icon="chart" aria-hidden="true"></span><span>Активы</span><i></i></button><button type="button" data-panel="history"><span data-icon="history" aria-hidden="true"></span><span>История</span><i></i></button><button type="button" data-panel="profile"><span data-icon="profile" aria-hidden="true"></span><span>Профиль</span><i></i></button></nav>
+    </section>
+  </main>
+  <div id="popover" class="popover" role="dialog" aria-modal="false" aria-labelledby="popover-title" hidden><div class="popover-heading"><h2 id="popover-title"></h2><button class="icon-button" id="popover-close" type="button" aria-label="Закрыть меню"><span data-icon="close" aria-hidden="true"></span></button></div><div id="popover-content"></div><p class="popover-note">Только локальная примерка</p></div>
+  <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+</body>
+</html>

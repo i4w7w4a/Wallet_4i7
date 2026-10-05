@@ -1,0 +1,49 @@
+.headerControls { display: flex; flex: 0 0 auto; align-items: center; gap: 3px; }
+.trigger, .close {
+  display: grid; flex: 0 0 44px; width: 44px; min-height: 44px; place-items: center;
+  padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--mono-text-secondary, #bdbdbd);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.trigger[aria-expanded="true"] { color: var(--mono-text, #f4f4f4); }
+.trigger:active, .close:active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); }
+.layer { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
+.panel {
+  position: absolute; box-sizing: border-box; min-width: 0; padding: 8px 14px 12px; border: 0; border-radius: 20px;
+  overflow: auto; overscroll-behavior: contain; pointer-events: auto;
+  color: var(--mono-text, #f4f4f4); font: 13px/1.4 var(--mono-font-ui, sans-serif);
+}
+.panel *, .panel *::after { box-sizing: border-box; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.heading h2 { margin: 0; color: var(--mono-text-secondary, #bdbdbd); font: 500 12px/1.3 var(--mono-font-ui, sans-serif); }
+.close { margin-right: -7px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 52px; }
+.row { padding: 6px 3px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.row:active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 6%, transparent); }
+.toggle { position: relative; flex: 0 0 32px; width: 32px; height: 20px; border-radius: 10px; background: var(--mono-surface-high, #25272e); box-shadow: inset 0 0 0 1px var(--mono-rule, #343434); }
+.toggle::after { content: ""; position: absolute; left: 4px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--mono-text-secondary, #bdbdbd); }
+.toggle[data-checked="true"] { background: var(--mono-text-secondary, #bdbdbd); }
+.toggle[data-checked="true"]::after { transform: translateX(12px); background: var(--mono-surface, #1a1c21); }
+.help { margin-top: 8px; border-top: 1px solid color-mix(in srgb, var(--mono-rule, #343434) 60%, transparent); border-radius: 0 0 10px 10px; }
+.help svg { flex-shrink: 0; color: var(--mono-text-secondary, #bdbdbd); }
+.trigger:focus-visible, .panel button:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: -2px; }
+@media (hover: hover) and (pointer: fine) {
+  .trigger { transition: color 190ms cubic-bezier(.2,0,0,1), background-color 190ms cubic-bezier(.2,0,0,1); }
+  .trigger:hover { color: var(--mono-text, #f4f4f4); background: color-mix(in srgb, var(--mono-text, #f4f4f4) 4%, transparent); transition-duration: 90ms; }
+  .trigger:active { transition-duration: 80ms; }
+  .panel :is(.row, .close):hover { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 4%, transparent); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :global([data-mono-motion="ready"]) .panel[data-motion="true"][data-positioned="true"] { animation: quickSettingsEnter 200ms cubic-bezier(.2,0,0,1); }
+  :global([data-mono-motion="ready"]) .panel[data-motion="true"] .toggle::after { transition: transform 190ms cubic-bezier(.2,0,0,1); }
+}
+@keyframes quickSettingsEnter { from { opacity: 0; transform: translateY(6px) scale(.985); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .trigger { transition: none; } }
+:global([data-mono-motion="static"]) .trigger { transition: none; }
+@media (forced-colors: active) {
+  .trigger, .row, .close, .heading h2 { color: CanvasText; }
+  .toggle { border: 1px solid CanvasText; background: Canvas; box-shadow: none; }
+  .toggle::after { background: CanvasText; }
+  .toggle[data-checked="true"] { background: Highlight; }
+  .toggle[data-checked="true"]::after { background: HighlightText; }
+  .trigger:focus-visible, .panel button:focus-visible { outline-color: Highlight; }
+}

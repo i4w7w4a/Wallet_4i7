@@ -1,26 +1,63 @@
 "use client";
 
-import { useMemo, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import type { ChartPeriod } from "@wallet/core";
 import { MaterialSceneSurface, createMonoOpticalHost, createMonoOpticalOverlay } from "@wallet/ui";
 import type { MonoMaterialDirection } from "./mono-material-preset";
 import { actionButtonRadii, visibleActionBindings } from "./mono-action-geometry";
 import { monoPaletteStyle } from "./mono-palette-tokens";
-import { MonoScene, type MonoSceneProps } from "./mono-scene";
+import { MonoScene, type MonoSceneProps, type MonoSection } from "./mono-scene";
 import { createDefaultActionArtworkMap } from "./action-artwork/model";
+import { MONO_PRODUCT_DEMO_ADAPTER, type MonoProductAdapter } from "../mono-product/demo-adapter";
+import { useMonoProductController } from "../mono-product/product-controller";
+import { useViewerTheme } from "../mono-product/profile/use-viewer-theme";
 import styles from "./mono-product-scene.module.css";
 
 const DEFAULT_ACTION_ARTWORK = createDefaultActionArtworkMap();
 
-export function MonoProductScene({ material, ...scene }: MonoSceneProps & { material: MonoMaterialDirection }) {
+export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_ADAPTER, ...scene }:
+  MonoSceneProps & { material: MonoMaterialDirection; productAdapter?: MonoProductAdapter }) {
+  // A supplied session is editor/host-owned; only standalone visitors restore a preference.
+  const visitorTheme = useViewerTheme(scene.appearance.environment.theme, scene.session === undefined);
+  const appearance = visitorTheme.theme === scene.appearance.environment.theme ? scene.appearance : {
+    ...scene.appearance, environment: { ...scene.appearance.environment, theme: visitorTheme.theme },
+  };
+  const product = useMonoProductController(productAdapter, {
+    initialHidden: scene.snapshot.balance.hidden,
+    hidden: scene.session?.balanceHidden,
+    onHiddenChange: scene.session?.onBalanceHiddenChange,
+  });
+  const [localPeriod, setLocalPeriod] = useState<ChartPeriod>("1D");
+  const [localSection, setLocalSection] = useState<MonoSection>("overview");
+  const section = scene.session?.section ?? localSection;
+  const sectionRef = useRef(section);
+  const closeAsset = product.commands.closeAsset;
+  const closeAccountsWorkspace = product.commands.closeAccountsWorkspace;
+  const requestContextChange = product.commands.requestContextChange;
+  const onSectionChange = scene.session?.onSectionChange ?? setLocalSection;
+  const changeSection = useCallback((next: MonoSection) => {
+    if (!requestContextChange()) return;
+    closeAccountsWorkspace(); closeAsset(); onSectionChange(next);
+  }, [closeAccountsWorkspace, closeAsset, onSectionChange, requestContextChange]);
+  useEffect(() => {
+    if (sectionRef.current !== section) { sectionRef.current = section; closeAccountsWorkspace(); closeAsset(); }
+  }, [section, closeAccountsWorkspace, closeAsset]);
+  const productScene: MonoSceneProps = { ...scene, appearance, product,
+    session: { balanceHidden: product.view.balanceHidden, onBalanceHiddenChange: product.commands.setBalanceHidden,
+      period: scene.session?.period ?? localPeriod, onPeriodChange: scene.session?.onPeriodChange ?? setLocalPeriod,
+      section, onSectionChange: scene.session?.section !== undefined && !scene.session.onSectionChange ? undefined : changeSection,
+      onThemeChange: scene.session ? scene.session.onThemeChange : visitorTheme.onThemeChange } };
   const actionFrameMode = material.buttons?.version === 2 || material.buttons?.version === 3
     ? material.buttons.frameMode : "group";
   const actionArtwork = material.buttons?.version === 3 ? material.buttons.artwork : DEFAULT_ACTION_ARTWORK;
   const actionRadii = actionButtonRadii(material.buttons?.bindings ?? []);
   const bindings = visibleActionBindings(actionFrameMode, material.buttons?.bindings ?? [], actionArtwork);
-  if (!material.background && !bindings.length) return <MonoScene {...scene} actionFrameMode={actionFrameMode}
+  if (!material.background && !bindings.length) return <MonoScene {...productScene} actionFrameMode={actionFrameMode}
     actionRadii={actionRadii} actionArtwork={actionArtwork} />;
-  return <ActiveMaterialScene material={material} bindings={bindings}
-    scene={{ ...scene, actionFrameMode, actionRadii, actionArtwork }} />;
+  // Keep the material host mounted, but release passes for DOM targets absent from the subview.
+  return <ActiveMaterialScene material={material}
+    bindings={section === "overview" && !product.view.assetWorkspace && !product.view.accountsWorkspace ? bindings : []}
+    scene={{ ...productScene, actionFrameMode, actionRadii, actionArtwork }} />;
 }
 
 function ActiveMaterialScene({ material, bindings, scene }: { material: MonoMaterialDirection;

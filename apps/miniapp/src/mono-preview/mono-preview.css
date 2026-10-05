@@ -245,6 +245,20 @@
   height: 38px;
 }
 
+button.mono-app-header__mark { min-height: 44px; padding: 0; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button.mono-app-header__mark:disabled { cursor: default; }
+button.mono-app-header__mark:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 3px; }
+button.mono-app-header__mark:not(:disabled):active { opacity: .82; }
+@media (hover: hover) and (pointer: fine) {
+  button.mono-app-header__mark:not(:disabled) { transition: opacity 190ms cubic-bezier(.2,0,0,1); }
+  button.mono-app-header__mark:not(:disabled):hover { opacity: .9; transition-duration: 90ms; }
+  button.mono-app-header__mark:not(:disabled):active { opacity: .82; transition-duration: 80ms; }
+}
+.mono-page[data-mono-motion="static"] button.mono-app-header__mark { transition: none; }
+@media (prefers-reduced-motion: reduce) { button.mono-app-header__mark { transition: none; } }
+.mono-page [data-mono-product-context-trigger] .mono-product-account-icon { flex-basis: 20px; width: 20px; height: 20px; }
+.mono-page [data-mono-product-context-trigger][aria-expanded="true"] .mono-product-account-icon { color: var(--mono-text); }
+
 .mono-app-header__mark .mono-logo__wordmark { fill: var(--mono-logo-ink); }
 .mono-app-header__mark .mono-logo__icon-primary { fill: var(--mono-logo-primary); }
 .mono-app-header__mark .mono-logo__icon-depth { fill: var(--mono-logo-depth); }

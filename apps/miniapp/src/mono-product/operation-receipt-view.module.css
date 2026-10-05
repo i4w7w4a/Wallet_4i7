@@ -1,0 +1,21 @@
+.receipt { display: grid; gap: 16px; min-width: 0; color: var(--mono-text, #f4f4f4); font-family: var(--mono-type-body-family, var(--mono-font-ui, sans-serif)); }
+.summary { display: grid; gap: 5px; }
+.status { display: flex; align-items: baseline; gap: 7px; margin: 0; font-size: 14px; line-height: 1.4; }
+.status > span { width: 12px; flex-shrink: 0; text-align: center; }
+.status strong { font-weight: var(--mono-font-weight-strong, 600); }
+.reason, .explanation { margin: 0; font-size: 12px; line-height: 1.5; }
+.explanation { color: var(--mono-text-secondary, #bdbdbd); }
+.values, .context { display: grid; gap: 9px; margin: 0; }
+.values > div, .context > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: baseline; gap: 12px; font-size: 13px; line-height: 1.45; }
+.values dt, .context dt { color: var(--mono-text-secondary, #bdbdbd); }
+.values dd, .context dd { min-width: 0; margin: 0; text-align: right; overflow-wrap: anywhere; }
+.money { font-family: var(--mono-type-balance-family, var(--mono-font-numeric, sans-serif)); font-variant-numeric: tabular-nums; }
+.fundingNote { display: block; margin-top: 3px; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; font-variant-numeric: tabular-nums; }
+.context { padding-top: 12px; border-top: 1px solid var(--mono-rule, #343434); }
+.receipt[data-embedded="true"] { gap: 14px; padding: 8px 0 0; }
+.receipt[data-embedded="true"] .context > div { grid-template-columns: minmax(0, .7fr) minmax(0, 1.6fr); }
+.receipt[data-embedded="true"] .context { border-top-color: color-mix(in srgb, var(--mono-rule, #343434) 72%, transparent); }
+@media (prefers-reduced-motion: no-preference) {
+  :global(.mono-page[data-mono-motion="ready"]) .receipt { animation: reveal 200ms var(--mono-ease, cubic-bezier(0.2, 0, 0, 1)) both; }
+}
+@keyframes reveal { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }

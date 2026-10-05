@@ -1,0 +1,1160 @@
+{
+  "kind": "mono-appearance",
+  "version": 4,
+  "skinId": "mono-ledger-v1",
+  "appearance": {
+    "balance": {
+      "composition": "ledger",
+      "fractionSize": "medium",
+      "fractionTone": "secondary"
+    },
+    "chart": {
+      "visible": false,
+      "variant": "line"
+    },
+    "layout": {
+      "chartPosition": "top"
+    },
+    "assets": {
+      "variant": "ledger",
+      "density": "comfortable",
+      "separators": "subtle"
+    },
+    "logo": {
+      "version": 1,
+      "variant": "bare",
+      "customColor": false,
+      "hue": 270
+    },
+    "typography": {
+      "version": 1,
+      "catalogVersion": 1,
+      "primaryFontId": "ibm-plex-sans",
+      "secondaryFontId": "ibm-plex-mono",
+      "roles": {
+        "body": {
+          "family": "primary",
+          "size": 15,
+          "weight": 400
+        },
+        "balance": {
+          "family": "primary",
+          "size": 52,
+          "weight": 600
+        },
+        "button": {
+          "family": "primary",
+          "size": 13,
+          "weight": 500
+        },
+        "menu": {
+          "family": "primary",
+          "size": 12,
+          "weight": 500
+        },
+        "label": {
+          "family": "primary",
+          "size": 12,
+          "weight": 500
+        },
+        "mono": {
+          "family": "secondary",
+          "size": 12,
+          "weight": 400
+        }
+      },
+      "bodyLineHeight": 1.46,
+      "labelTracking": 0.02
+    },
+    "background": {
+      "version": 1,
+      "recipe": "obsidian",
+      "intensity": 0.38,
+      "speed": 0.45,
+      "pointerResponse": 0.24,
+      "character": "fluid",
+      "calm": true
+    },
+    "eye": {
+      "blinkEnabled": true
+    },
+    "navigation": {
+      "indicator": "line",
+      "glowPercent": 0,
+      "softnessPx": 0,
+      "shimmerEnabled": false,
+      "periodSeconds": 6
+    },
+    "preset": "ledger",
+    "palette": {
+      "enabled": false,
+      "config": {
+        "version": 1,
+        "engineVersion": 1,
+        "catalogVersion": 1,
+        "skinId": "mono-ledger-v1",
+        "themes": {
+          "dark": {
+            "mode": "dark",
+            "recipe": {
+              "anchorHue": 250,
+              "anchorChroma": 0.035,
+              "temperature": 0,
+              "iridescence": 0.35,
+              "exposure": 0,
+              "contrast": 1,
+              "surfaceResponse": 0.5,
+              "harmony": "spectral-graphite"
+            },
+            "roles": {
+              "canvas": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceBase": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceRaised": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceOverlay": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textPrimary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textSecondary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textMuted": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textDisabled": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "borderSubtle": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "borderStrong": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "focus": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "accentPrimary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "accentSecondary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "glassTint": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "edgeCool": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "edgeWarm": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "atmosphereCool": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "atmosphereWarm": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "chartLine": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "selection": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "success": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "warning": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "danger": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "info": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              }
+            },
+            "groupLocks": {
+              "core": false,
+              "content": false,
+              "structure": false,
+              "decorative": false,
+              "system": false
+            }
+          },
+          "light": {
+            "mode": "light",
+            "recipe": {
+              "anchorHue": 250,
+              "anchorChroma": 0.035,
+              "temperature": 0,
+              "iridescence": 0.35,
+              "exposure": 0,
+              "contrast": 1,
+              "surfaceResponse": 0.5,
+              "harmony": "spectral-graphite"
+            },
+            "roles": {
+              "canvas": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceBase": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceRaised": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "surfaceOverlay": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textPrimary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textSecondary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textMuted": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "textDisabled": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "borderSubtle": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "borderStrong": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "focus": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "accentPrimary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "accentSecondary": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "glassTint": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "edgeCool": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "edgeWarm": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "atmosphereCool": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "atmosphereWarm": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "chartLine": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "selection": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "success": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "warning": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "danger": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              },
+              "info": {
+                "mode": "linked",
+                "offset": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0
+                },
+                "value": {
+                  "l": 0,
+                  "c": 0,
+                  "h": 0,
+                  "alpha": 1
+                },
+                "locked": false,
+                "lockedValue": null
+              }
+            },
+            "groupLocks": {
+              "core": false,
+              "content": false,
+              "structure": false,
+              "decorative": false,
+              "system": false
+            }
+          }
+        },
+        "linkedThemes": false,
+        "seed": "mono-share",
+        "actionCounter": 0
+      }
+    },
+    "shape": {
+      "quick-actions": 12,
+      "bottom-navigation": 0
+    },
+    "optics": {
+      "ior": 1.34,
+      "edgeThickness": 0.165,
+      "edgeDarkening": 0.5,
+      "highlightStrength": 0.54,
+      "reflectionStrength": 0.59,
+      "causticStrength": 0.63,
+      "fieldEnabled": true,
+      "fieldFadeMode": 1,
+      "fieldStart": 0.34,
+      "fieldSoftness": 0.99,
+      "fieldCurve": 2.69,
+      "fieldStrength": 1.92,
+      "flowEnabled": true,
+      "flowMode": 5,
+      "flowSpeed": 0.29,
+      "flowStrength": 0.44,
+      "flowScale": 4.47,
+      "pointerStrength": 0.23
+    },
+    "environment": {
+      "theme": "dark",
+      "background": "iris"
+    }
+  },
+  "material": {
+    "background": null,
+    "buttons": {
+      "version": 1,
+      "bindings": [
+        {
+          "targetId": "quick.send",
+          "layer": "border",
+          "recipe": {
+            "kind": "novex-material",
+            "version": 2,
+            "effectId": "pulsing-border",
+            "effectVersion": 1,
+            "seed": 0,
+            "params": {
+              "fit": "cover",
+              "scale": 1.15,
+              "rotation": 221,
+              "originX": 0.5,
+              "originY": 0.5,
+              "offsetX": -0.19,
+              "offsetY": 0.38,
+              "worldWidth": 0,
+              "worldHeight": 0,
+              "speed": 2,
+              "phaseMs": 120000,
+              "colorBack": "#000000",
+              "colors": [
+                "#0dc1fd",
+                "#d915ef",
+                "#ff3f2ecc"
+              ],
+              "roundness": 0.14,
+              "thickness": 0.79,
+              "marginLeft": 0,
+              "marginRight": 0,
+              "marginTop": 0,
+              "marginBottom": 0,
+              "aspectRatio": "square",
+              "softness": 1,
+              "intensity": 0.2,
+              "bloom": 0.25,
+              "spots": 1,
+              "spotSize": 0.78,
+              "pulse": 1,
+              "smoke": 0.3,
+              "smokeSize": 0.94
+            },
+            "assetIds": []
+          },
+          "mask": {
+            "kind": "rounded-rect"
+          },
+          "radiusCss": 0,
+          "borderWidthCss": 1.5,
+          "enabled": true
+        },
+        {
+          "targetId": "quick.receive",
+          "layer": "border",
+          "recipe": {
+            "kind": "novex-material",
+            "version": 2,
+            "effectId": "pulsing-border",
+            "effectVersion": 1,
+            "seed": 0,
+            "params": {
+              "fit": "cover",
+              "scale": 1.15,
+              "rotation": 221,
+              "originX": 0.5,
+              "originY": 0.5,
+              "offsetX": -0.19,
+              "offsetY": 0.38,
+              "worldWidth": 0,
+              "worldHeight": 0,
+              "speed": 2,
+              "phaseMs": 120000,
+              "colorBack": "#000000",
+              "colors": [
+                "#0dc1fd",
+                "#d915ef",
+                "#ff3f2ecc"
+              ],
+              "roundness": 0.14,
+              "thickness": 0.79,
+              "marginLeft": 0,
+              "marginRight": 0,
+              "marginTop": 0,
+              "marginBottom": 0,
+              "aspectRatio": "square",
+              "softness": 1,
+              "intensity": 0.2,
+              "bloom": 0.25,
+              "spots": 1,
+              "spotSize": 0.78,
+              "pulse": 1,
+              "smoke": 0.3,
+              "smokeSize": 0.94
+            },
+            "assetIds": []
+          },
+          "mask": {
+            "kind": "rounded-rect"
+          },
+          "radiusCss": 0,
+          "borderWidthCss": 1.5,
+          "enabled": true
+        },
+        {
+          "targetId": "quick.swap",
+          "layer": "border",
+          "recipe": {
+            "kind": "novex-material",
+            "version": 2,
+            "effectId": "pulsing-border",
+            "effectVersion": 1,
+            "seed": 0,
+            "params": {
+              "fit": "cover",
+              "scale": 1.15,
+              "rotation": 221,
+              "originX": 0.5,
+              "originY": 0.5,
+              "offsetX": -0.19,
+              "offsetY": 0.38,
+              "worldWidth": 0,
+              "worldHeight": 0,
+              "speed": 2,
+              "phaseMs": 120000,
+              "colorBack": "#000000",
+              "colors": [
+                "#0dc1fd",
+                "#d915ef",
+                "#ff3f2ecc"
+              ],
+              "roundness": 0.14,
+              "thickness": 0.79,
+              "marginLeft": 0,
+              "marginRight": 0,
+              "marginTop": 0,
+              "marginBottom": 0,
+              "aspectRatio": "square",
+              "softness": 1,
+              "intensity": 0.2,
+              "bloom": 0.25,
+              "spots": 1,
+              "spotSize": 0.78,
+              "pulse": 1,
+              "smoke": 0.3,
+              "smokeSize": 0.94
+            },
+            "assetIds": []
+          },
+          "mask": {
+            "kind": "rounded-rect"
+          },
+          "radiusCss": 0,
+          "borderWidthCss": 1.5,
+          "enabled": true
+        },
+        {
+          "targetId": "quick.buy",
+          "layer": "border",
+          "recipe": {
+            "kind": "novex-material",
+            "version": 2,
+            "effectId": "pulsing-border",
+            "effectVersion": 1,
+            "seed": 0,
+            "params": {
+              "fit": "cover",
+              "scale": 1.15,
+              "rotation": 221,
+              "originX": 0.5,
+              "originY": 0.5,
+              "offsetX": -0.19,
+              "offsetY": 0.38,
+              "worldWidth": 0,
+              "worldHeight": 0,
+              "speed": 2,
+              "phaseMs": 120000,
+              "colorBack": "#000000",
+              "colors": [
+                "#0dc1fd",
+                "#d915ef",
+                "#ff3f2ecc"
+              ],
+              "roundness": 0.14,
+              "thickness": 0.79,
+              "marginLeft": 0,
+              "marginRight": 0,
+              "marginTop": 0,
+              "marginBottom": 0,
+              "aspectRatio": "square",
+              "softness": 1,
+              "intensity": 0.2,
+              "bloom": 0.25,
+              "spots": 1,
+              "spotSize": 0.78,
+              "pulse": 1,
+              "smoke": 0.3,
+              "smokeSize": 0.94
+            },
+            "assetIds": []
+          },
+          "mask": {
+            "kind": "rounded-rect"
+          },
+          "radiusCss": 0,
+          "borderWidthCss": 1.5,
+          "enabled": true
+        }
+      ]
+    }
+  }
+}

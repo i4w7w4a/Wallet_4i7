@@ -1,0 +1,102 @@
+.control {
+  --avatar-edge: color-mix(in srgb, var(--mono-text, #f4f4f4) 24%, transparent);
+  --avatar-glint-ink: var(--mono-text, #f4f4f4);
+  position: relative;
+  display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mono-text, #f4f4f4);
+  font: 600 14px/1 var(--mono-font-ui, sans-serif);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.control, .control * { box-sizing: border-box; }
+.control:focus-visible {
+  outline: 2px solid var(--mono-palette-focus-ff, currentColor);
+  outline-offset: 2px;
+}
+.control:disabled { cursor: default; opacity: .5; }
+.portrait {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--mono-surface-high, #202228);
+  pointer-events: none;
+}
+.fallback, .image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.fallback { display: grid; place-items: center; }
+.image { display: block; object-fit: cover; object-position: center; }
+.fallback[hidden], .image[hidden] { display: none; }
+.rim, .glint {
+  position: absolute;
+  inset: 2px;
+  border: 1px solid var(--avatar-edge);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.rim { opacity: .8; }
+.control:not(:disabled):active .rim, .control[aria-current="page"] .rim { opacity: 1; }
+.glint {
+  border-color: transparent;
+  border-top-color: color-mix(in srgb, var(--avatar-glint-ink) 68%, transparent);
+  border-left-color: color-mix(in srgb, var(--avatar-glint-ink) 24%, transparent);
+  box-shadow: -2px -2px 5px color-mix(in srgb, var(--avatar-glint-ink) 10%, transparent);
+  opacity: 0;
+}
+:global([data-mono-theme="light"]) .control {
+  --avatar-edge: color-mix(in srgb, var(--mono-text, #202228) 28%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  :global([data-mono-motion="ready"]) .control[data-avatar-motion="full"] :is(.rim, .glint) {
+    transition: opacity 190ms cubic-bezier(.2, 0, 0, 1);
+  }
+  :global([data-mono-motion="ready"]) .control[data-avatar-motion="full"]:not(:disabled):active :is(.rim, .glint) {
+    transition-duration: 80ms;
+  }
+  :global([data-mono-motion="ready"]) .control[data-avatar-motion="full"]:not(:disabled):active .glint { opacity: .7; }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  :global([data-mono-motion="ready"]) .control[data-avatar-motion="full"]:not(:disabled):hover:not(:active) .glint {
+    animation: edge-glint 280ms cubic-bezier(.2, 0, 0, 1) both;
+  }
+}
+@keyframes edge-glint {
+  0% { opacity: 0; transform: rotate(0deg); }
+  32.14% { opacity: .85; transform: rotate(12deg); }
+  100% { opacity: 0; transform: rotate(0deg); }
+}
+.control[data-avatar-motion="static"] .glint,
+:global([data-mono-motion="static"]) .control .glint {
+  animation: none;
+  transition: none;
+  opacity: 0;
+}
+:global([data-mono-motion="static"]) .control .rim { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .rim, .glint { animation: none; transition: none; }
+  .glint { opacity: 0; }
+}
+@media (forced-colors: active) {
+  .control { color: CanvasText; }
+  .control:focus-visible { outline-color: Highlight; }
+  .portrait { background: Canvas; }
+  .rim { border-color: CanvasText; }
+  .glint { display: none; animation: none; transition: none; box-shadow: none; }
+}

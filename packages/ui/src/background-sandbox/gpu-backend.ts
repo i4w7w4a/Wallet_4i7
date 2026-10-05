@@ -3,7 +3,8 @@ import { EffectSession } from "./host-session";
 import { resolveViewport } from "./host-input";
 import type { GpuLimits, Viewport } from "./contracts";
 import type { SurfaceBackendFactory, SurfaceInput } from "./surface-lifecycle";
-import type { BackgroundOverlay, OverlayFrame } from "./overlay";
+import { overlayFrameList, type OverlayFrame } from "./overlay";
+import type { BackgroundOverlay } from "./overlay";
 import type { BackgroundRuntimeStatus } from "./host-contract";
 
 const VERTEX = `#version 300 es
@@ -19,6 +20,7 @@ uniform vec2 uViewport;
 uniform vec4 uRegion;
 uniform float uRadius;
 uniform float uHasOverlay;
+uniform float uOpacity;
 in vec2 vUv;
 out vec4 fragColor;
 void main(){
@@ -30,7 +32,9 @@ void main(){
   float edge=max(fwidth(d),0.001);
   float mask=1.0-smoothstep(-edge*0.5,edge*0.5,d);
   vec4 optical=texture(uOverlay,clamp(local/uRegion.zw,vec2(0.0),vec2(1.0)));
-  fragColor=mix(base,optical,mask);
+  // Overlay textures are resolved display colors; source-over only the rounded
+  // coverage/DOM opacity, never apply the original background alpha a second time.
+  fragColor=vec4(optical.rgb,1.0)*mask*uOpacity;
 }`;
 
 /** One canvas/context and one scheduler for the entire selected sandbox scene. */
@@ -52,12 +56,12 @@ export const createGpuBackend: SurfaceBackendFactory = (root, initial, onStatus,
   let renderer: Renderer;
   let overlay = initial.overlay;
   let optical: ReturnType<BackgroundOverlay["create"]> | null = null;
-  let opticalFrame: OverlayFrame | null = null;
+  let opticalFrames: readonly OverlayFrame[] = [];
   let unsubscribeOverlay: (() => void) | null = null;
 
   const releaseOverlay = () => {
     unsubscribeOverlay?.(); unsubscribeOverlay = null;
-    optical?.dispose(); optical = null; opticalFrame = null;
+    optical?.dispose(); optical = null; opticalFrames = [];
     overlay?.markPresented(false);
   };
   const publish = (status: BackgroundRuntimeStatus) => {
@@ -72,11 +76,12 @@ export const createGpuBackend: SurfaceBackendFactory = (root, initial, onStatus,
     }
     const diagnostics = status.diagnostics;
     onStatus(diagnostics ? { ...status, diagnostics: { ...diagnostics,
-      targetCount: diagnostics.targetCount + (opticalFrame ? 1 : 0),
-      allocatedBytes: diagnostics.allocatedBytes + (opticalFrame ? opticalFrame.width * opticalFrame.height * 4 + 512 * 256 * 4 : 0),
-      passesPerFrame: diagnostics.passesPerFrame + (opticalFrame ? 2 : 1),
+      targetCount: diagnostics.targetCount + opticalFrames.length,
+      allocatedBytes: diagnostics.allocatedBytes + opticalFrames.reduce((bytes, frame) => bytes + frame.width * frame.height * 4,
+        optical ? 512 * 256 * 4 : 0),
+      passesPerFrame: diagnostics.passesPerFrame + opticalFrames.length * 2 + 1,
       notes: [...diagnostics.notes, `${viewport.pixelWidth}×${viewport.pixelHeight} · DPR ${viewport.dpr.toFixed(2)}`,
-        opticalFrame ? "Один canvas: материал + утверждённый Promo + compositor. Promo сохраняет свой нейтральный рельеф."
+        opticalFrames.length ? "Один canvas: материал + оптические регионы + compositor. Promo сохраняет свой нейтральный рельеф."
           : "Один canvas: материал + compositor. Размер default framebuffer не входит в бюджет FBO."],
     } } : status);
   };
@@ -123,9 +128,10 @@ export const createGpuBackend: SurfaceBackendFactory = (root, initial, onStatus,
     gl.clearColor(0, 0, 0, 1);
     const uniforms = { uSource: { value: null as Texture | null }, uOverlay: { value: null as Texture | null },
       uViewport: { value: new Float32Array([viewport.cssWidth, viewport.cssHeight]) },
-      uRegion: { value: new Float32Array([0, 0, 1, 1]) }, uRadius: { value: 0 }, uHasOverlay: { value: 0 } };
+      uRegion: { value: new Float32Array([0, 0, 1, 1]) }, uRadius: { value: 0 }, uHasOverlay: { value: 0 }, uOpacity: { value: 1 } };
     program = new Program(gl, { vertex: VERTEX, fragment: FRAGMENT, uniforms,
-      depthTest: false, depthWrite: false, cullFace: false });
+      transparent: true, depthTest: false, depthWrite: false, cullFace: false });
+    program.setBlendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     if (!gl.getProgramParameter(program.program, gl.LINK_STATUS)) throw new Error("Не удалось собрать общий compositor.");
     geometry = new Geometry(gl, { position: { size: 2, data: new Float32Array([-1, -1, 3, -1, -1, 3]) } });
     const mesh = new Mesh(gl, { geometry, program, frustumCulled: false });
@@ -134,15 +140,20 @@ export const createGpuBackend: SurfaceBackendFactory = (root, initial, onStatus,
       cancelFrame: id => cancelAnimationFrame(id),
       present(frame, timing) {
         if (overlay && !optical) optical = overlay.create(gl, limits);
-        opticalFrame = optical?.render(timing, viewport, root) ?? null;
+        opticalFrames = overlayFrameList(optical?.render(timing, viewport, root, frame) ?? null);
         renderer.disable(gl.SCISSOR_TEST);
         uniforms.uSource.value = frame.texture;
-        uniforms.uOverlay.value = opticalFrame?.texture ?? frame.texture;
-        uniforms.uHasOverlay.value = opticalFrame ? 1 : 0;
+        uniforms.uOverlay.value = frame.texture;
+        uniforms.uHasOverlay.value = 0;
         uniforms.uViewport.value.set([viewport.cssWidth, viewport.cssHeight]);
-        if (opticalFrame) { uniforms.uRegion.value.set(opticalFrame.rect); uniforms.uRadius.value = opticalFrame.radius; }
         renderer.render({ scene: mesh, clear: true, update: false, sort: false, frustumCull: false });
-        overlay?.markPresented(Boolean(opticalFrame));
+        for (const opticalFrame of opticalFrames) {
+          uniforms.uOverlay.value = opticalFrame.texture; uniforms.uHasOverlay.value = 1;
+          uniforms.uRegion.value.set(opticalFrame.rect); uniforms.uRadius.value = opticalFrame.radius;
+          uniforms.uOpacity.value = opticalFrame.opacity ?? 1;
+          renderer.render({ scene: mesh, clear: false, update: false, sort: false, frustumCull: false });
+        }
+        overlay?.markPresented(opticalFrames.length > 0);
         if (session) publish(session.status);
       },
       onStatus: publish,

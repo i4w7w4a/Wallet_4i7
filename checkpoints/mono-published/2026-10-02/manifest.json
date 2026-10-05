@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-01T21:17:29.898Z",
+  "source": {
+    "publicOrigin": "https://wallet.153.76.194.160.nip.io",
+    "codeGitHead": "800a637e0559bfe585df4e2732f4bb14435b0a1f",
+    "codeBranch": "codex/mono-showcase-20261001",
+    "imageTag": "novex-wallet:20261001T085423Z-800a637",
+    "sourceManifestRawSha256": "b31a017db381d0bbaa53526201a6579bb1309b5dec1ea4b3807a1b190d18dbf7"
+  },
+  "scope": "Only the full v4 appearance snapshots from seven public GET /api/mono-published/N records; no editor workspace, browser storage, wallet data, credentials, or access helpers.",
+  "revisionDifferencesFromPreviousHandoff": [
+    {
+      "slot": 2,
+      "previousHandoffRevision": 3,
+      "currentRevision": 4
+    }
+  ],
+  "slots": [
+    {
+      "slot": 1,
+      "name": "Графит",
+      "publicUrl": "https://wallet.153.76.194.160.nip.io/p/1",
+      "sourceApiUrl": "https://wallet.153.76.194.160.nip.io/api/mono-published/1",
+      "revision": 2,
+      "updatedAt": "2026-10-01T08:49:25.388Z",
+      "snapshotFile": "slot-1.appearance.json",
+      "fileSha256": "1176901cc0c654a50582dde454a5ee1d1081bb3eda3b737680188d3c337033dd",
+      "snapshotCanonicalSha256": "0050c239ce372e6356be6b36e7f80e86a4cb7ad34405817fde4ad0a643dfab0b",
+      "publishedRecordRawSha256": "2a3b29f5e4bec059fadc50341be235ad5370a1e11a66847de90c68583b729a4d"
+    },
+    {
+      "slot": 2,
+      "name": "Живая среда",
+      "publicUrl": "https://wallet.153.76.194.160.nip.io/p/2",
+      "sourceApiUrl": "https://wallet.153.76.194.160.nip.io/api/mono-published/2",
+      "revision": 4,
+      "updatedAt": "2026-10-01T13:02:19.861Z",
+      "snapshotFile": "slot-2.appearance.json",
+      "fileSha256": "89f03a4a57802801484de9a6260ee7bffb8506c2c29bd8aa12ab4ba31e1a1f0f",
+      "snapshotCanonicalSha256": "188e0c9ed4930b7deb2ea7b5bb8405358c4c5b0f7e2001c42d4c744a79cb7230",
+      "publishedRecordRawSha256": "e760e1f145217acb93e28785bd86cb22e1b52c484333e0912ed8d95d8d53edee"
+    },
+    {
+      "slot": 3,
+      "name": "Светлый",
+      "publicUrl": "https://wallet.153.76.194.160.nip.io/p/3",
+      "sourceApiUrl": "https://wallet.153.76.194.160.nip.io/api/mono-published/3",
+      "revision": 3,
+      "updatedAt": "2026-10-01T08:49:26.062Z",
+      "snapshotFile": "slot-3.appearance.json",
+      "fileSha256": "e881bdf9bb5d911c963cc8763897e88f7be88e52e087be85a3aaa7b4c0f40f08",
+      "snapshotCanonicalSha256": "91311dac656d427b0f19cf54f28305270a3dd9861a1821ad5bbc74120c440769",
+      "publishedRecordRawSha256": "264cf7c830eee3a69e8700a4a3bc1bf67c94c900b650897d33692ec2f7896b5e"
+    },
+    {
+      "slot": 4,
+      "name": "Терминал",
+      "publicUrl": "https://wallet.153.76.194.160.nip.io/p/4",
+      "sourceApiUrl": "https://wallet.153.76.194.160.nip.io/api/mono-published/4",
+      "revision": 3,
+      "updatedAt": "2026-10-01T08:49:26.378Z",
+      "snapshotFile": "slot-4.appearance.json",
+      "fileSha256": "6fc456907892b7c228b69fa32cb4c05f39240b3ddbe3927675035ef0de32bc20",
+      "snapshotCanonicalSha256": "89cb1c4c2e05425182b639ec331bf09c4a4b116bdfa8ffd8d1bde9c6ea829faa",
+      "publishedRecordRawSha256": "a0d22791c37e8232566c0161a25ca0482cb6a9a3b30fa761e7e6f45f2df2c9ca"
+    },
+    {
+      "slot": 5,
+      "name": "Минимал",
+      "publicUrl": "https://wallet.153.76.194.160.nip.io/p/5",
+      "sourceApiUrl": "https://wallet.153.76.194.160.nip.io/api/mono-published/5",
+      "revision": 2,
+      "updatedAt": "2026-10-01T08:49:26.695Z",
+      "snapshotFile": "slot-5.appearance.json",
+      "fileSha256": "d2ad0bb7f5a1468a5f988164dd6c0795fb94f96e38c05707d00e4a1feb1a7b21",
+      "snapshotCanonicalSha256": "a55ce8fb5b0a0e391ef179302906fb8174b8d39bc6a24f5b9ebd25cc73bd0be2",
+      "publishedRecordRawSha256": "1f2b7a42a4805cc29a7b6784a22e3d58ad9ea04e3adb02d850778b5a5ac8726d"
+    },
+    {
+      "slot": 6,
+      "name": "Мягкое стекло",
+      "publicUrl": "https://wallet.153.76.194.160.nip.io/p/6",
+      "sourceApiUrl": "https://wallet.153.76.194.160.nip.io/api/mono-published/6",
+      "revision": 2,
+      "updatedAt": "2026-10-01T08:49:27.004Z",
+      "snapshotFile": "slot-6.appearance.json",
+      "fileSha256": "fa28ef391bebed4c0d6b10ba545827d9b9a9d60d46b2b5dede47ae8217f65bad",
+      "snapshotCanonicalSha256": "93f6ea5ea55506cde7c172d9295ac9b440269d6050707d5c9614535b8247c9dc",
+      "publishedRecordRawSha256": "a80a453b1dea66b0e224a63553c2b94a2b386697d8559faa5ea362b0b90e9ccc"
+    },
+    {
+      "slot": 7,
+      "name": "Фирменный",
+      "publicUrl": "https://wallet.153.76.194.160.nip.io/p/7",
+      "sourceApiUrl": "https://wallet.153.76.194.160.nip.io/api/mono-published/7",
+      "revision": 2,
+      "updatedAt": "2026-10-01T08:49:27.306Z",
+      "snapshotFile": "slot-7.appearance.json",
+      "fileSha256": "f0d849c91bab93f6042f648fb7ad74ac880bb958a672f431c07aba724ffed23e",
+      "snapshotCanonicalSha256": "2d06b0cf84e8f5cb6457bff3c8d8b89837cd7f733b79a320520f634a46a4d2d0",
+      "publishedRecordRawSha256": "5307554dd494de01394d86c02bf49a720c2a94c71881e67ba40c19f3b809b624"
+    }
+  ]
+}
