@@ -2,9 +2,9 @@
 
 > **Историческая preview-процедура.** Публичный MONO —
 > [wallet.153.76.194.160.nip.io](https://wallet.153.76.194.160.nip.io/mono),
-> runtime `0acfde8`, image `novex-wallet:20261005T005801Z-0acfde8`; rollback `85d33d2` сохранён.
+> runtime `9d70abe`, image `novex-wallet:20261005T142721Z-9d70abe`; текущий rollback `0acfde8` сохранён.
 > Текущий статус — [корневой README](../../README.md),
-> версия и откат — [выпуск 2026-10-05](../releases/2026-10-05-mono-product-release.md).
+> версия и откат — [выпуск 05.10, 17:49 МСК](../releases/2026-10-05-ux-release-9d70abe.md).
 > Прежние хосты `135.181.70.158` / `95.181.213.4` и серверные команды ниже —
 > архив, не новый deployment-план.
 
