@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { ProductActionRoute } from "@wallet/core";
+import { CurrencyLogo } from "../currency-logo";
 import type { SendPort, SendQuote } from "./send-port";
 import type { SendFormOptions } from "./send-form";
 import { mockSendPort } from "./mock-send-port";
@@ -20,6 +21,7 @@ export type SendFlowProps = SendFormOptions & {
   port?: SendPort;
   privacy?: boolean;
   onBack(): void;
+  backLabel?: string;
   onClose(): void;
   onAssetDetails?(): void;
   onViewHistory?(): void;
@@ -31,7 +33,7 @@ export function SendFlow({ port = mockSendPort, ...props }: SendFlowProps) {
   return <SendSession key={sendRouteKey(props.route)} {...props} port={port} />;
 }
 
-function SendSession({ route: selectedRoute, port, privacy = false, onBack, onClose, onAssetDetails,
+function SendSession({ route: selectedRoute, port, privacy = false, onBack, backLabel = "Назад", onClose, onAssetDetails,
   onBatteryActivityChange, onOperationChange, initialDraft, onDraftChange, onSimulationResult, onViewHistory }: SendFlowProps & { port: SendPort }) {
   // Equivalent route objects from appearance renders must not reset the form.
   const [route] = useState(selectedRoute);
@@ -71,7 +73,7 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
   }, [flow.issue]);
 
   const routeIdentity = <>
-    <span className={styles.asset} aria-hidden="true">{route.symbol.slice(0, 1)}</span>
+    <span className={styles.asset} aria-hidden="true"><CurrencyLogo assetId={route.assetId} /></span>
     <span className={styles.routeIdentity}><strong>{route.symbol}</strong><span>{route.accountLabel}</span></span>
     <span className={styles.network}>{route.networkLabel}</span>
   </>;
@@ -81,7 +83,8 @@ function SendSession({ route: selectedRoute, port, privacy = false, onBack, onCl
       if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); }
     }}>
     <div className={styles.toolbar}>
-      <button type="button" className={styles.textButton} disabled={pending} onClick={() => flow.back(onBack)}>
+      <button type="button" className={styles.textButton} disabled={pending} onClick={() => flow.back(onBack)}
+        aria-label={stage === "recipient" ? backLabel : "Назад"}>
         <span aria-hidden="true">←</span> Назад
       </button>
       <span className={styles.demo}>Демо</span>

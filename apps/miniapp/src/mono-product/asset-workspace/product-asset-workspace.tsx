@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { resolveActionRoutes, type ProductAccount, type ProductHolding, type ProductSnapshot } from "@wallet/core";
 import type { MonoProductView, ProductPlacementAction } from "../product-controller";
+import { CurrencyLogo } from "../currency-logo";
 import { formatFiatMinor, formatQuantity } from "../product-format";
 import { ProductHistory } from "../product-history";
 import { selectAssetActivities, sumDecimalQuantities } from "./asset-workspace-data";
@@ -14,13 +15,14 @@ export type ProductAssetWorkspaceProps = {
   selectedHoldingId: string | null;
   onSelectHolding(holdingId: string): void;
   onBack(): void;
+  backLabel?: string;
   onPlacementAction(holdingId: string, action: ProductPlacementAction): void;
   onExpandActivity(id: string | null): void;
   onRetryActivities?(): void;
 };
 
 export function ProductAssetWorkspace({ view, assetId, selectedHoldingId, onSelectHolding, onBack,
-  onPlacementAction, onExpandActivity, onRetryActivities }: ProductAssetWorkspaceProps) {
+  backLabel = "Назад к активам", onPlacementAction, onExpandActivity, onRetryActivities }: ProductAssetWorkspaceProps) {
   const titleId = useId();
   const placementsId = useId();
   const historyId = useId();
@@ -36,7 +38,7 @@ export function ProductAssetWorkspace({ view, assetId, selectedHoldingId, onSele
   const historyAccountId = selected?.accountId ?? (view.context.kind === "account" ? view.context.accountId : undefined);
 
   return <section className={styles.workspace} aria-labelledby={titleId} data-mono-product-asset-workspace={assetId}>
-    <button type="button" className={styles.back} onClick={onBack} aria-label="Назад к активам">
+    <button type="button" className={styles.back} onClick={onBack} aria-label={backLabel}>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>Назад
     </button>
     {!asset ? <div className={styles.missing}>
@@ -44,7 +46,7 @@ export function ProductAssetWorkspace({ view, assetId, selectedHoldingId, onSele
       <p>В выбранных счетах нет этого актива.</p>
     </div> : <>
       <header className={styles.identity}>
-        <span className={styles.symbol} aria-hidden="true">{asset.symbol.slice(0, 1)}</span>
+        <span className={styles.symbol} aria-hidden="true"><CurrencyLogo assetId={asset.assetId} /></span>
         <div><h1 id={titleId} tabIndex={-1} data-mono-product-asset-title>{asset.name}</h1><span className={styles.ticker}>{asset.symbol}</span></div>
       </header>
       <div className={styles.balance}>

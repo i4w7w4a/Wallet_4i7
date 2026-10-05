@@ -4,6 +4,7 @@ import { useId } from "react";
 import { resolveActionRoutes, type ProductAccount, type ProductHolding, type ProductSnapshot } from "@wallet/core";
 import type { MonoAssetListAppearance } from "../mono-preview/mono-scene-lab-contract";
 import type { MonoProductCommands, MonoProductView } from "./product-controller";
+import { CurrencyLogo } from "./currency-logo";
 import { formatFiatMinor, formatQuantity } from "./product-format";
 import { DisclosureMotion } from "./motion/disclosure-motion";
 import disclosureStyles from "./motion/disclosure-motion.module.css";
@@ -52,7 +53,7 @@ export function ProductHoldings({ view, commands, appearance, overview, onPlacem
             aria-expanded={onOpenAsset ? undefined : expanded} aria-controls={onOpenAsset ? undefined : placementsId}
             data-mono-product-asset-trigger={onOpenAsset ? group.assetId : undefined}
             onClick={() => onOpenAsset ? onOpenAsset(group.assetId) : commands.toggleAsset(group.assetId)}>
-            <span className="mono-product-funds__symbol" aria-hidden="true">{group.symbol.slice(0, 1)}</span>
+            <span className="mono-product-funds__symbol" aria-hidden="true"><CurrencyLogo assetId={group.assetId} /></span>
             <span className="mono-product-funds__identity"><strong>{group.name}</strong>
               <small>{countLabel(group.placements.length, ["размещение", "размещения", "размещений"])}</small></span>
             <span id={valueId} className="mono-product-funds__value"><strong>{view.balanceHidden ? "••••" : formatFiatMinor(group.fiatMinor)}</strong>
