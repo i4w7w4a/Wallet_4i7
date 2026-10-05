@@ -1004,7 +1004,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         aria-label="Быстрые настройки" aria-hidden={quickRailHidden} inert={quickRailHidden}
         role={compactChrome && mobileRail === "quick" ? "dialog" : undefined}
         aria-modal={compactChrome && mobileRail === "quick" ? true : undefined}>
-        <div className="mono-rail__head"><div><span>WORKSPACE</span><strong>MONO</strong></div><a href="/">V1 ↗</a></div>
+        <div className="mono-rail__head"><div><span>WORKSPACE</span><strong>MONO</strong></div></div>
         <MonoPreviewSource />
         <a className="mono-rail__lab-entry" href="/design-lab">Design Lab · Фоны и кнопки ↗</a>
         <MonoWorkingPresetBar key={workingLibrary?.activeSlot ?? "baseline"}
