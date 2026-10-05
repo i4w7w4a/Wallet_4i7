@@ -25,7 +25,7 @@ export function DisclosureMotion({ open, id, launcherId, role, labelledBy, child
     const element = elementRef.current;
     if (!element) return;
     const doc = element.ownerDocument, view = doc.defaultView;
-    const gate = element.closest<HTMLElement>("[data-mono-motion]");
+    const gate = element.closest<HTMLElement>("[data-mono-disclosure-motion], [data-mono-motion]");
     const reduced = view?.matchMedia?.("(prefers-reduced-motion: reduce)");
     const initial = !initialized.current;
     initialized.current = true;
@@ -33,7 +33,7 @@ export function DisclosureMotion({ open, id, launcherId, role, labelledBy, child
 
     const sync = () => {
       const revision = ++generation.current;
-      const animated = !initial && gate?.dataset.monoMotion === "ready" &&
+      const animated = !initial && (gate?.dataset.monoDisclosureMotion ?? gate?.dataset.monoMotion) === "ready" &&
         doc.visibilityState !== "hidden" && reduced?.matches === false && typeof element.getAnimations === "function";
       if (!open && element.contains(doc.activeElement)) doc.getElementById(launcherId)?.focus({ preventScroll: true });
       // Focus leaves before either accessibility exclusion is applied, including controlled closes.
@@ -58,7 +58,7 @@ export function DisclosureMotion({ open, id, launcherId, role, labelledBy, child
 
     sync();
     const observer = gate && view ? new view.MutationObserver(sync) : null;
-    if (gate) observer?.observe(gate, { attributes: true, attributeFilter: ["data-mono-motion"] });
+    if (gate) observer?.observe(gate, { attributes: true, attributeFilter: ["data-mono-disclosure-motion", "data-mono-motion"] });
     reduced?.addEventListener("change", sync);
     doc.addEventListener("visibilitychange", sync);
     return () => {

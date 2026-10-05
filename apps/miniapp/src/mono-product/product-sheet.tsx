@@ -4,7 +4,7 @@ import { useCallback, useId, useLayoutEffect, useRef, useState, type CSSProperti
 import type { ProductActionKind, ProductActionRoute, RouteUnavailableReason } from "@wallet/core";
 import { productRouteKey, receiveRequestAmountKey, sendDraftKey, type MonoProductCommands, type MonoProductView } from "./product-controller";
 import { createMonoDemoFlowPorts } from "./demo-adapter";
-import { ProductAccountChooser } from "./product-account-chooser";
+import { ProductAccountPopover } from "./product-account-popover";
 import { ProductRouteChooser } from "./product-route-chooser";
 import { ReceiveMenu } from "./receive-menu";
 import { SendMenu } from "./send-menu";
@@ -20,9 +20,10 @@ import { BatteryPopover } from "./battery-popover";
 import { ProductGlassSurface } from "./product-glass-surface";
 import "./product-home.css";
 
-type ProductProps = { view: MonoProductView; commands: MonoProductCommands; onOpenActivity?(id: string): void };
+type ProductProps = { view: MonoProductView; commands: MonoProductCommands; onOpenActivity?(id: string): void;
+  accountChooserId?: string; active?: boolean };
 
-export function ProductOverlay({ view, commands, onOpenActivity }: ProductProps) {
+export function ProductOverlay({ view, commands, onOpenActivity, accountChooserId, active }: ProductProps) {
   const ports = view.flowPorts;
   const currentSheet = useRef(view.sheet);
   currentSheet.current = view.sheet;
@@ -30,6 +31,9 @@ export function ProductOverlay({ view, commands, onOpenActivity }: ProductProps)
   const receiveChooser = view.sheet?.kind === "intent" && view.sheet.action === "receive" && !view.sheet.route;
   const sendChooser = view.sheet?.kind === "intent" && view.sheet.action === "send" && !view.sheet.route && !view.sheet.placementId;
   return <>
+    <ProductAccountPopover view={view} open={view.sheet?.kind === "accounts"} active={active} id={accountChooserId}
+      allowClosing={view.sheet === null} restoreOnClose={view.sheet === null}
+      onClose={commands.closeSheet} onSelectContext={commands.selectContext} />
     <BatteryPopover view={view} open={view.sheet?.kind === "battery"} onClose={commands.closeSheet} />
     <ReceiveMenu open={receiveChooser} routes={receiveChooser ? view.intent?.routes ?? [] : []}
       focusRouteKey={receiveChooser ? view.sheet?.kind === "intent" ? view.sheet.focusRouteKey : undefined : undefined}
@@ -48,14 +52,9 @@ function ProductModalOverlay({ view, commands, ports, onOpenActivity, canRestore
   ports: ReturnType<typeof createMonoDemoFlowPorts>; canRestoreActionFocus(): boolean;
 }) {
   const sheet = view.sheet;
-  if (!sheet || sheet.kind === "battery") return null;
+  if (!sheet || sheet.kind === "battery" || sheet.kind === "accounts") return null;
   if (sheet.kind === "intent" && !sheet.route &&
     (sheet.action === "receive" || (sheet.action === "send" && !sheet.placementId))) return null;
-  if (sheet.kind === "accounts") return <ProductSheet title="Выбор счёта" onClose={commands.closeSheet}>
-    <ProductAccountChooser snapshot={view.snapshot} context={view.context} balanceHidden={view.balanceHidden}
-      onSelectContext={commands.selectContext} />
-  </ProductSheet>;
-
   const action = sheet.action;
   const title = actionLabel(action);
   const detailKey = sheet.route ? routeFlowKey(sheet.route, ports) : "";

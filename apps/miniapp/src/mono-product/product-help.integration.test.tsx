@@ -132,18 +132,20 @@ it("waits for the existing finite view animation and retries on its completion w
   await waitFor(() => expect(screen.getByRole("button", { name: "Отправить" })).toHaveFocus());
 });
 
-it.each(["navigation", "context", "adapter"])("cancels a queued opening after a later %s change", async change => {
+it.each(["navigation", "logo", "context", "adapter"])("cancels a queued opening after a later %s change", async change => {
   const motion = motionBoundary();
   const view = await home();
   fireEvent.click(within(openTopic("Отправить")).getByRole("button", { name: "Открыть отправку" }));
   expect(view.current().view.sheet).toBeNull();
   if (change === "navigation") fireEvent.click(screen.getByRole("button", { name: "История" }));
+  else if (change === "logo") fireEvent.click(screen.getByRole("button", { name: "На главную" }));
   else if (change === "context") act(() => view.current().commands.selectContext({ kind: "account", accountId: "demo-depositary" }));
   else view.replace({ kind: "demo", snapshot: MULTI_ACCOUNT_DEMO });
   await motion.finish();
   expect(view.current().view.sheet).toBeNull();
   expect(screen.queryByRole("dialog")).toBeNull();
   if (change === "navigation") expect(screen.getByRole("heading", { name: "История операций" })).toBeInTheDocument();
+  if (change === "logo") expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "overview");
   if (change === "context") expect(view.current().view.context).toEqual({ kind: "account", accountId: "demo-depositary" });
 });
 

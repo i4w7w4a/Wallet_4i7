@@ -5,21 +5,27 @@
 .chevron[data-expanded="true"] { transform: rotate(180deg); }
 
 @media (prefers-reduced-motion: no-preference) {
-  :global([data-mono-motion="ready"]) .disclosure {
+  :global([data-mono-disclosure-motion="ready"]) .disclosure,
+  :global([data-mono-motion="ready"]:not([data-mono-disclosure-motion])) .disclosure {
     transition: grid-template-rows var(--mono-product-reveal-close, 240ms) var(--mono-product-motion-ease, cubic-bezier(.2, 0, 0, 1));
   }
-  :global([data-mono-motion="ready"]) .disclosure[data-mono-disclosure-open="true"] {
+  :global([data-mono-disclosure-motion="ready"]) .disclosure[data-mono-disclosure-open="true"],
+  :global([data-mono-motion="ready"]:not([data-mono-disclosure-motion])) .disclosure[data-mono-disclosure-open="true"] {
     transition-duration: var(--mono-product-reveal-open, 320ms);
   }
-  :global([data-mono-motion="ready"]) .chevron {
+  :global([data-mono-disclosure-motion="ready"]) .chevron,
+  :global([data-mono-motion="ready"]:not([data-mono-disclosure-motion])) .chevron {
     transition: transform var(--mono-product-reveal-close, 240ms) var(--mono-product-motion-ease, cubic-bezier(.2, 0, 0, 1));
   }
-  :global([data-mono-motion="ready"]) .chevron[data-expanded="true"] {
+  :global([data-mono-disclosure-motion="ready"]) .chevron[data-expanded="true"],
+  :global([data-mono-motion="ready"]:not([data-mono-disclosure-motion])) .chevron[data-expanded="true"] {
     transition-duration: var(--mono-product-reveal-open, 320ms);
   }
 }
-:global([data-mono-motion="static"]) .disclosure,
-:global([data-mono-motion="static"]) .chevron { transition: none; }
+:global([data-mono-disclosure-motion="static"]) .disclosure,
+:global([data-mono-disclosure-motion="static"]) .chevron,
+:global([data-mono-motion="static"]:not([data-mono-disclosure-motion])) .disclosure,
+:global([data-mono-motion="static"]:not([data-mono-disclosure-motion])) .chevron { transition: none; }
 @media (prefers-reduced-motion: reduce) {
   .disclosure, .chevron { transition: none; }
 }

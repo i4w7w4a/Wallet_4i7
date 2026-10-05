@@ -5,18 +5,21 @@ import type { ProductAccount } from "@wallet/core";
 import type { MonoBalanceAppearance } from "../mono-preview/mono-scene-lab-contract";
 import type { MonoProductCommands, MonoProductView } from "./product-controller";
 import { formatFiatMinor, formatFiatMinorParts } from "./product-format";
+import { AccountContextIcon } from "./product-account-chooser";
 import "./product-home.css";
 
 export { ProductHoldings, type ProductHoldingsProps } from "./product-holdings";
 
 type ProductProps = { view: MonoProductView; commands: MonoProductCommands };
 
-export function ProductContextLine({ view, commands }: ProductProps) {
+export function ProductContextLine({ view, commands, accountChooserId }: ProductProps & { accountChooserId?: string }) {
   const label = view.context.kind === "all" ? "Все счета" : view.account?.label ?? "Счёт";
   return <div className="mono-product-context">
     {view.snapshot.accounts.length > 1 ? <button type="button" data-mono-product-context-trigger
-      aria-label={`Выбрать счёт: ${label}`} aria-haspopup="dialog" onClick={commands.openAccounts}>
-      <span>{label}</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+      aria-label={`Выбрать счёт: ${label}`} aria-haspopup="dialog" aria-expanded={view.sheet?.kind === "accounts"}
+      aria-controls={accountChooserId} onClick={() => view.sheet?.kind === "accounts" ? commands.closeSheet() : commands.openAccounts()}>
+      <AccountContextIcon className="mono-product-account-icon" stacked />
+      <span>{label}</span><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4" /></svg>
     </button> : <strong>{label}</strong>}
     <span className="mono-product-context__demo">Демо-режим</span>
   </div>;

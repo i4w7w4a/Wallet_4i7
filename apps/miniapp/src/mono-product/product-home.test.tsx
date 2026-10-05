@@ -40,7 +40,7 @@ it("switches account context and offers only that account's receive route", asyn
   fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
   expect(screen.getByRole("dialog", { name: "Отправить" })).toHaveTextContent(/отправка недоступна/i);
   fireEvent.click(within(screen.getByRole("dialog", { name: "Отправить" }))
-    .getByRole("button", { name: "Закрыть" }));
+    .getByRole("button", { name: "Закрыть отправку" }));
   fireEvent.click(screen.getByRole("button", { name: "Получить" }));
   const receiveSheet = screen.getByRole("dialog", { name: "Получить" });
   expect(receiveSheet).toHaveTextContent("Между счетами");

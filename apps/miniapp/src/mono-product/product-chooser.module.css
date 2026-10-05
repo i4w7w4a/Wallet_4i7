@@ -68,12 +68,15 @@
 
 .accountRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) 16px;
+  grid-template-columns: 22px minmax(0, 1fr) minmax(0, 0.8fr) 16px;
   align-items: center;
   gap: 10px;
 }
 
-.accountRow[aria-current="true"],
+.accountIcon { width: 22px; height: 22px; color: var(--mono-text-secondary, #bdbdbd); }
+.accountRow[aria-current="true"] .accountIcon { color: var(--mono-text, #f4f4f4); }
+.accountRow[aria-current="true"] { color: var(--mono-text, #f4f4f4); }
+
 .accountTab[aria-pressed="true"] {
   background: var(--mono-surface-high, #25272e);
   background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent);

@@ -165,6 +165,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   } | null>(null);
   const profileMenuAnchor = useRef<HTMLButtonElement>(null);
   const profileMenuId = useId();
+  const accountChooserId = useId();
   const profileRequestRevision = useRef(0);
   const [profileSectionRequest, setProfileSectionRequest] = useState<ProductProfileOpenSectionRequest>();
   const canOpenProfileMenu = Boolean(product && active && !product.view.sheet && !product.view.commerceBusy);
@@ -214,16 +215,22 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     return !product?.view.sheet;
   }
   function openProfile() {
-    if (!headerContextAllowed() || !leaveAccountsWorkspace()) return;
-    setProfileMenuOrigin(null);
-    setProfileSectionRequest(undefined);
-    setSection("profile");
+    if (headerContextAllowed()) navigateSection("profile");
   }
   function openProfileHelp() {
-    if (!headerContextAllowed() || !product || !leaveAccountsWorkspace()) return;
-    setProfileMenuOrigin(null);
+    if (!headerContextAllowed() || !product || !navigateSection("profile")) return;
     setProfileSectionRequest({ section: "help", revision: ++profileRequestRevision.current });
-    setSection("profile");
+  }
+  function navigateSection(next: MonoSection) {
+    if (!active || (next !== section && !canChangeSection) ||
+      (product && !product.commands.requestContextChange()) || !leaveAccountsWorkspace()) return false;
+    product?.commands.closeAsset();
+    setProfileMenuOrigin(null); setProfileSectionRequest(undefined);
+    if (next !== section) setSection(next);
+    return true;
+  }
+  function goHome() {
+    if (headerContextAllowed()) navigateSection("overview");
   }
   function leaveAccountsWorkspace() {
     if (accountsWorkspace && !product?.commands.closeAccountsWorkspace()) return false;
@@ -499,14 +506,15 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     const surface = pageRef.current;
     if (!surface) return;
     const doc = surface.ownerDocument, view = doc.defaultView;
-    const staticMotion = () => { surface.dataset.monoMotion = "static"; };
-    if (!view || !active || effectsDisabled || appearance.background?.calm) { staticMotion(); return staticMotion; }
+    const staticMotion = () => { surface.dataset.monoMotion = "static"; surface.dataset.monoDisclosureMotion = "static"; };
+    if (!view || !active || effectsDisabled) { staticMotion(); return staticMotion; }
     const reduced = view.matchMedia("(prefers-reduced-motion: reduce)");
     const connection = (view.navigator as Navigator & { connection?: EventTarget & { readonly saveData?: boolean } }).connection;
     let intersecting = typeof view.IntersectionObserver !== "function";
     const sync = () => {
-      surface.dataset.monoMotion = doc.visibilityState !== "hidden" && !reduced.matches &&
-        !connection?.saveData && intersecting ? "ready" : "static";
+      const interactionReady = doc.visibilityState !== "hidden" && !reduced.matches && !connection?.saveData && intersecting;
+      surface.dataset.monoDisclosureMotion = interactionReady ? "ready" : "static";
+      surface.dataset.monoMotion = interactionReady && !appearance.background?.calm ? "ready" : "static";
     };
     const observer = typeof view.IntersectionObserver === "function" ? new view.IntersectionObserver(entries => {
       intersecting = entries[0]?.isIntersecting ?? false;
@@ -647,7 +655,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const receiveMenuOpen = product?.view.sheet?.kind === "intent" && product.view.sheet.action === "receive" && !product.view.sheet.route;
   const sendMenuOpen = product?.view.sheet?.kind === "intent" && product.view.sheet.action === "send" &&
     !product.view.sheet.route && !product.view.sheet.placementId;
-  const productModalOpen = Boolean(product?.view.sheet && product.view.sheet.kind !== "battery" && !receiveMenuOpen && !sendMenuOpen);
+  const productModalOpen = Boolean(product?.view.sheet && product.view.sheet.kind !== "battery" &&
+    product.view.sheet.kind !== "accounts" && !receiveMenuOpen && !sendMenuOpen);
   return (
       <ProductGlassProvider sharedHost={opticalHost} preset={preset} settings={optics}
         active={active && !effectsDisabled} opaque={effectsDisabled}>
@@ -658,7 +667,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           data-mono-theme={theme} data-mono-background={background} data-mono-viewport={viewport}
           data-mono-section={section}
           data-mono-product={product ? "true" : undefined}
-          data-mono-motion="static" data-nav-indicator={navigation.indicator}
+          data-mono-motion="static" data-mono-disclosure-motion="static" data-nav-indicator={navigation.indicator}
           data-nav-shimmer={navigation.shimmerEnabled}
           data-mono-typography={typography.active ? "true" : "false"}
           data-mono-font-status={typography.status}
@@ -686,9 +695,11 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       <div ref={productContentRef} className="mono-scene" data-product-view-motion={product ? "" : undefined}
         inert={productModalOpen}>
         <header className="mono-app-header">
-          <div className="mono-app-header__mark">
+          <button type="button" className="mono-app-header__mark" aria-label="На главную" onClick={goHome}
+            disabled={!active || Boolean(product?.view.sheet) || (section !== "overview" && !canChangeSection)}
+            title={section !== "overview" && !canChangeSection ? "Переход к обзору недоступен." : undefined}>
             <MonoLogo />
-          </div>
+          </button>
           <div className="mono-app-header__person">
             <strong>{snapshot.profile.name}</strong>
           </div>
@@ -713,7 +724,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </button>}
           </div>
         </header>
-        {product && <ProductContextLine {...product} />}
+        {product && <ProductContextLine {...product} accountChooserId={accountChooserId} />}
 
         {product && accountsWorkspace && !assetWorkspace && <div className="mono-product-section" inert={!active}>
           <ProductAccountsWorkspace snapshot={product.view.snapshot} selectedAccountId={accountsWorkspace.accountId}
@@ -899,13 +910,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {NAV_ITEMS.map(item => (
           <button className="mono-nav__item" type="button" data-active={section === item.id ? "true" : "false"}
             aria-current={section === item.id ? "page" : undefined} key={item.id}
-            onClick={() => {
-              if (product && !product.commands.requestContextChange()) return;
-              if (!leaveAccountsWorkspace()) return;
-              setProfileMenuOrigin(null);
-              setProfileSectionRequest(undefined);
-              setSection(item.id);
-            }}>
+            onClick={() => navigateSection(item.id)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d={item.path} /></svg>
             <span>{item.label}</span>
             <span className="mono-nav__indicator" aria-hidden="true"><i className="mono-nav__glint" /></span>
@@ -917,7 +922,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         onBalanceHiddenChange={product.commands.setBalanceHidden} onOpenHelp={openProfileHelp} onDismiss={dismissProfileMenu}
         onOpenAccounts={openAccountsWorkspace}
         motionEnabled={active && !effectsDisabled && !appearance.background?.calm} />}
-      {product && <ProductOverlay {...product} onOpenActivity={openActivity} />}
+      {product && <ProductOverlay {...product} onOpenActivity={openActivity} accountChooserId={accountChooserId} active={active} />}
         </main>
       </ProductGlassProvider>
   );
