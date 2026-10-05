@@ -33,6 +33,7 @@ import { productRouteKey, type MonoProductController } from "../mono-product/pro
 import { ProductHistory } from "../mono-product/product-history";
 import { ProductRecentActivity } from "../mono-product/product-recent-activity";
 import { ProductProfile, type ProductProfileOpenSectionRequest } from "../mono-product/product-profile";
+import type { ProductHelpAction, ProductHelpActions, ProductHelpTopicId } from "../mono-product/product-help";
 import { ProfileQuickMenu, type ProfileQuickMenuDismissReason } from "../mono-product/profile-quick-menu";
 import { AvatarControl, MONO_DEMO_AVATAR } from "../mono-product/avatar-control";
 import profileMenuStyles from "../mono-product/profile-quick-menu/profile-quick-menu.module.css";
@@ -119,6 +120,12 @@ const NAV_ITEMS = [
 const DEFAULT_ACTION_ARTWORK = createDefaultActionArtworkMap();
 type AccountsFocusTarget = { kind: "title" } | { kind: "launcher" } | { kind: "context" }
   | { kind: "account" | "holding" | "route"; id: string };
+type HelpEntryRequest = {
+  action: ProductHelpTopicId;
+  context: MonoProductController["view"]["context"];
+  snapshot: MonoProductController["view"]["snapshot"];
+  ports: MonoProductController["view"]["flowPorts"];
+};
 
 const currencyFormatter = new Intl.NumberFormat("ru-RU", {
   minimumFractionDigits: 2,
@@ -180,6 +187,11 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       resolveActionRoutes(source, { kind: "account", accountId }, action).routes);
   }, [product?.view.snapshot, accountsWorkspace?.accountId]);
   const setSection = session?.onSectionChange ?? setLocalSection;
+  const canChangeSection = session?.section === undefined || typeof session.onSectionChange === "function";
+  const [helpEntryRequest, setHelpEntryRequest] = useState<HelpEntryRequest | null>(null);
+  const helpEntryRef = useRef(helpEntryRequest);
+  helpEntryRef.current = helpEntryRequest;
+  const [helpReadinessRevision, setHelpReadinessRevision] = useState(0);
   const period = session?.period ?? localPeriod;
   const setPeriod = session?.onPeriodChange ?? setLocalPeriod;
   const moneyFormat = { locale: "ru-RU", currency: snapshot.balance.currency,
@@ -213,11 +225,13 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   }
   function leaveAccountsWorkspace() {
     if (accountsWorkspace && !product?.commands.closeAccountsWorkspace()) return false;
+    cancelHelpEntry();
     accountsOrigin.current = null; accountsFocusRequest.current = null; accountsChildReturn.current = null;
     return true;
   }
   function openAccountsWorkspace() {
     if (!headerContextAllowed() || !product?.commands.openAccountsWorkspace()) return;
+    cancelHelpEntry();
     accountsOrigin.current = section; accountsFocusRequest.current = { kind: "title" }; accountsChildReturn.current = null;
     setProfileMenuOrigin(null); setProfileSectionRequest(undefined);
   }
@@ -247,6 +261,33 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       accountsChildReturn.current = { kind: "holding", id: holdingId };
     }
   }
+  function cancelHelpEntry() {
+    if (!helpEntryRef.current) return;
+    helpEntryRef.current = null; setHelpEntryRequest(null);
+  }
+  function queueHelpEntry(action: ProductHelpTopicId) {
+    if (!active || !product || section !== "profile" || !canChangeSection || product.view.sheet ||
+      !product.commands.requestContextChange() || !resolveActionRoutes(product.view.snapshot, product.view.context, action).routes.length) return;
+    const request: HelpEntryRequest = { action, context: product.view.context,
+      snapshot: product.view.snapshot, ports: product.view.flowPorts };
+    helpEntryRef.current = request; setHelpEntryRequest(request);
+    setProfileMenuOrigin(null); setProfileSectionRequest(undefined);
+    setSection("overview");
+  }
+  function helpAction(action: ProductHelpTopicId): ProductHelpAction {
+    if (!active || !product) return { allowed: false, reason: "Открытие операции сейчас недоступно." };
+    if (!canChangeSection) return { allowed: false, reason: "Переход к операциям сейчас недоступен." };
+    if (product.view.sheet || product.view.commerceBusy) return { allowed: false, reason: "Завершите текущий сценарий, чтобы открыть другой." };
+    const resolved = resolveActionRoutes(product.view.snapshot, product.view.context, action);
+    if (!resolved.routes.length) return { allowed: false, reason: resolved.reason === "account-inactive"
+      ? "Счёт неактивен. Операции недоступны."
+      : resolved.reason === "account-not-found" || resolved.reason === "account-unavailable" ? "Текущий счёт недоступен."
+        : "Доступных маршрутов для этой операции сейчас нет." };
+    return { allowed: true, onOpen: () => queueHelpEntry(action) };
+  }
+  const productHelpActions: ProductHelpActions = {
+    receive: helpAction("receive"), send: helpAction("send"), buy: helpAction("buy"), swap: helpAction("swap"),
+  };
   const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
   const pageRef = useRef<HTMLElement>(null);
   const productContentRef = useRef<HTMLDivElement>(null);
@@ -270,6 +311,41 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   useProductViewMotion({ surfaceRef: pageRef, contentRef: productContentRef,
     view: { section, assetId: assetWorkspaceId },
     enabled: Boolean(product) && active && !effectsDisabled && !appearance.background?.calm });
+
+  useLayoutEffect(() => {
+    const request = helpEntryRef.current, root = pageRef.current;
+    if (!request || request !== helpEntryRequest) return;
+    if (!active || !product || !canChangeSection || !root || root.ownerDocument.visibilityState === "hidden" ||
+      request.context !== product.view.context || request.snapshot !== product.view.snapshot || request.ports !== product.view.flowPorts ||
+      (section !== "profile" && section !== "overview") || product.view.sheet || product.view.commerceBusy ||
+      product.view.assetWorkspace || product.view.accountsWorkspace ||
+      !resolveActionRoutes(product.view.snapshot, product.view.context, request.action).routes.length) {
+      cancelHelpEntry(); return;
+    }
+    if (section !== "overview") return;
+    const action = ACTIONS.find(candidate => candidate.kind === request.action)!;
+    const anchor = root.querySelector<HTMLElement>(`[data-mono-product-${request.action}-trigger]`)
+      ?? root.querySelector<HTMLElement>(`.mono-actions__item[aria-label="${action.label}"]`);
+    if (!anchor || anchor.closest("[hidden], [inert]")) { cancelHelpEntry(); return; }
+    const entering = anchor.closest<HTMLElement>("[data-product-view-motion-target]");
+    const animations = entering?.getAnimations?.().filter(animation =>
+      (animation.playState === "running" || animation.pending) && animation.effect?.getTiming().iterations !== Infinity) ?? [];
+    if (animations.length) {
+      // Reuse the existing finite view-motion completion boundary; no polling or extra animation loop.
+      void Promise.allSettled(animations.map(animation => animation.finished)).then(() => {
+        if (helpEntryRef.current === request) setHelpReadinessRevision(current => current + 1);
+      });
+      return;
+    }
+    const bounds = anchor.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0 || !product.commands.requestContextChange()) { cancelHelpEntry(); return; }
+    helpEntryRef.current = null; setHelpEntryRequest(null);
+    anchor.focus({ preventScroll: true });
+    product.commands.openIntent(request.action);
+  }, [helpEntryRequest, helpReadinessRevision, active, section, canChangeSection, product?.view.context,
+    product?.view.snapshot, product?.view.flowPorts, product?.view.sheet, product?.view.commerceBusy,
+    product?.view.assetWorkspace, product?.view.accountsWorkspace]);
+  useEffect(() => () => { helpEntryRef.current = null; }, []);
 
   useLayoutEffect(() => {
     if (previousSection.current === section) return;
@@ -625,6 +701,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             aria-controls={profileMenuId} data-profile-quick-menu-trigger
             onClick={() => {
               if (!headerContextAllowed()) return;
+              cancelHelpEntry();
               setProfileMenuOrigin(current => current ? null : { section, context: product.view.context });
             }}>
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true" focusable="false">
@@ -797,6 +874,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {section === "profile" && product && !accountsWorkspace && <div className="mono-product-section"><ProductProfile
           profile={snapshot.profile} balanceHidden={product.view.balanceHidden}
           onBalanceHiddenChange={product.commands.setBalanceHidden}
+          helpActions={productHelpActions}
           theme={theme} onThemeChange={session?.onThemeChange} openSectionRequest={profileSectionRequest} /></div>}
         {section === "profile" && !product && <section className="mono-section-view" aria-labelledby="mono-profile-title">
           <div className="mono-section-view__eyebrow">АККАУНТ / DEMO</div>

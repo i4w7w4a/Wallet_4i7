@@ -45,7 +45,7 @@ export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_
   const productScene: MonoSceneProps = { ...scene, appearance, product,
     session: { balanceHidden: product.view.balanceHidden, onBalanceHiddenChange: product.commands.setBalanceHidden,
       period: scene.session?.period ?? localPeriod, onPeriodChange: scene.session?.onPeriodChange ?? setLocalPeriod,
-      section, onSectionChange: changeSection,
+      section, onSectionChange: scene.session?.section !== undefined && !scene.session.onSectionChange ? undefined : changeSection,
       onThemeChange: scene.session ? scene.session.onThemeChange : visitorTheme.onThemeChange } };
   const actionFrameMode = material.buttons?.version === 2 || material.buttons?.version === 3
     ? material.buttons.frameMode : "group";
