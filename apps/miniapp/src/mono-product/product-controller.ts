@@ -27,6 +27,7 @@ export type ProductSheetState =
 
 export type ProductBatteryActivity = { poolId: string; phase: "using" } | null;
 export type ProductAssetWorkspaceState = { assetId: string; holdingId: string | null } | null;
+export type ProductAccountsWorkspaceState = { accountId: string | null } | null;
 export type ProductPlacementAction = "send" | "receive" | "buy" | "swap";
 
 type CommerceFlowLease = { ports: ReturnType<typeof createMonoDemoFlowPorts>; route: BuyRoute | SwapRoute };
@@ -96,6 +97,7 @@ export type MonoProductView = {
   fundsExpanded: boolean;
   expandedAssetIds: ReadonlySet<string>;
   assetWorkspace: ProductAssetWorkspaceState;
+  accountsWorkspace: ProductAccountsWorkspaceState;
   sheet: ProductSheetState;
   intent: ActionRouteResolution | null;
   coverage: BatteryCoverage | null;
@@ -106,6 +108,13 @@ export type MonoProductView = {
 export type MonoProductCommands = {
   setBalanceHidden(hidden: boolean): void;
   openAccounts(): void;
+  openAccountsWorkspace(): boolean;
+  inspectAccount(accountId: string): boolean;
+  backAccountsWorkspace(): boolean;
+  closeAccountsWorkspace(): boolean;
+  useAccount(accountId: string): boolean;
+  openAccountRoute(route: ProductActionRoute): boolean;
+  openAccountHolding(accountId: string, holdingId: string): boolean;
   selectContext(context: AccountContext): void;
   openBattery(): void;
   openIntent(action: ProductActionKind): void;
@@ -148,6 +157,12 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
   const [expandedAssetIds, setExpandedAssetIds] = useState<ReadonlySet<string>>(() => new Set());
   const [sheet, setSheet] = useState<ProductSheetState>(null);
   const [assetWorkspace, setAssetWorkspace] = useState<ProductAssetWorkspaceState>(null);
+  const [accountsWorkspace, setAccountsWorkspace] = useState<ProductAccountsWorkspaceState>(null);
+  const accountsWorkspaceRef = useRef(accountsWorkspace);
+  accountsWorkspaceRef.current = accountsWorkspace;
+  const accountsSource = useRef({ adapter, snapshot });
+  const accountsAdapterChanged = accountsSource.current.adapter !== adapter;
+  accountsSource.current = { adapter, snapshot };
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [sendDrafts, setSendDrafts] = useState<Record<string, SendDraft>>({});
   const [receiveRequestAmounts, setReceiveRequestAmounts] = useState<Record<string, string>>({});
@@ -368,6 +383,10 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
   }, [snapshot, saveSendDraft]);
   const activities = useMemo(() => [...simulations, ...(adapter.activities ?? [])], [simulations, adapter.activities]);
   const [batteryActivity, updateBatteryActivity] = useState<ProductBatteryActivity>(null);
+  if (accountsAdapterChanged && accountsWorkspace) {
+    accountsWorkspaceRef.current = null;
+    setAccountsWorkspace(null); setAssetWorkspace(null); setSheet(null); updateBatteryActivity(null);
+  }
   const setBatteryActivity = useCallback((activity: ProductBatteryActivity) => {
     updateBatteryActivity(current => current?.poolId === activity?.poolId && current?.phase === activity?.phase
       ? current : activity);
@@ -400,19 +419,88 @@ export function useMonoProductController(adapter: MonoProductAdapter, privacy: {
   const coverage = sheet?.kind === "intent" && sheet.route
     ? resolveBatteryCoverage(snapshot.batteryPools, sheet.route) : null;
 
+  function ownsAccountsSession() {
+    return mounted.current && accountsSource.current.adapter === adapter && accountsSource.current.snapshot === snapshot;
+  }
+  function exactAccount(accountId: string) {
+    const matches = snapshot.accounts.filter(candidate => candidate.id === accountId);
+    return matches.length === 1 ? matches[0]! : null;
+  }
+  function updateAccountsWorkspace(next: ProductAccountsWorkspaceState) {
+    accountsWorkspaceRef.current = next;
+    setAccountsWorkspace(next);
+  }
+  function closeAccountsWorkspace() {
+    if (!ownsAccountsSession() || !requestContextChange() || !accountsWorkspaceRef.current) return false;
+    updateAccountsWorkspace(null); setAssetWorkspace(null); setSheet(null); updateBatteryActivity(null);
+    return true;
+  }
+
   return {
     view: { snapshot, activities, activityStatus: adapter.activityStatus ?? "ready", expandedActivityId, sendDrafts, receiveRequestAmounts, internalTransferDrafts,
       buyDrafts, swapDrafts, flowPorts, commerceBusy, commerceGuardMessage,
       usesDefaultDemoChart: adapter === MONO_PRODUCT_DEMO_ADAPTER,
       context: effectiveContext, account, holdings, balanceMinor, batteryPools,
-      balanceHidden, fundsExpanded, expandedAssetIds, assetWorkspace, sheet, intent, coverage, batteryActivity, batteryChargePercent },
+      balanceHidden, fundsExpanded, expandedAssetIds, assetWorkspace, accountsWorkspace, sheet, intent, coverage, batteryActivity, batteryChargePercent },
     commands: {
       setBalanceHidden(hidden) {
         if (privacy.onHiddenChange) privacy.onHiddenChange(hidden);
         else setLocalHidden(hidden);
       },
       openAccounts() { if (requestContextChange() && snapshot.accounts.length > 1) { updateBatteryActivity(null); setSheet({ kind: "accounts" }); } },
-      selectContext(next) { if (!requestContextChange()) return; setContext(next); setExpandedActivityId(null); closeAsset(); },
+      openAccountsWorkspace() {
+        if (!ownsAccountsSession() || !requestContextChange() || sheet) return false;
+        setAssetWorkspace(null); setExpandedActivityId(null); updateBatteryActivity(null);
+        updateAccountsWorkspace({ accountId: null });
+        return true;
+      },
+      inspectAccount(accountId) {
+        if (!ownsAccountsSession() || !requestContextChange() || !accountsWorkspaceRef.current || sheet || assetWorkspace ||
+          !exactAccount(accountId)) return false;
+        updateAccountsWorkspace({ accountId });
+        return true;
+      },
+      backAccountsWorkspace() {
+        if (!ownsAccountsSession() || !requestContextChange() || !accountsWorkspaceRef.current || sheet || assetWorkspace) return false;
+        if (accountsWorkspaceRef.current.accountId !== null) updateAccountsWorkspace({ accountId: null });
+        else return closeAccountsWorkspace();
+        return true;
+      },
+      closeAccountsWorkspace,
+      useAccount(accountId) {
+        if (!ownsAccountsSession() || !requestContextChange() || accountsWorkspaceRef.current?.accountId !== accountId ||
+          !exactAccount(accountId)) return false;
+        setContext({ kind: "account", accountId }); setExpandedActivityId(null);
+        updateAccountsWorkspace(null); setAssetWorkspace(null); setSheet(null); updateBatteryActivity(null);
+        return true;
+      },
+      openAccountRoute(route) {
+        if (!ownsAccountsSession() || !requestContextChange() || !route ||
+          accountsWorkspaceRef.current?.accountId !== route.accountId || !exactAccount(route.accountId) ||
+          !["send", "receive", "buy", "swap"].includes(route.action)) return false;
+        const nextContext: AccountContext = { kind: "account", accountId: route.accountId };
+        const matches = resolveActionRoutes(snapshot, nextContext, route.action).routes
+          .filter(candidate => productRouteKey(candidate) === productRouteKey(route));
+        if (matches.length !== 1) return false;
+        const canonical = matches[0]!;
+        setContext(nextContext); setAssetWorkspace(null); setExpandedActivityId(null); updateBatteryActivity(null);
+        setSheet({ kind: "intent", action: canonical.action, route: canonical });
+        return true;
+      },
+      openAccountHolding(accountId, holdingId) {
+        if (!ownsAccountsSession() || !requestContextChange() || accountsWorkspaceRef.current?.accountId !== accountId ||
+          !exactAccount(accountId)) return false;
+        const matches = snapshot.holdings.filter(holding => holding.id === holdingId);
+        if (matches.length !== 1 || matches[0]!.accountId !== accountId) return false;
+        const holding = matches[0]!;
+        setContext({ kind: "account", accountId }); setExpandedActivityId(null); setSheet(null); updateBatteryActivity(null);
+        setAssetWorkspace({ assetId: holding.assetId, holdingId });
+        return true;
+      },
+      selectContext(next) {
+        if (!requestContextChange()) return;
+        updateAccountsWorkspace(null); setContext(next); setExpandedActivityId(null); closeAsset();
+      },
       openBattery() { if (!requestContextChange()) return; updateBatteryActivity(null); setSheet(current => current?.kind === "battery" ? null : { kind: "battery" }); },
       openIntent(action) {
         if (!requestContextChange()) return;

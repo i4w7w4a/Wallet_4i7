@@ -32,15 +32,16 @@ export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_
   const section = scene.session?.section ?? localSection;
   const sectionRef = useRef(section);
   const closeAsset = product.commands.closeAsset;
+  const closeAccountsWorkspace = product.commands.closeAccountsWorkspace;
   const requestContextChange = product.commands.requestContextChange;
   const onSectionChange = scene.session?.onSectionChange ?? setLocalSection;
   const changeSection = useCallback((next: MonoSection) => {
     if (!requestContextChange()) return;
-    closeAsset(); onSectionChange(next);
-  }, [closeAsset, onSectionChange, requestContextChange]);
+    closeAccountsWorkspace(); closeAsset(); onSectionChange(next);
+  }, [closeAccountsWorkspace, closeAsset, onSectionChange, requestContextChange]);
   useEffect(() => {
-    if (sectionRef.current !== section) { sectionRef.current = section; closeAsset(); }
-  }, [section, closeAsset]);
+    if (sectionRef.current !== section) { sectionRef.current = section; closeAccountsWorkspace(); closeAsset(); }
+  }, [section, closeAccountsWorkspace, closeAsset]);
   const productScene: MonoSceneProps = { ...scene, appearance, product,
     session: { balanceHidden: product.view.balanceHidden, onBalanceHiddenChange: product.commands.setBalanceHidden,
       period: scene.session?.period ?? localPeriod, onPeriodChange: scene.session?.onPeriodChange ?? setLocalPeriod,
@@ -55,7 +56,7 @@ export function MonoProductScene({ material, productAdapter = MONO_PRODUCT_DEMO_
     actionRadii={actionRadii} actionArtwork={actionArtwork} />;
   // Keep the material host mounted, but release passes for DOM targets absent from the subview.
   return <ActiveMaterialScene material={material}
-    bindings={section === "overview" && !product.view.assetWorkspace ? bindings : []}
+    bindings={section === "overview" && !product.view.assetWorkspace && !product.view.accountsWorkspace ? bindings : []}
     scene={{ ...productScene, actionFrameMode, actionRadii, actionArtwork }} />;
 }
 

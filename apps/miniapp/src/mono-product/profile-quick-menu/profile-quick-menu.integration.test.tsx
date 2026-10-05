@@ -1,14 +1,14 @@
 import "@testing-library/jest-dom/vitest";
 import { useState } from "react";
-import { act, cleanup, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
-import { MockWalletRepository, MULTI_ACCOUNT_DEMO, resolveActionRoutes } from "@wallet/core";
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
+import { MockWalletRepository, MULTI_ACCOUNT_DEMO, SINGLE_ACCOUNT_DEMO, resolveActionRoutes, type ProductSnapshot } from "@wallet/core";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoProductScene } from "../../mono-preview/mono-product-scene";
 import { MonoScene, type MonoSection } from "../../mono-preview/mono-scene";
 import { createMonoAppearanceEnvelope } from "../../mono-preview/mono-preset-envelope";
 import { ProductProfile } from "../product-profile";
 import { useMonoProductController } from "../product-controller";
-import { MONO_PRODUCT_DEMO_ADAPTER } from "../demo-adapter";
+import { MONO_PRODUCT_DEMO_ADAPTER, type MonoProductAdapter } from "../demo-adapter";
 import { buyQuote } from "../commerce/test-fixtures";
 import { commerceOperationId } from "../commerce/validation";
 import type { BuyRoute } from "../commerce";
@@ -25,14 +25,14 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-async function controlledHome(initialTheme: "dark" | "light" = "dark") {
+async function controlledHome(initialTheme: "dark" | "light" = "dark", productAdapter?: MonoProductAdapter) {
   const snapshot = await new MockWalletRepository().getSnapshot();
   const envelope = createMonoAppearanceEnvelope("ledger");
   function Host() {
     const [theme, setTheme] = useState<"dark" | "light">(initialTheme);
     const [hidden, setHidden] = useState(false);
     const [section, setSection] = useState<MonoSection>("overview");
-    return <MonoProductScene snapshot={snapshot} material={envelope.material} viewport={320}
+    return <MonoProductScene snapshot={snapshot} material={envelope.material} viewport={320} productAdapter={productAdapter}
       appearance={{ ...envelope.appearance, environment: { ...envelope.appearance.environment, theme } }}
       session={{ section, onSectionChange: setSection, period: "1D", onPeriodChange() {},
         balanceHidden: hidden, onBalanceHiddenChange: setHidden, onThemeChange: setTheme }} />;
@@ -89,7 +89,7 @@ it("opens existing help with destination focus and repeats the request inside pr
   const help = screen.getByRole("button", { name: "Помощь и документы" });
   expect(help).toHaveAttribute("aria-expanded", "true");
   expect(help).toHaveFocus();
-  expect(screen.getByText("Счёт и сеть")).toBeVisible();
+  expect(document.getElementById(help.getAttribute("aria-controls") ?? "")).toBeVisible();
   expect(screen.queryByRole("dialog", { name: "Быстрые настройки" })).toBeNull();
   fireEvent.click(help);
   fireEvent.click(screen.getByRole("button", { name: "Открыть профиль" }));
@@ -163,4 +163,136 @@ it("releases an open menu when the scene becomes inactive", async () => {
   expect(screen.queryByRole("dialog", { name: "Быстрые настройки", hidden: true })).toBeNull();
   view.rerender(<MonoProductScene snapshot={snapshot} appearance={envelope.appearance} material={envelope.material} />);
   expect(screen.queryByRole("dialog", { name: "Быстрые настройки" })).toBeNull();
+});
+
+function openAccountsWorkspace() {
+  fireEvent.click(within(openSettings().panel).getByRole("button", { name: "Мои счета" }));
+  return screen.getByRole("region", { name: "Мои счета" });
+}
+
+it("opens account content from profile and backs through exact detail/list origins without an extra tab or sheet", async () => {
+  const { container } = await controlledHome();
+  fireEvent.click(screen.getByRole("button", { name: "Профиль", exact: true }));
+  openAccountsWorkspace();
+  expect(screen.getByRole("heading", { name: "Мои счета" })).toHaveFocus();
+  expect(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getAllByRole("button")).toHaveLength(4);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Профиль", exact: true })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Хранилище" }));
+  expect(screen.getByRole("heading", { name: "Хранилище", exact: true })).toHaveFocus();
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Все счета/ })).toBeInTheDocument();
+  expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "profile");
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(screen.getByRole("button", { name: "Открыть счёт: Хранилище" })).toHaveFocus();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(screen.getByRole("heading", { name: "Профиль", exact: true })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Быстрые настройки" })).toHaveFocus();
+});
+
+it("explicitly uses an inspected account and returns from profile to overview with that exact context", async () => {
+  await controlledHome();
+  fireEvent.click(screen.getByRole("button", { name: "Профиль", exact: true }));
+  openAccountsWorkspace();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  fireEvent.click(screen.getByRole("button", { name: "Выбрать счёт в кошельке" }));
+  expect(screen.queryByRole("region", { name: "Основной", exact: true })).toBeNull();
+  expect(screen.getByRole("button", { name: "Обзор", exact: true })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Основной/ })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Профиль", exact: true })).toBeNull();
+});
+
+it("enters the exact selected send route directly and restores its route button after closing the existing flow", async () => {
+  await controlledHome();
+  openAccountsWorkspace();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  const solana = screen.getByRole("button", { name: "Подготовить отправку USDC · Основной · Solana" });
+  const ethereum = screen.getByRole("button", { name: "Подготовить отправку USDC · Основной · Ethereum" });
+  solana.focus(); fireEvent.click(solana);
+  expect(screen.queryByRole("dialog", { name: "Выбрать размещение для отправки" })).toBeNull();
+  const recipient = await screen.findByRole("textbox", { name: "Получатель" });
+  expect(screen.getByRole("dialog", { name: "Отправить" })).toHaveTextContent("Solana");
+  fireEvent.change(recipient, { target: { value: "demo:kept" } });
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Отправить" }), { key: "Escape" });
+  await waitFor(() => expect(solana).toHaveFocus());
+  expect(ethereum).not.toHaveFocus();
+  expect(screen.getByRole("heading", { name: "Основной", exact: true })).toBeInTheDocument();
+  fireEvent.click(solana);
+  expect(await screen.findByRole("textbox", { name: "Получатель" })).toHaveValue("demo:kept");
+});
+
+it("opens an exact holding from profile inside the existing asset workspace and returns to its account row", async () => {
+  await controlledHome();
+  fireEvent.click(screen.getByRole("button", { name: "Профиль", exact: true }));
+  openAccountsWorkspace();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  const holding = screen.getByRole("button", { name: "Открыть актив: USD Coin · USDC · Solana" });
+  holding.focus(); fireEvent.click(holding);
+  expect(screen.getByRole("heading", { name: "USD Coin", exact: true })).toHaveFocus();
+  expect(screen.getByRole("region", { name: "USD Coin", exact: true })).toHaveTextContent("Solana");
+  fireEvent.click(screen.getByRole("button", { name: "Назад к активам" }));
+  expect(screen.getByRole("heading", { name: "Основной", exact: true })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Открыть актив: USD Coin · USDC · Solana" })).toHaveFocus();
+});
+
+it("clears the workspace when navigating to another or the already-active tab", async () => {
+  await controlledHome();
+  openAccountsWorkspace();
+  fireEvent.click(screen.getByRole("button", { name: "Обзор", exact: true }));
+  expect(screen.queryByRole("heading", { name: "Мои счета" })).toBeNull();
+  openAccountsWorkspace();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  fireEvent.click(screen.getByRole("button", { name: "История", exact: true }));
+  expect(screen.getByRole("heading", { name: "История операций" })).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Основной", exact: true })).toBeNull();
+  openAccountsWorkspace();
+  expect(screen.getByRole("heading", { name: "Мои счета" })).toHaveFocus();
+});
+
+it.each([
+  { label: "zero", snapshot: { fiatCurrency: "USD", accounts: [], holdings: [] } as ProductSnapshot, count: 0 },
+  { label: "one", snapshot: SINGLE_ACCOUNT_DEMO, count: 1 },
+])("keeps the menu destination usable for $label accounts without relying on the quick chooser", async ({ snapshot, count }) => {
+  await controlledHome("dark", { kind: "demo", snapshot });
+  const accounts = openAccountsWorkspace();
+  expect(within(accounts).queryAllByRole("button", { name: /Открыть счёт:/ })).toHaveLength(count);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  if (count === 0) expect(accounts).toHaveTextContent("Счетов пока нет.");
+  else {
+    fireEvent.click(within(accounts).getByRole("button", { name: "Открыть счёт: Основной" }));
+    expect(screen.getByRole("heading", { name: "Основной", exact: true })).toHaveFocus();
+  }
+});
+
+it("shares privacy with the real accounts list/details and keeps the supplied light appearance without theme controls", async () => {
+  const { container } = await controlledHome("light");
+  const { panel } = openSettings();
+  fireEvent.click(within(panel).getByRole("button", { name: "Скрывать суммы" }));
+  fireEvent.click(within(panel).getByRole("button", { name: "Мои счета" }));
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  const details = screen.getByRole("region", { name: "Основной", exact: true });
+  expect(details.textContent).not.toMatch(/500|400|1,1|0,12|12\s?840/);
+  expect(within(details).getAllByText("••••").length).toBeGreaterThan(3);
+  expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "light");
+  expect(screen.queryByRole("group", { name: "Тема оформления" })).toBeNull();
+  expect(screen.queryByText(/^(Тема|Светлая|Тёмная)$/)).toBeNull();
+});
+
+it("shows a removed account explicitly and backs to the list heading when its exact row no longer exists", async () => {
+  const wallet = await new MockWalletRepository().getSnapshot();
+  const envelope = createMonoAppearanceEnvelope("ledger");
+  let snapshot: Readonly<ProductSnapshot> = MULTI_ACCOUNT_DEMO;
+  const adapter: MonoProductAdapter = { kind: "demo", get snapshot() { return snapshot; } };
+  const scene = <MonoProductScene snapshot={wallet} productAdapter={adapter}
+    appearance={envelope.appearance} material={envelope.material} />;
+  const view = render(scene);
+  openAccountsWorkspace();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  snapshot = { ...MULTI_ACCOUNT_DEMO, accounts: MULTI_ACCOUNT_DEMO.accounts.filter(account => account.id !== "demo-custody"),
+    holdings: MULTI_ACCOUNT_DEMO.holdings.filter(holding => holding.accountId !== "demo-custody") };
+  view.rerender(<MonoProductScene snapshot={wallet} productAdapter={adapter}
+    appearance={envelope.appearance} material={envelope.material} />);
+  expect(screen.getByRole("heading", { name: "Счёт недоступен" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Подготовить отправку/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Назад к счетам" }));
+  expect(screen.getByRole("heading", { name: "Мои счета" })).toHaveFocus();
 });

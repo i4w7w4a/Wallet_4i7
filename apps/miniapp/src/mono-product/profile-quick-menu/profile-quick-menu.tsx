@@ -13,6 +13,7 @@ export type ProfileQuickMenuProps = {
   onThemeChange?(theme: "dark" | "light"): void;
   balanceHidden: boolean;
   onBalanceHiddenChange(hidden: boolean): void;
+  onOpenAccounts?(): void;
   onOpenHelp(): void;
   onDismiss(reason: ProfileQuickMenuDismissReason): void;
   motionEnabled?: boolean;
@@ -25,7 +26,7 @@ export function ProfileQuickMenu({ open, ...props }: ProfileQuickMenuProps) {
 }
 
 function OpenProfileQuickMenu({ id, anchorRef, balanceHidden, onBalanceHiddenChange,
-  onOpenHelp, onDismiss, motionEnabled = true }: Omit<ProfileQuickMenuProps, "open">) {
+  onOpenAccounts, onOpenHelp, onDismiss, motionEnabled = true }: Omit<ProfileQuickMenuProps, "open">) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const firstControl = useRef<HTMLButtonElement>(null);
@@ -115,6 +116,12 @@ function OpenProfileQuickMenu({ id, anchorRef, balanceHidden, onBalanceHiddenCha
         <span>Скрывать суммы</span>
         <span className={styles.toggle} data-checked={balanceHidden} aria-hidden="true" />
       </button>
+      {onOpenAccounts && <button type="button" className={styles.row} onClick={onOpenAccounts}>
+        <span>Мои счета</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+          <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>}
       <button type="button" className={`${styles.row} ${styles.help}`} onClick={onOpenHelp}>
         <span>Помощь</span>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">

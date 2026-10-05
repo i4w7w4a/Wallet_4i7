@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
   type ComponentProps, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefObject } from "react";
-import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
+import { resolveActionRoutes, type ChartPeriod, type ProductActionRoute, type WalletSnapshot } from "@wallet/core";
 import { MATERIAL_VIEWPORT_MOTION_REBASE_EVENT, MonoOpticalGlass, monoActionIconPath,
   type ButtonTargetId, type MonoGlassSettings, type MonoPaletteConfigV1, type MonoSharedOpticalHost } from "@wallet/ui";
 import { MonoLogo } from "./mono-logo";
@@ -26,9 +26,10 @@ import { MONO_EYE_DEFAULT, MONO_NAVIGATION_DEFAULT, type MonoEyeAppearance,
 import { ProductBalance, ProductContextLine, ProductHoldings } from "../mono-product/product-home";
 import { ProductOverlay } from "../mono-product/product-sheet";
 import { ProductAssetWorkspace } from "../mono-product/asset-workspace";
+import { ProductAccountsWorkspace } from "../mono-product/accounts-workspace";
 import { ProductGlassProvider } from "../mono-product/product-glass-surface";
 import { formatFiatMinor } from "../mono-product/product-format";
-import type { MonoProductController } from "../mono-product/product-controller";
+import { productRouteKey, type MonoProductController } from "../mono-product/product-controller";
 import { ProductHistory } from "../mono-product/product-history";
 import { ProductRecentActivity } from "../mono-product/product-recent-activity";
 import { ProductProfile, type ProductProfileOpenSectionRequest } from "../mono-product/product-profile";
@@ -116,6 +117,8 @@ const NAV_ITEMS = [
   { id: "profile", label: "Профиль", path: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" },
 ] as const;
 const DEFAULT_ACTION_ARTWORK = createDefaultActionArtworkMap();
+type AccountsFocusTarget = { kind: "title" } | { kind: "launcher" } | { kind: "context" }
+  | { kind: "account" | "holding" | "route"; id: string };
 
 const currencyFormatter = new Intl.NumberFormat("ru-RU", {
   minimumFractionDigits: 2,
@@ -161,8 +164,21 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const profileMenuVisible = Boolean(profileMenuOrigin && canOpenProfileMenu &&
     profileMenuOrigin.section === section && profileMenuOrigin.context === product?.view.context);
   if (profileMenuOrigin && !profileMenuVisible) setProfileMenuOrigin(null);
-  const assetWorkspace = section === "overview" || section === "assets" ? product?.view.assetWorkspace ?? null : null;
+  const accountsWorkspace = product?.view.accountsWorkspace ?? null;
+  const assetWorkspace = accountsWorkspace || section === "overview" || section === "assets" ? product?.view.assetWorkspace ?? null : null;
   const assetWorkspaceId = assetWorkspace?.assetId ?? null;
+  const accountsOrigin = useRef<MonoSection | null>(null);
+  const accountsFocusRequest = useRef<AccountsFocusTarget | null>(null);
+  const accountsChildReturn = useRef<AccountsFocusTarget | null>(null);
+  const accountsLive = useRef({ accountsWorkspace, assetWorkspace, section, active, sheet: product?.view.sheet });
+  accountsLive.current = { accountsWorkspace, assetWorkspace, section, active, sheet: product?.view.sheet };
+  const previousAccountsView = useRef({ accountsWorkspace, assetWorkspace, sheet: product?.view.sheet, ports: product?.view.flowPorts });
+  const allowedAccountActions = useMemo(() => {
+    const source = product?.view.snapshot, accountId = accountsWorkspace?.accountId;
+    if (!source || !accountId || source.accounts.filter(account => account.id === accountId).length !== 1) return [];
+    return (["receive", "send", "buy", "swap"] as const).flatMap(action =>
+      resolveActionRoutes(source, { kind: "account", accountId }, action).routes);
+  }, [product?.view.snapshot, accountsWorkspace?.accountId]);
   const setSection = session?.onSectionChange ?? setLocalSection;
   const period = session?.period ?? localPeriod;
   const setPeriod = session?.onPeriodChange ?? setLocalPeriod;
@@ -184,16 +200,52 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     return !product?.view.sheet;
   }
   function openProfile() {
-    if (!headerContextAllowed()) return;
+    if (!headerContextAllowed() || !leaveAccountsWorkspace()) return;
     setProfileMenuOrigin(null);
     setProfileSectionRequest(undefined);
     setSection("profile");
   }
   function openProfileHelp() {
-    if (!headerContextAllowed() || !product) return;
+    if (!headerContextAllowed() || !product || !leaveAccountsWorkspace()) return;
     setProfileMenuOrigin(null);
     setProfileSectionRequest({ section: "help", revision: ++profileRequestRevision.current });
     setSection("profile");
+  }
+  function leaveAccountsWorkspace() {
+    if (accountsWorkspace && !product?.commands.closeAccountsWorkspace()) return false;
+    accountsOrigin.current = null; accountsFocusRequest.current = null; accountsChildReturn.current = null;
+    return true;
+  }
+  function openAccountsWorkspace() {
+    if (!headerContextAllowed() || !product?.commands.openAccountsWorkspace()) return;
+    accountsOrigin.current = section; accountsFocusRequest.current = { kind: "title" }; accountsChildReturn.current = null;
+    setProfileMenuOrigin(null); setProfileSectionRequest(undefined);
+  }
+  function inspectAccount(accountId: string) {
+    if (active && product?.commands.inspectAccount(accountId)) accountsFocusRequest.current = { kind: "title" };
+  }
+  function backAccountsWorkspace() {
+    if (!active || !accountsWorkspace || !product?.commands.backAccountsWorkspace()) return;
+    accountsFocusRequest.current = accountsWorkspace.accountId === null
+      ? { kind: "launcher" } : { kind: "account", id: accountsWorkspace.accountId };
+    accountsChildReturn.current = null;
+  }
+  function useAccount(accountId: string) {
+    if (!active || !product?.commands.useAccount(accountId)) return;
+    accountsOrigin.current = null; accountsChildReturn.current = null;
+    accountsFocusRequest.current = { kind: "context" };
+    setSection("overview");
+  }
+  function openAccountRoute(route: ProductActionRoute) {
+    if (active && product?.commands.openAccountRoute(route)) {
+      accountsChildReturn.current = { kind: "route", id: productRouteKey(route) };
+    }
+  }
+  function openAccountHolding(holdingId: string) {
+    const accountId = accountsWorkspace?.accountId;
+    if (active && accountId && product?.commands.openAccountHolding(accountId, holdingId)) {
+      accountsChildReturn.current = { kind: "holding", id: holdingId };
+    }
   }
   const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
   const pageRef = useRef<HTMLElement>(null);
@@ -247,8 +299,59 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     }
   }, [assetWorkspaceId, section]);
 
+  useLayoutEffect(() => {
+    const previous = previousAccountsView.current;
+    previousAccountsView.current = { accountsWorkspace, assetWorkspace, sheet: product?.view.sheet, ports: product?.view.flowPorts };
+    if (!active || product?.view.sheet || assetWorkspace) return;
+    let target = accountsFocusRequest.current;
+    if (!target && accountsWorkspace) {
+      if (!previous.accountsWorkspace || previous.accountsWorkspace.accountId !== accountsWorkspace.accountId) target = { kind: "title" };
+      else if (previous.assetWorkspace || previous.sheet) target = accountsChildReturn.current ?? { kind: "title" };
+    }
+    if (!target && previous.accountsWorkspace && !accountsWorkspace && accountsOrigin.current !== null &&
+      previous.ports !== product?.view.flowPorts) target = { kind: "launcher" };
+    if (!target) return;
+    accountsFocusRequest.current = null;
+    const focusTarget = target;
+    const focus = () => {
+      const current = accountsLive.current, root = pageRef.current;
+      if (!root || !current.active || current.sheet || current.assetWorkspace ||
+        current.accountsWorkspace !== accountsWorkspace || current.section !== section) return;
+      let element: HTMLElement | null | undefined;
+      if (focusTarget.kind === "launcher") element = profileMenuAnchor.current;
+      else if (focusTarget.kind === "context") element = root.querySelector<HTMLElement>("[data-mono-product-context-trigger]")
+        ?? root.querySelector<HTMLElement>('.mono-nav__item[aria-current="page"]');
+      else if (focusTarget.kind !== "title") {
+        const attribute = focusTarget.kind === "account" ? "data-product-account-id"
+          : focusTarget.kind === "holding" ? "data-product-holding-id" : "data-product-account-route-key";
+        element = [...root.querySelectorAll<HTMLElement>(`[${attribute}]`)]
+          .find(candidate => candidate.getAttribute(attribute) === focusTarget.id && !candidate.closest("[hidden], [inert]"));
+      }
+      (element ?? root.querySelector<HTMLElement>("[data-mono-product-accounts-title]") ?? profileMenuAnchor.current)
+        ?.focus({ preventScroll: true });
+      if (!accountsWorkspace) accountsOrigin.current = null;
+    };
+    // Existing flow cleanup restores its own launcher in a microtask; the exact account origin wins afterwards.
+    if (previous.sheet) queueMicrotask(focus); else focus();
+  }, [accountsWorkspace, assetWorkspace, section, active, product?.view.sheet, product?.view.flowPorts]);
+
+  useEffect(() => {
+    if (!active || !accountsWorkspace || !product || profileMenuVisible || product.view.sheet) return;
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || event.isComposing ||
+        (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable='true']"))) return;
+      const origin = event.target;
+      if (origin instanceof Node && origin !== document && origin !== document.body && !pageRef.current?.contains(origin)) return;
+      event.preventDefault(); event.stopPropagation();
+      if (assetWorkspace) product.commands.closeAsset(); else backAccountsWorkspace();
+    };
+    document.addEventListener("keydown", keyboard);
+    return () => document.removeEventListener("keydown", keyboard);
+  });
+
   function openActivity(id: string) {
     if (!product || !product.commands.requestContextChange()) return;
+    if (!leaveAccountsWorkspace()) return;
     activityFocusRequest.current = id;
     product.commands.expandActivity(id);
     product.commands.closeSheet();
@@ -532,12 +635,18 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         </header>
         {product && <ProductContextLine {...product} />}
 
+        {product && accountsWorkspace && !assetWorkspace && <div className="mono-product-section" inert={!active}>
+          <ProductAccountsWorkspace snapshot={product.view.snapshot} selectedAccountId={accountsWorkspace.accountId}
+            context={product.view.context} balanceHidden={product.view.balanceHidden} allowedActions={allowedAccountActions}
+            onInspectAccount={inspectAccount} onBack={backAccountsWorkspace} onUseAccount={useAccount}
+            onOpenAction={openAccountRoute} onOpenHolding={openAccountHolding} />
+        </div>}
         {product && assetWorkspace && <div className="mono-product-section"><ProductAssetWorkspace
           view={product.view} assetId={assetWorkspace.assetId} selectedHoldingId={assetWorkspace.holdingId}
           onSelectHolding={product.commands.selectAssetHolding} onBack={product.commands.closeAsset}
           onPlacementAction={product.commands.openPlacementAction} onExpandActivity={product.commands.expandActivity}
           onRetryActivities={product.commands.retryActivities} /></div>}
-        {section === "overview" && !assetWorkspace && <>
+        {section === "overview" && !assetWorkspace && !accountsWorkspace && <>
         {product ? <section className="mono-hero">
           <div className="mono-scene-domain">
             <ProductBalance {...product} appearance={appearance.balance ?? MONO_BALANCE_LEGACY}
@@ -657,7 +766,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {fullScene && appearance.layout?.chartPosition === "bottom" && chart &&
           <div className="mono-scene-domain mono-scene-domain--chart">{chart}</div>}
         </>}
-        {section === "assets" && !assetWorkspace && <section className="mono-section-view" aria-labelledby="mono-all-assets-title">
+        {section === "assets" && !assetWorkspace && !accountsWorkspace && <section className="mono-section-view" aria-labelledby="mono-all-assets-title">
           <div className="mono-section-view__eyebrow">ПОРТФЕЛЬ / DEMO</div>
           <h1 id="mono-all-assets-title">Все активы</h1>
           <div className="mono-section-view__balance"><span>{product?.view.context.kind === "account" ? "Баланс счёта" :
@@ -672,7 +781,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <p className="mono-section-view__note">{product ? "Демонстрационные данные. Операции не выполняются."
             : "Демонстрационные данные. Операции недоступны."}</p>
         </section>}
-        {section === "history" && product && <div className="mono-product-section"><ProductHistory
+        {section === "history" && product && !accountsWorkspace && <div className="mono-product-section"><ProductHistory
           activities={product.view.activities} balanceHidden={product.view.balanceHidden}
           accountId={product.view.context.kind === "account" ? product.view.context.accountId : undefined}
           accountLabel={product.view.account?.label} expandedActivityId={product.view.expandedActivityId}
@@ -685,7 +794,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             <strong>История операций пока не подключена</strong>
             <p>Эта демо-сцена не загружает операции. Быстрые действия не совершают переводы.</p></div>
         </section>}
-        {section === "profile" && product && <div className="mono-product-section"><ProductProfile
+        {section === "profile" && product && !accountsWorkspace && <div className="mono-product-section"><ProductProfile
           profile={snapshot.profile} balanceHidden={product.view.balanceHidden}
           onBalanceHiddenChange={product.commands.setBalanceHidden}
           theme={theme} onThemeChange={session?.onThemeChange} openSectionRequest={profileSectionRequest} /></div>}
@@ -710,6 +819,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             aria-current={section === item.id ? "page" : undefined} key={item.id}
             onClick={() => {
               if (product && !product.commands.requestContextChange()) return;
+              if (!leaveAccountsWorkspace()) return;
               setProfileMenuOrigin(null);
               setProfileSectionRequest(undefined);
               setSection(item.id);
@@ -723,6 +833,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       {product && <ProfileQuickMenu id={profileMenuId} open={profileMenuVisible} anchorRef={profileMenuAnchor}
         theme={theme} onThemeChange={session?.onThemeChange} balanceHidden={product.view.balanceHidden}
         onBalanceHiddenChange={product.commands.setBalanceHidden} onOpenHelp={openProfileHelp} onDismiss={dismissProfileMenu}
+        onOpenAccounts={openAccountsWorkspace}
         motionEnabled={active && !effectsDisabled && !appearance.background?.calm} />}
       {product && <ProductOverlay {...product} onOpenActivity={openActivity} />}
         </main>

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { createRef } from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { createRef, useState } from "react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { createMonoOpticalHost } from "@wallet/ui";
 import { ProductGlassProvider } from "../product-glass-surface";
@@ -52,4 +52,24 @@ it("releases its shared optical target and removes closed controls immediately",
   expect(screen.queryByRole("dialog", { name: "Быстрые настройки", hidden: true })).toBeNull();
   expect(screen.queryByRole("button", { name: "Скрывать суммы", hidden: true })).toBeNull();
   expect(host.getRegions()).toHaveLength(0);
+});
+
+it("opens accounts from the anchored menu while keeping privacy as its first focus target", () => {
+  const anchorRef = createRef<HTMLButtonElement>();
+  function Host() {
+    const [accounts, setAccounts] = useState(false);
+    return <main data-mono-preview>
+      <button ref={anchorRef} data-profile-quick-menu-trigger>Настройки</button>
+      <ProfileQuickMenu id="settings" open={!accounts} anchorRef={anchorRef} theme="light" balanceHidden={false}
+        onBalanceHiddenChange={() => {}} onOpenAccounts={() => setAccounts(true)}
+        onOpenHelp={() => {}} onDismiss={() => {}} />
+      {accounts && <h1>Мои счета</h1>}
+    </main>;
+  }
+  render(<Host />);
+  expect(screen.getByRole("button", { name: "Скрывать суммы" })).toHaveFocus();
+  expect(screen.queryByText(/^(Тема|Светлая|Тёмная)$/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Мои счета" }));
+  expect(screen.getByRole("heading", { name: "Мои счета" })).toBeInTheDocument();
+  expect(screen.queryByRole("dialog", { name: "Быстрые настройки" })).toBeNull();
 });
