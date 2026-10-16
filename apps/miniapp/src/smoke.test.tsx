@@ -2,10 +2,15 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DEFAULT_THEME, DEFAULT_VISUAL_EFFECTS } from "@wallet/core";
+import { DEFAULT_THEME, DEFAULT_VISUAL_EFFECTS, MockWalletRepository } from "@wallet/core";
 import { THEME_STORAGE_KEY, VISUAL_EFFECTS_STORAGE_KEY } from "@wallet/ui";
 
-import Page from "../app/page";
+import { AppProviders } from "./app-providers";
+
+// V1 remains testable directly while the public root temporarily leads to MONO.
+async function legacyPage() {
+  return <AppProviders snapshot={await new MockWalletRepository().getSnapshot()} />;
+}
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -30,7 +35,7 @@ afterEach(() => {
 
 describe("страница miniapp", () => {
   it("загружает mock-снимок и показывает интерактивный Dashboard", async () => {
-    render(await Page());
+    render(await legacyPage());
 
     expect(await screen.findByRole("region", { name: "Баланс" })).toBeVisible();
     expect(document.querySelector("[data-wallet-visual-layer]")).toHaveAttribute(
@@ -50,7 +55,7 @@ describe("страница miniapp", () => {
       JSON.stringify({ ...DEFAULT_THEME, accent: "#ff37d1" }),
     );
 
-    render(await Page());
+    render(await legacyPage());
 
     await screen.findByRole("region", { name: "Баланс" });
     expect(document.querySelector("[data-theme-root]")).toHaveStyle({
@@ -59,7 +64,7 @@ describe("страница miniapp", () => {
   });
 
   it("останавливает Web Threads, когда вкладка становится скрытой", async () => {
-    render(await Page());
+    render(await legacyPage());
     await screen.findByRole("region", { name: "Баланс" });
 
     Object.defineProperty(document, "visibilityState", {
@@ -84,7 +89,7 @@ describe("страница miniapp", () => {
       value: { saveData: true },
     });
 
-    render(await Page());
+    render(await legacyPage());
     await screen.findByRole("region", { name: "Баланс" });
 
     expect(document.querySelector("[data-wallet-visual-layer]")).toHaveAttribute(
@@ -104,7 +109,7 @@ describe("страница miniapp", () => {
       JSON.stringify({ ...DEFAULT_VISUAL_EFFECTS, threadCount: 9 }),
     );
 
-    render(await Page());
+    render(await legacyPage());
     await screen.findByRole("region", { name: "Баланс" });
     fireEvent.click(screen.getByRole("button", { name: "Студия темы" }));
     fireEvent.click(screen.getByText("Web Threads Lab"));
@@ -124,7 +129,7 @@ describe("страница miniapp", () => {
       },
     });
 
-    render(await Page());
+    render(await legacyPage());
 
     expect(await screen.findByText("Liquid Holder")).toBeVisible();
     expect(document.querySelector('[data-platform="telegram"]')).toBeInTheDocument();

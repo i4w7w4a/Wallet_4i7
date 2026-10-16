@@ -1,0 +1,18 @@
+.entry { display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0; min-height: 44px; margin-bottom: 10px; padding: 7px 0; border: 0; border-radius: 6px; background: transparent; color: var(--mono-text, #f4f4f4); text-align: left; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.logos { display: flex; flex: 0 0 auto; align-items: center; gap: 3px; color: var(--mono-text-secondary, #bdbdbd); }
+.logo { flex: 0 0 26px; width: 26px; height: 26px; }
+.copy { display: grid; flex: 1 1 auto; min-width: 0; gap: 3px; overflow-wrap: anywhere; }
+.headline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; }
+.copy strong { font: var(--mono-font-weight-medium, 500) 13px/1.35 var(--mono-type-body-family, var(--mono-font-ui, sans-serif)); }
+.demo { color: var(--mono-text-secondary, #bdbdbd); font: 12px/1.4 var(--mono-type-body-family, var(--mono-font-ui, sans-serif)); }
+.recognizer { font: var(--mono-font-weight-medium, 500) 14px/1.4 var(--mono-type-body-family, var(--mono-font-ui, sans-serif)); }
+.context { color: var(--mono-text-secondary, #bdbdbd); font: 12px/1.45 var(--mono-type-body-family, var(--mono-font-ui, sans-serif)); }
+.chevron { flex: 0 0 14px; width: 14px; height: 14px; margin-left: auto; color: var(--mono-text-secondary, #bdbdbd); }
+.entry:focus-visible, .retry:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 3px; }
+.entry:active, .retry:active { background: var(--mono-surface-high, #25272e); }
+.entry:disabled, .retry:disabled { cursor: default; }
+.state { margin: 0 0 10px; color: var(--mono-text-secondary, #bdbdbd); font: 13px/1.45 var(--mono-type-body-family, var(--mono-font-ui, sans-serif)); }
+.unavailable { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 10px; }
+.unavailable .state { flex: 1 1 180px; margin: 0; }
+.retry { min-width: 44px; min-height: 44px; padding: 6px; border: 0; border-radius: 6px; background: transparent; color: var(--mono-text, #f4f4f4); font: inherit; font-size: 13px; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .entry:hover:not(:disabled), .retry:hover:not(:disabled) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 4%, transparent); } }

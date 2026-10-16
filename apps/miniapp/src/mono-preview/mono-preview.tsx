@@ -74,6 +74,7 @@ import { createMonoAppearanceFromDocument, type MonoExtendedAppearance } from ".
 import { createMonoShareUrl } from "./mono-share-codec";
 import { MonoShareButton } from "./mono-share-button";
 import { MonoPublishedPresetControls } from "./mono-published-controls";
+import { MonoPreviewSource } from "./mono-preview-source";
 
 import "./mono-workbench.css";
 import "./mono-shape-tuner.css";
@@ -1003,7 +1004,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         aria-label="Быстрые настройки" aria-hidden={quickRailHidden} inert={quickRailHidden}
         role={compactChrome && mobileRail === "quick" ? "dialog" : undefined}
         aria-modal={compactChrome && mobileRail === "quick" ? true : undefined}>
-        <div className="mono-rail__head"><div><span>WORKSPACE</span><strong>MONO</strong></div><a href="/">V1 ↗</a></div>
+        <div className="mono-rail__head"><div><span>WORKSPACE</span><strong>MONO</strong></div></div>
+        <MonoPreviewSource />
         <a className="mono-rail__lab-entry" href="/design-lab">Design Lab · Фоны и кнопки ↗</a>
         <MonoWorkingPresetBar key={workingLibrary?.activeSlot ?? "baseline"}
           ready={workingReady}
@@ -1182,7 +1184,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           active={hostActive}
           session={{ balanceHidden: sceneBalanceHidden, onBalanceHiddenChange: setSceneBalanceHidden,
             period: scenePeriod, onPeriodChange: setScenePeriod,
-            section: sceneSection, onSectionChange: setSceneSection }}
+            section: sceneSection, onSectionChange: setSceneSection,
+            onThemeChange: nextTheme => { if (theme !== nextTheme) colorLab.switchTheme(nextTheme); } }}
           paletteTransitionEnabled={colorLab.workspace.compare === null} quickActionPreset={quickActionPreset} />
       </div>
       <dialog ref={trialDialogRef} className="mono-trial-guard" aria-label="Неприменённые пробы"

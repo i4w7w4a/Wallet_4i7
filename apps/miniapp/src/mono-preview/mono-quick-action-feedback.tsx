@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type 
 
 import { magneticOffset, type ControlFeedbackPreset } from "../design-lab/control-feedback-model";
 import type { ButtonTargetId } from "@wallet/ui";
+import { WalletIcon } from "../../../../packages/ui/src/icons/wallet-icon";
 import { MonoActionArtwork } from "./action-artwork/mono-action-artwork";
 import type { MonoActionArtworkV1 } from "./action-artwork/model";
 
@@ -19,6 +20,11 @@ type Props = {
   path: string;
   preset: QuickActionFeedback;
   onActivate: () => void;
+  accessibleLabel?: string;
+  productPrimary?: boolean;
+  productAction?: boolean;
+  productReceiveExpanded?: boolean;
+  productSendExpanded?: boolean;
   materialTargetId?: ButtonTargetId;
   materialRadiusCss?: number;
   actionId?: ButtonTargetId;
@@ -27,7 +33,8 @@ type Props = {
   manualPreviewTrigger?: number;
 };
 
-export function MonoQuickActionFeedback({ label, path, preset, onActivate, materialTargetId, materialRadiusCss,
+export function MonoQuickActionFeedback({ label, path, preset, onActivate, accessibleLabel, productPrimary, productAction, productReceiveExpanded, productSendExpanded,
+  materialTargetId, materialRadiusCss,
   actionId, artwork, active = true, manualPreviewTrigger = 0 }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [keyboardPressed, setKeyboardPressed] = useState(false);
@@ -104,10 +111,16 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, mater
 
   return (
     <button className="mono-actions__item" type="button" data-control-effect={effectId}
+      data-product-primary={productPrimary || undefined}
+      data-mono-product-action={productAction || undefined}
+      data-mono-product-receive-trigger={productReceiveExpanded !== undefined || undefined}
+      data-mono-product-send-trigger={productSendExpanded !== undefined || undefined}
+      aria-haspopup={productReceiveExpanded !== undefined || productSendExpanded !== undefined ? "dialog" : undefined}
+      aria-expanded={productReceiveExpanded ?? productSendExpanded}
       data-material-target={materialTargetId}
       data-key-pressed={keyboardPressed}
       data-artwork-pack={artwork?.packId}
-      style={style} aria-label={`${label} — демо, операция недоступна`} onClick={() => { pulse(); onActivate(); }}
+      style={style} aria-label={accessibleLabel ?? `${label} — демо, операция недоступна`} onClick={() => { pulse(); onActivate(); }}
       onPointerEnter={fineEnter} onFocus={keyboardFocus}
       onPointerMove={move} onPointerLeave={reset} onPointerCancel={reset}
       onKeyDown={keyDown} onKeyUp={() => setKeyboardPressed(false)}
@@ -115,6 +128,10 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, mater
       <span className="mono-actions__icon" aria-hidden="true">
         {artwork && artwork.packId !== "original" && actionId
           ? <MonoActionArtwork key={artwork.packId} actionId={actionId} config={artwork} active={active} trigger={energyTrigger} />
+          : productAction && actionId === "quick.send" ? <>
+            <WalletIcon name="send" className="mono-actions__product-send" />
+            <svg className="mono-actions__material-send" viewBox="0 0 24 24"><path d={path} /></svg>
+          </>
           : <svg viewBox="0 0 24 24"><path d={path} /></svg>}
       </span>
       <span className="mono-actions__label" style={labelStyle}>{label}</span>

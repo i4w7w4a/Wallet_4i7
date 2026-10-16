@@ -1,0 +1,236 @@
+/* Gold's content material: smoked glass over the live optical atmosphere.
+   Blur belongs to this surface, never to readable text or financial values. */
+.mono-viewer.mono-gold-viewer { background: #0d0d0d; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-theme="dark"] {
+  --gold-smoke: rgb(25 25 24 / 78%);
+  --gold-smoke-top: rgb(64 62 56 / 36%);
+  --gold-edge: rgb(230 214 176 / 16%);
+  --gold-edge-light: rgb(255 242 210 / 24%);
+  --gold-content-radius: 26px;
+  --gold-glass-fill: linear-gradient(152deg, var(--gold-smoke-top), transparent 56%), var(--gold-smoke);
+  --gold-glass-shadow: inset 0 1px 0 rgb(255 245 220 / 7%), inset 0 -1px 0 rgb(255 255 255 / 2%), 0 16px 44px rgb(0 0 0 / 13%);
+  --gold-glass-blur: blur(18px) saturate(112%);
+  --mono-canvas: #0e0f0f;
+  --mono-surface: #20201f;
+  --mono-surface-high: #2b2a27;
+  --mono-text: #f4f2ec;
+  --mono-text-secondary: #c1beb5;
+  --mono-text-muted: #aeaba3;
+  --mono-rule: rgb(225 214 187 / 15%);
+  background: var(--mono-canvas);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene {
+  padding: max(18px, env(safe-area-inset-top)) 18px calc(116px + env(safe-area-inset-bottom));
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-app-header {
+  position: relative; z-index: 2; min-height: 50px; margin: 0 4px 22px;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-app-header::before {
+  content: ""; position: absolute; z-index: -1; inset: -20px -22px -18px; pointer-events: none;
+  background: linear-gradient(#101110b8, #10111048 62%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  mask-image: linear-gradient(#000 55%, transparent);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-app-header__mark { width: 108px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-support-trigger {
+  width: 44px; height: 44px; border-radius: 50%; color: var(--mono-gold-light);
+  background: rgb(239 222 180 / 5%); box-shadow: inset 0 1px 0 rgb(255 239 202 / 9%);
+}
+
+/* One quiet plane for each information group; rows share that plane. */
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(
+  .mono-gold-account-deck, .mono-product-funds, .mono-product-recent,
+  .mono-section-view__balance, [data-mono-product-accounts-workspace] > ul,
+  [data-mono-product-asset-workspace] > div:not(:last-child),
+  [data-profile-groups], [data-profile-panel]) {
+  border: 1px solid var(--gold-edge); border-radius: var(--gold-content-radius);
+  background: var(--gold-glass-fill); box-shadow: var(--gold-glass-shadow);
+  -webkit-backdrop-filter: var(--gold-glass-blur); backdrop-filter: var(--gold-glass-blur);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-hero { margin-top: 0; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck {
+  padding: 16px 16px 12px; min-width: 0; text-align: center;
+  background: linear-gradient(144deg, rgb(99 88 65 / 20%), transparent 45%), linear-gradient(180deg, rgb(38 38 35 / 64%), rgb(20 21 20 / 66%));
+}
+.mono-gold-account-deck__selector { max-width: 100%; overflow-x: auto; scrollbar-width: none; border-radius: 999px; }
+.mono-gold-account-deck__selector::-webkit-scrollbar { display: none; }
+.mono-gold-account-deck__track {
+  position: relative; display: grid; grid-template-columns: repeat(var(--mono-gold-account-count, 3), minmax(92px, 1fr));
+  min-width: 100%; width: max-content; padding: 4px; border: 1px solid rgb(239 224 188 / 14%);
+  border-radius: 999px; background: rgb(10 11 11 / 40%); box-sizing: border-box; isolation: isolate;
+}
+.mono-gold-account-deck__indicator {
+  position: absolute; z-index: -1; top: 4px; bottom: 4px; left: 4px;
+  width: calc((100% - 8px) / var(--mono-gold-account-count, 3));
+  transform: translateX(calc(var(--mono-gold-account-index, 0) * 100%));
+  border: 1px solid rgb(255 231 174 / 20%); border-radius: 999px;
+  background: linear-gradient(150deg, rgb(180 155 99 / 22%), rgb(92 85 65 / 27%));
+  box-shadow: inset 0 1px 0 rgb(255 248 222 / 11%), 0 3px 10px rgb(0 0 0 / 16%);
+}
+.mono-gold-account-deck__account {
+  min-width: 0; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--mono-text-secondary); cursor: pointer;
+  font: 500 13px/1.3 var(--mono-font-ui, sans-serif); white-space: nowrap;
+}
+.mono-gold-account-deck__account[aria-pressed="true"] { color: #f7e9c4; }
+.mono-gold-account-deck__account:disabled { cursor: default; opacity: .62; }
+.mono-gold-account-deck__context-note { margin: 14px 0 0; color: var(--mono-text-secondary); font-size: 12px; line-height: 1.45; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance {
+  padding: 22px 0 6px; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance__heading {
+  position: relative; display: flex; justify-content: center; min-height: 26px; padding-inline: 40px;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance__heading h1 {
+  color: var(--mono-text-secondary); font-size: 12px; font-weight: 400; line-height: 1.5;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance__privacy {
+  position: absolute; right: 0; top: -10px; min-width: 44px; min-height: 44px;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-product-balance-row {
+  display: flex; justify-content: center;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance__amount {
+  width: 100%; text-align: center; line-height: 1.2; margin-block: 4px 6px;
+  font-size: min(clamp(32px, 10.8cqw, 52px), calc((100cqw - 80px) / var(--mono-balance-fit, 9))); font-weight: 500; letter-spacing: -.045em;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-product-balance-footer { justify-content: center; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-product-balance-note {
+  margin: 0; font-size: 11px; line-height: 1.5;
+}
+.mono-gold-account-deck__accounts {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px;
+  margin: 7px auto 14px; padding: 8px 19px; border: 1px solid var(--gold-edge-light); border-radius: 999px;
+  color: var(--mono-text); background: linear-gradient(150deg, rgb(255 246 221 / 11%), rgb(255 238 195 / 3%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%); font: 500 13px/1.3 var(--mono-font-ui, sans-serif); cursor: pointer;
+}
+.mono-gold-account-deck__accounts svg { width: 18px; height: 18px; color: var(--mono-gold-light); fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.mono-gold-account-deck__pins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 9px; border-top: 1px solid var(--mono-rule); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__pins .mono-product-overview__pin {
+  padding: 8px 6px; text-align: left; min-height: 52px; border-radius: 14px;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__pins .mono-product-overview__group { font-size: 11px; }
+
+/* Four deliberate controls on their own small optical discs. */
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene > .mono-actions { margin-top: 16px; margin-bottom: 24px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__item { min-height: 88px; gap: 8px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__icon {
+  width: 50px; height: 50px; color: #eddbab; border: 1px solid rgb(239 219 173 / 23%);
+  background: linear-gradient(145deg, rgb(244 224 179 / 14%), rgb(164 138 86 / 6%));
+  box-shadow: inset 0 1px 0 rgb(255 249 229 / 16%), 0 5px 15px rgb(0 0 0 / 15%);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__label { font-size: 12px; color: var(--mono-text); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__status { padding-top: 3px; opacity: .9; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds { margin-top: 16px; padding: 5px 16px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__heading { min-height: 58px; padding: 10px 0; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__title { font-size: 17px; font-weight: 500; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__list { margin: 0; padding: 0; gap: 0; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__list > li {
+  padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__list > li + li { border-top: 1px solid var(--mono-rule); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__asset { min-height: 76px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__asset-entry { border-radius: 14px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-recent { margin-top: 16px; padding: 12px 16px 4px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] [data-product-pending-trigger] {
+  min-height: 80px; margin-bottom: 10px; padding: 10px 0 14px; border-bottom: 1px solid var(--mono-rule); border-radius: 0;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-recent > section { padding: 0; margin: 0; border: 0; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-recent h2 { font-size: 13px; font-weight: 500; color: var(--mono-text-secondary); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-recent [data-history-interactive] { border-top: 0; min-height: 92px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-promo-frame { margin-top: 22px; border-radius: 22px; }
+
+/* The same content material follows the user into assets, accounts and history. */
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-section-view__balance { padding: 18px; margin-block: 18px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] [data-mono-product-accounts-workspace] > ul { padding: 6px 12px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] [data-product-account-id] { min-height: 86px; background: transparent; border-radius: 16px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] [data-mono-product-asset-workspace] > div:not(:last-child) { padding: 16px; margin-block: 16px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] section:has(> ol > li > [data-history-interactive]) > ol {
+  padding: 6px 14px; border: 1px solid var(--gold-edge); border-radius: 24px;
+  background: var(--gold-glass-fill); box-shadow: var(--gold-glass-shadow);
+  -webkit-backdrop-filter: var(--gold-glass-blur); backdrop-filter: var(--gold-glass-blur);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] [data-direction-filter] { min-height: 44px; border-radius: 999px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is([data-history-status-trigger], [data-mono-product-context-trigger]) {
+  border-radius: 999px; background: rgb(244 231 201 / 7%); border: 1px solid var(--gold-edge); padding: 8px 12px;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] [data-profile-groups] { padding: 4px 14px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] [data-profile-panel] { padding: 16px; margin-top: 16px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] section:has(> [data-profile-title]) > div:has(> div > h2) {
+  padding: 4px 14px; border: 1px solid var(--gold-edge); border-radius: 24px; background: var(--gold-glass-fill);
+  -webkit-backdrop-filter: var(--gold-glass-blur); backdrop-filter: var(--gold-glass-blur);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-glass[data-product-glass] {
+  --mono-panel-veil: rgb(27 28 26 / 84%);
+  background: linear-gradient(145deg, rgb(174 161 131 / 14%), transparent 48%), var(--mono-panel-veil);
+  border: 1px solid rgb(237 220 179 / 24%); box-shadow: inset 0 1px 0 rgb(255 243 214 / 13%), 0 22px 70px rgb(0 0 0 / 38%);
+  -webkit-backdrop-filter: blur(24px) saturate(110%); backdrop-filter: blur(24px) saturate(110%);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-sheet__panel { border-radius: 28px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-product-sheet-scrim, .mono-product-sheet__scrim) { background: rgb(4 5 5 / 45%); }
+
+/* Floating navigation: one shared capsule, quiet solid marker and no growing layout. */
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav {
+  width: min(calc(100% - 24px), 452px); min-height: 72px;
+  bottom: max(12px, env(safe-area-inset-bottom)); padding: 5px;
+  border: 1px solid rgb(231 217 184 / 22%); border-radius: 30px;
+  background: linear-gradient(160deg, rgb(57 56 51 / 61%), rgb(18 19 18 / 80%));
+  box-shadow: inset 0 1px 0 rgb(255 245 215 / 10%), 0 12px 36px rgb(0 0 0 / 38%);
+  -webkit-backdrop-filter: blur(22px) saturate(115%); backdrop-filter: blur(22px) saturate(115%);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__item { min-height: 60px; padding: 8px 3px; gap: 5px; border-radius: 24px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__item[data-active="true"] {
+  background: linear-gradient(150deg, rgb(219 195 139 / 17%), rgb(170 144 89 / 8%));
+  box-shadow: inset 0 1px 0 rgb(255 235 185 / 12%); color: #f1dfb0;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__indicator { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .mono-gold-account-deck__indicator { transition: transform 360ms cubic-bezier(.22, .7, .16, 1); }
+  .mono-gold-account-deck__account, .mono-gold-account-deck__accounts {
+    transition: color 160ms ease-out, background-color 190ms ease-out, box-shadow 190ms ease-out;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .mono-gold-account-deck__accounts:hover { background-color: rgb(232 201 131 / 9%); box-shadow: inset 0 1px 0 rgb(255 249 229 / 17%), 0 0 22px rgb(197 158 72 / 9%); }
+  .mono-gold-account-deck__account:hover { color: #f3e5c5; }
+}
+.mono-gold-account-deck__accounts:active { background-color: rgb(222 186 107 / 15%); }
+.mono-gold-account-deck__account:focus-visible, .mono-gold-account-deck__accounts:focus-visible { outline: 2px solid var(--mono-gold-light); outline-offset: -3px; }
+@container mono-preview (max-width: 359px) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene { padding-inline: 12px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck { padding-inline: 10px; }
+  .mono-gold-account-deck__track { grid-template-columns: repeat(var(--mono-gold-account-count, 3), minmax(82px, 1fr)); }
+  .mono-gold-account-deck__account { padding-inline: 8px; font-size: 12px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-product-funds, .mono-product-recent) { padding-inline: 12px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__icon { width: 46px; height: 46px; }
+}
+/* Keep all content present and legible in the same geometry without optical effects. */
+.mono-gold-viewer[data-gold-effects="off"] .mono-page[data-mono-presentation="gold"] {
+  --gold-smoke: #20211f; --gold-smoke-top: transparent; --gold-glass-blur: none;
+}
+.mono-gold-viewer[data-gold-effects="off"] .mono-page[data-mono-presentation="gold"] :is(.mono-gold-account-deck, .mono-nav, .mono-actions__icon, .mono-product-glass[data-product-glass]),
+.mono-gold-viewer[data-gold-effects="off"] .mono-page[data-mono-presentation="gold"] .mono-app-header::before {
+  background: #20211f; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-glass[data-product-glass="opaque"] {
+  background: #242522; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] { --gold-smoke: #20211f; --gold-smoke-top: transparent; --gold-glass-blur: none; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-gold-account-deck, .mono-nav, .mono-actions__icon, .mono-product-glass[data-product-glass]),
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-app-header::before {
+    background: #20211f; -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) { .mono-gold-account-deck__indicator { transition: none; } }
+@media (forced-colors: active) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] {
+    --gold-smoke: Canvas; --gold-smoke-top: transparent; --gold-glass-blur: none; --gold-edge: CanvasText; --gold-edge-light: CanvasText;
+    --mono-canvas: Canvas; --mono-text: CanvasText; --mono-text-secondary: CanvasText; --mono-text-muted: GrayText; --mono-rule: CanvasText;
+  }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-gold-account-deck, .mono-nav, .mono-actions__icon, .mono-product-glass[data-product-glass]) { background: Canvas; color: CanvasText; box-shadow: none; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__item[data-active="true"] { background: Highlight; color: HighlightText; box-shadow: none; }
+  .mono-gold-account-deck__account[aria-pressed="true"] { color: HighlightText; background: Highlight; }
+}

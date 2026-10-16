@@ -1,9 +1,5 @@
-import { MockWalletRepository } from "@wallet/core";
+import { redirect } from "next/navigation";
 
-import { AppProviders } from "../src/app-providers";
-
-export default async function Page() {
-  const snapshot = await new MockWalletRepository().getSnapshot();
-
-  return <AppProviders snapshot={snapshot} />;
+export default function Page() {
+  redirect("/mono");
 }

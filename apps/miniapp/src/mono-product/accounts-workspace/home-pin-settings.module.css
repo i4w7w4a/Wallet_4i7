@@ -1,0 +1,26 @@
+.pinSettings { min-width: 0; margin: 0; padding: 0; border: 0; color: var(--mono-text, #f4f4f4); font: 14px/1.45 var(--mono-type-body-family, var(--mono-font-ui, sans-serif)); }
+.pinSettings, .pinSettings * { box-sizing: border-box; }
+.pinSettings legend { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.pinChoices { display: grid; margin-top: 12px; }
+.pinChoice { display: grid; grid-template-columns: 24px minmax(0, 1fr) 18px; align-items: center; gap: 12px; min-height: 52px; min-width: 0; padding: 8px 6px; border-radius: 8px; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.pinChoice span { min-width: 0; overflow-wrap: anywhere; }
+.icon { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; color: var(--mono-text-secondary, #bdbdbd); }
+.pinChoice input { width: 18px; height: 18px; margin: 0; accent-color: var(--mono-text, #f4f4f4); }
+.pinChoice input:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 4px; }
+.pinChoice:has(input:focus-visible) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 5%, transparent); }
+.copy { display: grid; gap: 3px; }
+.copy small, .modeHint, .pinHint { color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; font-weight: var(--mono-font-weight-regular, 400); line-height: 1.5; }
+.modeHint { margin: 4px 6px 0; }
+.pinHint { margin: 12px 6px 0; }
+.pinChoice[data-unavailable="true"] { color: var(--mono-text-secondary, #bdbdbd); cursor: default; }
+.pinChoice:active:not([data-unavailable="true"]) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); }
+@media (hover: hover) and (pointer: fine) {
+  .pinChoice:hover:not(:active):not([data-unavailable="true"]) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 4%, transparent); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :global([data-mono-motion="ready"]) .pinChoice { transition: background-color 190ms var(--mono-product-motion-ease, cubic-bezier(.2, 0, 0, 1)); }
+  :global([data-mono-motion="ready"]) .pinChoice:active { transition-duration: 80ms; }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  :global([data-mono-motion="ready"]) .pinChoice:hover:not(:active) { transition-duration: 90ms; }
+}

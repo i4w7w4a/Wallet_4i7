@@ -1,0 +1,6 @@
+index.html -text
+styles.css -text
+app.js -text
+assets/novex-logo.svg -text whitespace=cr-at-eol
+assets/manrope-variable.woff2 -text
+assets/OFL-Manrope.txt -text -whitespace
