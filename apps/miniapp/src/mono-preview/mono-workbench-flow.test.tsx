@@ -44,6 +44,7 @@ function blockWorkingWrites() {
   });
 }
 
+// The full DOM recovery sequence can exceed Vitest's 5s default on CI.
 it("recovers a failed Apply only through its inspector without accepting other trials or overwriting later saves", async () => {
   seedHiddenChart();
   await start();
@@ -75,7 +76,7 @@ it("recovers a failed Apply only through its inspector without accepting other t
   expect(screen.getByText("Сохранено в этом браузере")).toBeVisible();
   tool("Активы");
   expect(screen.getByLabelText("Оформление активов")).toHaveValue("tiles");
-});
+}, 10_000);
 
 it("does not resurrect a cancelled failed Apply after switching and saving another preset", async () => {
   seedHiddenChart();
