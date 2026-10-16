@@ -98,6 +98,7 @@
   outline: 2px solid var(--mono-gold-light); outline-offset: 3px;
 }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-funds-entry {
+  order: 6; /* Existing product funds slot; pending follows in DOM order. */
   display: flex; align-items: center; gap: 12px; box-sizing: border-box; width: 100%; min-height: 66px; margin: 0; padding: 14px 18px;
   color: var(--mono-text); font: 500 16px/1.4 var(--mono-font-ui, sans-serif); text-align: left; cursor: pointer;
 }

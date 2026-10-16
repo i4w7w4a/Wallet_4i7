@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { readFileSync } from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockWalletRepository } from "@wallet/core";
 import { resolveMonoPalette, validateMonoPaletteApply } from "@wallet/ui";
@@ -186,4 +187,43 @@ it("balance dynamics memory preference resets to off when the Gold viewer remoun
   expect(screen.queryByRole("region", { name: "График баланса" })).toBeNull();
   expect(within(openBalanceDynamicsSettings()).getByRole("switch", { name: "Динамика баланса" }))
     .toHaveAttribute("aria-checked", "false");
+});
+
+it.each([
+  { chartPosition: "top" as const, dynamics: false },
+  { chartPosition: "top" as const, dynamics: true },
+  { chartPosition: "bottom" as const, dynamics: true },
+])("Gold keeps Funds after actions and before pending with chart $chartPosition / $dynamics", async ({ chartPosition, dynamics }) => {
+  // Exercise the shipped CSS order contract, not jsdom's nonexistent layout geometry.
+  const style = document.createElement("style");
+  style.textContent = ["./mono-preview.css", "../mono-product/product-home.css", "./mono-gold-smoked-glass.css"]
+    .map(path => readFileSync(new URL(path, import.meta.url), "utf8")).join("\n");
+  document.head.append(style);
+  try {
+    const snapshot = await new MockWalletRepository().getSnapshot();
+    const appearance = { ...MONO_GOLD_ENVELOPE.appearance, layout: { chartPosition } };
+    const view = render(<div className="mono-gold-viewer"><MonoProductScene {...fixedGoldHost} snapshot={snapshot}
+      appearance={appearance} material={MONO_GOLD_ENVELOPE.material} effectsDisabled
+      balanceDynamics={{ enabled: dynamics, onChange() {} }} /></div>);
+    await waitFor(() => expect(view.container.querySelector(".mono-scene")).toBeInTheDocument());
+    const scene = view.container.querySelector<HTMLElement>(".mono-scene")!;
+    const balance = scene.querySelector<HTMLElement>(".mono-hero")!;
+    const actions = scene.querySelector<HTMLElement>(".mono-actions")!;
+    const funds = screen.getByRole("button", { name: "Мои средства" });
+    const pending = scene.querySelector<HTMLElement>(".mono-product-recent")!;
+    const order = (element: HTMLElement) => Number(getComputedStyle(element).order || 0);
+    expect(getComputedStyle(scene).display).toBe("flex");
+    expect(order(balance)).toBeLessThan(order(actions));
+    expect(order(actions)).toBeLessThan(order(funds));
+    expect(order(funds)).toBeLessThanOrEqual(order(pending));
+    expect(funds.compareDocumentPosition(pending) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    const chart = scene.querySelector<HTMLElement>(".mono-scene-domain--chart");
+    if (!dynamics) expect(chart).toBeNull();
+    else if (chartPosition === "top") {
+      expect(order(chart!)).toBeGreaterThan(order(actions));
+      expect(order(chart!)).toBeLessThan(order(funds));
+    } else expect(order(chart!)).toBeGreaterThan(order(pending));
+  } finally {
+    style.remove();
+  }
 });
