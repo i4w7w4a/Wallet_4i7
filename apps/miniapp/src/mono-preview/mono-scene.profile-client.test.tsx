@@ -15,6 +15,7 @@ beforeEach(() => {
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
     if (this.hasAttribute("data-mono-preview")) return new DOMRect(0, 0, 390, 900);
     if (this.classList.contains("mono-nav")) return new DOMRect(0, 700, 390, 68);
+    if (this.hasAttribute("data-profile-quick-menu-trigger")) return new DOMRect(300, 710, 68, 48);
     return new DOMRect();
   });
 });
@@ -61,10 +62,18 @@ function expectSavedProfile(scene: HTMLElement) {
 // Catches a conditional/local-only session, resolved edits fed back as source, or divergent header identity.
 it("keeps saved Profile identity through Gold Overview and exact Accounts/Asset avatar returns", async () => {
   const view = await renderProfileHost();
-  const choose = (label: string) => fireEvent.click(within(screen.getByRole("group", { name: "Счёт для обзора" }))
-    .getByRole("button", { name: label }));
-  const selected = (label: string) => expect(within(screen.getByRole("group", { name: "Счёт для обзора" }))
-    .getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "true");
+  const openAccounts = () => {
+    click("Меню");
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Меню" })).getByRole("button", { name: "Мои счета" }));
+  };
+  const choose = (label: string) => {
+    openAccounts(); click(`Открыть счёт: ${label}`); click("Выбрать счёт в кошельке"); click("Обзор");
+  };
+  const selected = (label: string) => {
+    openAccounts(); click(`Открыть счёт: ${label}`);
+    expect(within(screen.getByRole("region", { name: label })).getByText("Выбран в кошельке")).toBeVisible();
+    click("Назад к счетам"); click("Назад в кошелёк");
+  };
   choose("Хранилище");
   click("Открыть профиль"); saveContacts();
   click("Обзор");
@@ -78,7 +87,7 @@ it("keeps saved Profile identity through Gold Overview and exact Accounts/Asset 
   expect(screen.getByRole("button", { name: "Открыть профиль" })).toHaveFocus();
   selected("Хранилище");
 
-  click("Мои счета"); click("Открыть счёт: Основной");
+  openAccounts(); click("Открыть счёт: Основной");
   const account = screen.getByRole("region", { name: "Основной" });
   const holding = account.querySelector<HTMLButtonElement>('[data-product-holding-id="demo-usdc-eth"]')!;
   fireEvent.click(holding); view.scrollport.scrollTop = 129;

@@ -9,6 +9,7 @@ import { createMonoAppearanceEnvelope, normalizeMonoAppearanceEnvelope } from ".
 import { createDefaultActionArtworkMap } from "./action-artwork/model";
 import { MONO_GOLD_ENVELOPE } from "./mono-gold-appearance";
 import { MonoGoldViewer } from "./mono-gold-viewer";
+import { HOME_PINS_STORAGE_KEY } from "../mono-product/home-pins";
 
 const THEME_KEY = "wallet4i7.mono.viewer-theme.v1";
 const fixedGoldHost = { themePreference: "fixed" as const, presentation: "gold" as const };
@@ -85,7 +86,9 @@ it("Gold has a normalized immutable matte envelope and distinct readable financi
   expect(createMonoAppearanceEnvelope().material.buttons).toBeNull();
 });
 
-it("Gold keeps the real product host and home pin persistence enabled", async () => {
+it("Gold keeps the real product host and preserves existing MONO home-pin preferences", async () => {
+  const preference = JSON.stringify({ version: 2, groups: ["depositary"], totalOnly: true });
+  localStorage.setItem(HOME_PINS_STORAGE_KEY, preference);
   const snapshot = await new MockWalletRepository().getSnapshot();
   const view = render(<MonoGoldViewer snapshot={snapshot} effectsDisabled />);
   await waitFor(() => expect(view.container.querySelector("[data-mono-preview]")).toBeInTheDocument());
@@ -96,12 +99,8 @@ it("Gold keeps the real product host and home pin persistence enabled", async ()
   expect(view.container.querySelector("[data-mono-rail], [data-mono-workbench]")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Меню" }));
   const menu = screen.getByRole("dialog", { name: "Меню" });
-  fireEvent.click(within(menu).getByRole("button", { name: "На главной" }));
-  fireEvent.click(within(screen.getByRole("dialog", { name: "На главной" }))
-    .getByRole("checkbox", { name: "Только общий баланс" }));
-  const savedPins = Object.keys(localStorage).find(key => key.includes("home-pins"));
-  expect(savedPins).toBeDefined();
-  expect(JSON.parse(localStorage.getItem(savedPins!)!)).toMatchObject({ totalOnly: true });
+  expect(within(menu).queryByRole("button", { name: "На главной" })).toBeNull();
+  expect(localStorage.getItem(HOME_PINS_STORAGE_KEY)).toBe(preference);
   expect(screen.getByText("Демо · операции не выполняются")).toBeInTheDocument();
 });
 
@@ -136,8 +135,8 @@ it("balance dynamics Gold starts without a graph, periods or an empty chart wrap
   expect(view.container.querySelector(".mono-product-chart, .mono-scene-domain--chart")).toBeNull();
   expect(screen.getByRole("button", { name: "Скрыть баланс" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Отправить" })).toBeInTheDocument();
-  expect(view.container.querySelector(".mono-product-funds")).not.toBeNull();
-  expect(view.container.querySelector(".mono-product-recent")).not.toBeNull();
+  expect(screen.getByRole("button", { name: "Мои средства" })).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Последняя операция" })).toBeNull();
 });
 
 it("balance dynamics Gold Settings toggles the real graph and periods without storage writes", async () => {

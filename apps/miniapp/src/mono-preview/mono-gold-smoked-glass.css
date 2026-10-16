@@ -39,7 +39,7 @@
 
 /* One quiet plane for each information group; rows share that plane. */
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(
-  .mono-gold-account-deck, .mono-product-funds, .mono-product-recent,
+  .mono-gold-account-deck, .mono-gold-funds-entry, .mono-product-funds, .mono-product-recent,
   .mono-section-view__balance, [data-mono-product-accounts-workspace] > ul,
   [data-mono-product-asset-workspace] > div:not(:last-child),
   [data-profile-groups], [data-profile-panel]) {
@@ -49,79 +49,67 @@
 }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-hero { margin-top: 0; }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck {
-  padding: 16px 16px 12px; min-width: 0; text-align: center;
+  padding: 22px 20px 24px; min-width: 0; text-align: left;
   background: linear-gradient(144deg, rgb(99 88 65 / 20%), transparent 45%), linear-gradient(180deg, rgb(38 38 35 / 64%), rgb(20 21 20 / 66%));
 }
-.mono-gold-account-deck__selector { max-width: 100%; overflow-x: auto; scrollbar-width: none; border-radius: 999px; }
-.mono-gold-account-deck__selector::-webkit-scrollbar { display: none; }
-.mono-gold-account-deck__track {
-  position: relative; display: grid; grid-template-columns: repeat(var(--mono-gold-account-count, 3), minmax(92px, 1fr));
-  min-width: 100%; width: max-content; padding: 4px; border: 1px solid rgb(239 224 188 / 14%);
-  border-radius: 999px; background: rgb(10 11 11 / 40%); box-sizing: border-box; isolation: isolate;
-}
-.mono-gold-account-deck__indicator {
-  position: absolute; z-index: -1; top: 4px; bottom: 4px; left: 4px;
-  width: calc((100% - 8px) / var(--mono-gold-account-count, 3));
-  transform: translateX(calc(var(--mono-gold-account-index, 0) * 100%));
-  border: 1px solid rgb(255 231 174 / 20%); border-radius: 999px;
-  background: linear-gradient(150deg, rgb(180 155 99 / 22%), rgb(92 85 65 / 27%));
-  box-shadow: inset 0 1px 0 rgb(255 248 222 / 11%), 0 3px 10px rgb(0 0 0 / 16%);
-}
-.mono-gold-account-deck__account {
-  min-width: 0; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 999px;
-  background: transparent; color: var(--mono-text-secondary); cursor: pointer;
-  font: 500 13px/1.3 var(--mono-font-ui, sans-serif); white-space: nowrap;
-}
-.mono-gold-account-deck__account[aria-pressed="true"] { color: #f7e9c4; }
-.mono-gold-account-deck__account:disabled { cursor: default; opacity: .62; }
-.mono-gold-account-deck__context-note { margin: 14px 0 0; color: var(--mono-text-secondary); font-size: 12px; line-height: 1.45; }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance {
-  padding: 22px 0 6px; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
 }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance__heading {
-  position: relative; display: flex; justify-content: center; min-height: 26px; padding-inline: 40px;
+  position: relative; display: flex; justify-content: flex-start; min-height: 28px; padding-inline-end: 44px;
 }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance__heading h1 {
-  color: var(--mono-text-secondary); font-size: 12px; font-weight: 400; line-height: 1.5;
+  color: var(--mono-text-secondary); font-size: 14px; font-weight: 400; line-height: 1.5;
 }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance__privacy {
-  position: absolute; right: 0; top: -10px; min-width: 44px; min-height: 44px;
+  position: absolute; right: -8px; top: -9px; min-width: 44px; min-height: 44px;
 }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-product-balance-row {
-  display: flex; justify-content: center;
+  display: flex; justify-content: flex-start;
 }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-balance__amount {
-  width: 100%; text-align: center; line-height: 1.2; margin-block: 4px 6px;
-  font-size: min(clamp(32px, 10.8cqw, 52px), calc((100cqw - 80px) / var(--mono-balance-fit, 9))); font-weight: 500; letter-spacing: -.045em;
+  width: 100%; min-width: 0; text-align: left; line-height: 1.2; margin-block: 6px 8px;
+  font-size: min(clamp(34px, 11.6cqw, 54px), calc((100cqw - 80px) / var(--mono-balance-fit, 9))); font-weight: 500; letter-spacing: -.045em;
 }
-.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-product-balance-footer { justify-content: center; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-product-balance-footer { justify-content: flex-start; }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__balance .mono-product-balance-note {
-  margin: 0; font-size: 11px; line-height: 1.5;
+  margin: 0; font-size: 12px; line-height: 1.5;
 }
-.mono-gold-account-deck__accounts {
-  display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px;
-  margin: 7px auto 14px; padding: 8px 19px; border: 1px solid var(--gold-edge-light); border-radius: 999px;
-  color: var(--mono-text); background: linear-gradient(150deg, rgb(255 246 221 / 11%), rgb(255 238 195 / 3%));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%); font: 500 13px/1.3 var(--mono-font-ui, sans-serif); cursor: pointer;
-}
-.mono-gold-account-deck__accounts svg { width: 18px; height: 18px; color: var(--mono-gold-light); fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-.mono-gold-account-deck__pins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-top: 9px; border-top: 1px solid var(--mono-rule); }
-.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__pins .mono-product-overview__pin {
-  padding: 8px 6px; text-align: left; min-height: 52px; border-radius: 14px;
-}
-.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck__pins .mono-product-overview__group { font-size: 11px; }
 
-/* Four deliberate controls on their own small optical discs. */
-.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene > .mono-actions { margin-top: 16px; margin-bottom: 24px; }
-.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__item { min-height: 88px; gap: 8px; }
+/* Four small surfaces keep their existing SVGs and live labels. */
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene > .mono-actions {
+  margin-top: 16px; margin-bottom: 16px; gap: 8px; border: 0; background: transparent; box-shadow: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions[data-frame-mode="icons"] > .mono-actions__item {
+  min-width: 0; min-height: 94px; gap: 8px; padding: 12px 2px; border: 1px solid var(--gold-edge); border-radius: 20px;
+  background: linear-gradient(155deg, rgb(116 101 67 / 12%), transparent 68%), rgb(24 25 23 / 78%);
+  box-shadow: inset 0 1px 0 rgb(255 245 220 / 5%), 0 6px 18px rgb(0 0 0 / 8%);
+}
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__icon {
-  width: 50px; height: 50px; color: #eddbab; border: 1px solid rgb(239 219 173 / 23%);
-  background: linear-gradient(145deg, rgb(244 224 179 / 14%), rgb(164 138 86 / 6%));
-  box-shadow: inset 0 1px 0 rgb(255 249 229 / 16%), 0 5px 15px rgb(0 0 0 / 15%);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  width: 32px; height: 32px; color: #eddbab; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__label { font-size: 12px; color: var(--mono-text); }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__status { padding-top: 3px; opacity: .9; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions[data-frame-mode="icons"] > .mono-actions__item:is(:active, [data-key-pressed="true"]) {
+  background-color: rgb(52 46 31 / 88%); box-shadow: inset 0 1px 0 rgb(255 235 185 / 14%); transition-duration: 100ms;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions[data-frame-mode="icons"] > .mono-actions__item:focus-visible {
+  outline: 2px solid var(--mono-gold-light); outline-offset: 3px;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-funds-entry {
+  display: flex; align-items: center; gap: 12px; box-sizing: border-box; width: 100%; min-height: 66px; margin: 0; padding: 14px 18px;
+  color: var(--mono-text); font: 500 16px/1.4 var(--mono-font-ui, sans-serif); text-align: left; cursor: pointer;
+}
+.mono-gold-funds-entry > .wallet-icon { flex: 0 0 24px; color: var(--mono-gold-light); }
+.mono-gold-funds-entry > span { flex: 1; min-width: 0; }
+.mono-gold-funds-entry__chevron { width: 18px; height: 18px; flex: 0 0 18px; color: var(--mono-gold-light); fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.mono-gold-funds-entry:disabled { cursor: default; opacity: .6; }
+.mono-gold-assets-back {
+  display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 8px; padding: 8px 0;
+  border: 0; background: transparent; color: var(--mono-gold-light); font: inherit; cursor: pointer;
+}
+.mono-gold-assets-back:disabled { cursor: default; opacity: .6; }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds { margin-top: 16px; padding: 5px 16px; }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__heading { min-height: 58px; padding: 10px 0; }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__title { font-size: 17px; font-weight: 500; }
@@ -132,9 +120,9 @@
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__list > li + li { border-top: 1px solid var(--mono-rule); }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__asset { min-height: 76px; }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__asset-entry { border-radius: 14px; }
-.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-recent { margin-top: 16px; padding: 12px 16px 4px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-recent { margin-top: 16px; padding: 10px 16px; }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] [data-product-pending-trigger] {
-  min-height: 80px; margin-bottom: 10px; padding: 10px 0 14px; border-bottom: 1px solid var(--mono-rule); border-radius: 0;
+  min-height: 64px; margin: 0; padding: 4px 0; border: 0; border-radius: 12px;
 }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-recent > section { padding: 0; margin: 0; border: 0; }
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-recent h2 { font-size: 13px; font-weight: 500; color: var(--mono-text-secondary); }
@@ -187,30 +175,33 @@
 .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__indicator { display: none; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .mono-gold-account-deck__indicator { transition: transform 360ms cubic-bezier(.22, .7, .16, 1); }
-  .mono-gold-account-deck__account, .mono-gold-account-deck__accounts {
-    transition: color 160ms ease-out, background-color 190ms ease-out, box-shadow 190ms ease-out;
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-gold-funds-entry, .mono-actions > .mono-actions__item) {
+    transition: color 220ms var(--mono-ease), background-color 220ms var(--mono-ease), box-shadow 220ms var(--mono-ease);
   }
+  .mono-gold-funds-entry__chevron { transition: transform 220ms var(--mono-ease); }
+  .mono-gold-funds-entry:active, .mono-gold-funds-entry:active .mono-gold-funds-entry__chevron { transition-duration: 100ms; }
+  .mono-gold-funds-entry:not(:disabled):active .mono-gold-funds-entry__chevron { transform: translateX(2px); }
 }
 @media (hover: hover) and (pointer: fine) {
-  .mono-gold-account-deck__accounts:hover { background-color: rgb(232 201 131 / 9%); box-shadow: inset 0 1px 0 rgb(255 249 229 / 17%), 0 0 22px rgb(197 158 72 / 9%); }
-  .mono-gold-account-deck__account:hover { color: #f3e5c5; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-funds-entry:not(:disabled):hover {
+    background-color: rgb(232 201 131 / 7%); box-shadow: inset 0 1px 0 rgb(255 249 229 / 14%), 0 7px 22px rgb(0 0 0 / 12%);
+  }
 }
-.mono-gold-account-deck__accounts:active { background-color: rgb(222 186 107 / 15%); }
-.mono-gold-account-deck__account:focus-visible, .mono-gold-account-deck__accounts:focus-visible { outline: 2px solid var(--mono-gold-light); outline-offset: -3px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-funds-entry:not(:disabled):active { background-color: rgb(222 186 107 / 12%); }
+.mono-gold-funds-entry:focus-visible, .mono-gold-assets-back:focus-visible { outline: 2px solid var(--mono-gold-light); outline-offset: 3px; }
 @container mono-preview (max-width: 359px) {
   .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene { padding-inline: 12px; }
-  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck { padding-inline: 10px; }
-  .mono-gold-account-deck__track { grid-template-columns: repeat(var(--mono-gold-account-count, 3), minmax(82px, 1fr)); }
-  .mono-gold-account-deck__account { padding-inline: 8px; font-size: 12px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-gold-account-deck { padding: 20px 16px; }
   .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-product-funds, .mono-product-recent) { padding-inline: 12px; }
-  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__icon { width: 46px; height: 46px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene > .mono-actions { gap: 6px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions[data-frame-mode="icons"] > .mono-actions__item { min-height: 88px; border-radius: 16px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__label { font-size: 11px; }
 }
 /* Keep all content present and legible in the same geometry without optical effects. */
 .mono-gold-viewer[data-gold-effects="off"] .mono-page[data-mono-presentation="gold"] {
   --gold-smoke: #20211f; --gold-smoke-top: transparent; --gold-glass-blur: none;
 }
-.mono-gold-viewer[data-gold-effects="off"] .mono-page[data-mono-presentation="gold"] :is(.mono-gold-account-deck, .mono-nav, .mono-actions__icon, .mono-product-glass[data-product-glass]),
+.mono-gold-viewer[data-gold-effects="off"] .mono-page[data-mono-presentation="gold"] :is(.mono-gold-account-deck, .mono-gold-funds-entry, .mono-nav, .mono-actions > .mono-actions__item, .mono-product-glass[data-product-glass]),
 .mono-gold-viewer[data-gold-effects="off"] .mono-page[data-mono-presentation="gold"] .mono-app-header::before {
   background: #20211f; -webkit-backdrop-filter: none; backdrop-filter: none;
 }
@@ -219,18 +210,19 @@
 }
 @media (prefers-reduced-transparency: reduce) {
   .mono-gold-viewer .mono-page[data-mono-presentation="gold"] { --gold-smoke: #20211f; --gold-smoke-top: transparent; --gold-glass-blur: none; }
-  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-gold-account-deck, .mono-nav, .mono-actions__icon, .mono-product-glass[data-product-glass]),
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-gold-account-deck, .mono-gold-funds-entry, .mono-nav, .mono-actions > .mono-actions__item, .mono-product-glass[data-product-glass]),
   .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-app-header::before {
     background: #20211f; -webkit-backdrop-filter: none; backdrop-filter: none;
   }
 }
-@media (prefers-reduced-motion: reduce) { .mono-gold-account-deck__indicator { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .mono-gold-funds-entry, .mono-gold-funds-entry__chevron { transition: none; transform: none; }
+}
 @media (forced-colors: active) {
   .mono-gold-viewer .mono-page[data-mono-presentation="gold"] {
     --gold-smoke: Canvas; --gold-smoke-top: transparent; --gold-glass-blur: none; --gold-edge: CanvasText; --gold-edge-light: CanvasText;
     --mono-canvas: Canvas; --mono-text: CanvasText; --mono-text-secondary: CanvasText; --mono-text-muted: GrayText; --mono-rule: CanvasText;
   }
-  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-gold-account-deck, .mono-nav, .mono-actions__icon, .mono-product-glass[data-product-glass]) { background: Canvas; color: CanvasText; box-shadow: none; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-gold-account-deck, .mono-gold-funds-entry, .mono-nav, .mono-actions > .mono-actions__item, .mono-product-glass[data-product-glass]) { background: Canvas; color: CanvasText; box-shadow: none; }
   .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__item[data-active="true"] { background: Highlight; color: HighlightText; box-shadow: none; }
-  .mono-gold-account-deck__account[aria-pressed="true"] { color: HighlightText; background: Highlight; }
 }

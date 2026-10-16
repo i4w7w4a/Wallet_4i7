@@ -171,7 +171,7 @@ const NAV_ITEMS = [
   { id: "profile", label: "Профиль", path: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" },
 ] as const;
 const DEFAULT_ACTION_ARTWORK = createDefaultActionArtworkMap();
-type AccountsFocusTarget = { kind: "title" } | { kind: "launcher" } | { kind: "gold-launcher" } | { kind: "context" }
+type AccountsFocusTarget = { kind: "title" } | { kind: "launcher" } | { kind: "context" }
   | { kind: "pin"; groupKind: ProductAccountKind }
   | { kind: "account" | "holding" | "holding-detail"; id: string } | AccountsActionOrigin;
 type AccountsHoldingIdentity = Pick<ProductHolding, "id" | "accountId" | "assetId" | "networkId">;
@@ -316,9 +316,14 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       openIntent: (action, scope = ALL_WALLET_CONTEXT) => product.commands.openIntent(action, scope),
       openAsset: (assetId, scope = ALL_WALLET_CONTEXT) => product.commands.openAsset(assetId, scope),
     } } : undefined;
-  const homeProduct = propsPresentation === "gold" ? product : overviewProduct;
-  const homeActivityAccountId = propsPresentation === "gold" && product?.view.context.kind === "account"
-    ? product.view.context.accountId : undefined;
+  const [goldAssetsScope, setGoldAssetsScope] = useState<AccountContext>(ALL_WALLET_CONTEXT);
+  const goldFundsReturnFocus = useRef(false);
+  const assetsProduct: MonoProductController | undefined = product && propsPresentation === "gold" ? { ...product,
+    view: productViewForScope(product.view, goldAssetsScope),
+    commands: { ...product.commands,
+      openIntent: (action, scope = goldAssetsScope) => product.commands.openIntent(action, scope),
+      openAsset: (assetId, scope = goldAssetsScope) => product.commands.openAsset(assetId, scope),
+    } } : product;
   const assetView = product ? productViewForScope(product.view, assetWorkspace?.scope) : undefined;
   const [historyInspection, setHistoryInspection] = useState<HistoryInspection | null>(null);
   const currentHistoryInspection = historyInspection && product && historyInspection.workingContext === product.view.context &&
@@ -368,7 +373,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const canChangeSection = session?.section === undefined || typeof session.onSectionChange === "function";
   const pendingLive = useRef({ product, rootOverview, active, section, accountsWorkspace, accountHistoryOpen, canChangeSection });
   pendingLive.current = { product, rootOverview, active, section, accountsWorkspace, accountHistoryOpen, canChangeSection };
-  const canUseAccount = section === "overview" || canChangeSection;
+  const accountDestination = propsPresentation === "gold" ? "assets" : "overview";
+  const canUseAccount = section === accountDestination || canChangeSection;
   const [helpEntryRequest, setHelpEntryRequest] = useState<HelpEntryRequest | null>(null);
   const helpEntryRef = useRef(helpEntryRequest);
   helpEntryRef.current = helpEntryRequest;
@@ -450,6 +456,10 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       (currentHistoryInspection?.origin === "pending-home" || currentHistoryInspection?.origin === "gold-home") ? currentHistoryInspection : null;
     setHistoryInspection(null);
     setProfileMenuOrigin(null); setAvatarProfileOrigin(null); avatarReturn.current = null;
+    if (propsPresentation === "gold") {
+      if (next === "assets") setGoldAssetsScope(ALL_WALLET_CONTEXT);
+      goldFundsReturnFocus.current = next === "overview" && section === "assets";
+    }
     if (next !== section) setSection(next);
     return true;
   }
@@ -477,12 +487,11 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       accountsFocusRequest.current = { kind: "title" };
     }
   }
-  function selectGoldOverviewContext(next: AccountContext) {
-    if (!product || !rootOverview || !headerContextAllowed()) return;
+  function selectGoldAssetsContext(next: AccountContext) {
+    if (!product || propsPresentation !== "gold" || section !== "assets" || accountsWorkspace || assetWorkspace ||
+      !active || product.view.sheet?.kind !== "accounts" || !product.commands.requestContextChange()) return;
     product.commands.selectContext(next);
-    cancelHelpEntry();
-    setProfileMenuOrigin(null); setAvatarProfileOrigin(null); avatarReturn.current = null;
-    setHistoryInspection(null); activityFocusRequest.current = null; pendingReturnFocus.current = null;
+    setGoldAssetsScope(next);
   }
   function backAccountsWorkspace() {
     if (!active || !accountsWorkspace || !product?.commands.backAccountsWorkspace()) return;
@@ -496,7 +505,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     accountsOrigin.current = null; accountsChildReturn.current = null;
     resetAccountsDisclosure();
     accountsFocusRequest.current = { kind: "context" };
-    if (section !== "overview") setSection("overview");
+    if (propsPresentation === "gold") setGoldAssetsScope({ kind: "account", accountId });
+    if (section !== accountDestination) setSection(accountDestination);
   }
   function resetAccountsDisclosure() {
     expandedHoldingSource.current = null; setExpandedHoldingId(null);
@@ -644,6 +654,12 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   }, [section]);
 
   useLayoutEffect(() => {
+    if (!goldFundsReturnFocus.current || !rootOverview || !active || product?.view.sheet) return;
+    goldFundsReturnFocus.current = false;
+    pageRef.current?.querySelector<HTMLElement>("[data-mono-gold-funds-trigger]")?.focus({ preventScroll: true });
+  }, [rootOverview, active, product?.view.sheet]);
+
+  useLayoutEffect(() => {
     const request = avatarReturn.current;
     if (request && section === request.section) {
       avatarReturn.current = null;
@@ -720,11 +736,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       }
       let element: HTMLElement | null | undefined;
       if (requested.kind === "launcher") element = profileMenuAnchor.current;
-      else if (requested.kind === "gold-launcher") element = root.querySelector<HTMLElement>("[data-mono-gold-accounts-trigger]");
       else if (requested.kind === "pin") element = byAttribute("data-product-account-group-trigger", requested.groupKind);
-      else if (requested.kind === "context") element = (propsPresentation === "gold"
-        ? root.querySelector<HTMLElement>('[data-gold-account-context][aria-pressed="true"]') : null)
-        ?? root.querySelector<HTMLElement>("[data-mono-product-context-trigger]")
+      else if (requested.kind === "context") element = root.querySelector<HTMLElement>("[data-mono-product-context-trigger]")
         ?? root.querySelector<HTMLElement>('.mono-nav__item[aria-current="page"]');
       else if (requested.kind === "holding-action") {
         const holdingId = requested.holdingId;
@@ -768,7 +781,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     if (!product) return false;
     const scope = product.view.sheet?.kind === "intent" ? product.view.sheet.scope
       ?? (product.view.sheet.route ? { kind: "account" as const, accountId: product.view.sheet.route.accountId } : assetWorkspace?.scope)
-      : rootOverview ? propsPresentation === "gold" ? product.view.context : ALL_WALLET_CONTEXT : assetWorkspace?.scope;
+      : rootOverview ? ALL_WALLET_CONTEXT : assetWorkspace?.scope;
     return enterHistory(id, scope, pendingStatus);
   }
 
@@ -794,16 +807,14 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     if (!product || current.view.snapshot !== product.view.snapshot || current.view.flowPorts !== product.view.flowPorts ||
       current.view.context !== product.view.context || current.view.activityStatus !== "ready") return "unavailable";
     const gold = propsPresentation === "gold";
-    const scope = gold ? current.view.context : ALL_WALLET_CONTEXT;
-    const activities = scope.kind === "account" ? scopeProductActivities(current.view.activities, [scope.accountId]) : current.view.activities;
+    const scope = ALL_WALLET_CONTEXT;
+    const activities = current.view.activities;
     const pendingIds = gold && activityId === null ? selectPendingActivityIds(activities) : null;
     const entries = gold && activityId === null
       ? activities.filter(activity => activity.status === "pending" && pendingIds?.includes(activity.id)) : activities;
     const target = resolvePendingActivityEntry(entries, activityId);
     const ids = target.kind === "single" ? [target.activityId] : pendingIds ?? [];
-    const invalidGoldSource = gold && ((scope.kind === "account" &&
-      current.view.snapshot.accounts.filter(account => account.id === scope.accountId).length !== 1) ||
-      ids.some(id => current.view.activities.filter(activity => activity.id === id).length !== 1));
+    const invalidGoldSource = gold && ids.some(id => current.view.activities.filter(activity => activity.id === id).length !== 1);
     if (target.kind === "unavailable" || invalidGoldSource) {
       pageRef.current?.querySelector<HTMLElement>("[data-mono-product-overview-title]")?.focus({ preventScroll: true });
       return "unavailable";
@@ -1102,8 +1113,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     ...(typography.active ? monoTypographyStyle(typography.active) : {}),
   } as CSSProperties;
   const chart = (propsPresentation !== "gold" || goldBalanceDynamics?.enabled) &&
-    (!product || (product.view.usesDefaultDemoChart && (propsPresentation === "gold"
-      ? product.view.context.kind === "all" : rootOverview || product.view.context.kind === "all"))) && fullScene && appearance.chart &&
+    (!product || (product.view.usesDefaultDemoChart && (rootOverview || product.view.context.kind === "all"))) && fullScene && appearance.chart &&
     <MonoChart values={snapshot.chart[period]} format={moneyFormat}
     hidden={balanceHidden} period={period} onPeriodChange={setPeriod} appearance={appearance.chart} />;
   const receiveMenuOpen = product?.view.sheet?.kind === "intent" && product.view.sheet.action === "receive" && !product.view.sheet.route;
@@ -1171,7 +1181,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           </div>
         </header>
         {product && !(rootOverview && propsPresentation === "gold") && <ProductContextLine {...product} view={rootOverview ? overviewProduct!.view : assetWorkspace ? assetView!
-          : section === "history" ? historyView! : product.view} overview={rootOverview} accountChooserId={accountChooserId} />}
+          : section === "history" ? historyView! : section === "assets" && !accountsWorkspace ? assetsProduct!.view : product.view}
+          overview={rootOverview} accountChooserId={accountChooserId} />}
 
         {product && accountsWorkspace && !assetWorkspace && <div className="mono-product-section" inert={!active || avatarProfileActive || Boolean(currentHistoryInspection && accountHistoryOpen)}
           hidden={avatarProfileActive || Boolean(currentHistoryInspection && accountHistoryOpen)}>
@@ -1180,7 +1191,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             context={product.view.context} balanceHidden={product.view.balanceHidden} allowedActions={allowedAccountActions}
             expandedHoldingId={currentExpandedHoldingId} onExpandedHoldingChange={changeExpandedHolding}
             onInspectAccount={inspectAccount} onBack={backAccountsWorkspace} onUseAccount={useAccount}
-            useAccountUnavailableReason={canUseAccount ? undefined : "Переход к обзору сейчас недоступен."}
+            useAccountUnavailableReason={canUseAccount ? undefined : propsPresentation === "gold"
+              ? "Переход к активам сейчас недоступен." : "Переход к обзору сейчас недоступен."}
             onOpenAction={openAccountRoute} onOpenHolding={openAccountHolding}
             pendingActivity={inspectedAccount ? { activities: product.view.activities, accountId: inspectedAccount.id,
               status: product.view.activityStatus, disabled: !active || Boolean(product.view.sheet) || product.view.commerceBusy,
@@ -1195,11 +1207,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         {section === "overview" && !assetWorkspace && !accountsWorkspace && <>
         {product ? <section className="mono-hero">
           <div className="mono-scene-domain">
-            {propsPresentation === "gold" ? <MonoGoldAccountDeck {...product}
-              appearance={appearance.balance ?? MONO_BALANCE_LEGACY} blinkEnabled={eye.blinkEnabled}
-              disabled={!active || Boolean(product.view.sheet) || product.view.commerceBusy}
-              onSelectContext={selectGoldOverviewContext}
-              onOpenAccounts={() => openAccountsWorkspace(undefined, { kind: "gold-launcher" })} onOpenGroup={openAccountsWorkspace} />
+            {propsPresentation === "gold" ? <MonoGoldAccountDeck {...overviewProduct!}
+              appearance={appearance.balance ?? MONO_BALANCE_LEGACY} blinkEnabled={eye.blinkEnabled} />
               : <ProductOverview {...overviewProduct!} appearance={appearance.balance ?? MONO_BALANCE_LEGACY}
                 blinkEnabled={eye.blinkEnabled} onOpenGroup={openAccountsWorkspace} />}
           </div>
@@ -1273,7 +1282,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
               manualPreviewTrigger={artworkPreview?.targetId === action.id ? artworkPreview.trigger : 0}
               materialTargetId={materialTargets ? action.id : undefined}
               materialRadiusCss={actionFrameMode === "separate" ? actionRadii?.[action.id] : undefined}
-              onActivate={() => product ? homeProduct!.commands.openIntent(action.kind)
+              onActivate={() => product ? overviewProduct!.commands.openIntent(action.kind)
                 : setQuickActionStatus(`${action.label} — операция недоступна в демо.`)} />
           ))}
           <p id="mono-actions-status" className="mono-actions__status" role="status"
@@ -1283,18 +1292,25 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
 
         {product && appearance.layout?.chartPosition === "top" && chart &&
           <div className="mono-scene-domain mono-scene-domain--chart mono-product-chart">{chart}</div>}
-        {product && <ProductHoldings {...homeProduct!} overview onPlacementAction={product.commands.openPlacementAction}
-          onOpenAsset={homeProduct!.commands.openAsset}
+        {product && propsPresentation === "gold" && <button type="button" className="mono-gold-funds-entry"
+          data-mono-gold-funds-trigger disabled={!active || !canChangeSection || Boolean(product.view.sheet) || product.view.commerceBusy}
+          onClick={() => navigateSection("assets")}>
+          <WalletIcon name="portfolio" /><span>Мои средства</span>
+          <svg className="mono-gold-funds-entry__chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m6 4 4 4-4 4" /></svg>
+        </button>}
+        {product && propsPresentation !== "gold" && <ProductHoldings {...overviewProduct!} overview onPlacementAction={product.commands.openPlacementAction}
+          onOpenAsset={overviewProduct!.commands.openAsset}
           appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />}
-        {product && <div className="mono-product-recent">
-          <ProductPendingActivity activities={product.view.activities} accountId={homeActivityAccountId} status={product.view.activityStatus} disabled={!active}
+        {product && (propsPresentation !== "gold" || product.view.activityStatus !== "ready" ||
+          selectPendingActivityIds(product.view.activities)?.length !== 0) && <div className="mono-product-recent">
+          <ProductPendingActivity activities={product.view.activities} status={product.view.activityStatus} disabled={!active}
             onOpen={openPendingActivity} onRetry={product.commands.retryActivities} />
-          {product.view.activityStatus === "ready" && <ProductRecentActivity
-            activities={product.view.activities} accountId={homeActivityAccountId} balanceHidden={product.view.balanceHidden}
+          {propsPresentation !== "gold" && product.view.activityStatus === "ready" && <ProductRecentActivity
+            activities={product.view.activities} balanceHidden={product.view.balanceHidden}
             onOpenActivity={openActivity} />}
         </div>}
 
-        <div className="mono-promo-frame">
+        {propsPresentation !== "gold" && <div className="mono-promo-frame">
           <MonoOpticalGlass preset={preset} settings={optics} active={active} className="mono-promo" sharedHost={opticalHost}>
             <div className="mono-promo__content">
               <span className="mono-promo__overline">NOVEX WALLET / PRIVATE</span>
@@ -1303,7 +1319,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
             </div>
             <div className="mono-promo__seal" aria-hidden="true" />
           </MonoOpticalGlass>
-        </div>
+        </div>}
 
         {!product && fullScene && appearance.assets ? <div className="mono-assets mono-scene-domain">
           <MonoAssetList assets={snapshot.assets} format={moneyFormat} hidden={balanceHidden} appearance={appearance.assets} />
@@ -1325,13 +1341,16 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <div className="mono-scene-domain mono-scene-domain--chart">{chart}</div>}
         </>}
         {section === "assets" && !assetWorkspace && !accountsWorkspace && <section className="mono-section-view" aria-labelledby="mono-all-assets-title">
+          {propsPresentation === "gold" && <button type="button" className="mono-gold-assets-back"
+            disabled={!active || !canChangeSection} onClick={() => navigateSection("overview")}>Назад в обзор</button>}
           <div className="mono-section-view__eyebrow">ПОРТФЕЛЬ / DEMO</div>
-          <h1 id="mono-all-assets-title">Все активы</h1>
-          <div className="mono-section-view__balance"><span>{product?.view.context.kind === "account" ? "Баланс счёта" :
+          <h1 id="mono-all-assets-title">{propsPresentation === "gold" && assetsProduct?.view.context.kind === "account"
+            ? "Активы счёта" : "Все активы"}</h1>
+          <div className="mono-section-view__balance"><span>{assetsProduct?.view.context.kind === "account" ? "Баланс счёта" :
             "Общий баланс"}</span>
-            <strong>{balanceHidden ? "••••••" : product ? formatFiatMinor(product.view.balanceMinor) : `${balance} $`}</strong></div>
-          {product ? <ProductHoldings {...product} overview={false} onPlacementAction={product.commands.openPlacementAction}
-            onOpenAsset={product.commands.openAsset}
+            <strong>{balanceHidden ? "••••••" : assetsProduct ? formatFiatMinor(assetsProduct.view.balanceMinor) : `${balance} $`}</strong></div>
+          {product ? <ProductHoldings {...assetsProduct!} overview={false} onPlacementAction={product.commands.openPlacementAction}
+            onOpenAsset={assetsProduct!.commands.openAsset}
             appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} /> : <div className="mono-section-view__assets mono-scene-domain">
             <MonoAssetList assets={snapshot.assets} format={moneyFormat} hidden={balanceHidden}
               appearance={appearance.assets ?? MONO_ASSET_LIST_DEFAULT} />
@@ -1421,7 +1440,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         initialDetail={profileMenuOrigin?.launcher === "support" ? "support" : undefined}
         viewerPresentation={profileMenuOrigin?.launcher === "menu" ? propsPresentation ?? "mono" : undefined}
         balanceDynamics={goldBalanceDynamics}
-        homePins={{ groups: product.view.accountGroups, pinnedKinds: product.view.homePinnedKinds,
+        homePins={propsPresentation === "gold" ? undefined : { groups: product.view.accountGroups, pinnedKinds: product.view.homePinnedKinds,
           totalOnly: product.view.homeTotalOnly, onToggle: product.commands.toggleHomePin, onTotalOnlyChange: product.commands.setHomeTotalOnly }}
         resource={currentProfileResource} helpActions={productHelpActions}
         onRequestDetail={requestProfileMenuTransition} onBackRequest={requestProfileMenuTransition}
@@ -1429,9 +1448,11 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         onBalanceHiddenChange={product.commands.setBalanceHidden} onDismiss={dismissProfileMenu}
         onOpenAccounts={() => openAccountsWorkspace()}
         motionEnabled={active && !effectsDisabled && !appearance.background?.calm} />}
-      {product && <ProductOverlay {...product} view={productViewForScope(product.view,
+      {product && <ProductOverlay {...product} commands={propsPresentation === "gold" && section === "assets" && !accountsWorkspace && !assetWorkspace
+        ? { ...product.commands, selectContext: selectGoldAssetsContext } : product.commands} view={productViewForScope(product.view,
         product.view.sheet?.kind === "intent" || product.view.sheet?.kind === "battery"
-          ? product.view.sheet.scope ?? assetWorkspace?.scope : undefined)}
+          ? product.view.sheet.scope ?? assetWorkspace?.scope : propsPresentation === "gold" && section === "assets" && !accountsWorkspace && !assetWorkspace
+            ? goldAssetsScope : undefined)}
         onOpenActivity={openActivity} accountChooserId={accountChooserId} active={active} />}
         </main>
       </ProductGlassProvider>
