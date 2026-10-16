@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "20261004T190816Z",
+  "kind": "standalone-action-layout-concepts",
+  "publicBase": "https://wallet.153.76.194.160.nip.io/concepts/",
+  "variants": [
+    "priority",
+    "strip",
+    "more"
+  ],
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 8962,
+      "sha256": "08f7347c9d9cce6b842d2efee947fb322fea277b80b306b73d894dd037268aad"
+    },
+    {
+      "path": "styles.css",
+      "bytes": 16947,
+      "sha256": "8345472d380d42f083eedbf3d386a790b331249431cb409563c994d971467fdb"
+    },
+    {
+      "path": "app.js",
+      "bytes": 15573,
+      "sha256": "b8d9e0f38641d328287670d34048390e281fec00450d186a0bc15e8f88947eba"
+    },
+    {
+      "path": "assets/novex-logo.svg",
+      "bytes": 7571,
+      "sha256": "d5637d3d575881e42dd7bfb5ba83c6d9d77989c7d838be274f30eb513ebfd2ab"
+    },
+    {
+      "path": "assets/manrope-variable.woff2",
+      "bytes": 53736,
+      "sha256": "ec48a797c0f2b33917ce9b7751021719ea1fbd46fb5c584c59c1ea1064678de7"
+    },
+    {
+      "path": "assets/OFL-Manrope.txt",
+      "bytes": 4480,
+      "sha256": "4b8929f05a122b7abb9059501dc7dc4df86f8c97d5a1769d60d82cf2d2795dde"
+    }
+  ],
+  "limitations": [
+    "composition preview with demo data",
+    "no backend, API or browser persistence",
+    "not a working MONO layout or preset update"
+  ],
+  "source": "exact six files from the owner-reviewed standalone mockups"
+}

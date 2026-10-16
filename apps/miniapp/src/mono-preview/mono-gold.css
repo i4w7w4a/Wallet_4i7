@@ -1,0 +1,276 @@
+/* Fixed Gold only. Palette and type values come from the existing inline adapters. */
+.mono-viewer.mono-gold-viewer { background: #171410; color: #f2ede4; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-theme="dark"] {
+  --mono-gold: var(--mono-gold-accent);
+  --mono-gold-light: var(--mono-gold-accent-light);
+  --mono-canvas: var(--mono-palette-canvas-ff);
+  --mono-surface: var(--mono-palette-surfaceBase-ff);
+  --mono-surface-high: var(--mono-palette-surfaceRaised-ff);
+  --mono-text: var(--mono-palette-textPrimary-ff);
+  --mono-text-secondary: var(--mono-palette-textSecondary-ff);
+  --mono-text-muted: var(--mono-palette-textMuted-ff);
+  --mono-rule: var(--mono-palette-borderSubtle-ff);
+  --mono-rule-strong: var(--mono-palette-borderStrong-ff);
+  --mono-ease: cubic-bezier(.2, 0, 0, 1);
+  --mono-interaction-ease: cubic-bezier(.2, 0, 0, 1);
+  --mono-interaction-enter: 90ms;
+  --mono-interaction-settle: 190ms;
+  --mono-interaction-press: 80ms;
+  background: var(--mono-canvas);
+  color: var(--mono-text);
+  color-scheme: dark;
+  font-synthesis: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene {
+  padding: max(20px, env(safe-area-inset-top)) 22px calc(116px + env(safe-area-inset-bottom));
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-app-header { min-height: 44px; margin-bottom: 16px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-app-header__mark {
+  --mono-logo-ink: var(--mono-text);
+  --mono-logo-primary: var(--mono-gold);
+  --mono-logo-depth: var(--mono-rule-strong);
+  --mono-logo-gradient-start: var(--mono-gold);
+  --mono-logo-gradient-end: var(--mono-gold-light);
+  width: 104px;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-header-brand { gap: 8px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-support-trigger { color: var(--mono-gold); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-context[data-overview="true"] { min-height: 24px; margin-top: 0; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-context[data-overview="true"] > strong {
+  color: var(--mono-gold); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview {
+  width: 100%; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 22px; margin: 0;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview[data-pin-count="0"] { grid-template-columns: minmax(0, 1fr); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview .mono-balance__heading h1 {
+  color: var(--mono-text-secondary); font-size: 12px; font-weight: 400;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-balance__privacy { color: var(--mono-text-secondary); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview .mono-product-balance-note { margin-top: 6px; font-size: 11px; line-height: 1.4; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview__pins { gap: 2px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview__pin {
+  grid-template-columns: 18px minmax(0, 1fr); gap: 3px 6px; min-height: 48px; padding: 6px 0; border-radius: 8px;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview__icon { width: 18px; height: 22px; color: var(--mono-gold); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview__group { color: var(--mono-text-secondary); font-size: 11.5px; line-height: 1.4; font-weight: 400; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview__estimate { color: var(--mono-text); font-size: 12px; font-weight: 500; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene > .mono-actions { margin-top: 24px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions[data-frame-mode="icons"] {
+  gap: 8px; border: 0; border-radius: 0; background: transparent; overflow: visible; box-shadow: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__item {
+  min-height: 84px; gap: 8px; padding: 8px 0; border: 0; border-radius: 12px; color: var(--mono-text-secondary);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__item + .mono-actions__item { border: 0; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__icon {
+  width: 40px; height: 40px; border-radius: 50%; color: var(--mono-gold);
+  background: color-mix(in srgb, var(--mono-gold) 5%, transparent); box-shadow: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__icon svg { width: 26px; height: 26px; stroke-width: 1.5; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__label { font-size: 12px; line-height: 1.4; font-weight: 400; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__item[data-product-primary="true"] .mono-actions__icon { color: var(--mono-gold); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__item[data-product-primary="true"] .mono-actions__label { font-weight: 500; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__status { color: var(--mono-text-muted); font-size: 11px; line-height: 1.5; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds { margin-top: 24px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__heading { min-height: 48px; padding: 8px 0; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__title { font-size: 18px; font-weight: 500; letter-spacing: -.02em; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__heading small { font-size: 12px; color: var(--mono-text-secondary); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__asset { min-height: 70px; padding-block: 12px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__list > li + li { border-top-color: color-mix(in srgb, var(--mono-gold) 14%, transparent); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__value strong { font-weight: 500; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__value small { color: var(--mono-text-muted); font-size: 11px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-funds__symbol { background: transparent; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-product-funds__navigation, .mono-product-funds__chevron) { color: var(--mono-gold); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-chart { margin-top: 22px; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-balance__amount, .mono-section-view__balance strong) {
+  color: var(--mono-text); text-shadow: none; font-weight: 500; font-variant-numeric: tabular-nums;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-chart__line { filter: none; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-promo-frame {
+  border-color: var(--mono-rule); box-shadow: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-promo__overline { color: var(--mono-gold); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-promo__foot { color: var(--mono-text-secondary); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-promo__seal { border-color: var(--mono-gold); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav {
+  padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--mono-gold) 20%, transparent);
+  background: var(--mono-canvas); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__item {
+  min-height: 60px; padding: 8px 0 12px; gap: 7px; border-radius: 8px; color: var(--mono-text-secondary);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__item > svg { width: 22px; height: 22px; stroke-width: 1.5; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__item[data-active="true"] { color: var(--mono-gold-light); background: transparent; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-nav__indicator { background: var(--mono-gold); box-shadow: none; }
+
+/* All shared screens/forms inherit the same warm surfaces, type and semantic state tokens. */
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-section-view, .mono-product-section) { width: 100%; min-width: 0; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-sheet-scrim { background: rgb(8 7 5 / 76%); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-sheet { border-color: var(--mono-rule-strong); color: var(--mono-text); }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-glass[data-product-glass] {
+  --mono-panel-veil: var(--mono-surface);
+  background: linear-gradient(155deg, color-mix(in srgb, var(--mono-gold) 3%, transparent), transparent 35%), var(--mono-panel-veil);
+  color: var(--mono-text); border-color: var(--mono-rule);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--mono-gold) 16%, transparent), 0 14px 38px rgb(0 0 0 / 28%);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-glass[data-product-glass="shared-webgl"] {
+  --mono-panel-veil: color-mix(in srgb, var(--mono-surface) 97%, transparent);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-glass[data-product-glass="opaque"] {
+  background: var(--mono-surface-high); -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(input, textarea, select) {
+  accent-color: var(--mono-gold-light); color-scheme: dark;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  min-height: 44px; border-color: var(--mono-rule-strong); background-color: var(--mono-canvas); color: var(--mono-text);
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(input, textarea)::placeholder { color: var(--mono-text-muted); opacity: 1; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(button, a) { touch-action: manipulation; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(button, a, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--mono-palette-focus-ff); outline-offset: -2px;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(button, input, textarea, select):disabled { cursor: default; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(button, input, textarea, select)[aria-disabled="true"] { cursor: default; }
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(input, textarea, select)[aria-invalid="true"] { border-color: var(--mono-gold-danger); }
+
+@container mono-preview (max-width: 340px) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-scene { padding-inline: 18px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview { grid-template-columns: minmax(0, 58fr) minmax(0, 42fr); gap: 12px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview[data-pin-count="0"] { grid-template-columns: minmax(0, 1fr); }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-overview__group { font-size: 11px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions[data-frame-mode="icons"] { gap: 4px; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__label { font-size: 11.5px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] .mono-actions__icon {
+    transition: transform 190ms var(--mono-ease), background-color 190ms var(--mono-ease);
+  }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] .mono-actions__item:is(:active, [data-key-pressed="true"]) .mono-actions__icon {
+    transform: translateY(1px); transition-duration: 80ms;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] .mono-actions__item:hover .mono-actions__icon {
+    background: color-mix(in srgb, var(--mono-gold) 10%, transparent); transition-duration: 90ms;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] *,
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] *::before,
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] *::after { animation: none; transition: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-glass[data-product-glass] {
+    background: var(--mono-surface-high); -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .mono-viewer.mono-gold-viewer,
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-theme="dark"] {
+    --mono-canvas: Canvas; --mono-surface: Canvas; --mono-surface-high: Canvas;
+    --mono-text: CanvasText; --mono-text-secondary: CanvasText; --mono-text-muted: GrayText;
+    --mono-rule: CanvasText; --mono-rule-strong: CanvasText; --mono-gold: LinkText; --mono-gold-light: LinkText;
+    background: Canvas; color: CanvasText;
+  }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-product-glass[data-product-glass] { background: Canvas; color: CanvasText; outline: 1px solid CanvasText; box-shadow: none; }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(button, a, input, textarea, select, summary):focus-visible { outline-color: Highlight; }
+}
+
+/* Gold water replaces only the atmosphere slot; the scrollport/content geometry stays intact. */
+.mono-gold-viewer .mono-gold-liquid {
+  position: fixed; z-index: 0; inset: 0;
+  width: min(100%, var(--mono-preview-width, 480px)); height: 100dvh; margin-inline: auto;
+  overflow: hidden; contain: strict; pointer-events: none;
+}
+.mono-gold-viewer .mono-gold-liquid canvas { width: 100%; height: 100%; }
+.mono-gold-viewer .mono-gold-liquid canvas:not([hidden]) { display: block; }
+.mono-gold-viewer .mono-gold-liquid canvas[hidden] { display: none; }
+
+/* Keep the original action silhouettes; light belongs to the existing round glyph surface. */
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__item:is(:hover, :focus-visible, :active) {
+  background: transparent; box-shadow: none;
+}
+.mono-gold-viewer .mono-page[data-mono-presentation="gold"] [data-avatar-motion] {
+  --avatar-edge: color-mix(in srgb, var(--mono-gold) 34%, transparent);
+  --avatar-glint-ink: var(--mono-gold-light);
+}
+@media (forced-colors: none) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] .mono-actions__item:not(:disabled):not([aria-disabled="true"]):focus-visible .mono-actions__icon {
+    color: var(--mono-gold-light); background: color-mix(in srgb, var(--mono-gold) 18%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--mono-gold) 24%, transparent);
+  }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"] :is(.mono-product-overview__pin, .mono-nav__item, .mono-support-trigger,
+    [data-mono-product-context-trigger], [data-avatar-motion], [data-profile-quick-menu-trigger]):not(:disabled):not([aria-disabled="true"]):focus-visible {
+    color: var(--mono-gold-light); box-shadow: 0 0 14px color-mix(in srgb, var(--mono-gold) 18%, transparent);
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] :is(.mono-actions__icon,
+    .mono-product-overview__pin, .mono-nav__item, .mono-support-trigger, [data-mono-product-context-trigger],
+    [data-avatar-motion], [data-profile-quick-menu-trigger]) {
+    transition: color 220ms var(--mono-ease), background-color 220ms var(--mono-ease), box-shadow 220ms var(--mono-ease);
+  }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] .mono-actions__item:not(:disabled):not([aria-disabled="true"]):is(:active, [data-key-pressed="true"]) .mono-actions__icon {
+    transform: none; color: var(--mono-gold-light); background: color-mix(in srgb, var(--mono-gold) 24%, transparent);
+    box-shadow: 0 0 9px color-mix(in srgb, var(--mono-gold) 32%, transparent); transition-duration: 90ms;
+  }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] :is(.mono-product-overview__pin,
+    .mono-nav__item, .mono-support-trigger, [data-mono-product-context-trigger], [data-avatar-motion],
+    [data-profile-quick-menu-trigger]):not(:disabled):not([aria-disabled="true"]):active {
+    color: var(--mono-gold-light); background-color: color-mix(in srgb, var(--mono-gold) 8%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--mono-gold) 24%, transparent); transition-duration: 90ms;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] .mono-actions__item:not(:disabled):not([aria-disabled="true"]):hover:not(:active):not([data-key-pressed="true"]) .mono-actions__icon {
+    transform: none; color: var(--mono-gold-light); background: color-mix(in srgb, var(--mono-gold) 18%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--mono-gold) 30%, transparent); transition-duration: 100ms;
+  }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] :is(.mono-product-overview__pin,
+    .mono-nav__item, .mono-support-trigger, [data-mono-product-context-trigger], [data-avatar-motion],
+    [data-profile-quick-menu-trigger]):not(:disabled):not([aria-disabled="true"]):hover:not(:active):not([data-key-pressed="true"]) {
+    color: var(--mono-gold-light); background-color: color-mix(in srgb, var(--mono-gold) 5%, transparent);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--mono-gold) 22%, transparent); transition-duration: 100ms;
+  }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] .mono-nav__item:not(:disabled):not([aria-disabled="true"]):hover:not(:active):not([data-key-pressed="true"]) > svg {
+    transform: none; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--mono-gold) 36%, transparent));
+  }
+  .mono-gold-viewer .mono-page[data-mono-presentation="gold"][data-mono-motion="ready"] [data-profile-quick-menu] > button:not(:disabled):not([aria-disabled="true"]):is(
+    [aria-label="Язык"], [aria-label="Валюта"], [aria-label="Документы сервиса"], [aria-label="На главной"]):hover {
+    background-color: color-mix(in srgb, var(--mono-gold) 6%, transparent); transition: background-color 100ms var(--mono-ease);
+  }
+}
+
+/* Technical loopback-only panel; it never enters the phone scene or the product Menu. */
+.mono-gold-viewer .mono-gold-liquid-tuner {
+  position: fixed; z-index: 80; inset-block-start: 12px; inset-inline-end: 12px;
+  box-sizing: border-box; width: 280px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px);
+  overflow: auto; padding: 12px; border: 1px solid color-mix(in srgb, var(--mono-gold-accent) 32%, transparent);
+  border-radius: 12px; background: #171410; color: #f2ede4; font: 12px/1.5 system-ui, sans-serif;
+}
+.mono-gold-viewer .mono-gold-liquid-tuner p { margin: 8px 0; color: #c4bbad; }
+.mono-gold-viewer .mono-gold-liquid-tuner summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--mono-gold-accent-light); }
+.mono-gold-viewer .mono-gold-liquid-tuner__control { display: grid; margin-block: 6px; }
+.mono-gold-viewer .mono-gold-liquid-tuner__control > span { display: flex; justify-content: space-between; }
+.mono-gold-viewer .mono-gold-liquid-tuner__control[data-inactive="true"] > span { color: #b8afa0; }
+.mono-gold-viewer .mono-gold-liquid-tuner__inactive { display: block; color: #b8afa0; font-size: 11px; line-height: 1.5; }
+.mono-gold-viewer .mono-gold-liquid-tuner input[type="range"] { width: 100%; min-height: 44px; margin: 0; accent-color: var(--mono-gold-accent-light); }
+.mono-gold-viewer .mono-gold-liquid-tuner__toggle { display: flex; gap: 8px; align-items: center; min-height: 44px; }
+.mono-gold-viewer .mono-gold-liquid-tuner__buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.mono-gold-viewer .mono-gold-liquid-tuner button { min-height: 44px; padding: 6px 9px; border: 1px solid #605342; border-radius: 6px; background: #241f18; color: #f2ede4; cursor: pointer; }
+.mono-gold-viewer .mono-gold-liquid-tuner button[aria-pressed="true"] { border-color: var(--mono-gold-accent-light); color: var(--mono-gold-accent-light); }
+.mono-gold-viewer .mono-gold-liquid-tuner button:disabled { color: #b8afa0; border-color: #453e34; background: #1b1712; cursor: default; }
+.mono-gold-viewer .mono-gold-liquid-tuner input:disabled { cursor: default; }
+.mono-gold-viewer .mono-gold-liquid-tuner textarea { box-sizing: border-box; width: 100%; height: 144px; margin-block-start: 10px; resize: vertical; background: #100e0b; color: #e5dbc8; border: 1px solid #605342; font: 11px/1.5 ui-monospace, monospace; }
+.mono-gold-viewer .mono-gold-liquid-tuner :is(button, input, textarea, summary):focus-visible { outline: 2px solid var(--mono-gold-accent-light); outline-offset: 2px; }
+@media (forced-colors: active) {
+  .mono-gold-viewer .mono-gold-liquid-tuner { background: Canvas; color: CanvasText; border-color: CanvasText; }
+  .mono-gold-viewer .mono-gold-liquid-tuner :is(p, summary, button, textarea) { color: CanvasText; background: Canvas; border-color: CanvasText; }
+  .mono-gold-viewer .mono-gold-liquid-tuner__control[data-inactive="true"] > span,
+  .mono-gold-viewer .mono-gold-liquid-tuner__inactive,
+  .mono-gold-viewer .mono-gold-liquid-tuner button:disabled { color: GrayText; border-color: GrayText; }
+  .mono-gold-viewer .mono-gold-liquid-tuner :is(button, input, textarea, summary):focus-visible { outline-color: Highlight; }
+}

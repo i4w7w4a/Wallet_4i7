@@ -34,6 +34,31 @@ html[data-mono-prepaint-theme="light"] .mono-scene-loading:not([data-mono-theme]
 }
 
 .mono-page { --mono-gutter: 20px; }
+.mono-header-brand { display: flex; flex: 1 1 auto; min-width: 0; align-items: center; gap: 6px; }
+
+.mono-support-trigger {
+  display: grid; flex: 0 0 44px; width: 44px; min-height: 44px; place-items: center; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; color: var(--mono-text-secondary, #bdbdbd);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.mono-support-trigger[aria-expanded="true"] { color: var(--mono-text, #f4f4f4); }
+.mono-support-trigger:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: -2px; }
+.mono-support-trigger:active { color: var(--mono-text, #f4f4f4); }
+.mono-support-trigger:disabled { cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  .mono-support-trigger:enabled:hover {
+    color: var(--mono-text, #f4f4f4);
+    box-shadow: inset 1px 1px 0 color-mix(in srgb, var(--mono-text, #f4f4f4) 16%, transparent),
+      0 0 10px color-mix(in srgb, var(--mono-text, #f4f4f4) 5%, transparent);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-mono-motion="ready"] .mono-support-trigger[data-motion="true"] { transition: color 190ms cubic-bezier(.2,0,0,1), box-shadow 190ms cubic-bezier(.2,0,0,1); }
+  [data-mono-motion="ready"] .mono-support-trigger[data-motion="true"]:enabled:is(:hover, :focus-visible) [data-menu-icon-gesture="support"] { animation: monoSupportAck 280ms cubic-bezier(.2,0,0,1); }
+  [data-mono-motion="ready"] .mono-support-trigger[data-motion="true"]:enabled:active { transition-duration: 80ms; }
+}
+@keyframes monoSupportAck { 0%, 100% { transform: none; } 32.14% { transform: translateY(.5px); } }
+@media (forced-colors: active) { .mono-support-trigger { color: ButtonText; } .mono-support-trigger:focus-visible { outline-color: Highlight; } }
 
 /* The existing scene resolves its own theme and palette. New domains inherit that resolved paint. */
 .mono-page[data-palette-enabled="false"] .mono-scene-domain {

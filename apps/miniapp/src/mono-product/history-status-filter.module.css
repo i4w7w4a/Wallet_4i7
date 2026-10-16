@@ -1,0 +1,61 @@
+.control { position: relative; display: flex; align-items: center; gap: 2px; min-width: 44px; max-width: 100%; margin-left: auto; }
+.trigger, .reset, .close {
+  display: grid; flex: 0 0 44px; width: 44px; min-height: 44px; padding: 0; place-items: center;
+  border: 0; border-radius: 10px; background: transparent; color: var(--mono-text-secondary, #bdbdbd);
+  cursor: pointer; font: inherit; -webkit-tap-highlight-color: transparent;
+}
+.trigger:focus-visible, .reset:focus-visible, .close:focus-visible, .option:focus-visible {
+  outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: -5px;
+}
+.control[data-active="true"] .trigger, .trigger[aria-expanded="true"] { color: var(--mono-text, #f4f4f4); }
+.trigger:active, .reset:active, .close:active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 8%, transparent); }
+.activeLabel { min-width: 0; color: var(--mono-text, #f4f4f4); font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.sliders { display: block; }
+.control[data-active="true"] .firstSlider { transform: translateX(2px); }
+.control[data-active="true"] .lastSlider { transform: translateX(-2px); }
+.control[data-open="true"] .firstSlider { transform: translateX(3px); }
+.control[data-open="true"] .lastSlider { transform: translateX(-3px); }
+.panel {
+  position: absolute; z-index: 20; box-sizing: border-box; min-width: 0; padding: 8px 12px 12px; border: 0;
+  border-radius: 16px; overflow: auto; overscroll-behavior: contain;
+  color: var(--mono-text, #f4f4f4); font: 13px/1.4 var(--mono-font-ui, sans-serif);
+}
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.heading h2 { margin: 0; min-width: 0; color: var(--mono-text-secondary, #bdbdbd); font: 500 13px/1.35 var(--mono-font-ui, sans-serif); }
+.close { margin-right: -6px; }
+.options { display: grid; gap: 2px; }
+.option {
+  display: flex; align-items: center; gap: 9px; width: 100%; min-height: 44px; padding: 8px 6px;
+  border: 0; border-radius: 9px; background: transparent; color: inherit; cursor: pointer;
+  font: inherit; text-align: left; -webkit-tap-highlight-color: transparent;
+}
+.option[aria-pressed="true"] { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); }
+.option:active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 10%, transparent); }
+.statusIcon { display: grid; flex: 0 0 18px; width: 18px; height: 18px; place-items: center; }
+.statusIcon > svg { width: 16px; height: 16px; }
+.option[data-status="pending"] .statusIcon { color: var(--history-pending-ink, currentColor); }
+.option[data-status="failed"] .statusIcon { color: var(--history-failed-ink, currentColor); }
+.check { flex: 0 0 16px; margin-left: auto; }
+@media (hover: hover) and (pointer: fine) {
+  .trigger:hover, .reset:hover, .close:hover { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 5%, transparent); }
+  .option:hover:not(:active) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 5%, transparent); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .control[data-motion="true"] :is(.trigger, .reset, .close, .option) { transition: background-color 190ms cubic-bezier(.2,0,0,1); }
+  .control[data-motion="true"] :is(.firstSlider, .lastSlider) { transition: transform 190ms cubic-bezier(.2,0,0,1); }
+  .control[data-motion="true"] :is(.trigger, .reset, .close, .option):active { transition-duration: 80ms; }
+  .control[data-motion="true"] .panel[data-positioned="true"] { animation: statusPanelEnter 190ms cubic-bezier(.2,0,0,1) both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The scene's universal duration must not transition inherited visibility before initial focus. */
+  .panel, .panel * { transition-property: none; }
+}
+@keyframes statusPanelEnter { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@container mono-preview (max-width: 359px) {
+  .control[data-active="true"] { flex-basis: 100%; justify-content: flex-end; }
+}
+@media (forced-colors: active) {
+  .trigger, .reset, .close, .option, .activeLabel { color: CanvasText; }
+  .option[aria-pressed="true"] { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .trigger:focus-visible, .reset:focus-visible, .close:focus-visible, .option:focus-visible { outline-color: Highlight; }
+}

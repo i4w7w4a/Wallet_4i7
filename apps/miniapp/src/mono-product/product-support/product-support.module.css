@@ -1,0 +1,25 @@
+.support { display: grid; justify-items: start; gap: 8px; min-width: 0; padding-block: 4px; color: var(--mono-text, #f4f4f4); font: inherit; }
+.support, .support * { box-sizing: border-box; }
+.message { margin: 0; color: var(--mono-text-secondary, #bdbdbd); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.channels { display: grid; gap: 4px; width: 100%; margin: 0; padding: 0; list-style: none; }
+.row { display: flex; align-items: center; gap: 12px; min-width: 44px; min-height: 56px; width: 100%; padding: 8px 4px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
+.contact { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.copy { display: grid; gap: 2px; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.name { font-weight: var(--mono-font-weight-strong, 600); }
+.detail { color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; }
+.contact .detail { text-decoration: underline; text-underline-offset: 4px; }
+.disabled { color: var(--mono-text-secondary, #bdbdbd); }
+.channelIcon { flex: 0 0 24px; }
+.arrow { flex: 0 0 14px; color: var(--mono-text-secondary, #bdbdbd); }
+.contact:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 2px; }
+.contact:active { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 6%, transparent); }
+@media (hover: hover) and (pointer: fine) {
+  .contact:hover:not(:active) { background: color-mix(in srgb, var(--mono-text, #f4f4f4) 3%, transparent); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :global([data-mono-motion="ready"]) .contact { transition: background-color var(--mono-interaction-settle, 190ms) var(--mono-interaction-ease, cubic-bezier(.2, 0, 0, 1)); }
+  :global([data-mono-motion="ready"]) .contact:active { transition-duration: var(--mono-interaction-press, 80ms); }
+  @media (hover: hover) and (pointer: fine) {
+    :global([data-mono-motion="ready"]) .contact:hover:not(:active) { transition-duration: var(--mono-interaction-enter, 90ms); }
+  }
+}

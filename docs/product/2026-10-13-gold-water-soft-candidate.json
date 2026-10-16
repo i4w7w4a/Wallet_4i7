@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "kind": "gold-liquid-local",
+  "params": {
+    "ior": -0.65,
+    "edgeThickness": 0.12,
+    "cornerRadius": 0.025,
+    "dispersion": 0.012,
+    "edgeDarkening": 0.22,
+    "highlightStrength": 0.24,
+    "fieldEnabled": true,
+    "fieldStart": 0.45,
+    "fieldSoftness": 0.7,
+    "fieldFadeMode": 1,
+    "fieldCurve": 1.5,
+    "fieldStrength": 0.9,
+    "flowSpeed": 0.18,
+    "flowStrength": 0.45,
+    "flowScale": 2.4,
+    "pixelRatio": 1.25
+  }
+}
