@@ -1,5 +1,13 @@
 # Правила репозитория Novex Wallet
 
+## Активный локальный срез17.10 — Gold Home #67
+
+- Владелец разрешил SOL MAX реализовать одну карточку общего баланса, четыре действия и один вход «Мои средства» в существующие Assets ALL. «Подробнее», account tabs/pins, «Мои счета», inline holdings/recent-completed/Promo с Gold Home убираются; золотая палитра и текущая оптика сохраняются. MONO, профиль и семь presets не переделывать.
+- Основа после GitHub sync — `e2cd5c0`, рабочая private ветка `codex/gold-home-67-20261017` в attached source-sync checkout. Полный план `docs/product/2026-10-17-gold-home-67.md`, собственный ledger `.superpowers/sdd/2026-10-17-gold-home-67/progress.md`. Не назначать заново source catch-up #43 или старые профильные/Gold renderer задачи.
+- Gold Home — ALL presentation у баланса, действий, средств и pending; не сбрасывать working context/drafts при render/Home. Scoped счета и guarded переходы сохраняются в глубине. #68/новый receipt container/материалы#69 этой волной не реализуются.
+- Сначала source/review freeze, затем один локальный typecheck/build через действующий ORACLE и actual root browser. PREPARE не является LOCALGO. Существующие3184/3196/3197, public Gold5a1, MONO и datasets/history сохранить. Нет push/merge/deploy/SSH/preset writes; визуальная оценка владельца после локального показа.
+- Обсуждение с внешним GPT: `docs/product/2026-10-17-customer-discussion-prompt.txt`. Это human-only пакет вопросов и макетов, не добавочное техническое задание.
+
 ## Актуальное состояние 17.10.2026 — синхронизация исходников #43
 
 - Владелец поручил синхронизировать GitHub с действующим полным Gold, профилем и семью presets. Ветка `codex/source-sync-20261017` переносит отслеживаемый snapshot `81a9d1b` поверх GitHub `2d1078b`, сохраняя документацию16.10. После merge новая база разработки — обновлённая `origin/codex/mono-release`; прежний PR57 и его ранний head не являются текущей версией.
