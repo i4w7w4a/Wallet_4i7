@@ -113,6 +113,7 @@ it("opens Funds in existing Assets ALL and restores focus without changing conte
   const context = view.current().view.context, saved = keepSendDraft(view);
   funds().focus(); fireEvent.click(funds());
   expect(view.scene).toHaveAttribute("data-mono-section", "assets");
+  await waitFor(() => expect(screen.getByRole("button", { name: "Назад в обзор" })).toHaveFocus());
   expect(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Выбрать счёт: Все счета" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" }));

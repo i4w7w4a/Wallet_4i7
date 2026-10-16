@@ -317,7 +317,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       openAsset: (assetId, scope = ALL_WALLET_CONTEXT) => product.commands.openAsset(assetId, scope),
     } } : undefined;
   const [goldAssetsScope, setGoldAssetsScope] = useState<AccountContext>(ALL_WALLET_CONTEXT);
-  const goldFundsReturnFocus = useRef(false);
+  const goldFundsFocusRequest = useRef<"assets" | "overview" | null>(null);
   const assetsProduct: MonoProductController | undefined = product && propsPresentation === "gold" ? { ...product,
     view: productViewForScope(product.view, goldAssetsScope),
     commands: { ...product.commands,
@@ -458,7 +458,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     setProfileMenuOrigin(null); setAvatarProfileOrigin(null); avatarReturn.current = null;
     if (propsPresentation === "gold") {
       if (next === "assets") setGoldAssetsScope(ALL_WALLET_CONTEXT);
-      goldFundsReturnFocus.current = next === "overview" && section === "assets";
+      goldFundsFocusRequest.current = next === "overview" && section === "assets" ? "overview" : null;
     }
     if (next !== section) setSection(next);
     return true;
@@ -654,10 +654,17 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   }, [section]);
 
   useLayoutEffect(() => {
-    if (!goldFundsReturnFocus.current || !rootOverview || !active || product?.view.sheet) return;
-    goldFundsReturnFocus.current = false;
-    pageRef.current?.querySelector<HTMLElement>("[data-mono-gold-funds-trigger]")?.focus({ preventScroll: true });
-  }, [rootOverview, active, product?.view.sheet]);
+    const destination = goldFundsFocusRequest.current;
+    if (!destination || section !== destination || !active || product?.view.sheet || accountsWorkspace || assetWorkspace) return;
+    goldFundsFocusRequest.current = null;
+    const root = pageRef.current;
+    const target = root?.querySelector<HTMLElement>(destination === "assets"
+      ? ".mono-gold-assets-back" : "[data-mono-gold-funds-trigger]");
+    if (root && target) {
+      target.focus({ preventScroll: true });
+      revealAccountsTarget(root, target);
+    }
+  }, [section, active, product?.view.sheet, accountsWorkspace, assetWorkspace]);
 
   useLayoutEffect(() => {
     const request = avatarReturn.current;
@@ -1294,7 +1301,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <div className="mono-scene-domain mono-scene-domain--chart mono-product-chart">{chart}</div>}
         {product && propsPresentation === "gold" && <button type="button" className="mono-gold-funds-entry"
           data-mono-gold-funds-trigger disabled={!active || !canChangeSection || Boolean(product.view.sheet) || product.view.commerceBusy}
-          onClick={() => navigateSection("assets")}>
+          onClick={() => { if (navigateSection("assets")) goldFundsFocusRequest.current = "assets"; }}>
           <WalletIcon name="portfolio" /><span>Мои средства</span>
           <svg className="mono-gold-funds-entry__chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m6 4 4 4-4 4" /></svg>
         </button>}
