@@ -108,11 +108,13 @@ export async function runSmoke({ directory, expected, origin = "http://127.0.0.1
     assets.push({ path: assetPath, status: response.status, sizeBytes: content.length, sha256: sha256(content) });
   }
   check(lazyRuntimeBase === "/gold/_next/", "invalid generated lazy runtime base");
-  const rscResponse = await atPhase("rsc", `${origin}/gold`,
-    () => fetch(`${origin}/gold`, { headers: { RSC: "1" }, signal: AbortSignal.timeout(5000), redirect: "error" }));
+  // Fixed RSC headers require Next's present, empty cache-busting query.
+  const rscUrl = `${origin}/gold?_rsc`;
+  const rscResponse = await atPhase("rsc", rscUrl,
+    () => fetch(rscUrl, { headers: { RSC: "1" }, signal: AbortSignal.timeout(5000), redirect: "error" }));
   const contentType = rscResponse.headers.get("content-type") ?? "";
   check(rscResponse.status === 200 && /^text\/x-component(?:;|$)/.test(contentType), "invalid RSC response");
-  const rsc = (await atPhase("rsc", `${origin}/gold`, () => bytes(rscResponse))).toString("utf8");
+  const rsc = (await atPhase("rsc", rscUrl, () => bytes(rscResponse))).toString("utf8");
   check(!/["']\/_next\//.test(rsc), "root RSC client namespace leak");
   const chunks = [...new Set([...rsc.matchAll(/["']([^"']*\/_next\/static\/[^"']+\.js)["']/g)].map((match) => match[1]))];
   check(chunks.length > 0 && chunks.length <= 128, "missing RSC client chunks");

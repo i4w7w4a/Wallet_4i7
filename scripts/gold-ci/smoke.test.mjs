@@ -34,7 +34,18 @@ async function fixture(t, change = {}) {
       request.socket.destroy();
       return;
     }
-    if (request.url === "/gold" && request.headers.rsc === "1") {
+    const requestUrl = new URL(request.url, "http://127.0.0.1");
+    if (requestUrl.pathname === "/gold" && request.headers.rsc === "1") {
+      if (!requestUrl.searchParams.has("_rsc") || requestUrl.searchParams.get("_rsc") !== "") {
+        response.writeHead(307, { Location: "/gold?_rsc" });
+        response.end();
+        return;
+      }
+      if (change.canonicalRedirect) {
+        response.writeHead(307, { Location: change.canonicalRedirect });
+        response.end();
+        return;
+      }
       response.setHeader("Content-Type", change.rscContentType ?? "text/x-component");
       response.end(`3:I[69977,["${change.rscChunk ?? "/gold/_next/static/chunks/lazy.js"}"],"default"]\n`);
     } else if (request.url === "/gold") {
@@ -68,7 +79,7 @@ test("checks complete Gold URLs against a pass-through proxy and hashes actual a
   assert.equal(result.http.lazyRuntimeBase, "/gold/_next/");
   assert.ok(value.requests.some((r) => r.path === "/gold/_next/static/chunks/turbopack-test.js"));
   assert.ok(value.requests.some((r) => r.path === "/gold/source-manifest.json"));
-  assert.ok(value.requests.some((r) => r.path === "/gold" && r.rsc === "1"));
+  assert.ok(value.requests.some((r) => r.path === "/gold?_rsc" && r.rsc === "1"));
   assert.ok(value.requests.every((r) => r.path.startsWith("/gold")));
 });
 
@@ -140,4 +151,24 @@ test("bounds and redacts selected real transport-error fields and strips URL que
   assert.ok(!error.message.includes("DIAG_SECRET_TOKEN"));
   assert.ok(!error.message.includes("DIAG_HEADER_SECRET"));
   assert.ok(!error.message.includes("DIAG_URL_SECRET"));
+});
+
+test("uses the canonical present-empty _rsc query required by Next for fixed RSC headers", async (t) => {
+  const value = await fixture(t);
+  let result;
+  await assert.doesNotReject(async () => { result = await runSmoke(value); });
+  assert.equal(result.http.rsc.status, 200);
+  assert.equal(result.http.rsc.contentType, "text/x-component");
+  assert.deepEqual(value.requests.filter((request) => request.rsc === "1"), [{ path: "/gold?_rsc", rsc: "1" }]);
+});
+
+test("rejects an unexpected redirect from the canonical RSC URL without following it", async (t) => {
+  const value = await fixture(t, { canonicalRedirect: "/mono" });
+  await assert.rejects(runSmoke(value), (error) => {
+    assert.equal(error.diagnostic?.phase, "rsc");
+    assert.equal(error.diagnostic.cause.message, "unexpected redirect");
+    return true;
+  });
+  assert.ok(value.requests.some((request) => request.path === "/gold?_rsc" && request.rsc === "1"));
+  assert.ok(value.requests.every((request) => request.path !== "/mono"));
 });
