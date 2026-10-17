@@ -1,5 +1,12 @@
 # Правила репозитория Novex Wallet
 
+## Активное поручение18.10 — GitHub + CI + изолированный Gold153
+
+- Владелец прямо разрешил сохранить рабочую ветку GitHub, собрать Linux Gold через CI и через существующий ORACLE опубликовать готовый образ на153/gold. Старое no-push ниже относится к17.10 и теперь отменено только для этих feature branches; merge/default branch/PR/новые VPS/security/shared stack не разрешены.
+- UI SOURCE7d097c9 и Home#67/History#68 уже реализованы, reviewed/typechecked/built и bounded-browser-tested. Не переделывать приложение и не повторять full suite/local compile. План `docs/product/2026-10-18-gold-ci-release.md`; собственный ledger `.superpowers/sdd/2026-10-18-gold-ci-release/progress.md`. CI-only author отдельный SOL MAX, root только оркестрирует, ORACLE sole153publisher.
+- MONO, профиль,7presets/data/history/materials/renderer/financial commands и app/package/lockfile sources сохраняются byte-identical7d. Build-only workflow/packaging изолирован; no CI SSH/server secrets, no self-hosted runner, no GHCR/public package registry, no automatic deployment. Exact SHA + image/archive checksum + Linux BUILD/provenance + smoke перед отдельным ORACLE DEPLOYGO.
+- Старый3200/QRyLETrp06HQFieBvNd-u/7d в history checkout и все прежние outputs/evidence оставить. Серверный Next build запрещён; на153 только импорт заранее собранного образа и scopedGoldswap после свежих guards/rollback. No95/179/Caddy/global reload, no resource-limit changes/neighbour stop/cache eviction.
+
 ## Активное поручение17.10 — Gold History #68 и публикация
 
 - Владелец принял Home2dbb8b4 на3199 и поручил новому SOL MAX компактную Gold-историю: даты группами, меньше текста, явные pending/failed, прежняя inline-квитанция. Root только оркестрирует. План `docs/product/2026-10-17-gold-history-68.md`, собственный ledger `.superpowers/sdd/2026-10-17-gold-history-68/progress.md`.
