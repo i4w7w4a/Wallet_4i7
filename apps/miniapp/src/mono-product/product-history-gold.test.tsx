@@ -199,6 +199,31 @@ it("opens and closes the exact existing receipt with one click and keeps its liv
   expect(button).toHaveFocus();
 });
 
+it.each([false, true])("preserves the live button, receipt and focus when an operation is prepended to its date block (repeated date: %s)", repeatedDate => {
+  const second = { ...incoming, id: "focused-operation", quantity: "7.91" };
+  const previousDay = { ...incoming, id: "previous-day", occurredAt: "2026-10-02T09:00:00Z" };
+  const prepended = { ...incoming, id: "new-operation", occurredAt: "2026-10-03T10:00:00Z" };
+  const activities = repeatedDate ? [incoming, previousDay, second] : [incoming, second];
+  const { rerender } = render(<ProductHistory presentation="gold" activities={activities} balanceHidden={false} />);
+  const button = row(second.id);
+  button.focus();
+  fireEvent.click(button);
+  const receipt = screen.getByRole("region", { name: "Квитанция операции" });
+
+  const next = repeatedDate ? [incoming, previousDay, prepended, second] : [prepended, incoming, second];
+  rerender(<ProductHistory presentation="gold" activities={next} balanceHidden={false} />);
+  expect(row(second.id)).toBe(button);
+  expect(button).toHaveFocus();
+  expect(button).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("region", { name: "Квитанция операции" })).toBe(receipt);
+  expect(rowIds()).toEqual(repeatedDate
+    ? ["incoming-a", "previous-day", "new-operation", "focused-operation"]
+    : ["new-operation", "incoming-a", "focused-operation"]);
+  expect(dateHeadings()).toEqual(repeatedDate
+    ? ["3 октября 2026 г.", "2 октября 2026 г.", "3 октября 2026 г."]
+    : ["3 октября 2026 г."]);
+});
+
 it("keeps controlled expansion and manual filters intact through Gold grouping and privacy rerenders", () => {
   function Controlled({ hidden = false }: { hidden?: boolean }) {
     const [expanded, setExpanded] = useState<string | null>(pending.id);

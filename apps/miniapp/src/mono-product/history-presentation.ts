@@ -13,6 +13,7 @@ const groupDateFormat = new Intl.DateTimeFormat("ru-RU", {
 /** Preserve the supplied order, including a repeated date after a different group. */
 export function groupHistoryActivitiesByDate(activities: readonly ProductActivity[]) {
   const groups: { key: string; date: string | undefined; label: string; activities: ProductActivity[] }[] = [];
+  const dateOrdinals = new Map<string | undefined, number>();
   for (const activity of activities) {
     const time = typeof activity.occurredAt === "string" && activity.occurredAt.trim()
       ? new Date(activity.occurredAt) : null;
@@ -20,7 +21,9 @@ export function groupHistoryActivitiesByDate(activities: readonly ProductActivit
     const date = validTime ? time.toISOString().slice(0, 10) : undefined;
     let group = groups.at(-1);
     if (!group || group.date !== date) {
-      group = { key: `${date ?? "undated"}-${activity.id}`, date,
+      const ordinal = dateOrdinals.get(date) ?? 0;
+      dateOrdinals.set(date, ordinal + 1);
+      group = { key: `${date ?? "undated"}-${ordinal}`, date,
         label: validTime ? groupDateFormat.format(time) : "Дата не указана", activities: [] };
       groups.push(group);
     }
