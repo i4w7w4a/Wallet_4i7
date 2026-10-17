@@ -1206,7 +1206,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
               onRetry: product.commands.retryActivities, onOpen: id => openAccountPendingActivity(inspectedAccount.id, id) } : undefined} />
         </div>}
         {product && assetWorkspace && <div className="mono-product-section" hidden={avatarProfileActive} inert={avatarProfileActive || !active}><ProductAssetWorkspace
-          view={assetView!} assetId={assetWorkspace.assetId} selectedHoldingId={assetWorkspace.holdingId}
+          presentation={propsPresentation} view={assetView!} assetId={assetWorkspace.assetId} selectedHoldingId={assetWorkspace.holdingId}
           onSelectHolding={product.commands.selectAssetHolding} onBack={product.commands.closeAsset}
           backLabel={accountsWorkspace ? inspectedAccount ? `Назад к счёту ${inspectedAccount.label}` : "Назад к счёту" : undefined}
           onPlacementAction={product.commands.openPlacementAction} onExpandActivity={product.commands.expandActivity}
@@ -1369,7 +1369,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <div className="mono-product-section" inert={!active}>
           {currentHistoryInspection?.unavailable && <p role="status">Операция сейчас недоступна</p>}
           <ProductHistory
-          activities={product.view.activities} balanceHidden={product.view.balanceHidden}
+          presentation={propsPresentation} activities={product.view.activities} balanceHidden={product.view.balanceHidden}
           accountId={historyView!.context.kind === "account" ? historyView!.context.accountId : undefined}
           accountLabel={historyView!.account?.label} expandedActivityId={(historyInspection?.origin === "pending-home" ||
             historyInspection?.origin === "gold-home") && !currentHistoryInspection

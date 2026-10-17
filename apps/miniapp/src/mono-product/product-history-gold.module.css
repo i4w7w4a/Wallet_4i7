@@ -1,0 +1,37 @@
+.gold[data-history-presentation="gold"] {
+  --history-incoming-ink: var(--mono-palette-success-ff, #77d7b5);
+  --history-outgoing-ink: var(--mono-text-secondary, #bdbdbd);
+  --history-pending-ink: var(--mono-palette-warning-ff, #d6bc8a);
+  --history-failed-ink: var(--mono-palette-danger-ff, #efb18a);
+}
+.groups { display: grid; gap: 24px; margin-top: 20px; }
+.date { margin: 0 0 6px; color: var(--mono-text-secondary, #bdbdbd); font: inherit; font-size: 14px; font-weight: 500; line-height: 1.45; }
+.gold .rowButton {
+  --history-direction-ink: var(--mono-text, #f4f4f4);
+  grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr) 12px;
+  align-items: center; column-gap: 8px; row-gap: 0;
+  width: 100%; min-height: 68px; margin-inline: 0; padding: 13px 0; border-radius: 8px;
+  transition: background-color 220ms cubic-bezier(.2, 0, 0, 1);
+}
+.gold .rowButton > [data-history-direction-icon] { grid-row: 1; width: 40px; }
+.gold .rowButton .identity { grid-column: 2; grid-row: 1; gap: 4px; }
+.gold .rowButton .identity > strong { color: var(--mono-text, #f4f4f4); font-weight: 500; }
+.context { min-width: 0; color: var(--mono-text-secondary, #bdbdbd); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.gold .status { align-items: center; gap: 5px; color: var(--mono-text-secondary, #bdbdbd); }
+.gold .status[data-status="pending"] { color: var(--history-pending-ink); }
+.gold .status[data-status="failed"] { color: var(--history-failed-ink); }
+.gold .rowButton .amount { grid-column: 3; grid-row: 1; gap: 2px; min-width: 0; max-width: none; margin: 0; }
+.gold .amount > strong { font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+.gold .amount > small { font-size: 11px; }
+.gold .amount .currency { color: var(--mono-text-secondary, #bdbdbd); font-family: var(--mono-font-ui, sans-serif); font-size: 12px; }
+.gold .rowButton[data-direction="incoming"][data-status="completed"] .amount > strong { color: var(--history-incoming-ink); }
+.gold .rowButton .chevron { grid-column: 4; grid-row: 1; width: 12px; height: 12px; transition: transform 220ms cubic-bezier(.2, 0, 0, 1); }
+.gold .rowButton:is([aria-expanded="true"], :focus-visible) { background: color-mix(in srgb, var(--mono-gold, #d6bc8a) 6%, transparent); }
+.gold .rowButton:active { background: color-mix(in srgb, var(--mono-gold, #d6bc8a) 10%, transparent); transition-duration: 100ms; }
+@media (hover: hover) and (pointer: fine) {
+  .gold .rowButton:hover:not(:active) { background: color-mix(in srgb, var(--mono-gold, #d6bc8a) 6%, transparent); transition-duration: 100ms; }
+}
+:global(.mono-page[data-mono-motion="static"]) .gold :is(.rowButton, .chevron) { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .gold :is(.rowButton, .chevron) { transition: none; }
+}

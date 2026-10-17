@@ -10,6 +10,7 @@ import { selectAssetActivities, sumDecimalQuantities } from "./asset-workspace-d
 import styles from "./product-asset-workspace.module.css";
 
 export type ProductAssetWorkspaceProps = {
+  presentation?: "gold";
   view: MonoProductView;
   assetId: string;
   selectedHoldingId: string | null;
@@ -21,7 +22,7 @@ export type ProductAssetWorkspaceProps = {
   onRetryActivities?(): void;
 };
 
-export function ProductAssetWorkspace({ view, assetId, selectedHoldingId, onSelectHolding, onBack,
+export function ProductAssetWorkspace({ presentation, view, assetId, selectedHoldingId, onSelectHolding, onBack,
   backLabel = "Назад к активам", onPlacementAction, onExpandActivity, onRetryActivities }: ProductAssetWorkspaceProps) {
   const titleId = useId();
   const placementsId = useId();
@@ -89,7 +90,7 @@ export function ProductAssetWorkspace({ view, assetId, selectedHoldingId, onSele
       <div className={styles.history}>
         {view.activityStatus === "ready" && activities.length === 0 ? <section aria-labelledby={historyId}>
           <h2 id={historyId}>История операций</h2><p className={styles.empty}>По этому активу операций пока нет</p>
-        </section> : <ProductHistory activities={activities} balanceHidden={view.balanceHidden}
+        </section> : <ProductHistory presentation={presentation} activities={activities} balanceHidden={view.balanceHidden}
           accountId={historyAccountId} accountLabel={historyAccountId ? accounts.get(historyAccountId)?.label : undefined}
           status={view.activityStatus} expandedActivityId={view.expandedActivityId}
           onExpandedActivityChange={onExpandActivity} onRetry={onRetryActivities} />}
