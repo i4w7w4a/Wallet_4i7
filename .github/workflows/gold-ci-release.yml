@@ -101,6 +101,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -n "${GOLD_SMOKE_CONTAINER:-}" ]] && docker container inspect "$GOLD_SMOKE_CONTAINER" > /dev/null 2>&1; then
+            docker container inspect --format '{"running":{{.State.Running}},"oomKilled":{{.State.OOMKilled}},"exitCode":{{.State.ExitCode}},"error":{{json .State.Error}}}' "$GOLD_SMOKE_CONTAINER"
             docker logs --tail 200 "$GOLD_SMOKE_CONTAINER"
             docker container rm --force "$GOLD_SMOKE_CONTAINER"
           fi

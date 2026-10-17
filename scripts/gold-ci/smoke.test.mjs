@@ -5,7 +5,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { runSmoke } from "./smoke.mjs";
+import { contextualFailure, runSmoke } from "./smoke.mjs";
 
 // Dropping full-path requests, identity checks or lazy/RSC checks must fail here.
 async function fixture(t, change = {}) {
@@ -27,6 +27,13 @@ async function fixture(t, change = {}) {
   const requests = [];
   const server = createServer((request, response) => {
     requests.push({ path: request.url, rsc: request.headers.rsc });
+    const resetPath = change.resetAt === "source-manifest" ? "/gold/source-manifest.json"
+      : change.resetAt === "asset" ? "/gold/_next/static/chunks/turbopack-test.js" : "/gold";
+    if (change.resetAt && request.url.split("?")[0] === resetPath
+      && (change.resetAt !== "rsc" || request.headers.rsc === "1")) {
+      request.socket.destroy();
+      return;
+    }
     if (request.url === "/gold" && request.headers.rsc === "1") {
       response.setHeader("Content-Type", change.rscContentType ?? "text/x-component");
       response.end(`3:I[69977,["${change.rscChunk ?? "/gold/_next/static/chunks/lazy.js"}"],"default"]\n`);
@@ -86,3 +93,51 @@ for (const [name, change, error] of [
     assert.deepEqual(await readdir(value.directory), [".next-gold-public"]);
   });
 }
+
+for (const [phase, pathname] of [
+  ["source-manifest", "/gold/source-manifest.json"],
+  ["asset", "/gold/_next/static/chunks/turbopack-test.js"],
+  ["rsc", "/gold"],
+]) {
+  test(`reports ${phase} and local URL with the real loopback-reset cause`, async (t) => {
+    const value = await fixture(t, { resetAt: phase });
+    await assert.rejects(runSmoke(value), (error) => {
+      assert.equal(error.diagnostic?.phase, phase);
+      assert.equal(error.diagnostic.url, value.origin + pathname);
+      assert.equal(error.diagnostic.error.type, "TypeError");
+      assert.equal(error.diagnostic.error.message, "fetch failed");
+      assert.equal(error.diagnostic.cause.type, "SocketError");
+      assert.equal(error.diagnostic.cause.code, "UND_ERR_SOCKET");
+      assert.ok(error.diagnostic.cause.message.length > 0 && error.diagnostic.cause.message.length <= 256);
+      return true;
+    });
+  });
+}
+
+test("reports a missing disk BUILD_ID without exposing an absolute host path", async (t) => {
+  const value = await fixture(t);
+  await rm(path.join(value.directory, ".next-gold-public/BUILD_ID"));
+  await assert.rejects(runSmoke(value), (error) => {
+    assert.equal(error.diagnostic?.phase, "disk-build-id");
+    assert.equal(error.diagnostic.path, ".next-gold-public/BUILD_ID");
+    assert.equal(error.diagnostic.error.code, "ENOENT");
+    assert.ok(!error.message.includes(value.directory));
+    return true;
+  });
+});
+
+test("bounds and redacts selected real transport-error fields and strips URL query credentials", async (t) => {
+  const value = await fixture(t, { resetAt: "asset" });
+  let transport;
+  try { await fetch(value.origin + "/gold/_next/static/chunks/turbopack-test.js"); } catch (error) { transport = error; }
+  assert.equal(transport?.cause?.code, "UND_ERR_SOCKET");
+  transport.cause.message = "Authorization: Bearer DIAG_SECRET_TOKEN " + "x".repeat(2000);
+  transport.cause.headers = { authorization: "DIAG_HEADER_SECRET" };
+  const error = contextualFailure("asset", value.origin + "/gold/_next/static/chunks/turbopack-test.js?token=DIAG_URL_SECRET", transport);
+  assert.equal(error?.diagnostic?.url, value.origin + "/gold/_next/static/chunks/turbopack-test.js");
+  assert.ok(error.diagnostic.cause.message.length <= 256);
+  assert.deepEqual(Object.keys(error.diagnostic.cause).sort(), ["code", "message", "type"]);
+  assert.ok(!error.message.includes("DIAG_SECRET_TOKEN"));
+  assert.ok(!error.message.includes("DIAG_HEADER_SECRET"));
+  assert.ok(!error.message.includes("DIAG_URL_SECRET"));
+});
