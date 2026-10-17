@@ -1,5 +1,11 @@
 # Правила репозитория Novex Wallet
 
+## Активное поручение17.10 — Gold History #68 и публикация
+
+- Владелец принял Home2dbb8b4 на3199 и поручил новому SOL MAX компактную Gold-историю: даты группами, меньше текста, явные pending/failed, прежняя inline-квитанция. Root только оркестрирует. План `docs/product/2026-10-17-gold-history-68.md`, собственный ledger `.superpowers/sdd/2026-10-17-gold-history-68/progress.md`.
+- Ветка `codex/gold-history-68-20261017` от2dbb8b4. MONO, профиль,7presets/materials/renderer/financial commands сохраняются. Home принята и идёт в выпуск, не переделывается. Старые67-no-public относятся к прошлой волне: теперь владелец разрешил через ORACLE сразу Gold-only публикацию на153 после проверки.
+- ORACLE остаётся sole runtime/publisher; PREPARE/RO не LOCALGO/DEPLOYGO. Root выдаёт отдельные exact reviewedSOURCE GOs, новый SOL делает actualbrowserQA. Public target только `/gold`153, no95/179/новыеVPS/globalstack/Caddy/preset writes. No push/merge/PR этой волной. Базовые31test failures доказаны отдельно; не выдавать их за новый дефект или GREEN.
+
 ## Активный локальный срез17.10 — Gold Home #67
 
 - Владелец разрешил SOL MAX реализовать одну карточку общего баланса, четыре действия и один вход «Мои средства» в существующие Assets ALL. «Подробнее», account tabs/pins, «Мои счета», inline holdings/recent-completed/Promo с Gold Home убираются; золотая палитра и текущая оптика сохраняются. MONO, профиль и семь presets не переделывать.
