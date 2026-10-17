@@ -1,0 +1,41 @@
+FROM node:24-bookworm-slim@sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7 AS build
+
+WORKDIR /workspace
+RUN npm install --global pnpm@10.33.2 && test "$(pnpm --version)" = "10.33.2"
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NOVEX_GOLD_ASSET_PREFIX=/gold \
+    NOVEX_NEXT_DIST_DIR=.next-gold-public
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/miniapp/package.json ./apps/miniapp/package.json
+COPY packages/core/package.json ./packages/core/package.json
+COPY packages/platform/package.json ./packages/platform/package.json
+COPY packages/ui/package.json ./packages/ui/package.json
+RUN pnpm install --frozen-lockfile --prod=false
+COPY . .
+
+ARG GOLD_SOURCE_ARCHIVE_SHA256
+ARG GOLD_IMAGE_TAG
+ARG GOLD_RELEASE_ID
+ARG GOLD_CI_COMMIT
+WORKDIR /workspace/apps/miniapp
+# One native Linux Next invocation; the release manifest is generated only after success.
+RUN node ./node_modules/next/dist/bin/next build \
+    && node /workspace/scripts/gold-ci/artifact.mjs embed /workspace/apps/miniapp
+
+FROM node:24-bookworm-slim@sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7 AS runtime
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NOVEX_GOLD_ASSET_PREFIX=/gold \
+    NOVEX_NEXT_DIST_DIR=.next-gold-public
+WORKDIR /workspace/apps/miniapp
+
+# Internal packages export TS: retain the complete native monorepo/link layout.
+COPY --from=build --chown=node:node /workspace /workspace
+ARG GOLD_CI_COMMIT
+LABEL org.opencontainers.image.revision="7d097c9cc6e1286297315c78520f341a364b35f0" \
+      io.novex.ci.commit="${GOLD_CI_COMMIT}"
+USER node
+EXPOSE 3000
+CMD ["node", "./node_modules/next/dist/bin/next", "start", "-p", "3000", "-H", "0.0.0.0"]

@@ -1,0 +1,132 @@
+name: Gold immutable Linux image
+run-name: Gold 7d097c9 recipe ${{ github.sha }} attempt ${{ github.run_attempt }}
+
+on:
+  push:
+    branches: [codex/gold-ci-release-20261018]
+    paths:
+      - .github/workflows/gold-ci-release.yml
+      - deploy/Dockerfile.gold
+      - deploy/Dockerfile.gold.dockerignore
+      - scripts/gold-ci/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gold-ci-release-20261018
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  gold:
+    if: github.repository == 'i4w7w4a/Wallet_4i7' && github.ref == 'refs/heads/codex/gold-ci-release-20261018'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      APP_SOURCE: 7d097c9cc6e1286297315c78520f341a364b35f0
+    steps:
+      - name: Checkout reviewed CI recipe
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, verified release commit
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Node 24 for dependency-free CI helpers
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0, verified release commit
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Complete CI-helper suite
+        run: node --test scripts/gold-ci/*.test.mjs
+
+      - name: Verify accepted inputs and stage exact application archive
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git fetch --no-tags --depth=1 origin "$APP_SOURCE"
+          git diff --exit-code "$APP_SOURCE" "$GITHUB_SHA" -- apps packages package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json
+          git archive --format=tar --output="$RUNNER_TEMP/gold-source.tar" "$APP_SOURCE"
+          mkdir -p "$RUNNER_TEMP/gold-context" "$RUNNER_TEMP/gold-artifact"
+          tar -xf "$RUNNER_TEMP/gold-source.tar" -C "$RUNNER_TEMP/gold-context"
+          mkdir -p "$RUNNER_TEMP/gold-context/scripts/gold-ci" "$RUNNER_TEMP/gold-context/deploy"
+          cp scripts/gold-ci/artifact.mjs scripts/gold-ci/smoke.mjs "$RUNNER_TEMP/gold-context/scripts/gold-ci/"
+          cp deploy/Dockerfile.gold deploy/Dockerfile.gold.dockerignore "$RUNNER_TEMP/gold-context/deploy/"
+          source_hash=$(sha256sum "$RUNNER_TEMP/gold-source.tar" | cut -d ' ' -f 1)
+          printf 'GOLD_SOURCE_ARCHIVE_SHA256=%s\n' "$source_hash" >> "$GITHUB_ENV"
+          printf 'GOLD_IMAGE_TAG=novex-gold:ci-7d097c9-%s-%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'GOLD_RELEASE_ID=ci-7d097c9-%s-%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'GOLD_ARTIFACT_NAME=gold-%s-%s-%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'GOLD_SMOKE_CONTAINER=gold-ci-smoke-%s-%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
+      - name: One native Linux amd64 Gold build
+        run: |
+          set -euo pipefail
+          build_started=$SECONDS
+          docker build --check --platform linux/amd64 \
+            --file "$RUNNER_TEMP/gold-context/deploy/Dockerfile.gold" "$RUNNER_TEMP/gold-context"
+          docker build --no-cache --platform linux/amd64 --progress plain \
+            --file "$RUNNER_TEMP/gold-context/deploy/Dockerfile.gold" \
+            --tag "$GOLD_IMAGE_TAG" \
+            --build-arg "GOLD_SOURCE_ARCHIVE_SHA256=$GOLD_SOURCE_ARCHIVE_SHA256" \
+            --build-arg "GOLD_IMAGE_TAG=$GOLD_IMAGE_TAG" \
+            --build-arg "GOLD_RELEASE_ID=$GOLD_RELEASE_ID" \
+            --build-arg "GOLD_CI_COMMIT=$GITHUB_SHA" \
+            "$RUNNER_TEMP/gold-context"
+          printf 'GOLD_IMAGE_BUILD_SECONDS=%s\n' "$((SECONDS - build_started))" >> "$GITHUB_ENV"
+
+      - name: Smoke exact final image under fixed Gold runtime limits
+        run: |
+          set -euo pipefail
+          docker run --detach --name "$GOLD_SMOKE_CONTAINER" \
+            --network none --cpus 1 --memory 536870912 --memory-swap 536870912 \
+            --cap-drop ALL --security-opt no-new-privileges:true "$GOLD_IMAGE_TAG"
+          docker exec "$GOLD_SMOKE_CONTAINER" node /workspace/scripts/gold-ci/smoke.mjs \
+            "$GOLD_SOURCE_ARCHIVE_SHA256" "$GOLD_IMAGE_TAG" "$GOLD_RELEASE_ID" "$GITHUB_SHA" \
+            > "$RUNNER_TEMP/gold-artifact/ci-smoke.json"
+          docker image inspect "$GOLD_IMAGE_TAG" > "$RUNNER_TEMP/gold-image-inspect.json"
+          docker container inspect "$GOLD_SMOKE_CONTAINER" > "$RUNNER_TEMP/gold-container-inspect.json"
+          docker image save --output "$RUNNER_TEMP/gold-artifact/gold-image.tar" "$GOLD_IMAGE_TAG"
+          node scripts/gold-ci/artifact.mjs ready "$RUNNER_TEMP/gold-artifact" \
+            "$RUNNER_TEMP/gold-image-inspect.json" "$RUNNER_TEMP/gold-container-inspect.json"
+          node scripts/gold-ci/artifact.mjs verify "$RUNNER_TEMP/gold-artifact" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
+
+      - name: Retain startup log and remove only the disposable CI container
+        if: always()
+        run: |
+          set -euo pipefail
+          if [[ -n "${GOLD_SMOKE_CONTAINER:-}" ]] && docker container inspect "$GOLD_SMOKE_CONTAINER" > /dev/null 2>&1; then
+            docker logs --tail 200 "$GOLD_SMOKE_CONTAINER"
+            docker container rm --force "$GOLD_SMOKE_CONTAINER"
+          fi
+
+      - name: Upload immutable four-file delivery
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2, verified release commit
+        with:
+          name: ${{ env.GOLD_ARTIFACT_NAME }}
+          path: |
+            ${{ runner.temp }}/gold-artifact/gold-image.tar
+            ${{ runner.temp }}/gold-artifact/artifact-ready.json
+            ${{ runner.temp }}/gold-artifact/ci-smoke.json
+            ${{ runner.temp }}/gold-artifact/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
+
+      - name: Record Actions envelope identity separately from payload checksums
+        env:
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          printf 'Application: %s\n\nCI recipe: %s\n\nRun: %s attempt %s\n\nArtifact: %s\n\nActions envelope SHA256: %s\n\nDownload: %s\n\nImage build elapsed seconds: %s\n\nBuilder peak memory was not measured. No deployment was performed.\n' \
+            "$APP_SOURCE" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$ARTIFACT_ID" "$ARTIFACT_DIGEST" "$ARTIFACT_URL" "$GOLD_IMAGE_BUILD_SECONDS" >> "$GITHUB_STEP_SUMMARY"
