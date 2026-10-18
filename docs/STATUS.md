@@ -1,6 +1,20 @@
 # Текущее состояние Novex
 
-Обновлено 17.10.2026 после синхронизации исходников #43. Перенос кода в GitHub не является новой публикацией приложения.
+Обновлено18.10.2026: **PUBLIC_READY**, server/live/protected proof и bounded public browser QA — PASS.
+
+## Gold #67/#68 — опубликован и bounded-browser-tested
+
+- Главная [#67](https://github.com/i4w7w4a/Wallet_4i7/issues/67) и компактная история [#68](https://github.com/i4w7w4a/Wallet_4i7/issues/68) реализованы и приняты в app SOURCE `7d097c9cc6e1286297315c78520f341a364b35f0`; GitHub-ветка `codex/gold-history-68-20261017` сохранена.
+- CI-ветка `codex/gold-ci-release-20261018`, frozen commit `495ee795eebfe62099b2b81fbe394b9473a37e2e`: [run39075514268](https://github.com/i4w7w4a/Wallet_4i7/actions/runs/39075514268) attempt1 SUCCESS, artifact12116861695, Linux BUILD `I1UEI44C23zGWp5CLNBJ4`; actual runtime Node24.22.0. App source, CI commit и будущий docs HEAD различаются.
+- Прежний app full1704PASS/31baselineFAIL и final78focusedPASS не скрыты и не повторялись. Новый Linux helper suite60PASS, image build/smoke/verifier PASS; две ранние CI-попытки завершились без artifacts. [Точные identities и ограничения](releases/2026-10-18-gold-ci-public.md).
+- Exact artifact принят и один раз импортирован. Concrete OCI proof связывает target manifest2624483… с исходным confige436b553…; raw config/manifest и все7layers SHA256/size/order совпали с tar. Producer ID/Size не переписывались; typed identities и proof SHA — в release record.
+- ORACLE опубликовал exact app7d/CI495/BUILD выше в03:52:41МСК18.10 (`00:52:41.357643Z`):1Gold recreate,0rollback/extra loads/compiles/pulls/retags.23assets/канонический RSC/runtime и fresh live/protected proof PASS; MONO/13соседей/Caddy/shared Compose/27files9dirs/ревизии2/5/3/3/2/2/2 сохранены, rollback5a1 retained.
+- Client launcher закончил `SSHException`/UNKNOWN exit, **не exit0**; причина timeout не доказана. Server PUBLIC_READY установлен поздним bound retained result/финальной RO reconciliation и independent live proof, не успешным возвратом клиента; [точная provenance и прежние holds](releases/2026-10-18-gold-ci-public.md) сохранены.
+- Actual public Home/History320/390/480, Funds→Assets ALL, account pending/history/receipt Back context, filters/search/empty reset, privacy/ARIA/restore — PASS. Menu→«Мои счета» в scrolled History: locator и Tab→Enter PASS, physical/native pointer UNVERIFIED; старая local ambiguity не воспроизведена. Console0errors/0warnings,28resources без root `/_next` leak, begin/end manifest/HTML BUILD стабильны. Root просмотрел representative Home390/320 и History390/320-scrolled. Это bounded QA, не device/backend/FPS/UTC-commerce certification. #67/#68 заново не назначать; default merge/PR не выполнялись.
+- Известная неблокирующая полировка — focus на BODY после empty-state reset; отложена, не смешивать с прошедшими receipt/pending return focus checks.
+- Local3200/app7d/BUILD `QRyLETrp06HQFieBvNd-u` сохранён. Приложение, MONO, профиль, семь presets и финансовые команды этой CI/docs-дельтой не менялись.
+
+Сведения о публичной версии13.10 и синхронизации17.10 ниже сохраняют датированный исторический срез. Docs-only commit этой записи не меняет app SOURCE/CI commit/manifest/BUILD; точный docs SHA виден в истории ветки.
 
 ## Публичные точки
 
@@ -13,7 +27,7 @@
 
 Текущий согласованный сервер — 153.76.194.160. Старые записи о других VPS остаются историей и не задают новый маршрут публикации.
 
-## Подтверждённый Gold
+## Исторический публичный Gold13.10 — до выпуска #67/#68
 
 - Выпуск: 13.10.2026, 09:00:25 МСК.
 - SOURCE: `5a1b14a8ffe79089b401c1d124b03d7343a9ee47`.
