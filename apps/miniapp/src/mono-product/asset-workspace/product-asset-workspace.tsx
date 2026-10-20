@@ -10,7 +10,7 @@ import { selectAssetActivities, sumDecimalQuantities } from "./asset-workspace-d
 import styles from "./product-asset-workspace.module.css";
 
 export type ProductAssetWorkspaceProps = {
-  presentation?: "gold";
+  presentation?: "gold" | "compact";
   view: MonoProductView;
   assetId: string;
   selectedHoldingId: string | null;

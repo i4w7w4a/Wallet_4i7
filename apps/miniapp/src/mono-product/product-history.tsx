@@ -11,10 +11,11 @@ import { DEFAULT_HISTORY_FILTERS, HISTORY_QUERY_LIMIT, filterHistoryActivities, 
   type HistoryFilters, type HistoryFilterRequest } from "./history-filters";
 import styles from "./product-account-sections.module.css";
 import goldStyles from "./product-history-gold.module.css";
+import neutralStyles from "./product-history-compact.module.css";
 
 export type ProductHistoryProps = {
-  /** Fixed host presentation only; ordinary MONO keeps its existing rows. */
-  presentation?: "gold";
+  /** Host-only presentation; ordinary MONO keeps its existing rows. */
+  presentation?: "gold" | "compact";
   activities: readonly ProductActivity[];
   balanceHidden: boolean;
   accountId?: string;
@@ -53,8 +54,9 @@ export function ProductHistory({
   const statusScopeKey = JSON.stringify([accountId ?? null, [...new Set(scopedActivities.map(activity =>
     JSON.stringify([activity.accountId, activity.assetId, activity.networkId])))].sort()]);
   const visibleActivities = filterHistoryActivities(scopedActivities, filters);
-  const gold = presentation === "gold";
-  const goldContexts = gold ? getGoldHistoryContexts(visibleActivities) : null;
+  const compact = presentation === "gold" || presentation === "compact";
+  const compactStyles = presentation === "gold" ? goldStyles : neutralStyles;
+  const contexts = compact ? getGoldHistoryContexts(visibleActivities) : null;
   const requestedId = expandedActivityId === undefined ? openId : expandedActivityId;
   const activeId = requestedId === dismissedId ? null : requestedId;
   const activeActivity = visibleActivities.find(activity => activity.id === activeId);
@@ -99,25 +101,25 @@ export function ProductHistory({
       commerceAmounts, legacyAmount, accessibleAmountLabel } = getHistoryPresentation(activity, balanceHidden);
     const occurredAt = new Date(activity.occurredAt);
     const validTime = !Number.isNaN(occurredAt.getTime());
-    const context = goldContexts?.get(activity);
+    const context = contexts?.get(activity);
     const knownStatus = activity.status === "completed" || activity.status === "pending" || activity.status === "failed";
-    const goldStatus = gold && activity.status !== "completed" && <small className={`${styles.status} ${goldStyles.status}`} data-status={activity.status}>
+    const compactStatus = compact && activity.status !== "completed" && <small className={`${styles.status} ${compactStyles.status}`} data-status={activity.status}>
       {knownStatus ? <HistoryStatusIcon status={activity.status} /> : <span aria-hidden="true">?</span>}
       <span>{knownStatus ? statusLabel : "Статус неизвестен"}</span>
     </small>;
     return <li className={styles.row} key={activity.id} data-direction={activity.direction}
       data-status={activity.status} data-mode={activity.mode ?? "example"} data-expanded={expanded}>
-      <button type="button" className={`${styles.rowButton} ${styles.historyRowButton}${gold ? ` ${goldStyles.rowButton}` : ""}`} aria-expanded={expanded}
+      <button type="button" className={`${styles.rowButton} ${styles.historyRowButton}${compact ? ` ${compactStyles.rowButton}` : ""}`} aria-expanded={expanded}
         data-history-interactive data-product-activity-id={activity.id} data-direction={activity.direction} data-status={activity.status}
-        aria-label={`${directionLabel} · ${assetLabel} · ${networkLabel}${context ? ` · ${context}` : ""}, ${gold && !knownStatus ? "Статус неизвестен" : accessibleStatusLabel}, ${accessibleAmountLabel}`}
+        aria-label={`${directionLabel} · ${assetLabel} · ${networkLabel}${context ? ` · ${context}` : ""}, ${compact && !knownStatus ? "Статус неизвестен" : accessibleStatusLabel}, ${accessibleAmountLabel}`}
         aria-controls={detailsId} onClick={() => changeExpandedActivity(expanded ? null : activity.id)}>
         <HistoryDirectionIcon direction={activity.direction} status={activity.status} />
-        <span className={`${styles.rowIdentity}${gold ? ` ${goldStyles.identity}` : ""}`}>
+        <span className={`${styles.rowIdentity}${compact ? ` ${compactStyles.identity}` : ""}`}>
           <strong>{directionLabel}</strong>
-          {gold ? <>{context && <small className={goldStyles.context}>{context}</small>}{goldStatus}</>
+          {compact ? <>{context && <small className={compactStyles.context}>{context}</small>}{compactStatus}</>
             : <small className={styles.historyNetwork}>{networkLabel}</small>}
         </span>
-        {!gold && <span className={`${styles.rowMeta} ${styles.historyRowMeta}`}>
+        {!compact && <span className={`${styles.rowMeta} ${styles.historyRowMeta}`}>
           <small className={styles.status} data-status={activity.status}>
             <HistoryStatusIcon status={activity.status} />
             <span>{statusLabel}</span>
@@ -126,16 +128,16 @@ export function ProductHistory({
             {validTime ? rowDateFormat.format(occurredAt) : "Время не указано"}
           </time>
         </span>}
-        <span className={`${styles.rowAmount}${gold ? ` ${goldStyles.amount}` : ""}`}>
+        <span className={`${styles.rowAmount}${compact ? ` ${compactStyles.amount}` : ""}`}>
           {commerceAmounts ? commerceAmounts.map(amount => <Fragment key={amount.label}>
             <small>{amount.label}</small>
             <strong>{amount.value} {amount.unit}</strong>
-          </Fragment>) : gold ? <strong><bdi>{legacyAmount}</bdi> <span className={goldStyles.currency}>{activity.assetSymbol}</span></strong> : <>
+          </Fragment>) : compact ? <strong><bdi>{legacyAmount}</bdi> <span className={compactStyles.currency}>{activity.assetSymbol}</span></strong> : <>
             <strong>{legacyAmount}</strong>
             <small>{activity.assetSymbol}</small>
           </>}
         </span>
-        <svg className={`${styles.rowChevron}${gold ? ` ${goldStyles.chevron}` : ""}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <svg className={`${styles.rowChevron}${compact ? ` ${compactStyles.chevron}` : ""}`} viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="m6 4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
@@ -145,7 +147,7 @@ export function ProductHistory({
     </li>;
   }
 
-  return <section className={`${styles.section} ${styles.historyPresentation}${gold ? ` ${goldStyles.gold}` : ""}`}
+  return <section className={`${styles.section} ${styles.historyPresentation}${compact ? ` ${presentation === "gold" ? goldStyles.gold : neutralStyles.compact}` : ""}`}
     aria-labelledby={titleId} data-history-presentation={presentation}>
     {(onBackToAccount || onBackToOverview) && <button type="button" className={styles.historyBack}
       onClick={onBackToAccount ?? onBackToOverview} aria-label={onBackToAccount ? "К счёту" : "Назад в обзор"}>
@@ -202,11 +204,11 @@ export function ProductHistory({
         <p>Нет совпадений</p>
         <button type="button" onClick={() => updateFilters(DEFAULT_HISTORY_FILTERS)}>Сбросить фильтры</button>
       </div> :
-      gold ? <div className={goldStyles.groups}>
+      compact ? <div className={compactStyles.groups}>
         {groupHistoryActivitiesByDate(visibleActivities).map(group => {
           const dateId = `${titleId}-date-${encodeURIComponent(group.key)}`;
           return <div key={group.key} role="group" aria-labelledby={dateId}>
-            <h2 id={dateId} className={goldStyles.date}>{group.date ? <time dateTime={group.date}>{group.label}</time> : group.label}</h2>
+            <h2 id={dateId} className={compactStyles.date}>{group.date ? <time dateTime={group.date}>{group.label}</time> : group.label}</h2>
             <ol className={`${styles.rows} ${styles.historyRows}`}>{group.activities.map(renderActivity)}</ol>
           </div>;
         })}
