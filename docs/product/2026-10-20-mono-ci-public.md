@@ -2,6 +2,10 @@
 
 20 October 2026. Binding spec: owner accepted local3202 and explicitly requested «Сохраняй ветку в GitHub, собирай через CI и через Оракул выкладывай обновлённый MONO на основной сайт. Gold, профиль и настройки семи пресетов не трогай».
 
+## Current gate — profile scope HOLD
+
+Feature branch saved successfully at394eb6e67dbb3ea0b78e663a60430c78646d27f3, no CI run or publication. Fresh verified public HTTPS `/source-manifest.json` on20.10 confirms MONO `gitHead=b212f2525fbd03a0a992a9e3d2a50ba565b50ad4`, image `novex-wallet:20261012T212703Z-b212f25`. Accepted7db has a reachable newer profile:10 profile-directory paths,16 including product-profile/quick-menu (11 implementation/style and5tests). It equals the already published Gold7d profile, but not existing MONO b212. A whole accepted image would therefore change public MONO's profile despite no profile edits in this wave. Owner's explicit scope forbids silently doing that. CI author retains preliminary helper work only; no freeze/build/push of recipe, load or swap before the owner chooses whether to include the already accepted local profile or keep legacy public MONO profile via a separately checked compatibility adaptation. This is a required scope decision, not another visual-polish loop. Local3202/3201 and all public services/data remain unchanged. Private detailed comparison: this plan workspace `scope-compatibility.md`; evidence not a new execution GO.
+
 ## Global Constraints
 
 - Accepted application SOURCE `7dbf2b80086abe7ccb25b9df9d989d36e04230a1`; original saved development HEAD `8594f04ebdc98712917383959295695e78d90030`; branch `codex/compact-workbench-20261020` in `C:/Users/iwwa/.codex/worktrees/novex-compact-preset2-20261020/5-wallet-foundation`. Reuse this isolated checkout; preserve generated dirty `apps/miniapp/next-env.d.ts` without commit/reset/stash.
