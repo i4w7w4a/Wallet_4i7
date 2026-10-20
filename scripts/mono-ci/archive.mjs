@@ -120,7 +120,11 @@ export async function inspectDockerArchive(directory, file, imageTag) {
       current = next;
     }
     check(manifest && manifest.json.schemaVersion === 2, "missing OCI image manifest");
-    check(manifest.json.config.digest === config.digest && manifest.json.config.size === config.sizeBytes, "OCI config descriptor mismatch");
+    const configDescriptor = manifest.json.config;
+    check(/^sha256:[a-f0-9]{64}$/.test(configDescriptor.digest), "invalid OCI config descriptor digest");
+    const configBlob = member(`blobs/sha256/${configDescriptor.digest.slice(7)}`);
+    check(configBlob && configBlob.digest === configDescriptor.digest && configBlob.sizeBytes === configDescriptor.size
+      && configBlob.digest === config.digest && configBlob.sizeBytes === config.sizeBytes, "OCI config descriptor blob missing or Docker manifest mismatch");
     check(manifest.json.layers.length === saved.Layers.length, "OCI layer count mismatch");
   }
   const layers = [];
@@ -131,7 +135,10 @@ export async function inspectDockerArchive(directory, file, imageTag) {
     const compressed = ["application/vnd.oci.image.layer.v1.tar+gzip", "application/vnd.docker.image.rootfs.diff.tar.gzip"].includes(mediaType);
     if (manifest) {
       const desc = manifest.json.layers[i];
-      check(desc.digest === entry.digest && desc.size === entry.sizeBytes, "OCI layer descriptor or order mismatch");
+      check(/^sha256:[a-f0-9]{64}$/.test(desc.digest), "invalid OCI layer descriptor digest");
+      const layerBlob = member(`blobs/sha256/${desc.digest.slice(7)}`);
+      check(layerBlob && layerBlob.digest === desc.digest && layerBlob.sizeBytes === desc.size
+        && layerBlob.digest === entry.digest && layerBlob.sizeBytes === entry.sizeBytes, "OCI layer descriptor blob missing or Docker manifest order mismatch");
       check(compressed || ["application/vnd.oci.image.layer.v1.tar", "application/vnd.docker.image.rootfs.diff.tar"].includes(mediaType), "unsupported layer media type");
     }
     let diffId = entry.digest;

@@ -56,6 +56,25 @@ test("preserves Moby's extra content-addressed legacy config blobs without treat
   assert.deepEqual(result.legacyConfigs, [{ file, digest: digest(bytes), sizeBytes: bytes.length, rawBase64: bytes.toString("base64") }]);
 });
 
+for (const kind of ["config", "layer"]) {
+  test(`rejects a renamed ${kind} blob with consistent Docker paths but a dangling canonical OCI descriptor`, async (t) => {
+    const value = await directoryFixture(t);
+    const { inspectDockerArchive } = await implementation();
+    const original = kind === "config" ? value.configFile : value.layerFiles[0];
+    const renamed = kind === "config" ? "relocated-config.json" : "relocated-layer.tar";
+    const dockerManifest = JSON.parse(value.dockerManifest.toString("utf8"));
+    if (kind === "config") dockerManifest[0].Config = renamed;
+    else dockerManifest[0].Layers[0] = renamed;
+    const bytes = tar(value.entries.map(([name, data]) => name === "manifest.json"
+      ? [name, JSON.stringify(dockerManifest)] : [name === original ? renamed : name, data]));
+    await writeFile(path.join(value.directory, "mono-image.tar"), bytes);
+    await assert.rejects(inspectDockerArchive(value.directory, "mono-image.tar", imageTag),
+      new RegExp(`OCI ${kind} descriptor`));
+    assert.deepEqual(await readFile(path.join(value.directory, "mono-image.tar")), bytes);
+    assert.deepEqual(await readdir(value.directory), ["mono-image.tar"]);
+  });
+}
+
 for (const [name, options, error] of [
   ["wrong OCI config checksum", { alterManifest: (m) => { m.config.digest = `sha256:${"0".repeat(64)}`; } }, /config|descriptor/],
   ["wrong OCI layer byte count", { alterManifest: (m) => { m.layers[0].size++; } }, /layer|descriptor/],
