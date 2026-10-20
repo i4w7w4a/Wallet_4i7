@@ -9,6 +9,15 @@
 !apps/miniapp/**
 !packages/
 !packages/**
+# Accepted source has static pilot/typecheck imports; keep the archive inputs exact.
+!checkpoints/
+checkpoints/**
+!checkpoints/mono-published/
+checkpoints/mono-published/**
+!checkpoints/mono-published/2026-10-17/
+checkpoints/mono-published/2026-10-17/**
+!checkpoints/mono-published/2026-10-17/slot-2.appearance.json
+!checkpoints/mono-published/2026-10-17/manifest.json
 !scripts/
 !scripts/mono-ci/
 !scripts/mono-ci/archive.mjs
