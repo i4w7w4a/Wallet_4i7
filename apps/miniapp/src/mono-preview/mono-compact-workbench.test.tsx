@@ -132,8 +132,10 @@ it("keeps optics only for an actual shared host, with readable retained values a
 it("does not mistake retained invisible icon-frame bindings for an available optical target", async () => {
   const library = seedDocuments();
   const border = createFirstMonoWorkingDocument().materials.ledger.buttons!.bindings[0];
-  library.slots[0].document.materials.ledger.buttons = { version: 3, frameMode: "icons",
-    artwork: createDefaultActionArtworkMap(), bindings: [border] };
+  library.slots[0].document.materials.ledger = {
+    ...library.slots[0].document.materials.ledger,
+    buttons: { version: 3, frameMode: "icons", artwork: createDefaultActionArtworkMap(), bindings: [border] },
+  };
   localStorage.setItem(MONO_SEVEN_PRESETS_KEY, JSON.stringify(library));
   await start();
   expect(screen.getByRole("button", { name: "Оптика" })).toBeDisabled();
