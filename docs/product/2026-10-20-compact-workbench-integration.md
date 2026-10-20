@@ -2,6 +2,10 @@
 
 20 October 2026. Owner accepted the preset-2 local example and said «делай» to the proposed integration into the real workbench, with seven appearances and a separate local showing. This is not publication approval.
 
+## Outcome — LOCAL READY
+
+Completed source adoption, scoped review/fixes, ORACLE isolated runtime and actual root UI checks. [Release record and limitations](../releases/2026-10-20-compact-workbench-local.md). Final URL http://127.0.0.1:3202/mono, compiled SOURCE `7dbf2b80086abe7ccb25b9df9d989d36e04230a1`, BUILD `HmJCvH9_hvuQkGWzY7BM3`. All seven archived appearances were visually checked on Home/History390; narrow320 coverage is slots1/3/5/6/7, not every possible state/device. Main editor uses its own existing working documents, not an import of those archives. Existing Gold/profile/finance/data remain protected. Source changes are local only; next action is owner visual acceptance, publication separately. Do not repeat completed gates without a new delta. The chronological source gate below predates the compiler fixture fix9c345c7 and CSS scrollbar fix7dbf2b8; failures and exact run counts are retained in the release record.
+
 ## Authority and baseline
 
 - Source base `823f23abba9ab6360a45ac07a9b4ec24ec5fd060`; branch `codex/compact-workbench-20261020` in the existing isolated checkout `C:/Users/iwwa/.codex/worktrees/novex-compact-preset2-20261020/5-wallet-foundation`.
