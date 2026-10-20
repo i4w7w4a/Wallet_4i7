@@ -2,7 +2,7 @@
 
 20 October 2026. Owner authorized SOL MAX implementation, then ORACLE local presentation only. This is a new delta, not a repeat of Gold #67/#68 or the old icon audit.
 
-Completed20.10: **LOCAL READY** at http://127.0.0.1:3201/mono/pilot/2, compiledSOURCE0ea5225/BUILD`y5Ua9obKNjjSDW6gqFPDU`. [Result, preservation evidence and limits](../releases/2026-10-20-compact-preset2-local.md). Source/review/fix/onebuild/boundedbrowser are done; do not re-dispatch them. Owner visual decision remains pending. The plan below records the completed scope, not a new authorization to build or publish again.
+Completed20.10: **LOCAL READY** at http://127.0.0.1:3201/mono/pilot/2, compiledSOURCE0ea5225/BUILD`y5Ua9obKNjjSDW6gqFPDU`. [Result, preservation evidence and limits](../releases/2026-10-20-compact-preset2-local.md). Source/review/fix/onebuild/boundedbrowser are done; do not re-dispatch them. Owner subsequently accepted the example and authorized the [separate workbench integration](2026-10-20-compact-workbench-integration.md). The plan below records the completed scope, not a new authorization to rebuild this pilot or publish.
 
 ## Authority and baseline
 

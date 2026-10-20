@@ -4,6 +4,7 @@
 
 - Владелец принял примерку preset2 и сказал «делай» на перенос общей Home/History структуры в настоящую мастерскую и все7оформлений. Новая ветка `codex/compact-workbench-20261020` от823f23a; план `docs/product/2026-10-20-compact-workbench-integration.md`, собственный ledger одноимённый в `.superpowers/sdd/`. Старый пилот ниже завершён и3201 остаётся живым; его нельзя назначать заново.
 - Один SOLMAX source author, второй read-only compatibility preflight, затем один covering spec+quality review. Root оркестрирует/docs; ORACLE sole local build/runtime после exactSOURCE LOCALGO, отдельный3202/output. Portable/published source hosts используют ту же neutral compact composition; публичные binaries не меняются. Существующие palette/type/material/artwork/optics/settings/history/семьJSON, Gold/профиль/finance/receipt сохранить. Ненужные compact-target controls скрыть/честно отключить, значения не стирать. Никаких schema migration, storage seeding, push/merge/CI/SSH/deploy; публикация после отдельного решения.
+- Sourcegate: app/test `b0ac6a74e6394f2e5404539f1a983176d722769c`,4source+4test paths; one spec+quality review Approved/0findings. Новый21PASS; affected82PASS/4FAIL и focusedfollowups26PASS/1FAIL→exact1PASS отдельно;2zero-getItem mismatches/oldactnoise не скрывать/не чинитьширокимрефакторингом. Следующийgate — однаORACLEcompile+actualrootbrowser, не повторsource/review/полныеsuites.
 
 ## Активный локальный пилот20.10 — структура Gold на MONO preset2
 
