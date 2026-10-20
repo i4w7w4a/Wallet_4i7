@@ -1,0 +1,42 @@
+FROM node:24-bookworm-slim@sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7 AS build
+
+WORKDIR /workspace
+RUN npm install --global pnpm@10.33.2 && test "$(pnpm --version)" = "10.33.2"
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NOVEX_NEXT_DIST_DIR=.next-mono-public
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/miniapp/package.json ./apps/miniapp/package.json
+COPY packages/core/package.json ./packages/core/package.json
+COPY packages/platform/package.json ./packages/platform/package.json
+COPY packages/ui/package.json ./packages/ui/package.json
+RUN pnpm install --frozen-lockfile --prod=false
+COPY . .
+
+ARG MONO_SOURCE_ARCHIVE_SHA256
+ARG MONO_IMAGE_TAG
+ARG MONO_RELEASE_ID
+ARG MONO_CI_COMMIT
+ARG MONO_CI_RUN_ID
+ARG MONO_CI_RUN_ATTEMPT
+WORKDIR /workspace/apps/miniapp
+# One direct native Linux Next invocation, using the current default compiler.
+# Publish provenance only after success; no image/config/archive hash is invented here.
+RUN node ./node_modules/next/dist/bin/next build \
+    && node /workspace/scripts/mono-ci/artifact.mjs embed /workspace/apps/miniapp
+
+FROM node:24-bookworm-slim@sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7 AS runtime
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NOVEX_NEXT_DIST_DIR=.next-mono-public
+WORKDIR /workspace/apps/miniapp
+
+# Workspace packages export TypeScript: preserve native monorepo links and dependencies.
+COPY --from=build --chown=node:node /workspace /workspace
+ARG MONO_CI_COMMIT
+LABEL org.opencontainers.image.revision="7dbf2b80086abe7ccb25b9df9d989d36e04230a1" \
+      io.novex.ci.commit="${MONO_CI_COMMIT}"
+USER node
+EXPOSE 3000
+CMD ["node", "./node_modules/next/dist/bin/next", "start", "-p", "3000", "-H", "0.0.0.0"]

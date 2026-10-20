@@ -1,0 +1,136 @@
+name: MONO immutable Linux image
+run-name: MONO 7dbf2b8 recipe ${{ github.sha }} attempt ${{ github.run_attempt }}
+
+on:
+  push:
+    branches: [codex/compact-workbench-20261020]
+    paths:
+      - .github/workflows/mono-ci-release.yml
+      - deploy/Dockerfile.mono-ci
+      - deploy/Dockerfile.mono-ci.dockerignore
+      - scripts/mono-ci/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mono-ci-compact-workbench-20261020
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  mono:
+    if: github.repository == 'i4w7w4a/Wallet_4i7' && github.ref == 'refs/heads/codex/compact-workbench-20261020'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      APP_SOURCE: 7dbf2b80086abe7ccb25b9df9d989d36e04230a1
+    steps:
+      - name: Checkout reviewed CI recipe and accepted source history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, existing verified release pin
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Node 24 for dependency-free CI helpers
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0, existing verified release pin
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Complete MONO CI-helper suite
+        run: node --test scripts/mono-ci/*.test.mjs
+
+      - name: Verify accepted inputs and stage exact application archive
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git cat-file -e "$APP_SOURCE^{commit}"
+          git diff --exit-code "$APP_SOURCE" "$GITHUB_SHA" -- apps packages package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json
+          git archive --format=tar --output="$RUNNER_TEMP/mono-source.tar" "$APP_SOURCE"
+          mkdir -p "$RUNNER_TEMP/mono-context" "$RUNNER_TEMP/mono-artifact"
+          tar -xf "$RUNNER_TEMP/mono-source.tar" -C "$RUNNER_TEMP/mono-context"
+          mkdir -p "$RUNNER_TEMP/mono-context/scripts/mono-ci" "$RUNNER_TEMP/mono-context/deploy"
+          cp scripts/mono-ci/archive.mjs scripts/mono-ci/artifact.mjs scripts/mono-ci/smoke.mjs "$RUNNER_TEMP/mono-context/scripts/mono-ci/"
+          cp deploy/Dockerfile.mono-ci deploy/Dockerfile.mono-ci.dockerignore "$RUNNER_TEMP/mono-context/deploy/"
+          source_hash=$(sha256sum "$RUNNER_TEMP/mono-source.tar" | cut -d ' ' -f 1)
+          printf 'MONO_SOURCE_ARCHIVE_SHA256=%s\n' "$source_hash" >> "$GITHUB_ENV"
+          printf 'MONO_IMAGE_TAG=novex-mono:ci-7dbf2b8-%s-%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'MONO_RELEASE_ID=ci-7dbf2b8-%s-%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'MONO_ARTIFACT_NAME=mono-%s-%s-%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'MONO_SMOKE_CONTAINER=mono-ci-smoke-%s-%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
+      - name: One native Linux amd64 MONO build
+        run: |
+          set -euo pipefail
+          build_started=$SECONDS
+          docker build --check --platform linux/amd64 \
+            --file "$RUNNER_TEMP/mono-context/deploy/Dockerfile.mono-ci" "$RUNNER_TEMP/mono-context"
+          docker build --no-cache --platform linux/amd64 --provenance=false --progress plain \
+            --file "$RUNNER_TEMP/mono-context/deploy/Dockerfile.mono-ci" \
+            --tag "$MONO_IMAGE_TAG" \
+            --build-arg "MONO_SOURCE_ARCHIVE_SHA256=$MONO_SOURCE_ARCHIVE_SHA256" \
+            --build-arg "MONO_IMAGE_TAG=$MONO_IMAGE_TAG" \
+            --build-arg "MONO_RELEASE_ID=$MONO_RELEASE_ID" \
+            --build-arg "MONO_CI_COMMIT=$GITHUB_SHA" \
+            --build-arg "MONO_CI_RUN_ID=$GITHUB_RUN_ID" \
+            --build-arg "MONO_CI_RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT" \
+            "$RUNNER_TEMP/mono-context"
+          printf 'MONO_IMAGE_BUILD_SECONDS=%s\n' "$((SECONDS - build_started))" >> "$GITHUB_ENV"
+
+      - name: Smoke exact final image under isolated CI-only limits
+        run: |
+          set -euo pipefail
+          docker run --detach --name "$MONO_SMOKE_CONTAINER" \
+            --network none --cpus 1 --memory 536870912 --memory-swap 536870912 \
+            --cap-drop ALL --security-opt no-new-privileges:true "$MONO_IMAGE_TAG"
+          docker exec "$MONO_SMOKE_CONTAINER" node /workspace/scripts/mono-ci/smoke.mjs \
+            "$MONO_SOURCE_ARCHIVE_SHA256" "$MONO_IMAGE_TAG" "$MONO_RELEASE_ID" \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            > "$RUNNER_TEMP/mono-artifact/ci-smoke.json"
+          docker image inspect "$MONO_IMAGE_TAG" > "$RUNNER_TEMP/mono-image-inspect.json"
+          docker image save --output "$RUNNER_TEMP/mono-artifact/mono-image.tar" "$MONO_IMAGE_TAG"
+          docker container inspect "$MONO_SMOKE_CONTAINER" > "$RUNNER_TEMP/mono-container-inspect.json"
+          node scripts/mono-ci/artifact.mjs ready "$RUNNER_TEMP/mono-artifact" \
+            "$RUNNER_TEMP/mono-image-inspect.json" "$RUNNER_TEMP/mono-container-inspect.json"
+          node scripts/mono-ci/artifact.mjs verify "$RUNNER_TEMP/mono-artifact" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT"
+
+      - name: Retain startup log and remove only the disposable CI container
+        if: always()
+        run: |
+          set -euo pipefail
+          if [[ -n "${MONO_SMOKE_CONTAINER:-}" ]] && docker container inspect "$MONO_SMOKE_CONTAINER" > /dev/null 2>&1; then
+            docker container inspect --format '{"running":{{.State.Running}},"oomKilled":{{.State.OOMKilled}},"exitCode":{{.State.ExitCode}},"error":{{json .State.Error}}}' "$MONO_SMOKE_CONTAINER"
+            docker logs --tail 200 "$MONO_SMOKE_CONTAINER"
+            docker container rm --force "$MONO_SMOKE_CONTAINER"
+          fi
+
+      - name: Upload immutable four-file delivery
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2, existing verified release pin
+        with:
+          name: ${{ env.MONO_ARTIFACT_NAME }}
+          path: |
+            ${{ runner.temp }}/mono-artifact/mono-image.tar
+            ${{ runner.temp }}/mono-artifact/artifact-ready.json
+            ${{ runner.temp }}/mono-artifact/ci-smoke.json
+            ${{ runner.temp }}/mono-artifact/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
+
+      - name: Record Actions envelope identity separately from payload checksums
+        env:
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          printf 'Application: %s\n\nCI recipe: %s\n\nRun: %s attempt %s\n\nArtifact: %s\n\nActions envelope SHA256: %s\n\nDownload: %s\n\nImage build elapsed seconds: %s\n\nBuilder peak memory was not measured. CI-only resource limits are not production settings. No deployment was performed.\n' \
+            "$APP_SOURCE" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            "$ARTIFACT_ID" "$ARTIFACT_DIGEST" "$ARTIFACT_URL" "$MONO_IMAGE_BUILD_SECONDS" >> "$GITHUB_STEP_SUMMARY"
