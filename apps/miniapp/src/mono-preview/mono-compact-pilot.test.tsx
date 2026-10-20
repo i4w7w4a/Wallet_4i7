@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import manifest from "../../../../checkpoints/mono-published/2026-10-17/manifest.json";
 import preset2 from "../../../../checkpoints/mono-published/2026-10-17/slot-2.appearance.json";
@@ -39,6 +39,52 @@ it("renders the exact archived preset 2 read-only through the existing material/
   expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
   expect(JSON.stringify(preset2)).toBe(source);
   expect(localStorage.length).toBe(0);
+});
+
+// Restoring a visitor preference must not seed/migrate v2 or rewrite the owner's stored bytes.
+it.each([
+  { name: "populated legacy v1", preferences: {
+    "wallet4i7.mono.home-pins.v1": '{ "version": 1, "groups": ["depositary", "custodial"] }',
+  } },
+  { name: "populated v2 alongside legacy v1", preferences: {
+    "wallet4i7.mono.home-pins.v1": '{ "version": 1, "groups": ["custodial"] }',
+    "wallet4i7.mono.home-pins.v2": '{ "version": 2, "groups": ["depositary"], "totalOnly": true }',
+  } },
+])("leaves every storage key/value untouched with $name through Funds, History and privacy", async ({ preferences }) => {
+  vi.stubEnv("MONO_COMPACT_LOCAL_PREVIEW", "1");
+  for (const [key, value] of Object.entries(preferences)) localStorage.setItem(key, value!);
+  localStorage.setItem("wallet4i7.mono.viewer-theme.v1", '{ "version": 1, "theme": "light" }');
+  localStorage.setItem("owner.saved.note", "retain these bytes");
+  const storedEntries = () => Array.from({ length: localStorage.length }, (_, index) => {
+    const key = localStorage.key(index)!;
+    return [key, localStorage.getItem(key)];
+  }).sort(([left], [right]) => left!.localeCompare(right!));
+  const before = storedEntries();
+  const write = vi.spyOn(Storage.prototype, "setItem");
+  const remove = vi.spyOn(Storage.prototype, "removeItem");
+  const clear = vi.spyOn(Storage.prototype, "clear");
+  const view = render(await MonoCompactPilotPage());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Мои средства" })).toBeVisible());
+  fireEvent.click(screen.getByRole("button", { name: "Мои средства" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Назад в обзор" })).toHaveFocus());
+  expect(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Открыть профиль" }));
+  fireEvent.click(screen.getByRole("button", { name: "Закрыть профиль" }));
+  expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "assets");
+  fireEvent.click(screen.getByRole("button", { name: "Назад в обзор" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Мои средства" })).toHaveFocus());
+  fireEvent.click(screen.getByRole("button", { name: "Скрыть баланс" }));
+  const nav = within(screen.getByRole("navigation", { name: "Разделы кошелька" }));
+  fireEvent.click(nav.getByRole("button", { name: "История" }));
+  expect(screen.getByRole("region", { name: "История операций" })).toBeVisible();
+  fireEvent.click(nav.getByRole("button", { name: "Обзор" }));
+  expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Показать баланс" }));
+  expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "dark");
+  expect(storedEntries()).toEqual(before);
+  expect(write).not.toHaveBeenCalled();
+  expect(remove).not.toHaveBeenCalled();
+  expect(clear).not.toHaveBeenCalled();
 });
 
 // Any changed checkpoint byte/envelope/material value must fail independently of the loader.
