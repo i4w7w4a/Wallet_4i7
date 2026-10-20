@@ -51,24 +51,23 @@ it("recovers a failed Apply only through its inspector without accepting other t
   const write = blockWorkingWrites();
   tool("Активы");
   fireEvent.change(screen.getByLabelText("Оформление активов"), { target: { value: "tiles" } });
-  tool("График");
-  fireEvent.click(screen.getByLabelText("Показывать график"));
-  fireEvent.change(screen.getByLabelText("Вид графика"), { target: { value: "area" } });
-  fireEvent.change(screen.getByLabelText("Положение графика"), { target: { value: "bottom" } });
-  fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
+  tool("Нижнее меню");
+  fireEvent.click(screen.getByRole("button", { name: "Линия" }));
+  fireEvent.click(screen.getByRole("button", { name: "Применить нижнее меню" }));
   expect(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)).toBe(before);
   expect(screen.queryByRole("button", { name: "Повторить сохранение" })).toBeNull();
-  expect(screen.getByText(/Повторите «Применить» в инструменте «График»/)).toBeVisible();
+  expect(screen.getByText(/Повторите «Применить» в инструменте «Нижнее меню»/)).toBeVisible();
 
   write.mockRestore();
   tool("Баланс");
   fireEvent.change(screen.getByLabelText("Композиция баланса"), { target: { value: "centered" } });
   fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
-  tool("График");
-  fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
+  tool("Нижнее меню");
+  fireEvent.click(screen.getByRole("button", { name: "Применить нижнее меню" }));
   const accepted = storedLibrary().slots[0];
-  expect(accepted.document.appearance.ledger.chart).toEqual({ visible: true, variant: "area" });
-  expect(accepted.document.appearance.ledger.layout.chartPosition).toBe("bottom");
+  expect(accepted.document.appearance.ledger.navigation.indicator).toBe("line");
+  expect(accepted.document.appearance.ledger.chart).toEqual({ visible: false, variant: "line" });
+  expect(accepted.document.appearance.ledger.layout.chartPosition).toBe("top");
   expect(accepted.document.appearance.ledger.balance.composition).toBe("centered");
   expect(accepted.document.appearance.ledger.assets.variant).toBe("ledger");
   expect(accepted.revision).toBe(3);
@@ -82,12 +81,12 @@ it("does not resurrect a cancelled failed Apply after switching and saving anoth
   await start();
   const before = storedLibrary().slots[0];
   const write = blockWorkingWrites();
-  tool("График");
-  fireEvent.click(screen.getByLabelText("Показывать график"));
-  fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
+  tool("Нижнее меню");
+  fireEvent.click(screen.getByRole("button", { name: "Линия" }));
+  fireEvent.click(screen.getByRole("button", { name: "Применить нижнее меню" }));
   write.mockRestore();
-  fireEvent.click(screen.getByRole("button", { name: "Отменить пробу" }));
-  expect(screen.getByLabelText("Показывать график")).not.toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Отменить пробу нижнего меню" }));
+  expect(screen.getByRole("button", { name: "Исходный" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.queryByRole("button", { name: "Повторить сохранение" })).toBeNull();
   expect(screen.queryByText(/Повторите «Применить»/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Пресет 2: Б" }));
@@ -100,23 +99,23 @@ it("does not resurrect a cancelled failed Apply after switching and saving anoth
   expect(library.slots[1].document.appearance.ledger.balance.composition).toBe("centered");
 });
 
-it("keeps palette recovery after a failed pre-Apply flush and chart Cancel", async () => {
+it("keeps palette recovery after a failed pre-Apply flush and balance Cancel", async () => {
   seedHiddenChart();
   await start();
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const before = storedLibrary();
   const write = blockWorkingWrites();
-  tool("График");
-  fireEvent.click(screen.getByLabelText("Показывать график"));
+  tool("Баланс");
+  fireEvent.change(screen.getByLabelText("Композиция баланса"), { target: { value: "centered" } });
   tool("Цвет");
   fireEvent.click(screen.getByRole("button", { name: "Включить палитру" }));
   fireEvent.change(screen.getByRole("slider", { name: "Тон" }), { target: { value: "160" } });
   expect(write.mock.calls.some(([key]) => key === MONO_SEVEN_PRESETS_KEY)).toBe(false);
-  tool("График");
+  tool("Баланс");
   fireEvent.click(screen.getByRole("button", { name: "Применить настройку" }));
   expect(storedLibrary()).toEqual(before);
   fireEvent.click(screen.getByRole("button", { name: "Отменить пробу" }));
-  expect(screen.getByLabelText("Показывать график")).not.toBeChecked();
+  expect(screen.getByLabelText("Композиция баланса")).toHaveValue("ledger");
   expect(screen.getByText("Не удалось сохранить палитру · Повторить")).toBeVisible();
   const retry = screen.getByRole("button", { name: "Повторить сохранение" });
   write.mockRestore();
@@ -179,6 +178,9 @@ it("restores an applied complete appearance after reload", async () => {
   first.unmount();
   const { container } = await start();
   await waitFor(() => expect(container.querySelector('[data-mono-background-recipe="obsidian"]')).not.toBeNull());
-  expect(container.querySelectorAll("canvas")).toHaveLength(1);
+  // Obsidian is a vector/CSS recipe; compact Home no longer mounts the old Promo canvas.
+  expect(container.querySelector('[data-mono-background-recipe="obsidian"] svg')).not.toBeNull();
+  expect(container.querySelectorAll("canvas")).toHaveLength(0);
+  expect(container.querySelector(".mono-promo-frame")).toBeNull();
   expect(container.querySelector("[data-mono-atmosphere]")).toBeNull();
 });

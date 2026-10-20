@@ -29,6 +29,8 @@ export function MonoToolDock({ selected, onSelect, dirtyTools = [], unavailableT
   dirtyTools?: readonly MonoToolId[]; unavailableTools?: readonly MonoToolId[];
 }) {
   const trialDescription = useId();
+  const tabStop = unavailableTools.includes(selected)
+    ? TOOLS.find(tool => !unavailableTools.includes(tool.id))?.id : selected;
   return <div className="mono-tool-dock" role="toolbar" aria-label="Инструменты оформления">
     {dirtyTools.length > 0 && <span hidden id={trialDescription}>Есть неприменённая проба</span>}
     {TOOLS.map((tool, index) => <MonoLabIconButton key={tool.id} label={MONO_TOOL_LABELS[tool.id]}
@@ -36,7 +38,7 @@ export function MonoToolDock({ selected, onSelect, dirtyTools = [], unavailableT
       aria-pressed={selected === tool.id} aria-controls="mono-active-inspector"
       aria-description={dirtyTools.includes(tool.id) ? "Есть неприменённая проба" : undefined}
       aria-describedby={dirtyTools.includes(tool.id) ? trialDescription : undefined}
-      tabIndex={selected === tool.id ? 0 : -1} disabled={unavailableTools.includes(tool.id)}
+      tabIndex={tabStop === tool.id ? 0 : -1} disabled={unavailableTools.includes(tool.id)}
       onClick={() => onSelect(tool.id)} onKeyDown={event => {
         const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
         const vertical = event.key === "ArrowUp" || event.key === "ArrowDown";

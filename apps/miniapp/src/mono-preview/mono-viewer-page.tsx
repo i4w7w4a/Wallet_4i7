@@ -7,5 +7,6 @@ import { MonoViewer } from "./mono-viewer";
 export function MonoViewerPage({ snapshot }: { snapshot: WalletSnapshot }) {
   const hostActive = useMonoSceneActivity();
   return <MonoViewer renderScene={shared => <MonoProductScene snapshot={snapshot}
-    appearance={shared.appearance} material={shared.material} active={hostActive} />} />;
+    appearance={shared.appearance} material={shared.material} active={hostActive}
+    homeComposition="compact" historyPresentation="compact" />} />;
 }

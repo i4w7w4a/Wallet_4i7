@@ -247,16 +247,18 @@ it("removes an applied material background and reveals the preserved MONO backgr
     activeId: "mine", records: [{ id: "mine", name: "Мой", revision: 1, document }] }, 0);
   await mount();
   fireEvent.click(screen.getByRole("button", { name: "Скрыть баланс" }));
-  fireEvent.click(screen.getByRole("button", { name: "За неделю" }));
-  expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "За неделю" })).toHaveAttribute("aria-pressed", "true");
+  const nav = within(screen.getByRole("navigation", { name: "Разделы кошелька" }));
+  fireEvent.click(nav.getByRole("button", { name: "История" }));
+  expect(screen.getByRole("region", { name: "История операций" })).toHaveAttribute("data-history-presentation", "compact");
   tool("Среда");
   fireEvent.click(screen.getByRole("button", { name: "Снять материал фона" }));
   await waitFor(() => expect(stored().slots[0].document.materials.ledger.background).toBeNull());
   expect(stored().slots[0].document.background).toBe("tide");
   expect(screen.getByText(/Материал фона снят · прежний фон MONO сохранён/)).toBeVisible();
+  expect(screen.getByRole("region", { name: "История операций" })).toHaveAttribute("data-history-presentation", "compact");
+  // Removing the material host replaces its DOM; query the current navigation after that boundary.
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Обзор" }));
   expect(screen.getByRole("button", { name: "Показать баланс" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "За неделю" })).toHaveAttribute("aria-pressed", "true");
 });
 
 it("keeps a failed color edit live, allows export and retries the same preset", async () => {

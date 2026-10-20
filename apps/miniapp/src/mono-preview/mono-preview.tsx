@@ -59,6 +59,7 @@ import {
   type MonoShapeMap,
 } from "./mono-shape-preview";
 import { MonoProductScene } from "./mono-product-scene";
+import { visibleActionBindings } from "./mono-action-geometry";
 import type { MonoSection } from "./mono-scene";
 import { useMonoSceneActivity } from "./mono-scene-activity";
 import { MonoToolDock, MONO_TOOL_LABELS, type MonoToolId } from "./mono-tool-dock";
@@ -967,6 +968,14 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const selectedPublishedSlot = workingLibrary?.activeSlot ?? 1;
   const activeMaterials = workingDocumentRef.current.materials[preset];
   const materialSceneActive = Boolean(activeMaterials.background || activeMaterials.buttons?.bindings.length);
+  // The compact Home has no Promo. Only the existing shared material host can refract panels.
+  const actionFrameMode = activeMaterials.buttons?.version === 2 || activeMaterials.buttons?.version === 3
+    ? activeMaterials.buttons.frameMode : "group";
+  const compactOpticsTarget = Boolean(activeMaterials.background || visibleActionBindings(actionFrameMode,
+    activeMaterials.buttons?.bindings ?? [], activeMaterials.buttons?.version === 3
+      ? activeMaterials.buttons.artwork : undefined).length);
+  const unavailableTools: MonoToolId[] = compactOpticsTarget ? ["chart"] : ["chart", "optics"];
+  const activeToolUnavailable = unavailableTools.includes(activeTool);
   const dirtyTools = (Object.keys(MONO_TOOL_LABELS) as MonoToolId[]).filter(toolDirty);
 
   return (
@@ -1073,7 +1082,9 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         {hasPendingTrials() && <p className="mono-workbench__pending" role="status">Есть неприменённые пробы</p>}
 
         <p className="mono-workbench__dock-label">Инструменты</p>
-        <MonoToolDock selected={activeTool} onSelect={selectTool} dirtyTools={dirtyTools} />
+        <MonoToolDock selected={activeTool} onSelect={selectTool} dirtyTools={dirtyTools} unavailableTools={unavailableTools} />
+        <p className="mono-workbench__note">Компактная главная: график, промоблок и закрепления скрыты. Их настройки сохранены.</p>
+        {!compactOpticsTarget && <p className="mono-workbench__note">Нет оптической поверхности: промоблок скрыт, а общий материал не выбран. Значения оптики сохранены.</p>}
         <div className="mono-workbench__widths" role="group" aria-label="Ширина предпросмотра">
           {VIEWPORTS.map(item => <button key={item.width} type="button" aria-label={"Экран " + item.width + " пикселей"}
             aria-pressed={viewport === item.width} onClick={() => setViewport(item.width)}>{item.width}</button>)}
@@ -1086,8 +1097,8 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         <MonoInspectorShell tool={activeTool} dirty={toolDirty(activeTool)}
           busy={activeTool === "typography" && (fontLoading || Boolean(fontCandidate))}
           onClose={compactChrome ? () => setMobileRail("quick") : undefined}
-          onApply={activeTool === "color" ? undefined : () => applyTool(activeTool)}
-          onCancel={activeTool === "color" ? undefined : () => cancelTool(activeTool)}
+          onApply={activeTool === "color" || activeToolUnavailable ? undefined : () => applyTool(activeTool)}
+          onCancel={activeTool === "color" || activeToolUnavailable ? undefined : () => cancelTool(activeTool)}
           note={activeTool === "color" ? "Прямые правки сохраняются в рабочем пресете. Импорт палитры применяется отдельно."
             : activeTool === "typography" && fontCandidate ? fontError || "Загрузка шрифтов…" : undefined}>
           {activeTool === "balance" && <><MonoBalanceControls value={draftAppearance[preset].balance} onChange={value => updateAppearance("balance", value)} />
@@ -1095,9 +1106,14 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
               onChange={event => updateAppearance("eye", { blinkEnabled: event.currentTarget.checked })} />Моргание глаза</label></>}
           {activeTool === "navigation" && <MonoNavigationControls value={draftAppearance[preset].navigation}
             onChange={value => updateAppearance("navigation", value)} />}
-          {activeTool === "assets" && <MonoAssetListControls value={draftAppearance[preset].assets} onChange={value => updateAppearance("assets", value)} />}
-          {activeTool === "chart" && <MonoChartControls value={draftAppearance[preset].chart} layout={draftAppearance[preset].layout}
-            onChange={value => updateAppearance("chart", value)} onLayoutChange={value => updateAppearance("layout", value)} />}
+          {activeTool === "assets" && <>
+            <p className="mono-workbench__note">Откройте «Мои средства» → «Активы», чтобы увидеть настройки списка.</p>
+            <MonoAssetListControls value={draftAppearance[preset].assets} onChange={value => updateAppearance("assets", value)} />
+          </>}
+          {activeTool === "chart" && <fieldset disabled style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+            <MonoChartControls value={draftAppearance[preset].chart} layout={draftAppearance[preset].layout}
+              onChange={value => updateAppearance("chart", value)} onLayoutChange={value => updateAppearance("layout", value)} />
+          </fieldset>}
           {activeTool === "typography" && <><MonoTypographyTuner value={fontCandidate ?? draftAppearance[preset].typography} onChange={updateTypography} />
             {fontError && <p role="alert">{fontError}</p>}</>}
           {activeTool === "shape" && <div className="mono-workbench__shape">          <MonoShapeTuner values={draftShapes[preset]} dirty={shapeDirty} status={shapeStatus}
@@ -1110,8 +1126,12 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
               ? "Здесь действует стандартный Material; отдельная проба относится к другому пресету."
               : quickActionMotionStatus} />
 </div>}
-          {activeTool === "optics" && <div className="mono-workbench__optics">          <MonoGlassTuner preset={preset} settings={draftOptics[preset]}
-            onChange={updateDraft} onDefault={resetDraft} onCancel={cancelDraft} onApply={applyDraft} />
+          {activeTool === "optics" && <div className="mono-workbench__optics">
+            {compactOpticsTarget && <p className="mono-workbench__note">Оптика применяется к всплывающим стеклянным панелям; промоблок на компактной главной не показывается.</p>}
+            <fieldset disabled={!compactOpticsTarget} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+              <MonoGlassTuner preset={preset} settings={draftOptics[preset]}
+                onChange={updateDraft} onDefault={resetDraft} onCancel={cancelDraft} onApply={applyDraft} />
+            </fieldset>
 </div>}
           {activeTool === "logo" && <>          <div className="mono-logo-options" role="group" aria-label="Настройка логотипа" data-mono-control>
             <span>Логотип</span>
@@ -1181,7 +1201,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           preset, palette: { enabled: Boolean(colorLab.shown.paletteEnabled), config: colorLab.shown.config },
           shape: draftShapes[preset], optics: draftOptics[preset], environment: { theme, background: shownBackground },
         }} viewport={viewport} ready={workingReady} paletteReady={colorLab.ready}
-          active={hostActive}
+          active={hostActive} homeComposition="compact" historyPresentation="compact"
           session={{ balanceHidden: sceneBalanceHidden, onBalanceHiddenChange: setSceneBalanceHidden,
             period: scenePeriod, onPeriodChange: setScenePeriod,
             section: sceneSection, onSectionChange: setSceneSection,

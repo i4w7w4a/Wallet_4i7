@@ -18,7 +18,8 @@ export function MonoPublishedViewer({ wallet, published }: {
       data-material-scrollport={Boolean(published.material.background || published.material.buttons?.bindings.length) || undefined}
       style={{ "--mono-preview-width": "480px" } as CSSProperties}>
       <MonoProductScene snapshot={wallet} appearance={published.appearance}
-        material={published.material} active={active} />
+        material={published.material} active={active}
+        homeComposition="compact" historyPresentation="compact" />
     </div>
   </div>;
 }
