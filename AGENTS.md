@@ -1,5 +1,10 @@
 # Правила репозитория Novex Wallet
 
+## Активный выпуск20.10 — MONO через GitHub CI на153
+
+- Владелец принял3202 и явно разрешил сохранить feature branch GitHub, собрать через CI и через ORACLE опубликовать обновлённый MONO на исходном153. Это отменяет прежний no-push/no-public ниже только для данного scoped выпуска; Gold/профиль/7presets/settings/history защищены. План `docs/product/2026-10-20-mono-ci-public.md`, отдельный ledger `.superpowers/sdd/2026-10-20-mono-ci-public/progress.md`.
+- APP SOURCE7dbf2b80086abe7ccb25b9df9d989d36e04230a1 принят; прошлые app source/review/local build/QA завершены и не повторяются. Один SOLMAX добавляет только отдельный MONO CI recipe/helpers/tests без изменения Gold CI/app/package/lock. Root координатор/push/docs; ORACLE sole153runtime owner, сначала freshRO, потом exact artifact LOAD/DEPLOYGO. No default merge/PR/forcepush/CI SSH/автодеплой/serverbuild/Caddy/globalstack/presetwrites. Live profile comparison — явный guard, не предположение. Старые3202/3201/outputs/generatednext-env/evidence сохранять.
+
 ## Завершено20.10 — compact в MONO мастерской, LOCAL READY
 
 - Локальная мастерская http://127.0.0.1:3202/mono: compiled SOURCE `7dbf2b80086abe7ccb25b9df9d989d36e04230a1`, BUILD `HmJCvH9_hvuQkGWzY7BM3`, PID33480/launch0ca4f715806546248f35dd9e3ad91c40. Нейтральная compact структура подключена к редактору/portable/published source hosts, не к работающим публичным binaries. Все7 архивных Home/History проверены фактически при390; узкие320 — slots1/3/5/6/7, spot480 — slot7. Исправлена появлявшаяся root-полоса/скачок ширины без запрета естественной прокрутки; keyboard scroll/receipt focus после CSS PASS. Gold, профиль, finance, семь JSON/material/artwork/settings/history не переписывались. [Итог и ограничения](docs/releases/2026-10-20-compact-workbench-local.md).
