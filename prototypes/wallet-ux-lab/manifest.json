@@ -1,0 +1,64 @@
+{
+  "title": "Novex UX directions",
+  "date": "2026-10-20",
+  "base_commit": "29cc41b9d3b3a44e4da56bc2704cf1508594c4d8",
+  "variants": [
+    "a",
+    "b",
+    "c"
+  ],
+  "files": {
+    "index.html": {
+      "sha256": "25c9327e2a5bb95fe91293bee0477876bcd410acc7bd1ffa3e096d7c66429ad0",
+      "bytes": 7656
+    },
+    "styles.css": {
+      "sha256": "a50d8c9552974b7df4370a6b0cc44be914e2d68e7b1257fcd3d0ea153f597490",
+      "bytes": 38067
+    },
+    "app.js": {
+      "sha256": "a263beb59f98988dbce70276d9c4e06c7021a1f7ca8a5eb290a8b8c3fde8f1ee",
+      "bytes": 50431
+    },
+    "assets/OFL-Manrope.txt": {
+      "sha256": "4b8929f05a122b7abb9059501dc7dc4df86f8c97d5a1769d60d82cf2d2795dde",
+      "bytes": 4480
+    },
+    "assets/btc.svg": {
+      "sha256": "9b0ee2c062f5a20e0c01d3889c3ef8cf8406207a3448cba6707721807cf275f0",
+      "bytes": 954
+    },
+    "assets/currency-LICENSE.md": {
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+      "bytes": 7048
+    },
+    "assets/currency-PROVENANCE.md": {
+      "sha256": "e69d4259bfd97a0ecad08892ea33d35a75e24b74970f516cac980afab3e041c0",
+      "bytes": 2838
+    },
+    "assets/eth.svg": {
+      "sha256": "c4af1de291ba2684da1b46a028c90ef47ed59968e3fbfb76c814285c68ad1509",
+      "bytes": 526
+    },
+    "assets/logo.svg": {
+      "sha256": "bd246d76936df6cded63ee9daedd749adac5d07175c248e65ff8e4a6b8b02104",
+      "bytes": 7552
+    },
+    "assets/manrope.woff2": {
+      "sha256": "ec48a797c0f2b33917ce9b7751021719ea1fbd46fb5c584c59c1ea1064678de7",
+      "bytes": 53736
+    },
+    "assets/portrait-source.md": {
+      "sha256": "5d5c909323cd3810a87ac7d2d8b1e3c3e42f4d5e80759bd8ea7a1e6215f4c0bf",
+      "bytes": 2777
+    },
+    "assets/portrait.webp": {
+      "sha256": "b406c991f010e15ca43dc38e2a2ad7c377798e4b174896773b013288b74fbd98",
+      "bytes": 4022
+    },
+    "assets/usdc.svg": {
+      "sha256": "612dc36242ca05de6b7e9cea4ae7037f47c5eeb6106863a6be9dd8f422c56958",
+      "bytes": 1455
+    }
+  }
+}

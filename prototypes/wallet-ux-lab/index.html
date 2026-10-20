@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Три интерактивных направления интерфейса Novex: спокойный обзор, два ведущих действия и единая карточка. Дизайн-исследование на основе Gold.">
+  <title>Novex — три направления</title>
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="assets/manrope.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" type="module"></script>
+</head>
+<body>
+  <div id="lab-root" class="lab">
+    <header class="lab-topbar">
+      <a class="lab-wordmark" href="./" aria-label="Novex, начало дизайн-исследования">novex<span class="wordmark-dot" aria-hidden="true"></span><span class="lab-divider" aria-hidden="true"></span><span class="lab-label">Дизайн-исследование</span></a>
+      <a class="source-link" href="https://wallet.153.76.194.160.nip.io/gold" target="_blank" rel="noopener noreferrer">Текущий Gold <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main class="lab-layout">
+      <aside class="lab-sidebar" aria-label="Выбор направления дизайна">
+        <div class="study-label"><span aria-hidden="true"></span> NOVEX / 20.10.2026</div>
+        <h1>Меньше шума.<br>Больше ясности.</h1>
+        <p class="lab-intro">Три композиции вашего кошелька.<br>Один баланс, понятные действия<br>и спокойный отклик на нажатие.</p>
+
+        <div class="variant-selector" role="group" aria-label="Варианты композиции">
+          <button type="button" class="variant-option" data-variant="a" aria-pressed="true">
+            <span class="variant-index">01</span><span class="variant-copy"><strong>Тихий обзор</strong><small>Воздух и компактные действия</small></span><span class="variant-selected" aria-hidden="true">↗</span>
+          </button>
+          <button type="button" class="variant-option" data-variant="b" aria-pressed="false">
+            <span class="variant-index">02</span><span class="variant-copy"><strong>Два действия</strong><small>Приоритет отправке и получению</small></span><span class="variant-selected" aria-hidden="true">↗</span>
+          </button>
+          <button type="button" class="variant-option" data-variant="c" aria-pressed="false">
+            <span class="variant-index">03</span><span class="variant-copy"><strong>Единая карточка</strong><small>Баланс и действия в одном блоке</small></span><span class="variant-selected" aria-hidden="true">↗</span>
+          </button>
+        </div>
+
+        <div class="study-note" aria-live="polite" aria-atomic="true">
+          <p class="note-kicker">В ЧЁМ ИДЕЯ</p>
+          <h2 id="variant-title">Тихий обзор</h2>
+          <p id="variant-caption">Баланс получает главное место. Четыре действия собраны в компактный ряд, детали открываются по нажатию.</p>
+          <p id="variant-detail" class="note-sources">Иерархия Ledger, простота Tangem, понятные действия Phantom.</p>
+        </div>
+
+        <button type="button" id="comparison-toggle" class="comparison-link" aria-expanded="false" aria-controls="comparison-notes">Как сравнивать варианты <span aria-hidden="true">↗</span></button>
+        <section id="comparison-notes" class="comparison-notes" hidden>
+          <h2>Попробуйте один и тот же путь</h2>
+          <ol><li>Скройте баланс и откройте активы.</li><li>Откройте получение, выберите сеть.</li><li>Введите сумму отправки и дойдите до проверки.</li><li>Найдите операцию в истории.</li></ol>
+          <p>Переключайте варианты и сравнивайте, где быстрее находите нужное действие. Данные, черновики и открытый раздел сохраняются до перезагрузки страницы.</p>
+          <p>Тёмный графит и шампань остаются общими. Отличается композиция, а не финансовая логика.</p>
+        </section>
+      </aside>
+
+      <section class="lab-preview" aria-label="Интерактивный кошелёк">
+        <div class="preview-tools">
+          <span class="preview-label">Интерактивный пример</span>
+          <div class="width-selector" role="group" aria-label="Ширина кошелька в пикселях">
+            <button type="button" data-width="320" aria-pressed="false" aria-label="Ширина 320 пикселей">320</button>
+            <button type="button" data-width="390" aria-pressed="true" aria-label="Ширина 390 пикселей">390</button>
+            <button type="button" data-width="430" aria-pressed="false" aria-label="Ширина 430 пикселей">430</button>
+            <button type="button" data-width="480" aria-pressed="false" aria-label="Ширина 480 пикселей">480</button>
+          </div>
+        </div>
+        <div class="phone-stage">
+          <div id="wallet-shell" class="wallet" data-variant="a">
+            <header id="wallet-header" class="wallet-header"></header>
+            <div id="wallet-content" class="wallet-content" tabindex="-1"></div>
+            <nav id="wallet-nav" class="wallet-nav" aria-label="Разделы кошелька"></nav>
+          </div>
+        </div>
+        <footer class="preview-footer">
+          <span id="variant-counter">01 / 03</span>
+          <button id="motion-toggle" type="button" class="motion-toggle" aria-pressed="true"><span class="motion-indicator" aria-hidden="true"></span><span id="motion-label" data-motion-label>Анимация включена</span></button>
+          <span class="preview-demo">Демо-данные</span>
+        </footer>
+      </section>
+    </main>
+    <footer class="lab-footer"><span>Исследование на основе Novex Gold</span><span>Главное — удобно, спокойно, понятно.</span></footer>
+  </div>
+
+  <dialog id="sheet-root" class="sheet-dialog" aria-labelledby="sheet-title">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <header class="sheet-heading"><h2 id="sheet-title"></h2><button id="sheet-close" class="icon-button" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div id="sheet-body" class="sheet-body"></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript-note">Чтобы переключать композиции и открывать действия, включите JavaScript в браузере.</p></noscript>
+</body>
+</html>
