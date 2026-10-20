@@ -1,0 +1,9 @@
+# Match the existing prototype archive: keep the reviewed runtime bytes.
+index.html -text
+styles.css -text
+app.js -text
+assets/*.svg -text whitespace=cr-at-eol
+assets/*.woff2 -text
+assets/*.webp -text
+# Preserve the upstream license byte-for-byte, including its CRLF whitespace.
+assets/OFL-Manrope.txt -text -whitespace
