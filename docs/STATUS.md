@@ -1,5 +1,7 @@
 # Текущее состояние Novex
 
+20.10.2026 — новый **локальный, ещё не показанный** пилот структуры Gold на одном MONO preset2. [План и границы](product/2026-10-20-compact-structure-pilot.md). App297978e +fix9b18319; final focused42PASS, observed affected127PASS/1FAIL описан отдельно, не полностью зелёный suite. Root scoped review/fix1re-review завершены, storage finding ADDRESSED; ORACLE compile/actual browser пока ожидаются. Public Gold18.10, обычный MONO, профиль и все7appearance snapshots не обновляются этой работой. Это read-only примерка архива preset2rev5, не автоматическая замена всех шаблонов или редактора.
+
 Обновлено18.10.2026: **PUBLIC_READY**, server/live/protected proof и bounded public browser QA — PASS.
 
 ## Gold #67/#68 — опубликован и bounded-browser-tested

@@ -1,5 +1,12 @@
 # Правила репозитория Novex Wallet
 
+## Активный локальный пилот20.10 — структура Gold на MONO preset2
+
+- Владелец разрешил SOL MAX перенести структуру Home/History на один MONO preset, затем ORACLE показать локально. План `docs/product/2026-10-20-compact-structure-pilot.md`; новая ветка `codex/compact-preset2-20261020` от29cc41b. Это новая presentation-дельта, не повтор#67/#68 и не публикация.
+- Read-only pilot `/mono/pilot/2`, только server flag `MONO_COMPACT_LOCAL_PREVIEW=1`; exact appearance preset2rev5 из неизменённого архива17.10. Neutral host composition не заменяет Gold appearance; ordinary MONO/editor/7routes и Gold сохраняют default behavior. Все7JSON/material/artwork/optics/storage/history, профиль и финансовые commands сохраняются.
+- App/test commits297978e +9b18319: локальная структура и in-memory controlled pilot session без записи/migration viewer preferences. Actual RED8FAIL→newtestsGREEN; review-found populated-storage RED2FAIL→final42PASS. Прежний affected127PASS/1FAIL в zero-getItem ожидании ordinary published-viewer не назван GREEN или доказанным совпадением с историческими31FAIL.
+- Rootreview/fix1re-review завершены: storage finding ADDRESSED, новых Critical/Important нет. ExactSOURCE LOCALGO предшествует ORACLE одной affected compile. Подготовлен loopback3201 и отдельный `.next-review/compact-preset2-20261020`; до LOCALGO нет running preview/BUILD. Старые outputs/ports/public153Gold/MONO сохранять; no push/merge/CI/SSH/deploy. После actualbrowser владелец принимает вид; автоматического переноса на остальные6 или editor integration нет.
+
 ## Итог18.10 — PUBLIC_READY, Gold #67/#68
 
 - App SOURCE `7d097c9cc6e1286297315c78520f341a364b35f0` сохранён в GitHub `codex/gold-history-68-20261017`; Home#67/History#68 уже реализованы и локально приняты. Новых app изменений/full runs/local compile не назначать.
