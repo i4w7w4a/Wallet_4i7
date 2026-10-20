@@ -1,4 +1,8 @@
 /* Host composition only: saved typography, action frames and materials keep their own paint. */
+/* Keep natural document scrolling without a viewport-width jump between compact sections. */
+html:has(.mono-page[data-mono-home-composition="compact"]) { scrollbar-width: none; }
+html:has(.mono-page[data-mono-home-composition="compact"])::-webkit-scrollbar { display: none; }
+
 .mono-page[data-mono-home-composition="compact"] .mono-compact-balance {
   min-width: 0; padding: 16px 18px 20px;
   border: 1px solid var(--mono-rule); border-radius: 16px;
