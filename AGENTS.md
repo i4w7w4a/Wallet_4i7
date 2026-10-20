@@ -1,5 +1,10 @@
 # Правила репозитория Novex Wallet
 
+## Активный этап20.10 — compact в MONO мастерской
+
+- Владелец принял примерку preset2 и сказал «делай» на перенос общей Home/History структуры в настоящую мастерскую и все7оформлений. Новая ветка `codex/compact-workbench-20261020` от823f23a; план `docs/product/2026-10-20-compact-workbench-integration.md`, собственный ledger одноимённый в `.superpowers/sdd/`. Старый пилот ниже завершён и3201 остаётся живым; его нельзя назначать заново.
+- Один SOLMAX source author, второй read-only compatibility preflight, затем один covering spec+quality review. Root оркестрирует/docs; ORACLE sole local build/runtime после exactSOURCE LOCALGO, отдельный3202/output. Portable/published source hosts используют ту же neutral compact composition; публичные binaries не меняются. Существующие palette/type/material/artwork/optics/settings/history/семьJSON, Gold/профиль/finance/receipt сохранить. Ненужные compact-target controls скрыть/честно отключить, значения не стирать. Никаких schema migration, storage seeding, push/merge/CI/SSH/deploy; публикация после отдельного решения.
+
 ## Активный локальный пилот20.10 — структура Gold на MONO preset2
 
 - Владелец разрешил SOL MAX перенести структуру Home/History на один MONO preset, затем ORACLE показать локально. План `docs/product/2026-10-20-compact-structure-pilot.md`; новая ветка `codex/compact-preset2-20261020` от29cc41b. Это новая presentation-дельта, не повтор#67/#68 и не публикация.
