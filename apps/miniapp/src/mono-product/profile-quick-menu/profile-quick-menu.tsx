@@ -185,6 +185,7 @@ function OpenProfileQuickMenu({ id, anchorRef, resource, helpActions, initialDet
           : detail === "documents" ? <ProductProfileDocumentsContent resource={current} hideHeading />
             : <ProductProfileSettingsContent resource={current} balanceDynamics={balanceDynamics} />}
       </div> : <>
+      <div className={styles.menuGroup}>
       <button type="button" className={styles.row} disabled aria-label="Тема" aria-describedby={`${id}-theme-unavailable`}>
         <span className={styles.leadingIcon}><MenuIcon name="theme" /></span>
         <span className={styles.label}>Тема</span><span className={styles.value} id={`${id}-theme-unavailable`}>Пока недоступно</span>
@@ -202,6 +203,8 @@ function OpenProfileQuickMenu({ id, anchorRef, resource, helpActions, initialDet
         <span className={styles.value} id={`${id}-${row.target}-value`}>{row.value}</span>
         <MenuChevron />
       </button>)}
+      </div>
+      {(homePins || onOpenAccounts) && <div className={styles.menuGroup}>
       {homePins && <button ref={element => { rowRefs.current.home = element; }} type="button" className={styles.row}
         aria-label="На главной" aria-describedby={`${id}-home-value`} onClick={() => openDetail("home")}>
         <span className={styles.leadingIcon}><MenuIcon name="home" /></span>
@@ -213,6 +216,8 @@ function OpenProfileQuickMenu({ id, anchorRef, resource, helpActions, initialDet
         <span className={styles.label}>Мои счета</span>
         <span /><MenuChevron />
       </button>}
+      </div>}
+      <div className={styles.menuGroup}>
       <button ref={element => { rowRefs.current.help = element; }} type="button" className={`${styles.row} ${styles.help}`}
         onClick={() => openDetail("help")}>
         <span className={styles.leadingIcon}><ProfileSectionIcon section="help" /></span>
@@ -226,6 +231,7 @@ function OpenProfileQuickMenu({ id, anchorRef, resource, helpActions, initialDet
           ? "MONO · варианты оформления" : "Gold · золотое оформление"}</span>
         <MenuChevron />
       </a>}
+      </div>
       </>}
     </ProductGlassSurface>
   </div>;

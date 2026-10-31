@@ -2,8 +2,8 @@
 .profile, .profile *, .profile *::after { box-sizing: border-box; }
 .title { margin: 0; font: 600 var(--mono-type-section-size, 24px)/1.18 var(--mono-font-display, var(--mono-font-ui, sans-serif)); letter-spacing: -.025em; }
 .title:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 3px; }
-.identity { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
-.avatar { position: relative; display: grid; flex: 0 0 44px; height: 44px; place-items: center; overflow: hidden; border-radius: 50%; background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); font-size: 18px; font-weight: 600; }
+.identity { display: flex; align-items: center; gap: 14px; min-width: 0; margin-top: 18px; padding: 16px; border: 1px solid var(--mono-rule, #343434); border-radius: 18px; background: linear-gradient(135deg, var(--mono-surface-high, #25272e), var(--mono-surface, #1a1c21)); }
+.avatar { position: relative; display: grid; flex: 0 0 48px; height: 48px; place-items: center; overflow: hidden; border: 1px solid var(--mono-rule, #343434); border-radius: 50%; background: color-mix(in srgb, var(--mono-text, #f4f4f4) 7%, transparent); font-size: 18px; font-weight: 600; }
 .avatarImage { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .identityCopy { display: grid; min-width: 0; gap: 3px; }
 .name { margin-bottom: 3px; font-size: 18px; font-weight: var(--mono-font-weight-strong, 600); line-height: 1.3; overflow-wrap: anywhere; }
@@ -21,11 +21,10 @@
 .resourceNote, .resourceError p { margin: 0; color: var(--mono-text-secondary, #bdbdbd); font-size: 13px; line-height: 1.45; }
 .resourceNote { margin-bottom: 12px; }
 .resourceError { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-.groups { min-width: 0; }
-.group { border-bottom: 1px solid var(--mono-rule, #343434); border-bottom-color: color-mix(in srgb, var(--mono-rule, #343434) 72%, transparent); }
-.group:last-child { border-bottom: 0; }
+.groups { display: grid; min-width: 0; gap: 8px; }
+.group { min-width: 0; border: 1px solid var(--mono-rule, #343434); border-radius: 14px; background: color-mix(in srgb, var(--mono-surface-high, #25272e) 52%, transparent); }
 .groupHeading { margin: 0; font: inherit; }
-.groupButton { display: grid; grid-template-columns: 26px minmax(0, 1fr) 16px; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 11px 0; border: 0; border-radius: 10px; background: transparent; color: inherit; cursor: pointer; font: inherit; text-align: left; -webkit-tap-highlight-color: transparent; }
+.groupButton { display: grid; grid-template-columns: 26px minmax(0, 1fr) 16px; align-items: center; gap: 12px; width: 100%; min-height: 68px; padding: 12px; border: 0; border-radius: 13px; background: transparent; color: inherit; cursor: pointer; font: inherit; text-align: left; -webkit-tap-highlight-color: transparent; }
 .sectionIcon { width: 26px; height: 26px; color: var(--mono-text-secondary, #bdbdbd); }
 .iconGesture { transform-box: view-box; transform-origin: 12px 12px; }
 .groupButton[aria-expanded="true"] :is(.contactPortrait, .bookPage) { transform: translateY(-.75px); }
@@ -35,9 +34,9 @@
 .groupCopy small { color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; line-height: 1.35; }
 .chevron { flex: 0 0 16px; width: 16px; height: 16px; color: var(--mono-text-secondary, #bdbdbd); }
 .groupButton[aria-expanded="true"] .chevron { transform: rotate(90deg); }
-.groupDetails { display: grid; gap: 12px; padding: 3px 0 16px; }
+.groupDetails { display: grid; min-width: 0; gap: 12px; padding: 3px 12px 16px; }
 @container mono-preview (min-width: 360px) {
-  .groupDetails { padding-inline-start: 38px; }
+  .groupDetails { padding-inline-start: 50px; }
 }
 .details { display: grid; gap: 12px; margin: 0; }
 .details > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: baseline; gap: 12px; font-size: 13px; line-height: 1.4; }
@@ -56,7 +55,7 @@
 .panelNavigation { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
 .panelNavigation .textAction { display: flex; align-items: center; gap: 6px; }
 .panelNavigation .textAction svg { flex-shrink: 0; }
-.panelTitle { margin: 0; font: 600 18px/1.3 var(--mono-font-ui, sans-serif); overflow-wrap: anywhere; }
+.panelTitle { margin: 0; padding-bottom: 12px; border-bottom: 1px solid var(--mono-rule, #343434); font: 600 18px/1.3 var(--mono-font-ui, sans-serif); overflow-wrap: anywhere; }
 .panelCopy { margin: 0; color: var(--mono-text, #f4f4f4); font: inherit; line-height: 1.5; overflow-wrap: anywhere; }
 .iconAction { display: grid; flex: 0 0 44px; width: 44px; height: 44px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
 .contactForm { display: grid; min-width: 0; gap: 16px; }
