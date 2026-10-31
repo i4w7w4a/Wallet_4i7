@@ -8,8 +8,8 @@
 .heading h3:focus { outline: none; }
 .heading h3:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 4px; }
 .stepNumber { flex-shrink: 0; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; font-variant-numeric: tabular-nums; }
-.legs { display: grid; gap: 4px; min-width: 0; }
-.leg { min-width: 0; padding: 4px 0; }
+.legs { display: grid; gap: 0; min-width: 0; }
+.leg { min-width: 0; padding: 14px; border: 1px solid var(--mono-rule-soft, #34363e); border-radius: var(--mono-radius, 12px); background: color-mix(in srgb, var(--mono-text, #f4f4f4) 5%, transparent); }
 .label { display: block; font-size: 13px; font-weight: var(--mono-font-weight-strong, 600); }
 .route { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 0 12px; }
 .asset { width: 36px; height: 36px; flex: 0 0 36px; }
@@ -27,14 +27,14 @@
 .hint { margin-top: 6px; }
 .note { margin: 12px 0; }
 .after { margin: 12px 0 4px; font-size: 20px; }
-.connector { width: 44px; min-height: 32px; display: grid; place-items: center; margin: 0 auto; color: var(--mono-text-secondary, #bdbdbd); font-size: 20px; }
+.connector { width: 44px; min-height: 36px; display: grid; place-items: center; margin: 0 auto; color: var(--mono-text-secondary, #bdbdbd); font-size: 20px; }
 .choiceLabel { display: block; color: var(--mono-text-secondary, #bdbdbd); font-size: 12px; }
 .select { width: 100%; min-width: 0; min-height: 44px; padding: 6px 0; border: 0; border-bottom: 1px solid var(--mono-rule-strong, #777982); border-radius: 0; background: transparent; color: inherit; font: inherit; font-size: 13px; }
 .select option { background: var(--mono-surface, #1a1c21); color: var(--mono-text, #f4f4f4); }
 .select:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 3px; }
-.details { display: grid; gap: 10px; margin: 16px 0 0; }
+.details { display: grid; gap: 12px; margin: 16px 0 0; padding: 14px; border: 1px solid var(--mono-rule-soft, #34363e); border-radius: var(--mono-radius, 12px); background: color-mix(in srgb, var(--mono-text, #f4f4f4) 4%, transparent); }
 .details > div { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.1fr); gap: 12px; align-items: baseline; font-size: 13px; }
-.details dt { color: var(--mono-text-secondary, #bdbdbd); }
+.details dt { min-width: 0; overflow-wrap: anywhere; color: var(--mono-text-secondary, #bdbdbd); }
 .details dd { margin: 0; min-width: 0; overflow-wrap: anywhere; text-align: right; font-variant-numeric: tabular-nums; }
 .details .total { padding: 10px 0; border-top: 1px solid var(--mono-rule-soft, #34363e); font-weight: var(--mono-font-weight-strong, 600); }
 .total dt { color: inherit; }
