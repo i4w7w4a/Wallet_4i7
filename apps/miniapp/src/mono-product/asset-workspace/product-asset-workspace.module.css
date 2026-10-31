@@ -103,3 +103,25 @@
   border: 1px solid var(--mono-rule, #343434);
   border-radius: 14px;
 }
+:global(.mono-page:not([data-mono-presentation="gold"])) .workspace .actions {
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+:global(.mono-page:not([data-mono-presentation="gold"])) .workspace .action {
+  display: grid;
+  flex: 1 1 0;
+  min-width: 44px;
+  min-height: 48px;
+  padding: 8px 1px;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+@container mono-asset-workspace (max-width: 225px) {
+  :global(.mono-page:not([data-mono-presentation="gold"])) .workspace .actions { flex-wrap: wrap; }
+  :global(.mono-page:not([data-mono-presentation="gold"])) .workspace .action { flex-basis: 44%; }
+}
