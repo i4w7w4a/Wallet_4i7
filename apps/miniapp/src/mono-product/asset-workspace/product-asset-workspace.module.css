@@ -80,3 +80,26 @@
   .identity { margin-top: 8px; }
   .balance { margin-top: 22px; }
 }
+
+/* Separate the aggregate estimate from the account/network selection. */
+:global(.mono-page:not([data-mono-presentation="gold"])) .workspace .balance {
+  padding: 18px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: 16px;
+  background: var(--mono-surface, #141414);
+}
+:global(.mono-page:not([data-mono-presentation="gold"])) .workspace .placementList {
+  padding: 0 12px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: 14px;
+  background: var(--mono-surface, #141414);
+}
+:global(.mono-page:not([data-mono-presentation="gold"])) .workspace .placement[data-selected="true"] {
+  background: var(--mono-surface-high, #202020);
+}
+:global(.mono-page:not([data-mono-presentation="gold"])) .workspace .selected {
+  margin-top: 10px;
+  padding: 14px 12px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: 14px;
+}

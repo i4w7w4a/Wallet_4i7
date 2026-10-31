@@ -5,18 +5,27 @@
   --history-failed-ink: var(--mono-palette-danger-ff, var(--mono-text));
 }
 .groups { display: grid; gap: 24px; margin-top: 20px; }
-.date { margin: 0 0 6px; color: var(--mono-text-secondary); font: inherit; font-size: 14px; font-weight: var(--mono-font-weight-medium, 500); line-height: 1.45; }
+.date { margin: 0 0 10px; color: var(--mono-text-secondary); font: inherit; font-size: 14px; font-weight: var(--mono-font-weight-medium, 500); line-height: 1.45; }
+.compact .groups > div > ol { display: grid; gap: 8px; }
+.compact .groups > div > ol > li {
+  min-width: 0; border: 1px solid var(--mono-rule, #343434); border-radius: 14px;
+  background: var(--mono-surface, #141414);
+}
+.compact .groups > div > ol > li > div { padding: 2px 12px 16px; }
+.compact .groups > div > ol > li > div[hidden] { display: none; }
 .compact .rowButton {
   --history-direction-ink: var(--mono-text);
   grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr) 12px;
   align-items: center; column-gap: 8px; row-gap: 0;
-  width: 100%; min-height: 68px; margin-inline: 0; padding: 13px 0; border-radius: 8px;
+  box-sizing: border-box; width: 100%; min-height: 68px; margin-inline: 0; padding: 12px; border-radius: 13px;
   transition: background-color 190ms cubic-bezier(.2, 0, 0, 1);
 }
-.compact .rowButton > [data-history-direction-icon] { grid-row: 1; width: 40px; }
+.compact .rowButton > [data-history-direction-icon] {
+  grid-row: 1; width: 40px; border-radius: 12px; background: var(--mono-surface-high, #202020);
+}
 .compact .rowButton .identity { grid-column: 2; grid-row: 1; gap: 4px; }
 .compact .rowButton .identity > strong { color: var(--mono-text); font-weight: var(--mono-font-weight-medium, 500); }
-.context { min-width: 0; color: var(--mono-text-secondary); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.context { min-width: 0; color: var(--mono-text-secondary); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .compact .status { align-items: center; gap: 5px; color: var(--mono-text-secondary); }
 .compact .status[data-status="pending"] { color: var(--history-pending-ink); }
 .compact .status[data-status="failed"] { color: var(--history-failed-ink); }
