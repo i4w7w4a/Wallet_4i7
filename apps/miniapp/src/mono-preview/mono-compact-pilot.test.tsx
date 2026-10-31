@@ -30,7 +30,8 @@ it("renders the exact archived preset 2 read-only through the existing material/
   const page = await MonoCompactPilotPage();
   const source = JSON.stringify(preset2);
   const view = render(page);
-  await waitFor(() => expect(screen.getByRole("button", { name: "Мои средства" })).toBeVisible());
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Общий баланс" })).toBeVisible());
+  expect(screen.queryByRole("button", { name: "Мои средства" })).toBeNull();
   expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "dark");
   expect(view.container.querySelector("[data-mono-product-material]")).toHaveAttribute("data-mono-effect-background", "true");
   expect(view.container.querySelector("[data-mono-rail], [data-mono-workbench], [data-mono-gold-viewer]")).toBeNull();
@@ -50,7 +51,7 @@ it.each([
     "wallet4i7.mono.home-pins.v1": '{ "version": 1, "groups": ["custodial"] }',
     "wallet4i7.mono.home-pins.v2": '{ "version": 2, "groups": ["depositary"], "totalOnly": true }',
   } },
-])("leaves every storage key/value untouched with $name through Funds, History and privacy", async ({ preferences }) => {
+])("leaves every storage key/value untouched with $name through Assets, History and privacy", async ({ preferences }) => {
   vi.stubEnv("MONO_COMPACT_LOCAL_PREVIEW", "1");
   for (const [key, value] of Object.entries(preferences)) localStorage.setItem(key, value!);
   localStorage.setItem("wallet4i7.mono.viewer-theme.v1", '{ "version": 1, "theme": "light" }');
@@ -64,15 +65,16 @@ it.each([
   const remove = vi.spyOn(Storage.prototype, "removeItem");
   const clear = vi.spyOn(Storage.prototype, "clear");
   const view = render(await MonoCompactPilotPage());
-  await waitFor(() => expect(screen.getByRole("button", { name: "Мои средства" })).toBeVisible());
-  fireEvent.click(screen.getByRole("button", { name: "Мои средства" }));
-  await waitFor(() => expect(screen.getByRole("button", { name: "Назад в обзор" })).toHaveFocus());
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Общий баланс" })).toBeVisible());
+  expect(screen.queryByRole("button", { name: "Мои средства" })).toBeNull();
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" }));
+  expect(screen.getByRole("button", { name: "Назад в обзор" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Открыть профиль" }));
   fireEvent.click(screen.getByRole("button", { name: "Закрыть профиль" }));
   expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "assets");
   fireEvent.click(screen.getByRole("button", { name: "Назад в обзор" }));
-  await waitFor(() => expect(screen.getByRole("button", { name: "Мои средства" })).toHaveFocus());
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Общий баланс" })).toHaveFocus());
   fireEvent.click(screen.getByRole("button", { name: "Скрыть баланс" }));
   const nav = within(screen.getByRole("navigation", { name: "Разделы кошелька" }));
   fireEvent.click(nav.getByRole("button", { name: "История" }));

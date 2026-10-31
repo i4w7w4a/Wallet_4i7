@@ -26,6 +26,7 @@ import { useMonoTypographyPreview } from "./mono-typography-preview";
 import { MONO_EYE_DEFAULT, MONO_NAVIGATION_DEFAULT, type MonoEyeAppearance,
   type MonoNavigationAppearance } from "./mono-interface-appearance";
 import { ProductOverview, ProductBalance, ProductContextLine, ProductHoldings } from "../mono-product/product-home";
+import { NovexHomeHero } from "../mono-product/novex-layout-preview";
 import { ProductOverlay } from "../mono-product/product-sheet";
 import { ProductAssetWorkspace } from "../mono-product/asset-workspace";
 import { ProductAccountsWorkspace } from "../mono-product/accounts-workspace";
@@ -285,6 +286,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const navigation = appearance.navigation ?? MONO_NAVIGATION_DEFAULT;
   const goldBalanceDynamics = propsPresentation === "gold" ? balanceDynamics : undefined;
   const compactHome = propsPresentation === "gold" || homeComposition === "compact";
+  const novexCompactHome = propsPresentation !== "gold" && homeComposition === "compact";
   const activityPresentation = propsPresentation ?? historyPresentation;
   const fullScene = Boolean(appearance.balance && appearance.chart && appearance.layout && appearance.assets);
   const [localPeriod, setLocalPeriod] = useState<ChartPeriod>("1D");
@@ -666,12 +668,14 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     fundsFocusRequest.current = null;
     const root = pageRef.current;
     const target = root?.querySelector<HTMLElement>(destination === "assets"
-      ? "[data-mono-funds-back]" : "[data-mono-funds-trigger]");
+      ? "[data-mono-funds-back]" : propsPresentation === "gold" ? "[data-mono-funds-trigger]"
+        : "[data-mono-product-overview-title]")
+      ?? root?.querySelector<HTMLElement>('.mono-nav__item[aria-current="page"]');
     if (root && target) {
       target.focus({ preventScroll: true });
       revealAccountsTarget(root, target);
     }
-  }, [section, active, product?.view.sheet, accountsWorkspace, assetWorkspace]);
+  }, [section, active, product?.view.sheet, accountsWorkspace, assetWorkspace, propsPresentation]);
 
   useLayoutEffect(() => {
     const request = avatarReturn.current;
@@ -1231,6 +1235,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
               : <ProductOverview {...overviewProduct!} appearance={appearance.balance ?? MONO_BALANCE_LEGACY}
                 blinkEnabled={eye.blinkEnabled} onOpenGroup={openAccountsWorkspace} />}
           </div>
+          {novexCompactHome && <NovexHomeHero className="mono-compact-home-art" />}
         </section> : fullScene && appearance.balance ? <section className="mono-hero">
           <div className="mono-hero__eyebrow"><span>ЛИЧНЫЙ СЧЁТ</span></div>
           <div className="mono-scene-domain">
@@ -1311,7 +1316,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
 
         {product && appearance.layout?.chartPosition === "top" && chart &&
           <div className="mono-scene-domain mono-scene-domain--chart mono-product-chart">{chart}</div>}
-        {product && compactHome && <button type="button"
+        {product && propsPresentation === "gold" && <button type="button"
           className={propsPresentation === "gold" ? "mono-gold-funds-entry" : "mono-compact-funds-entry"}
           data-mono-funds-trigger data-mono-gold-funds-trigger={propsPresentation === "gold" ? true : undefined}
           disabled={!active || !canChangeSection || Boolean(product.view.sheet) || product.view.commerceBusy}
