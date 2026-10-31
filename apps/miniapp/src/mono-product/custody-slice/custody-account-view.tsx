@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { Component, createRef, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import type { ProductAccount, ProductActionRoute, ProductHolding } from "@wallet/core";
 import { NovexActionRow, type NovexAction } from "../novex-layout-preview";
 import { selectAccountPlacementActions, type AccountsActionOrigin } from "../accounts-workspace/account-placement-actions";
@@ -170,8 +170,8 @@ function Holding({ account, titleId, holding, hidden, routes, expanded, onToggle
         const options = routes.filter(route => route.action === action);
         return <FocusRegion key={action} id={`${id}-${action}-choices`} className={styles.choices} label="Выбор способа операции"
           open={expanded && options.length > 1 && choice === action} revision={JSON.stringify(options.map(productRouteKey))}
-          fallbackId={titleId} canFocusLauncher={expanded && options.length > 0}
-          launcher={() => document.getElementById(`${id}-${action}-trigger`)}>
+          fallbackId={titleId} canFocusLauncher
+          launcher={() => document.getElementById(expanded && options.length > 0 ? `${id}-${action}-trigger` : `${id}-trigger`)}>
           {options.map(route => <RouteChoice key={productRouteKey(route)} route={route} onOpen={openRoute} />)}
         </FocusRegion>;
       })}
@@ -182,29 +182,51 @@ function Holding({ account, titleId, holding, hidden, routes, expanded, onToggle
   </li>;
 }
 
-/** Keep focus visible when controlled data closes or removes a disclosure. */
-function FocusRegion({ id, className, label, open, revision, fallbackId, canFocusLauncher, launcher, children }: {
+type FocusRegionProps = {
   id: string; className: string; label?: string; open: boolean; revision: string; fallbackId: string;
   canFocusLauncher: boolean; launcher(): HTMLElement | null; children: ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const next = useRef({ open, revision, canFocusLauncher, launcher, fallbackId });
-  next.current = { open, revision, canFocusLauncher, launcher, fallbackId };
-  useLayoutEffect(() => {
-    const region = ref.current;
-    return () => {
-      if (!region || !region.contains(region.ownerDocument.activeElement)) return;
-      const state = next.current;
-      // On unmount, the launcher may disappear with the region; use the heading.
-      const changing = state.open !== open || state.revision !== revision;
-      const candidate = changing && state.canFocusLauncher ? state.launcher() : null;
-      const usable = candidate?.isConnected && !candidate.matches(":disabled") &&
-        !candidate.closest("[hidden], [inert], [aria-hidden='true']");
-      (usable ? candidate : region.ownerDocument.getElementById(state.fallbackId))?.focus({ preventScroll: true });
-    };
-  }, [open, revision]);
-  return <div ref={ref} id={id} className={className} role={label ? "group" : undefined}
-    aria-label={label} hidden={!open}>{children}</div>;
+};
+
+/** Move focus before React hides the region or removes a focused route. */
+class FocusRegion extends Component<FocusRegionProps> {
+  private readonly region = createRef<HTMLDivElement>();
+
+  private restoreFocus(useLauncher: boolean) {
+    const region = this.region.current;
+    if (!region || !region.contains(region.ownerDocument.activeElement)) return;
+    const candidate = useLauncher && this.props.canFocusLauncher ? this.props.launcher() : null;
+    const usable = candidate?.isConnected && !candidate.matches(":disabled") &&
+      !candidate.closest("[hidden], [inert], [aria-hidden='true']");
+    (usable ? candidate : region.ownerDocument.getElementById(this.props.fallbackId))?.focus({ preventScroll: true });
+  }
+
+  getSnapshotBeforeUpdate(previous: FocusRegionProps) {
+    const active = this.region.current?.ownerDocument.activeElement as HTMLElement | null;
+    if (previous.open && !this.props.open) {
+      this.restoreFocus(true);
+    } else if (previous.open && previous.revision !== this.props.revision && active) {
+      const keys = JSON.parse(this.props.revision) as string[];
+      const routeKey = active.dataset.productAccountRouteKey;
+      const action = active.dataset.productHoldingAction;
+      if ((routeKey && !keys.includes(routeKey)) || (action && !keys.some(key => key.startsWith(`${action}:`)))) {
+        this.restoreFocus(true);
+      }
+    }
+    return null;
+  }
+
+  componentDidUpdate() {}
+
+  componentWillUnmount() {
+    // The launcher may be removed together with this region.
+    this.restoreFocus(false);
+  }
+
+  render() {
+    const { id, className, label, open, children } = this.props;
+    return <div ref={this.region} id={id} className={className} role={label ? "group" : undefined}
+      aria-label={label} hidden={!open}>{children}</div>;
+  }
 }
 
 function holdingRestrictions(account: ProductAccount, holding: ProductHolding, routes: readonly ProductActionRoute[], hidden: boolean): string[] {
