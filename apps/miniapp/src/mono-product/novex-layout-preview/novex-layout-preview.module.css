@@ -1,6 +1,6 @@
 .actionRow {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(44px, auto));
   gap: 4px;
   min-width: 0;
 }
@@ -19,9 +19,12 @@
   border-radius: 10px;
   background: var(--mono-surface, #191a22);
   color: var(--mono-text, #f4f3f8);
-  font: 500 12px/1.25 var(--mono-type-body-family, var(--mono-font-ui, sans-serif));
   text-align: center;
   cursor: pointer;
+}
+
+.actionRow .action {
+  font: 500 12px/1.25 var(--mono-type-body-family, var(--mono-font-ui, sans-serif));
 }
 
 .action:focus-visible {
