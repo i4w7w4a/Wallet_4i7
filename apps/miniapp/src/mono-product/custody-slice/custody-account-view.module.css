@@ -47,3 +47,4 @@
 @media (max-width: 340px) { .header { gap: 10px; } .summary { padding: 18px 16px; } .holdingButton { gap: 7px; } }
 @media (prefers-reduced-motion: reduce) { .view *, .view *::before, .view *::after { scroll-behavior: auto; } }
 .accountIcon { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.choices[hidden] { display: none; }

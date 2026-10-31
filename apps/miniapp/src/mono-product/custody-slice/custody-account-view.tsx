@@ -83,12 +83,17 @@ export function CustodyAccountView({ account, holdings, estimateMinor, current, 
     </section>
 
     <div className={styles.actionArea}>
-      <NovexActionRow items={actions.map(action => ({ action, label: labels[action], disabled: actionRoutes(action).length === 0,
-        accountActionFocus: true, onClick: () => chooseAction(action) }))} />
-      {choice && actionRoutes(choice).length > 1 && <div className={styles.choices} role="group" aria-label={`Выберите способ: ${labels[choice]}`}>
+      <NovexActionRow items={actions.map(action => {
+        const multiple = actionRoutes(action).length > 1;
+        return { action, label: labels[action], disabled: actionRoutes(action).length === 0,
+          accountActionFocus: true, expanded: multiple ? choice === action : undefined,
+          controls: multiple ? `${titleId}-${action}-choices` : undefined, onClick: () => chooseAction(action) };
+      })} />
+      {actions.map(action => actionRoutes(action).length > 1 && <div key={action} id={`${titleId}-${action}-choices`}
+        className={styles.choices} role="group" aria-label={`Выберите способ: ${labels[action]}`} hidden={choice !== action}>
         <p>Выберите актив и сеть</p>
-        {actionRoutes(choice).map(route => <RouteChoice key={productRouteKey(route)} route={route} onOpen={openRoute} />)}
-      </div>}
+        {actionRoutes(action).map(route => <RouteChoice key={productRouteKey(route)} route={route} onOpen={openRoute} />)}
+      </div>)}
       {unavailable && <p className={styles.notice} role="status">Эта операция сейчас недоступна.</p>}
       {permittedRoutes.length === 0 && <p className={styles.notice}>{accountOperationsUnavailable(account)}</p>}
     </div>
