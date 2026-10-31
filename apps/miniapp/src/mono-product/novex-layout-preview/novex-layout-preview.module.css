@@ -1,0 +1,61 @@
+.actionRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+}
+
+.action {
+  box-sizing: border-box;
+  display: flex;
+  min-width: 44px;
+  min-height: 68px;
+  padding: 8px 2px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--mono-rule, #393a46);
+  border-radius: 10px;
+  background: var(--mono-surface, #191a22);
+  color: var(--mono-text, #f4f3f8);
+  font: 500 12px/1.25 var(--mono-type-body-family, var(--mono-font-ui, sans-serif));
+  text-align: center;
+  cursor: pointer;
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--mono-text, #f4f3f8);
+  outline-offset: -4px;
+}
+
+.action:disabled {
+  color: var(--mono-text-muted, #858692);
+  cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .action:not(:disabled):hover {
+    background: var(--mono-surface-high, #252630);
+  }
+}
+
+.action:not(:disabled):active {
+  background: var(--mono-surface-high, #252630);
+}
+
+.actionIcon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.actionLabel {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
