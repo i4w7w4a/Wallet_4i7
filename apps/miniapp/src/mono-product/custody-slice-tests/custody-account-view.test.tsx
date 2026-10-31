@@ -85,6 +85,37 @@ it("connects a holding's multi-route disclosure to its actual choices region", (
   expect(choices.id).not.toBe("");
 });
 
+it("returns focus and clears an open account choice when route updates leave a single option", () => {
+  const input = props();
+  const { rerender } = render(<CustodyAccountView {...input} />);
+  const launcher = screen.getByRole("button", { name: "Получить" });
+  fireEvent.click(launcher);
+  const choice = screen.getByRole("button", {
+    name: "Подготовить получение USDC · Основной · Ethereum · Внешнее получение",
+  });
+  choice.focus();
+  expect(choice).toHaveFocus();
+  const onlyEthereum = receiveRoutes.filter(route => route.assetId === "usdc" && route.networkId === "ethereum");
+  rerender(<CustodyAccountView {...input} permittedRoutes={onlyEthereum} />);
+  expect(launcher).toHaveFocus();
+  expect(launcher).not.toHaveAttribute("aria-expanded");
+  expect(launcher).not.toHaveAttribute("aria-controls");
+  rerender(<CustodyAccountView {...input} />);
+  expect(launcher).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("button", {
+    name: "Подготовить получение USDC · Основной · Ethereum · Внешнее получение",
+  })).not.toBeInTheDocument();
+});
+
+it("explains an unsupported holding even when the account has routes for another network", () => {
+  const holding = holdings.find(item => item.id === "demo-usdc-eth")!;
+  const bitcoinRoutes = receiveRoutes.filter(route => route.assetId === "btc");
+  expect(bitcoinRoutes.length).toBeGreaterThan(0);
+  render(<CustodyAccountView {...props({ holdings: [holding], permittedRoutes: bitcoinRoutes })} />);
+  const launcher = screen.getByRole("button", { name: /Сведения: USD Coin · USDC · Ethereum/ });
+  expect(launcher).toHaveAccessibleDescription(/Операции сейчас недоступны/);
+});
+
 it("does not turn USD into an unknown available quantity and masks values in privacy mode", () => {
   const original = holdings.find(item => item.id === "demo-usdc-eth")!;
   const holding: ProductHolding = { ...original, quantity: "98.765", availableQuantity: undefined, fiatMinor: 7654321 };
