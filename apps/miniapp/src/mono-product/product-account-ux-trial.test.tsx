@@ -84,6 +84,22 @@ const ethereumSend = {
   action: "send", accountId: "demo-custody", assetId: "usdc", networkId: "ethereum",
 } as const;
 
+it("returns the chosen account-level Ethereum receive to its own launcher", async () => {
+  const view = await home();
+  inspectMain();
+  const launcher = within(accountWorkspace()).getByRole("button", { name: "Получить" });
+  fireEvent.click(launcher);
+  fireEvent.click(within(accountWorkspace()).getByRole("button", {
+    name: "Подготовить получение USDC · Основной · Ethereum · Внешнее получение",
+  }));
+  expect(view.current().view.sheet).toMatchObject({ kind: "intent", action: "receive", route: {
+    accountId: "demo-custody", assetId: "usdc", networkId: "ethereum", receiveMode: "external-address",
+  } });
+  const dialog = await screen.findByRole("dialog", { name: "Получить" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Закрыть" }));
+  await waitFor(() => expect(within(accountWorkspace()).getByRole("button", { name: "Получить" })).toHaveFocus());
+});
+
 it.each(["close", "Back"])("returns direct Ethereum Send %s to the same visible placement action without committing disclosure", async exit => {
   const view = await home({ hidden: true });
   inspectMain();

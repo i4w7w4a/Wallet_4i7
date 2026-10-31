@@ -740,7 +740,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
       const validHolding = Boolean(holding && sameHoldingIdentity(currentHolding, holding));
       let requested = focusTarget;
       if (holding && !validHolding) requested = { kind: "title" };
-      else if (requested.kind === "holding-action" || requested.kind === "account-action") {
+      else if (requested.kind === "holding-action" || requested.kind === "account-action" || requested.kind === "account-quick-action") {
         const origin = requested;
         const matchingRoutes = current.snapshot && current.accountsWorkspace?.accountId
           ? resolveActionRoutes(current.snapshot, { kind: "account", accountId: current.accountsWorkspace.accountId }, origin.action)
@@ -761,6 +761,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         element = actionTarget(requested.action);
         if (!element && (requested.action === "buy" || requested.action === "swap")) element = actionTarget("more");
       } else if (requested.kind === "account-action") element = byAttribute("data-product-account-entry", requested.entry);
+      else if (requested.kind === "account-quick-action") element = byAttribute("data-product-account-quick-action", requested.action);
       else if (requested.kind !== "title") {
         const attribute = requested.kind === "account" ? "data-product-account-id"
           : requested.kind === "holding-detail" ? "data-product-holding-detail-id" : "data-product-holding-id";

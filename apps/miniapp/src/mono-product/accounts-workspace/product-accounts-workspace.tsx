@@ -15,6 +15,7 @@ import { accountGroupLabels } from "../home-pins";
 import { selectCatalogueAccounts, UNAVAILABLE_ACCOUNT_SLOTS } from "./account-catalogue";
 import { AccountContextIcon } from "../product-account-chooser";
 import { ProductPendingActivity } from "../product-pending-activity";
+import { CustodyAccountView, type CustodyAccountViewProps } from "../custody-slice";
 import styles from "./product-accounts-workspace.module.css";
 
 export type ProductAccountsWorkspaceProps = {
@@ -49,7 +50,9 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKin
   const contextLabel = context.kind === "all" ? "Все счета"
     : snapshot.accounts.find(account => account.id === context.accountId)?.label ?? "Счёт недоступен";
 
-  return <section className={styles.workspace} aria-labelledby={titleId}
+  const custodyDetail = selected?.account.id === "demo-custody";
+  return <section className={styles.workspace} aria-labelledby={custodyDetail ? undefined : titleId}
+    aria-label={custodyDetail ? selected.account.label : undefined}
     data-mono-product-accounts-workspace={selectedAccountId ?? "list"}>
     <button type="button" className={styles.back} onClick={onBack}
       aria-label={detail ? "Назад к счетам" : "Назад в кошелёк"}>
@@ -90,7 +93,12 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKin
     </> : !selected ? <div className={styles.missing}>
       <h1 id={titleId} className={styles.title} tabIndex={-1} data-mono-product-accounts-title>Счёт недоступен</h1>
       <p className={styles.intro}>Этого счёта больше нет в текущем списке. Вернитесь к счетам.</p>
-    </div> : <div key={selected.account.id}>
+    </div> : custodyDetail ? <CustodyAccountAdapter key={selected.account.id}
+      account={selected.account} holdings={selected.holdings} estimateMinor={selected.estimateMinor} current={selected.current}
+      contextLabel={contextLabel} balanceHidden={balanceHidden} permittedRoutes={permittedRoutes}
+      useAccountUnavailableReason={useAccountUnavailableReason} expandedHoldingId={expandedHoldingId}
+      onExpandedHoldingChange={onExpandedHoldingChange} onUseAccount={onUseAccount} onOpenAction={onOpenAction}
+      onOpenHolding={onOpenHolding} pendingActivity={pendingActivity ? <ProductPendingActivity {...pendingActivity} /> : undefined} /> : <div key={selected.account.id}>
       <header className={styles.identity}>
         <AccountKindIcon kind={selected.account.kind} className={styles.detailIcon} />
         <div><h1 id={titleId} className={styles.title} tabIndex={-1} data-mono-product-accounts-title>{selected.account.label}</h1>
@@ -117,6 +125,19 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKin
         onExpandedHoldingChange={onExpandedHoldingChange} onOpenAction={onOpenAction} onOpenHolding={onOpenHolding} />
     </div>}
   </section>;
+}
+
+function CustodyAccountAdapter({ expandedHoldingId, onExpandedHoldingChange, ...props }:
+  Omit<CustodyAccountViewProps, "expandedHoldingId" | "onExpandedHoldingChange"> &
+  Pick<ProductAccountsWorkspaceProps, "expandedHoldingId" | "onExpandedHoldingChange">) {
+  const [localExpandedId, setLocalExpandedId] = useState<string | null>(null);
+  const candidateId = expandedHoldingId === undefined ? localExpandedId : expandedHoldingId;
+  const expandedId = props.holdings.some(holding => holding.id === candidateId) ? candidateId : null;
+  if (localExpandedId !== null && !props.holdings.some(holding => holding.id === localExpandedId)) setLocalExpandedId(null);
+  return <CustodyAccountView {...props} expandedHoldingId={expandedId} onExpandedHoldingChange={id => {
+    if (expandedHoldingId === undefined) setLocalExpandedId(id);
+    onExpandedHoldingChange?.(id);
+  }} />;
 }
 
 function AccountPlacements({ account, holdings, routes, hidden, expandedHoldingId, onExpandedHoldingChange,
