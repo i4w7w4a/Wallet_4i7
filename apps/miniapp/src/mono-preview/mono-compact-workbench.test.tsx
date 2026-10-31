@@ -57,7 +57,8 @@ it("uses compact Home/History in all seven editable documents without replacing 
   const { container } = await start();
   for (const record of source.slots) {
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: `Пресет ${record.slot}: Пресет ${record.slot}` })); });
-    expect(screen.getByRole("button", { name: "Мои средства" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Мои средства" })).toBeNull();
+    expect(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" })).toBeVisible();
     expect(container.querySelector("[data-mono-preview]")).not.toHaveAttribute("data-mono-presentation");
     expect(container.querySelector(".mono-promo-frame, .mono-product-funds__list")).toBeNull();
     fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "История" }));
@@ -83,8 +84,8 @@ it("disables removed chart targets, keeps real balance/assets controls and retai
   expect(screen.queryByLabelText("Показывать график")).toBeNull();
   expect(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)).toBe(before);
   tool("Активы");
-  expect(screen.getByText(/Мои средства.*Активы.*настройки списка/i)).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "Мои средства" }));
+  expect(screen.getByText(/Откройте «Активы» в нижнем меню.*настройки списка/i)).toBeVisible();
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" }));
   fireEvent.change(screen.getByLabelText("Оформление активов"), { target: { value: "tiles" } });
   expect(document.querySelector(".mono-product-funds")).toHaveAttribute("data-variant", "tiles");
   fireEvent.click(screen.getByRole("button", { name: "Отменить пробу" }));

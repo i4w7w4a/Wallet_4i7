@@ -1107,7 +1107,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           {activeTool === "navigation" && <MonoNavigationControls value={draftAppearance[preset].navigation}
             onChange={value => updateAppearance("navigation", value)} />}
           {activeTool === "assets" && <>
-            <p className="mono-workbench__note">Откройте «Мои средства» → «Активы», чтобы увидеть настройки списка.</p>
+            <p className="mono-workbench__note">Откройте «Активы» в нижнем меню, чтобы увидеть настройки списка.</p>
             <MonoAssetListControls value={draftAppearance[preset].assets} onChange={value => updateAppearance("assets", value)} />
           </>}
           {activeTool === "chart" && <fieldset disabled style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
