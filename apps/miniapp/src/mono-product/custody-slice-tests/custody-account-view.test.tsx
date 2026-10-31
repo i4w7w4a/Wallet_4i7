@@ -20,10 +20,10 @@ function props(patch: Partial<CustodyAccountViewProps> = {}): CustodyAccountView
 it("uses the chosen route identity after reordering and reports a rejected callback", () => {
   const onOpenAction = vi.fn<CustodyAccountViewProps["onOpenAction"]>(() => false);
   render(<CustodyAccountView {...props({ permittedRoutes: [...receiveRoutes].reverse(), onOpenAction })} />);
-  expect(screen.getByRole("button", { name: "Отправить", exact: true })).toBeDisabled();
-  fireEvent.click(screen.getByRole("button", { name: "Отправить", exact: true }));
+  expect(screen.getByRole("button", { name: "Отправить" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
   expect(onOpenAction).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Получить", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Получить" }));
   expect(onOpenAction).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", {
     name: "Подготовить получение USDC · Основной · Ethereum · Внешнее получение",

@@ -19,10 +19,10 @@ it("offers the four custody actions and opens the chosen USDC Ethereum receive r
 
   expect(screen.getByRole("heading", { name: /Основной/ })).toBeVisible();
   for (const name of ["Получить", "Отправить", "Купить", "Обменять"]) {
-    expect(screen.getByRole("button", { name, exact: true })).toBeVisible();
+    expect(screen.getByRole("button", { name })).toBeVisible();
   }
 
-  fireEvent.click(screen.getByRole("button", { name: "Получить", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Получить" }));
   expect(onOpenAction).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", {
     name: "Подготовить получение USDC · Основной · Ethereum · Внешнее получение",
