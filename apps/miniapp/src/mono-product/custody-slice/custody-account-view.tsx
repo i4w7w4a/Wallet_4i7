@@ -187,13 +187,13 @@ type FocusRegionProps = {
   canFocusLauncher: boolean; launcher(): HTMLElement | null; children: ReactNode;
 };
 
-/** Move focus before React hides the region or removes a focused route. */
+/** Track focus before a disclosure changes and restore it after React's DOM update. */
 class FocusRegion extends Component<FocusRegionProps> {
   private readonly region = createRef<HTMLDivElement>();
 
   private restoreFocus(useLauncher: boolean) {
     const region = this.region.current;
-    if (!region || !region.contains(region.ownerDocument.activeElement)) return;
+    if (!region) return;
     const candidate = useLauncher && this.props.canFocusLauncher ? this.props.launcher() : null;
     const usable = candidate?.isConnected && !candidate.matches(":disabled") &&
       !candidate.closest("[hidden], [inert], [aria-hidden='true']");
@@ -201,25 +201,34 @@ class FocusRegion extends Component<FocusRegionProps> {
   }
 
   getSnapshotBeforeUpdate(previous: FocusRegionProps) {
-    const active = this.region.current?.ownerDocument.activeElement as HTMLElement | null;
-    if (previous.open && !this.props.open) {
-      this.restoreFocus(true);
-    } else if (previous.open && previous.revision !== this.props.revision && active) {
+    const region = this.region.current;
+    const active = region?.ownerDocument.activeElement as HTMLElement | null;
+    if (!previous.open || !active || !region?.contains(active)) return null;
+    if (!this.props.open) return active;
+    if (previous.revision !== this.props.revision) {
       const keys = JSON.parse(this.props.revision) as string[];
       const routeKey = active.dataset.productAccountRouteKey;
       const action = active.dataset.productHoldingAction;
       if ((routeKey && !keys.includes(routeKey)) || (action && !keys.some(key => key.startsWith(`${action}:`)))) {
-        this.restoreFocus(true);
+        return active;
       }
     }
     return null;
   }
 
-  componentDidUpdate() {}
+  componentDidUpdate(_previous: FocusRegionProps, _state: unknown, displaced: HTMLElement | null) {
+    if (!displaced) return;
+    const doc = displaced.ownerDocument;
+    // Do not override another component that deliberately moved focus during the update.
+    if (doc.activeElement === displaced || doc.activeElement === doc.body || doc.activeElement === doc.documentElement) {
+      this.restoreFocus(true);
+    }
+  }
 
   componentWillUnmount() {
     // The launcher may be removed together with this region.
-    this.restoreFocus(false);
+    const region = this.region.current;
+    if (region?.contains(region.ownerDocument.activeElement)) this.restoreFocus(false);
   }
 
   render() {
