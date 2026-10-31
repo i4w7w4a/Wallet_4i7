@@ -59,3 +59,35 @@
   max-width: 100%;
   overflow-wrap: anywhere;
 }
+
+.homeHero {
+  min-width: 0;
+}
+
+.homeHeroArt {
+  position: relative;
+  height: clamp(88px, 27vw, 124px);
+  overflow: hidden;
+  border: 1px solid var(--mono-rule, #393a46);
+  border-radius: 16px;
+  background: linear-gradient(120deg, var(--mono-surface, #191a22), var(--mono-surface-high, #252630));
+}
+
+.homeHeroPlane {
+  position: absolute;
+  inset: -45% 12% -60% 38%;
+  transform: rotate(-24deg);
+  border: 1px solid color-mix(in srgb, var(--mono-text, #f4f3f8) 14%, transparent);
+  border-radius: 38%;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--mono-text, #f4f3f8) 10%, transparent), transparent 65%);
+}
+
+.homeHeroOrbit {
+  position: absolute;
+  width: 45%;
+  aspect-ratio: 1;
+  top: -85%;
+  right: 8%;
+  border: 1px solid color-mix(in srgb, var(--mono-text, #f4f3f8) 12%, transparent);
+  border-radius: 50%;
+}
