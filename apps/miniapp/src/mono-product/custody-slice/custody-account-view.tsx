@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type JSX, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import type { ProductAccount, ProductActionRoute, ProductHolding } from "@wallet/core";
 import { NovexActionRow, type NovexAction } from "../novex-layout-preview";
 import { selectAccountPlacementActions, type AccountsActionOrigin } from "../accounts-workspace/account-placement-actions";
@@ -45,11 +45,15 @@ export function CustodyAccountView({ account, holdings, estimateMinor, current, 
   permittedRoutes, useAccountUnavailableReason, expandedHoldingId, onExpandedHoldingChange, onUseAccount,
   onOpenAction, onOpenHolding, pendingActivity }: CustodyAccountViewProps): JSX.Element {
   const titleId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
   const [choice, setChoice] = useState<NovexAction | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   const placements = selectAccountPlacementActions(holdings, permittedRoutes);
   const reason = useAccountUnavailableReason?.trim();
   const actionRoutes = (action: NovexAction) => permittedRoutes.filter(route => route.action === action);
+  useLayoutEffect(() => {
+    if (choice && permittedRoutes.filter(route => route.action === choice).length <= 1) setChoice(null);
+  }, [choice, permittedRoutes]);
   const openRoute = (route: ProductActionRoute) => {
     if (route.action === "withdraw") return;
     const origin: AccountsActionOrigin = { kind: "account-quick-action", action: route.action, routeKey: productRouteKey(route) };
@@ -62,12 +66,12 @@ export function CustodyAccountView({ account, holdings, estimateMinor, current, 
     else if (routes.length > 1) setChoice(previous => previous === action ? null : action);
   };
 
-  return <div className={styles.view}>
+  return <div ref={rootRef} className={styles.view}>
     <header className={styles.header}>
       <div className={styles.accountMark}><AccountKindIcon kind={account.kind} className={styles.accountIcon} /></div>
       <div className={styles.headingCopy}>
         <p className={styles.eyebrow}>Счёт</p>
-        <h1 id={titleId} tabIndex={-1} data-mono-product-accounts-title>{account.label}</h1>
+        <h1 id={titleId} tabIndex={-1} data-mono-product-accounts-title>{account.label} · Демо</h1>
         <p className={styles.meta}>{accountKindLabels[account.kind]} · {accountStatusLabels[account.status]}</p>
       </div>
     </header>
@@ -89,11 +93,17 @@ export function CustodyAccountView({ account, holdings, estimateMinor, current, 
           accountActionFocus: true, expanded: multiple ? choice === action : undefined,
           controls: multiple ? `${titleId}-${action}-choices` : undefined, onClick: () => chooseAction(action) };
       })} />
-      {actions.map(action => actionRoutes(action).length > 1 && <div key={action} id={`${titleId}-${action}-choices`}
-        className={styles.choices} role="group" aria-label={`Выберите способ: ${labels[action]}`} hidden={choice !== action}>
-        <p>Выберите актив и сеть</p>
-        {actionRoutes(action).map(route => <RouteChoice key={productRouteKey(route)} route={route} onOpen={openRoute} />)}
-      </div>)}
+      {actions.map(action => {
+        const options = actionRoutes(action);
+        return <FocusRegion key={action} id={`${titleId}-${action}-choices`} className={styles.choices}
+          label={`Выберите способ: ${labels[action]}`} open={options.length > 1 && choice === action}
+          revision={JSON.stringify(options.map(productRouteKey))} fallbackId={titleId} canFocusLauncher={options.length > 0}
+          launcher={() => [...(rootRef.current?.querySelectorAll<HTMLElement>("[data-product-account-quick-action]") ?? [])]
+            .find(element => element.dataset.productAccountQuickAction === action) ?? null}>
+          <p>Выберите актив и сеть</p>
+          {options.map(route => <RouteChoice key={productRouteKey(route)} route={route} onOpen={openRoute} />)}
+        </FocusRegion>;
+      })}
       {unavailable && <p className={styles.notice} role="status">Эта операция сейчас недоступна.</p>}
       {permittedRoutes.length === 0 && <p className={styles.notice}>{accountOperationsUnavailable(account)}</p>}
     </div>
@@ -102,7 +112,7 @@ export function CustodyAccountView({ account, holdings, estimateMinor, current, 
     <section className={styles.assets} aria-labelledby={`${titleId}-assets`}>
       <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>На этом счёте</p><h2 id={`${titleId}-assets`}>Активы</h2></div><span>{holdings.length}</span></div>
       {holdings.length === 0 ? <p className={styles.notice}>Размещений пока нет.</p> : <ul className={styles.holdings}>
-        {holdings.map(holding => <Holding key={holding.id} holding={holding} hidden={balanceHidden}
+        {holdings.map(holding => <Holding key={holding.id} account={account} titleId={titleId} holding={holding} hidden={balanceHidden}
           routes={placements.byHoldingId.get(holding.id) ?? []} expanded={expandedHoldingId === holding.id}
           onToggle={() => onExpandedHoldingChange(expandedHoldingId === holding.id ? null : holding.id)}
           onOpenAction={onOpenAction} onOpenHolding={onOpenHolding} />)}
@@ -111,23 +121,27 @@ export function CustodyAccountView({ account, holdings, estimateMinor, current, 
   </div>;
 }
 
-function Holding({ holding, hidden, routes, expanded, onToggle, onOpenAction, onOpenHolding }: {
-  holding: ProductHolding; hidden: boolean; routes: readonly ProductActionRoute[]; expanded: boolean; onToggle(): void;
+function Holding({ account, titleId, holding, hidden, routes, expanded, onToggle, onOpenAction, onOpenHolding }: {
+  account: ProductAccount; titleId: string; holding: ProductHolding; hidden: boolean; routes: readonly ProductActionRoute[]; expanded: boolean; onToggle(): void;
   onOpenAction: CustodyAccountViewProps["onOpenAction"]; onOpenHolding: CustodyAccountViewProps["onOpenHolding"];
 }) {
   const id = useId();
   const [choice, setChoice] = useState<NovexAction | null>(null);
   const [unavailable, setUnavailable] = useState(false);
   const network = holding.networkLabel || "Сеть неизвестна";
+  const restrictions = holdingRestrictions(account, holding, routes, hidden);
+  useLayoutEffect(() => {
+    if (choice && routes.filter(route => route.action === choice).length <= 1) setChoice(null);
+  }, [choice, routes]);
   const openRoute = (route: ProductActionRoute) => {
     if (route.action === "withdraw") return;
     const origin: AccountsActionOrigin = { kind: "holding-action", holdingId: holding.id, action: route.action, routeKey: productRouteKey(route) };
     setUnavailable(onOpenAction(route, origin) === false);
   };
   return <li className={styles.holding}>
-    <button type="button" className={styles.holdingButton} data-product-holding-id={holding.id}
+    <button type="button" id={`${id}-trigger`} className={styles.holdingButton} data-product-holding-id={holding.id}
       aria-label={`${routes.length > 0 ? "Действия" : "Сведения"}: ${holding.name} · ${holding.symbol} · ${network}`} aria-expanded={expanded} aria-controls={`${id}-content`}
-      aria-describedby={`${id}-values`} onClick={() => { setChoice(null); setUnavailable(false); onToggle(); }}>
+      aria-describedby={`${id}-values${restrictions.length ? ` ${id}-restrictions` : ""}`} onClick={() => { setChoice(null); setUnavailable(false); onToggle(); }}>
       <CurrencyLogo assetId={holding.assetId} className={styles.currencyIcon} />
       <span className={styles.holdingName}><strong>{holding.name}</strong><span>{holding.symbol} · {network}</span></span>
       <span id={`${id}-values`} className={styles.values}>
@@ -136,29 +150,78 @@ function Holding({ holding, hidden, routes, expanded, onToggle, onOpenAction, on
       </span>
       <span className={styles.chevron} aria-hidden="true">{expanded ? "⌃" : "⌄"}</span>
     </button>
-    <div id={`${id}-content`} hidden={!expanded} className={styles.holdingContent}>
+    {restrictions.length > 0 && <p id={`${id}-restrictions`} className={styles.notice}>{restrictions.join(" ")}</p>}
+    <FocusRegion id={`${id}-content`} className={styles.holdingContent} open={expanded} revision={JSON.stringify(routes.map(productRouteKey))}
+      fallbackId={titleId} canFocusLauncher launcher={() => document.getElementById(`${id}-trigger`)}>
       <div className={styles.available}><span>Доступно</span><span role="group" aria-label={`Доступное количество ${holding.symbol} · ${network}`}><bdi>{holdingQuantityLabel(holding.availableQuantity, holding.symbol, hidden)}</bdi></span></div>
       {routes.length > 0 && <div className={styles.holdingActions} role="group" aria-label={`Операции: ${holding.symbol} · ${network}`}>
         {actions.map(action => {
           const options = routes.filter(route => route.action === action);
           if (!options.length) return null;
-          return <button key={action} type="button" data-product-holding-action-id={holding.id} data-product-holding-action={action}
+          return <button key={action} id={`${id}-${action}-trigger`} type="button" data-product-holding-action-id={holding.id} data-product-holding-action={action}
             data-product-account-route-key={options.length === 1 ? productRouteKey(options[0]!) : undefined}
             aria-expanded={options.length > 1 ? choice === action : undefined}
+            aria-controls={options.length > 1 ? `${id}-${action}-choices` : undefined}
             onClick={() => { setUnavailable(false); if (options.length === 1) { setChoice(null); openRoute(options[0]!); }
               else setChoice(previous => previous === action ? null : action); }}>{labels[action]}</button>;
         })}
       </div>}
-      {choice && routes.filter(route => route.action === choice).length > 1 && <div className={styles.choices} role="group" aria-label="Выбор способа операции">
-        {routes.filter(route => route.action === choice).map(route => <RouteChoice key={productRouteKey(route)} route={route} onOpen={openRoute} />)}
-      </div>}
+      {actions.map(action => {
+        const options = routes.filter(route => route.action === action);
+        return <FocusRegion key={action} id={`${id}-${action}-choices`} className={styles.choices} label="Выбор способа операции"
+          open={expanded && options.length > 1 && choice === action} revision={JSON.stringify(options.map(productRouteKey))}
+          fallbackId={titleId} canFocusLauncher={expanded && options.length > 0}
+          launcher={() => document.getElementById(`${id}-${action}-trigger`)}>
+          {options.map(route => <RouteChoice key={productRouteKey(route)} route={route} onOpen={openRoute} />)}
+        </FocusRegion>;
+      })}
       {unavailable && <p className={styles.notice} role="status">Эта операция сейчас недоступна.</p>}
       <button type="button" className={styles.details} data-product-holding-detail-id={holding.id}
         aria-label={`Подробнее: ${holding.name} · ${holding.symbol} · ${network}`} onClick={() => onOpenHolding(holding.id)}>Подробнее <span aria-hidden="true">→</span></button>
-    </div>
+    </FocusRegion>
   </li>;
 }
 
+/** Keep focus visible when controlled data closes or removes a disclosure. */
+function FocusRegion({ id, className, label, open, revision, fallbackId, canFocusLauncher, launcher, children }: {
+  id: string; className: string; label?: string; open: boolean; revision: string; fallbackId: string;
+  canFocusLauncher: boolean; launcher(): HTMLElement | null; children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const next = useRef({ open, revision, canFocusLauncher, launcher, fallbackId });
+  next.current = { open, revision, canFocusLauncher, launcher, fallbackId };
+  useLayoutEffect(() => {
+    const region = ref.current;
+    return () => {
+      if (!region || !region.contains(region.ownerDocument.activeElement)) return;
+      const state = next.current;
+      // On unmount, the launcher may disappear with the region; use the heading.
+      const changing = state.open !== open || state.revision !== revision;
+      const candidate = changing && state.canFocusLauncher ? state.launcher() : null;
+      const usable = candidate?.isConnected && !candidate.matches(":disabled") &&
+        !candidate.closest("[hidden], [inert], [aria-hidden='true']");
+      (usable ? candidate : region.ownerDocument.getElementById(state.fallbackId))?.focus({ preventScroll: true });
+    };
+  }, [open, revision]);
+  return <div ref={ref} id={id} className={className} role={label ? "group" : undefined}
+    aria-label={label} hidden={!open}>{children}</div>;
+}
+
+function holdingRestrictions(account: ProductAccount, holding: ProductHolding, routes: readonly ProductActionRoute[], hidden: boolean): string[] {
+  if (account.status !== "active") return [accountOperationsUnavailable(account)];
+  const reasons: string[] = [];
+  if (routes.length === 0) reasons.push("Операции сейчас недоступны.");
+  else {
+    if (!routes.some(route => route.action === "send")) reasons.push("Отправка недоступна.");
+    const receive = routes.filter(route => route.action === "receive");
+    if (receive.length === 0) reasons.push("Получение недоступно.");
+    else if (receive.every(route => route.action === "receive" && route.receiveMode === "internal-transfer")) reasons.push("Получение между счетами.");
+  }
+  if (!hidden && holding.availableQuantity !== undefined && /^0+(?:\.0+)?$/.test(holding.availableQuantity)) {
+    reasons.push("Доступных средств пока нет.");
+  }
+  return reasons;
+}
 function RouteChoice({ route, onOpen }: { route: ProductActionRoute; onOpen(route: ProductActionRoute): void }) {
   if (route.action === "withdraw") return null;
   const mode = route.action === "receive" ? route.receiveMode === "internal-transfer" ? "Перевод между счетами" : "Внешнее получение" : null;
