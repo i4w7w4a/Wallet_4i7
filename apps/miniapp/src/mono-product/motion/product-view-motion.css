@@ -4,6 +4,21 @@
   --mono-product-motion-ease: cubic-bezier(.2,0,0,1);
 }
 
+/* One shared, finite card response: the host may tune these tokens, never its hit target. */
+@media (prefers-reduced-motion: no-preference) {
+  .mono-page[data-mono-motion="ready"] [data-r1-wallet-kind]:enabled:active {
+    box-shadow: inset 0 0 0 999px rgb(255 255 255 / var(--motion-card-press, .05));
+  }
+  .mono-page[data-mono-motion="ready"] [data-r1-wallet-kind]:enabled:active::after {
+    position: absolute; inset: 0; border: 1px solid transparent; border-radius: inherit; pointer-events: none; content: "";
+    opacity: var(--motion-card-edge-opacity, 1);
+    background: linear-gradient(110deg, transparent 20%, rgb(233 222 255 / .65) 48%, transparent 76%) 100% 0 / 220% 100% border-box;
+    mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0); mask-composite: exclude;
+    animation: mono-wallet-edge-pass 280ms ease-out both;
+  }
+}
+@keyframes mono-wallet-edge-pass { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
 /* Product view entry owns the finite transition; mounted preview choreography must not replay. */
 .mono-page[data-mono-product="true"] .mono-scene[data-product-view-motion] :is(
   .mono-logo__icon-primary, .mono-logo__icon-depth, .mono-logo__icon-gradient, .mono-logo__wordmark,
