@@ -270,8 +270,9 @@ it.each(["Кастодиальный", "Депозитарный"])("account pen
 });
 
 it("account pending does not require an active account, holdings or send capability", async () => {
-  const account = MULTI_ACCOUNT_DEMO.accounts.find(candidate => candidate.id === "demo-inactive")!;
-  const snapshot = { ...MULTI_ACCOUNT_DEMO, holdings: MULTI_ACCOUNT_DEMO.holdings.filter(holding => holding.accountId !== account.id) };
+  const fixture: ProductSnapshot = MULTI_ACCOUNT_DEMO;
+  const account = fixture.accounts.find(candidate => candidate.id === "demo-inactive")!;
+  const snapshot = { ...fixture, holdings: fixture.holdings.filter(holding => holding.accountId !== account.id) };
   expect(account.status).toBe("inactive");
   expect(account.capabilities.some(capability => capability.action === "send")).toBe(false);
   expect(snapshot.holdings.some(holding => holding.accountId === account.id)).toBe(false);
