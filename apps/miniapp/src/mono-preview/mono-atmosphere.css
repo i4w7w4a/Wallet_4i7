@@ -120,9 +120,17 @@
   --mono-pointer-shift-y: 0px;
 }
 .mono-page[data-mono-motion="static"] > .mono-atmosphere :is(
-  .mono-atmosphere__focus, .mono-atmosphere__ribbon, .mono-atmosphere__grid,
+  .mono-atmosphere__focus, .mono-atmosphere__grid,
   .mono-atmosphere__iridescence, .mono-atmosphere__node, .mono-atmosphere__ripple
 ) { transition: none; animation: none; }
+.mono-page[data-mono-motion="static"] > .mono-atmosphere .mono-atmosphere__ribbon {
+  animation-play-state: paused;
+  transform: translate3d(-50%, -50%, 0) rotate(-13deg) !important;
+  opacity: 0.42 !important;
+  transition: none;
+}
+.mono-page[data-mono-motion="static"][data-mono-background="tide"] > .mono-atmosphere .mono-atmosphere__ribbon { opacity: 0.23 !important; }
+.mono-page[data-mono-motion="static"][data-mono-background="strata"] > .mono-atmosphere .mono-atmosphere__ribbon { opacity: 0.62 !important; }
 .mono-page[data-mono-motion="static"] > .mono-atmosphere .mono-atmosphere__node { transform: none !important; }
 .mono-page[data-mono-motion="static"] > .mono-atmosphere .mono-atmosphere__ripple { display: none; }
 /* END STATIC LEGACY ATMOSPHERE */
