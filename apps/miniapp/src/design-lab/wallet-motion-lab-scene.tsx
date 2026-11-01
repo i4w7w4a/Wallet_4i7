@@ -16,12 +16,14 @@ export function WalletMotionLabScene({ snapshot, preset }: { snapshot: WalletSna
   const [section, setSection] = useState<MonoSection>("assets");
   const stageStyle = cardMotionVariables(preset) as CSSProperties;
   return <section aria-label="Примерка кошелька" className={styles.walletStage} style={stageStyle}>
-    <div className={`mono-preview-frame ${styles.walletStageFrame}`} style={{ "--mono-preview-width": `${preset.previewWidth}px` } as CSSProperties} data-material-scrollport>
-      <MonoProductScene snapshot={snapshot} appearance={envelope.appearance} material={envelope.material}
-        viewport={preset.previewWidth} homeComposition="compact" historyPresentation="compact" assetsPresentation="wallet-selection"
-        themePreference="fixed" quickActionPreset={preset}
-        session={{ balanceHidden, onBalanceHiddenChange: setBalanceHidden, period, onPeriodChange: setPeriod,
-          section, onSectionChange: setSection }} />
+    <div className={styles.walletStageViewport} style={{ "--mono-preview-width": `${preset.previewWidth}px` } as CSSProperties}>
+      <div className={`mono-preview-frame ${styles.walletStageFrame}`} data-material-scrollport>
+        <MonoProductScene snapshot={snapshot} appearance={envelope.appearance} material={envelope.material}
+          viewport={preset.previewWidth} homeComposition="compact" historyPresentation="compact" assetsPresentation="wallet-selection"
+          themePreference="fixed" quickActionPreset={preset}
+          session={{ balanceHidden, onBalanceHiddenChange: setBalanceHidden, period, onPeriodChange: setPeriod,
+            section, onSectionChange: setSection }} />
+      </div>
     </div>
   </section>;
 }
