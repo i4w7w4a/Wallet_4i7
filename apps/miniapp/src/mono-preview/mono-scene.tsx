@@ -110,6 +110,8 @@ export type MonoSceneProps = {
   homeComposition?: "compact";
   /** Independent neutral History opt-in, including existing embedded asset History. */
   historyPresentation?: "compact";
+  /** Host-only Assets layout opt-in; not part of the saved appearance. */
+  assetsPresentation?: "wallet-selection";
   /** Optional display-only control supplied by the Gold host. */
   balanceDynamics?: ProductBalanceDynamicsControl;
   snapshot: WalletSnapshot;
@@ -280,7 +282,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   paletteTransitionEnabled = false, quickActionPreset = MONO_QUICK_ACTION_DEFAULT, active = true, effectsDisabled = false,
   atmosphere, surfaceRef, typography, opticalHost, materialTargets = false, actionFrameMode = "group", actionRadii,
   actionArtwork = DEFAULT_ACTION_ARTWORK, artworkPreview, session, product, profileResource, sectionOwner,
-  presentation: propsPresentation, homeComposition, historyPresentation, balanceDynamics,
+  presentation: propsPresentation, homeComposition, historyPresentation, assetsPresentation, balanceDynamics,
 }: MonoSceneProps & { typography: ReturnType<typeof useMonoTypographyPreview> }) {
   const customAtmosphere = atmosphere !== undefined || Boolean(appearance.background);
   const { preset, palette, shape, optics, logo: logoPreview } = appearance;
@@ -330,7 +332,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   const [assetsScope, setAssetsScope] = useState<AccountContext>(ALL_WALLET_CONTEXT);
   const [assetsOverviewOpen, setAssetsOverviewOpen] = useState(false);
   const assetsFocusRequest = useRef<"overview" | "title" | null>(null);
-  const r1Assets = Boolean(product && propsPresentation !== "gold");
+  const r1Assets = Boolean(product && propsPresentation !== "gold" && assetsPresentation === "wallet-selection");
   const fundsFocusRequest = useRef<"assets" | "overview" | null>(null);
   const assetsProduct: MonoProductController | undefined = product && (compactHome || r1Assets) ? { ...product,
     view: productViewForScope(product.view, assetsScope),

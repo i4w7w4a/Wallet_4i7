@@ -1,4 +1,9 @@
 import "@testing-library/jest-dom/vitest";
+import { Blob } from "node:buffer";
+import { webcrypto } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { CompressionStream, DecompressionStream } from "node:stream/web";
 import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MockWalletRepository, resolveActionRoutes, type ProductSnapshot } from "@wallet/core";
@@ -6,6 +11,12 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoProductScene } from "./mono-product-scene";
 import { createMonoAppearanceEnvelope } from "./mono-preset-envelope";
 import { MonoScene, type MonoSection } from "./mono-scene";
+import { MonoPreview } from "./mono-preview";
+import { MonoPublishedViewer } from "./mono-published-viewer";
+import { parsePublishedRecord } from "./mono-published-contract";
+import { createMonoShareUrl } from "./mono-share-codec";
+import { MonoViewerPage } from "./mono-viewer-page";
+import manifest from "../../../../checkpoints/mono-published/2026-10-17/manifest.json";
 import { MONO_PRODUCT_DEMO_ADAPTER } from "../mono-product/demo-adapter";
 import { sendDraftKey, useMonoProductController, type MonoProductController } from "../mono-product/product-controller";
 
@@ -16,11 +27,53 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-it("opens Assets on the three product choices and a separate overview", async () => {
+it("keeps the existing Assets overview when the host does not opt in", async () => {
   const snapshot = await new MockWalletRepository().getSnapshot();
   const envelope = createMonoAppearanceEnvelope("ledger");
   const view = render(<MonoProductScene snapshot={snapshot} appearance={envelope.appearance} material={envelope.material}
     viewport={390} homeComposition="compact" historyPresentation="compact" effectsDisabled />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" }));
+  expect(view.container.querySelector("[data-r1-wallet-selection]")).toBeNull();
+  expect(screen.getByRole("heading", { name: "Все активы" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Назад в обзор" })).toBeVisible();
+});
+
+it("enables R1 in the actual /mono workbench host", async () => {
+  localStorage.clear(); history.replaceState(null, "", "/mono");
+  vi.stubGlobal("crypto", webcrypto);
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ error: "unconfigured" }, { status: 503 })));
+  const view = render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Пресет 1: Пресет 1" })).toBeEnabled());
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" }));
+  expect(view.container.querySelector("[data-r1-wallet-selection]")).toBeVisible();
+  localStorage.clear();
+});
+
+it.each(["published", "portable"] as const)("keeps the existing Assets view in the %s host", async hostKind => {
+  localStorage.clear(); history.replaceState(null, "", "/mono/view");
+  vi.stubGlobal("Blob", Blob); vi.stubGlobal("crypto", webcrypto);
+  vi.stubGlobal("CompressionStream", CompressionStream); vi.stubGlobal("DecompressionStream", DecompressionStream);
+  const record = manifest.slots[1];
+  const source = readFileSync(resolve(process.cwd(), "../../checkpoints/mono-published/2026-10-17", record.snapshotFile), "utf8");
+  const archived = parsePublishedRecord({ slot: record.slot, revision: record.revision,
+    updatedAt: record.updatedAt, snapshot: JSON.parse(source) }, 2);
+  if (hostKind === "portable") history.replaceState(null, "", await createMonoShareUrl(archived.snapshot, location.origin));
+  const wallet = await new MockWalletRepository().getSnapshot();
+  const view = render(hostKind === "published"
+    ? <MonoPublishedViewer wallet={wallet} published={archived.snapshot} /> : <MonoViewerPage snapshot={wallet} />);
+  await waitFor(() => expect(view.container.querySelector("[data-mono-preview]")).toBeInTheDocument());
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" }));
+  expect(view.container.querySelector("[data-r1-wallet-selection]")).toBeNull();
+  expect(screen.getByRole("heading", { name: "Все активы" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Назад в обзор" })).toBeVisible();
+  localStorage.clear();
+});
+
+it("opens Assets on the three product choices and a separate overview", async () => {
+  const snapshot = await new MockWalletRepository().getSnapshot();
+  const envelope = createMonoAppearanceEnvelope("ledger");
+  const view = render(<MonoProductScene snapshot={snapshot} appearance={envelope.appearance} material={envelope.material}
+    viewport={390} homeComposition="compact" historyPresentation="compact" assetsPresentation="wallet-selection" effectsDisabled />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" }));
   const selection = view.container.querySelector<HTMLElement>("[data-r1-wallet-selection]");
   expect(selection).toBeInTheDocument();
@@ -46,7 +99,7 @@ async function host(snapshot: Readonly<ProductSnapshot> = MONO_PRODUCT_DEMO_ADAP
     controller = useMonoProductController(adapter, { initialHidden: false });
     const product = blocked ? { ...controller, commands: { ...controller.commands, requestContextChange: () => false } } : controller;
     return <div data-material-scrollport><MonoScene snapshot={wallet} appearance={appearance} product={product}
-      homeComposition="compact" historyPresentation="compact" effectsDisabled session={{ section, onSectionChange: setSection,
+      homeComposition="compact" historyPresentation="compact" assetsPresentation="wallet-selection" effectsDisabled session={{ section, onSectionChange: setSection,
         period: "1D", onPeriodChange() {}, balanceHidden: controller.view.balanceHidden,
         onBalanceHiddenChange: controller.commands.setBalanceHidden }} /></div>;
   }

@@ -56,13 +56,6 @@ function chooseContext(triggerLabel: string, contextId: string) {
   fireEvent.click(choice!);
 }
 
-function openAssetsOverview() {
-  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  const overview = document.querySelector<HTMLButtonElement>("[data-r1-overview]");
-  expect(overview).toBeEnabled();
-  fireEvent.click(overview!);
-}
-
 function inspectCustodialFromMenu() {
   fireEvent.click(screen.getByRole("button", { name: "Меню" }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Меню" })).getByRole("button", { name: "Мои счета" }));
@@ -73,7 +66,7 @@ function inspectCustodialFromMenu() {
 
 it("applies an explicit aggregate choice made during account inspection to the returning Assets view", async () => {
   await renderCompact();
-  openAssetsOverview();
+  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
   chooseContext("Общий обзор", "demo-depositary");
   expect(screen.getByRole("heading", { name: "Активы счёта" })).toBeInTheDocument();
   inspectCustodialFromMenu();
@@ -86,7 +79,7 @@ it("applies an explicit aggregate choice made during account inspection to the r
 
 it("keeps the previous Assets context when inspection is closed with Back", async () => {
   const view = await renderObservedCompact();
-  openAssetsOverview();
+  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
   chooseContext("Общий обзор", "demo-depositary");
   inspectCustodialFromMenu();
   expect(view.current().view.context).toEqual({ kind: "account", accountId: "demo-depositary" });
@@ -100,7 +93,7 @@ it("keeps the previous Assets context when inspection is closed with Back", asyn
 
 it("does not apply or partially display an aggregate choice when the context guard rejects it", async () => {
   const view = await renderObservedCompact();
-  openAssetsOverview();
+  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
   chooseContext("Общий обзор", "demo-depositary");
   inspectCustodialFromMenu();
   const route = resolveActionRoutes(MONO_PRODUCT_DEMO_ADAPTER.snapshot, { kind: "account", accountId: "demo-custody" }, "send")
@@ -130,7 +123,7 @@ it("does not apply or partially display an aggregate choice when the context gua
 
 it("continues to apply a direct aggregate choice from the Assets root", async () => {
   await renderCompact();
-  openAssetsOverview();
+  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
   chooseContext("Общий обзор", "demo-depositary");
   chooseContext("Депозитарный", "all");
   expect(screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" })).toBeInTheDocument();
@@ -139,7 +132,7 @@ it("continues to apply a direct aggregate choice from the Assets root", async ()
 
 it("applies an explicit account choice made during inspection to the returning Assets view", async () => {
   const view = await renderObservedCompact();
-  openAssetsOverview();
+  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
   chooseContext("Общий обзор", "demo-depositary");
   inspectCustodialFromMenu();
   chooseContext("Депозитарный", "demo-custody");
@@ -152,7 +145,7 @@ it("applies an explicit account choice made during inspection to the returning A
 
 it("applies an explicit account choice from an asset detail while preserving ordinary Back", async () => {
   const view = await renderObservedCompact();
-  openAssetsOverview();
+  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
   fireEvent.click(screen.getByRole("button", { name: /Открыть актив.*USDC/i }));
   expect(view.current().view.assetWorkspace?.assetId).toBe("usdc");
   fireEvent.click(screen.getByRole("button", { name: "Назад к активам" }));
@@ -169,7 +162,7 @@ it("applies an explicit account choice from an asset detail while preserving ord
 
 it("keeps an asset detail and its context when the picker selection is guarded", async () => {
   const view = await renderObservedCompact();
-  openAssetsOverview();
+  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
   fireEvent.click(screen.getByRole("button", { name: /Открыть актив.*USDC/i }));
   fireEvent.click(screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" }));
   const choice = screen.getByRole("dialog", { name: "Выбор счёта" })

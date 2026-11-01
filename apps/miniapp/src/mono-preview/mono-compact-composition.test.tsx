@@ -99,16 +99,13 @@ it("opens Assets ALL from navigation and returns focus to the balance while pres
   const context = view.current().view.context, drafts = view.current().view.sendDrafts;
   const draft = drafts[sendDraftKey(route)];
   navigate("Активы");
-  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
   expect(screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Назад к кошелькам" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Назад в обзор" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" }));
   expect(view.current().view.assetWorkspace?.scope).toEqual({ kind: "all" });
   fireEvent.click(screen.getByRole("button", { name: "Назад к активам" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" })).toHaveFocus());
-  fireEvent.click(screen.getByRole("button", { name: "Назад к кошелькам" }));
-  expect(screen.getByRole("button", { name: /Общий обзор/ })).toBeVisible();
-  navigate("Обзор");
+  fireEvent.click(screen.getByRole("button", { name: "Назад в обзор" }));
   await waitFor(() => expect(screen.getByRole("heading", { name: "Общий баланс" })).toHaveFocus());
   expect(screen.getByRole("heading", { name: "Общий баланс" })).toBeVisible();
   expect(view.current().view.context).toBe(context);

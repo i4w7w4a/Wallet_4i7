@@ -1201,7 +1201,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           preset, palette: { enabled: Boolean(colorLab.shown.paletteEnabled), config: colorLab.shown.config },
           shape: draftShapes[preset], optics: draftOptics[preset], environment: { theme, background: shownBackground },
         }} viewport={viewport} ready={workingReady} paletteReady={colorLab.ready}
-          active={hostActive} homeComposition="compact" historyPresentation="compact"
+          active={hostActive} homeComposition="compact" historyPresentation="compact" assetsPresentation="wallet-selection"
           session={{ balanceHidden: sceneBalanceHidden, onBalanceHiddenChange: setSceneBalanceHidden,
             period: scenePeriod, onPeriodChange: setScenePeriod,
             section: sceneSection, onSectionChange: setSceneSection,
