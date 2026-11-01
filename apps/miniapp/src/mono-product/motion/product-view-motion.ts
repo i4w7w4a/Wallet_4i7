@@ -4,18 +4,24 @@ import { useCallback, useLayoutEffect, useRef, type RefObject } from "react";
 
 const SECTION_ORDER = ["overview", "assets", "history", "profile"] as const;
 export type ProductViewIdentity = { section: typeof SECTION_ORDER[number]; assetId: string | null };
-type Entry = { duration: number; offset: number };
+type Entry = { duration: number; durationToken: string; offset: number };
 type Batch = Map<Animation, HTMLElement>;
 const EASE = "cubic-bezier(.2,0,0,1)";
 
 function entryFor(previous: ProductViewIdentity | null, next: ProductViewIdentity): Entry | null {
   if (!previous) return null;
   if (previous.section !== next.section) return {
-    duration: 280,
+    duration: 280, durationToken: "--motion-navigation",
     offset: SECTION_ORDER.indexOf(next.section) > SECTION_ORDER.indexOf(previous.section) ? 6 : -6,
   };
   if (previous.assetId === next.assetId) return null;
-  return { duration: 300, offset: next.assetId ? 12 : -12 };
+  return { duration: 300, durationToken: "--motion-linked-card", offset: next.assetId ? 12 : -12 };
+}
+
+function durationFromToken(value: string, fallback: number): number {
+  const match = value.trim().match(/^((?:\d+(?:\.\d+)?|\.\d+))(ms|s)$/);
+  if (!match) return fallback;
+  return Number(match[1]) * (match[2] === "s" ? 1000 : 1);
 }
 
 function motionAllowed(surface: HTMLElement): boolean {
@@ -54,8 +60,9 @@ export function useProductViewMotion({ surfaceRef, contentRef, view: { section, 
     if (!surface || !content || !motionAllowed(surface)) return;
     const batch: Batch = new Map();
     current.current = batch;
-    const easing = surface.ownerDocument.defaultView?.getComputedStyle(surface)
-      .getPropertyValue("--mono-product-motion-ease").trim() || EASE;
+    const computed = surface.ownerDocument.defaultView?.getComputedStyle(surface);
+    const easing = computed?.getPropertyValue("--mono-product-motion-ease").trim() || EASE;
+    const duration = durationFromToken(computed?.getPropertyValue(entry.durationToken) ?? "", entry.duration);
     for (const element of Array.from(content.children)) {
       if (!(element instanceof HTMLElement) || element.matches(".mono-app-header, .mono-product-context") ||
           typeof element.animate !== "function") continue;
@@ -64,7 +71,7 @@ export function useProductViewMotion({ surfaceRef, contentRef, view: { section, 
         const animation = element.animate([
           { opacity: .88, transform: `translate3d(${entry.offset}px, 0, 0)` },
           { opacity: 1, transform: "none" },
-        ], { duration: entry.duration, easing, fill: "both" });
+        ], { duration, easing, fill: "both" });
         batch.set(animation, element);
         const settle = () => {
           if (current.current !== batch || !batch.delete(animation)) return;
