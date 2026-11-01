@@ -99,7 +99,7 @@ it("opens Assets ALL from navigation and returns focus to the balance while pres
   const context = view.current().view.context, drafts = view.current().view.sendDrafts;
   const draft = drafts[sendDraftKey(route)];
   navigate("Активы");
-  expect(screen.getByRole("button", { name: "Выбрать счёт: Все счета" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Назад в обзор" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" }));
   expect(view.current().view.assetWorkspace?.scope).toEqual({ kind: "all" });
@@ -135,15 +135,15 @@ it("keeps account inspection and its pending receipt return on the same account 
   await waitFor(() => expect(view.container.querySelector("[data-mono-preview]")).toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: "Меню" }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Меню" })).getByRole("button", { name: "Мои счета" }));
-  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Кастодиальный" }));
   const scrollport = view.container.querySelector<HTMLElement>("[data-material-scrollport]")!;
   scrollport.scrollTop = 123;
-  fireEvent.click(within(screen.getByRole("region", { name: "Основной" })).getByRole("button", { name: "В процессе · 1" }));
+  fireEvent.click(within(screen.getByRole("region", { name: "Кастодиальный" })).getByRole("button", { name: "В процессе · 1" }));
   expect(within(history()).getByRole("heading", { name: "2 октября 2026 г." })).toBeVisible();
   expect(rowIds()).toEqual([pending.id]);
   expect(screen.getByRole("region", { name: "Квитанция операции" })).toHaveTextContent("31,456789 USDC");
   fireEvent.click(screen.getByRole("button", { name: "К счёту" }));
-  await waitFor(() => expect(within(screen.getByRole("region", { name: "Основной" }))
+  await waitFor(() => expect(within(screen.getByRole("region", { name: "Кастодиальный" }))
     .getByRole("button", { name: "В процессе · 1" })).toHaveFocus());
   expect(scrollport.scrollTop).toBe(123);
 });

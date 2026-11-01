@@ -35,17 +35,18 @@ it("keeps the entire wallet and home routes visible after selecting an empty acc
   await renderOverview();
   const navigation = screen.getByRole("navigation", { name: "Разделы кошелька" });
   fireEvent.click(within(navigation).getByRole("button", { name: "Активы" }));
-  fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" }))
-    .getByRole("button", { name: /Хранилище/ }));
+    .getByRole("button", { name: /Депозитарный/ }));
   fireEvent.click(within(navigation).getByRole("button", { name: "Обзор" }));
 
   expect(screen.getByRole("region", { name: "Общий баланс" })).toHaveTextContent(/12\s?840,75/);
-  expect(screen.queryByRole("button", { name: /Хранилище/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Выбрать счёт: Депозитарный" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Открыть группу Депозитарный" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Получить" }));
   const receive = screen.getByRole("dialog", { name: "Получить" });
-  expect(within(receive).getByRole("button", { name: "Основной" })).toBeInTheDocument();
-  expect(within(receive).getByRole("button", { name: "Хранилище" })).toBeInTheDocument();
+  expect(within(receive).getByRole("button", { name: "Кастодиальный" })).toBeInTheDocument();
+  expect(within(receive).getByRole("button", { name: "Депозитарный" })).toBeInTheDocument();
   expect(receive).toHaveTextContent("Solana");
 });
 
@@ -59,8 +60,8 @@ const n1Completed: ProductActivity = { ...n1Pending, id: "n1-new-completed", sta
 it("N1 keeps an older pending visible, opens its masked exact receipt globally and returns to its launcher", async () => {
   await renderOverview({ productAdapter: { ...MONO_PRODUCT_DEMO_ADAPTER, activities: [n1Completed, n1Pending] } });
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
-  fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" })).getByRole("button", { name: /Хранилище/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" })).getByRole("button", { name: /Депозитарный/ }));
   fireEvent.click(screen.getByRole("button", { name: "Обзор" }));
   fireEvent.click(screen.getByRole("button", { name: "Скрыть баланс" }));
   const recent = screen.getByRole("region", { name: "Последняя операция" });
@@ -78,7 +79,7 @@ it("N1 keeps an older pending visible, opens its masked exact receipt globally a
   fireEvent.click(screen.getByRole("button", { name: "Назад в обзор" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "В процессе · 1" })).toHaveFocus());
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  expect(screen.getByRole("button", { name: "Выбрать счёт: Хранилище" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Выбрать счёт: Депозитарный" })).toBeInTheDocument();
 });
 
 it("N1 opens many in pending History without choosing an arbitrary receipt", async () => {
@@ -196,17 +197,18 @@ it("N1 cancels queued focus when working context changes with the same snapshot 
 
 it("opens the pinned group, inspects its account and returns focus to the same pin", async () => {
   await renderOverview();
-  const pin = screen.getByRole("button", { name: "Открыть группу Депозитарные" });
+  const pin = screen.getByRole("button", { name: "Открыть группу Депозитарный" });
   pin.focus(); fireEvent.click(pin);
-  expect(screen.getByRole("heading", { name: "Депозитарные" })).toHaveFocus();
-  expect(screen.queryByRole("button", { name: /Открыть счёт: Основной/ })).toBeNull();
-  const account = screen.getByRole("button", { name: /Открыть счёт: Хранилище/ });
+  expect(screen.getByRole("heading", { name: "Кошельки" })).toHaveFocus();
+  expect(screen.queryByRole("button", { name: /Открыть счёт: Кастодиальный/ })).toBeNull();
+  const account = screen.getByRole("button", { name: /Открыть счёт: Депозитарный/ });
+  expect(account).toHaveAttribute("data-product-account-id", "demo-depositary");
   fireEvent.click(account);
-  expect(screen.getByRole("heading", { name: "Хранилище" })).toHaveFocus();
+  expect(screen.getByRole("heading", { name: "Депозитарный" })).toHaveFocus();
   fireEvent.click(screen.getByRole("button", { name: "Назад к счетам" }));
-  expect(screen.getByRole("button", { name: /Открыть счёт: Хранилище/ })).toHaveFocus();
+  expect(screen.getByRole("button", { name: /Открыть счёт: Депозитарный/ })).toHaveFocus();
   fireEvent.click(screen.getByRole("button", { name: "Назад в кошелёк" }));
-  expect(screen.getByRole("button", { name: "Открыть группу Депозитарные" })).toHaveFocus();
+  expect(screen.getByRole("button", { name: "Открыть группу Депозитарный" })).toHaveFocus();
   expect(screen.getByRole("region", { name: "Общий баланс" })).toHaveTextContent(/12\s?840,75/);
 });
 
@@ -215,10 +217,10 @@ it("edits remembered home wallets in Menu, keeps unavailable types inert and lea
   fireEvent.click(screen.getByRole("button", { name: "Меню" }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Меню" })).getByRole("button", { name: "На главной" }));
   const settings = screen.getByRole("group", { name: "На главной" });
-  const custody = within(settings).getByRole("checkbox", { name: "Кастодиальные" });
-  const depositary = within(settings).getByRole("checkbox", { name: "Депозитарные" });
+  const custody = within(settings).getByRole("checkbox", { name: "Кастодиальный" });
+  const depositary = within(settings).getByRole("checkbox", { name: "Депозитарный" });
   expect(custody).toBeChecked(); expect(depositary).toBeChecked();
-  for (const name of ["Закрытый", "Фиатный"]) {
+  for (const name of ["Приватный"]) {
     const unavailable = within(settings).getByRole("checkbox", { name });
     expect(unavailable).toBeDisabled(); fireEvent.click(unavailable);
   }
@@ -233,8 +235,8 @@ it("edits remembered home wallets in Menu, keeps unavailable types inert and lea
   expect(JSON.parse(localStorage.getItem(HOME_PINS_STORAGE_KEY)!)).toEqual({ version: 2, groups: [], totalOnly: false });
   fireEvent.click(screen.getByRole("button", { name: "Закрыть панель" }));
   expect(screen.getByRole("button", { name: "Меню" })).toHaveFocus();
-  expect(screen.queryByRole("button", { name: "Открыть группу Кастодиальные" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Открыть группу Депозитарные" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Открыть группу Кастодиальный" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Открыть группу Депозитарный" })).toBeNull();
   expect(screen.getByRole("region", { name: "Общий баланс" })).toHaveTextContent(/12\s?840,75/);
   fireEvent.click(screen.getByRole("button", { name: "Меню" }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Меню" })).getByRole("button", { name: "Мои счета" }));
@@ -250,10 +252,10 @@ it("masks the total, pin descriptions and inspected account estimates together",
   expect(total).toHaveTextContent("••••••");
   const pins = screen.getByRole("group", { name: "Закреплённые группы счетов" });
   expect(pins).not.toHaveTextContent(/12\s?840,75|0,00/);
-  expect(screen.getByRole("button", { name: "Открыть группу Кастодиальные" })).toHaveAccessibleDescription("••••");
-  fireEvent.click(screen.getByRole("button", { name: "Открыть группу Кастодиальные" }));
-  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
-  const accountValue = screen.getByRole("group", { name: "Оценка активов счёта в USD" });
+  expect(screen.getByRole("button", { name: "Открыть группу Кастодиальный" })).toHaveAccessibleDescription("••••");
+  fireEvent.click(screen.getByRole("button", { name: "Открыть группу Кастодиальный" }));
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Кастодиальный" }));
+  const accountValue = screen.getByRole("region", { name: "Оценка активов счёта" });
   expect(accountValue).toHaveTextContent("••••");
   expect(accountValue).not.toHaveTextContent(/12\s?840,75/);
 });
@@ -262,8 +264,8 @@ it("opens a global recent activity in History while preserving the working accou
   await renderOverview();
   const navigation = screen.getByRole("navigation", { name: "Разделы кошелька" });
   fireEvent.click(within(navigation).getByRole("button", { name: "Активы" }));
-  fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
-  fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" })).getByRole("button", { name: /Хранилище/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" })).getByRole("button", { name: /Депозитарный/ }));
   fireEvent.click(within(navigation).getByRole("button", { name: "Обзор" }));
   const recent = screen.getByRole("region", { name: "Последняя операция" });
   const recentTrigger = within(recent).getByRole("button");
@@ -271,8 +273,8 @@ it("opens a global recent activity in History while preserving the working accou
   fireEvent.click(recentTrigger);
   expect(within(navigation).getByRole("button", { name: "История" })).toHaveAttribute("aria-current", "page");
   expect(screen.getByRole("button", { name: receiptName })).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByRole("button", { name: /Все счета/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Общий обзор/ })).toBeInTheDocument();
   fireEvent.click(within(navigation).getByRole("button", { name: "Активы" }));
-  expect(screen.getByRole("button", { name: /Выбрать счёт: Хранилище/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Депозитарный/ })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Открыть актив/ })).toBeNull();
 });
