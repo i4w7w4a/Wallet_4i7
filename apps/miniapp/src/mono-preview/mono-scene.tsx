@@ -497,7 +497,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
     }
   }
   function selectAssetsContext(next: AccountContext) {
-    if (!product || !compactHome || section !== "assets" || accountsWorkspace || assetWorkspace ||
+    if (!product || !compactHome || section !== "assets" ||
       !active || product.view.sheet?.kind !== "accounts" || !product.commands.requestContextChange()) return;
     product.commands.selectContext(next);
     setAssetsScope(next);
@@ -1476,7 +1476,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         onBalanceHiddenChange={product.commands.setBalanceHidden} onDismiss={dismissProfileMenu}
         onOpenAccounts={() => openAccountsWorkspace()}
         motionEnabled={active && !effectsDisabled && !appearance.background?.calm} />}
-      {product && <ProductOverlay {...product} commands={compactHome && section === "assets" && !accountsWorkspace && !assetWorkspace
+      {product && <ProductOverlay {...product} commands={compactHome && section === "assets"
         ? { ...product.commands, selectContext: selectAssetsContext } : product.commands} view={productViewForScope(product.view,
         product.view.sheet?.kind === "intent" || product.view.sheet?.kind === "battery"
           ? product.view.sheet.scope ?? assetWorkspace?.scope : compactHome && section === "assets" && !accountsWorkspace && !assetWorkspace
