@@ -22,6 +22,11 @@
 .mono-product-context > button:active { background: var(--mono-surface-high); }
 .mono-product-context > button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mono-product-context > button svg { flex: 0 0 16px; width: 16px; height: 16px; color: var(--mono-text-secondary); fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.mono-product-context > button[data-wallet-context-trigger] { max-width: 100%; min-height: 48px; gap: 10px; margin-left: 0; padding: 5px 10px; border: 1px solid var(--mono-rule, #343434); border-radius: 12px; background: var(--mono-surface, #1a1c21); }
+.mono-product-context > button[data-wallet-context-trigger] > svg:first-child { box-sizing: border-box; flex: 0 0 32px; width: 32px; height: 32px; padding: 5px; border: 1px solid var(--mono-rule, #343434); border-radius: 9px; background: var(--mono-surface-high, #25272e); }
+.mono-product-context > button[data-wallet-context-trigger] > span { display: grid; min-width: 0; overflow: visible; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.mono-product-context > button[data-wallet-context-trigger]:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 2px; }
+.mono-product-context > button[data-wallet-context-trigger]:active { background: var(--mono-surface-high, #25272e); }
 .mono-product-context > strong { overflow-wrap: anywhere; }
 .mono-page[data-mono-product="true"] .mono-balance { padding-block: 0 5px; }
 .mono-product-balance-note { margin: 6px 0 0; color: var(--mono-text-secondary); font: 12px/1.4 var(--mono-type-label-family, var(--mono-font-ui)); }
