@@ -30,9 +30,29 @@ export type MonoProductAdapter = {
   readonly batteryChargePercent?: Readonly<Record<string, number | null>>;
 };
 
+// This presentation roster is local to the default demo, not a rule for custom adapters.
+const DEMO_WALLET_LABELS: Readonly<Record<string, string>> = {
+  "demo-custody": "Кастодиальный",
+  "demo-depositary": "Депозитарный",
+  "demo-private": "Приватный",
+};
+
+const demoFixture: Readonly<ProductSnapshot> = MULTI_ACCOUNT_DEMO;
+const defaultDemoSnapshot: ProductSnapshot = {
+  ...demoFixture,
+  accounts: demoFixture.accounts
+    .filter(account => Object.hasOwn(DEMO_WALLET_LABELS, account.id))
+    .map(account => ({ ...account, label: DEMO_WALLET_LABELS[account.id]!,
+      capabilities: account.capabilities.map(capability => ({ ...capability })) })),
+  holdings: demoFixture.holdings
+    .filter(holding => holding.accountId === "demo-custody" || holding.accountId === "demo-depositary")
+    .map(holding => ({ ...holding })),
+  batteryPools: demoFixture.batteryPools?.map(pool => ({ ...pool, eligibleAccountIds: [...pool.eligibleAccountIds] })),
+};
+
 export const MONO_PRODUCT_DEMO_ADAPTER: MonoProductAdapter = {
   kind: "demo",
-  snapshot: MULTI_ACCOUNT_DEMO,
-  activities: createSnapshotDemoActivities(MULTI_ACCOUNT_DEMO),
+  snapshot: defaultDemoSnapshot,
+  activities: createSnapshotDemoActivities(defaultDemoSnapshot),
   batteryChargePercent: { "demo-ethereum-transfer-pool": 60 },
 };

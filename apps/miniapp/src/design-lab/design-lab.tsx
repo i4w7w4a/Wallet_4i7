@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import type { WalletSnapshot } from "@wallet/core";
 
 import { ControlFeedbackButton } from "./control-feedback-button";
 import { CHANNEL_NAME, createApplyRequest, matchesApplyAck, type ApplyLaunch, type ApplyOutcome } from "./control-feedback-handoff";
@@ -17,6 +18,7 @@ import {
   type PreviewWidth,
 } from "./control-feedback-model";
 import styles from "./design-lab.module.css";
+import { WalletMotionLabScene } from "./wallet-motion-lab-scene";
 
 const INITIAL_PRESET: ControlFeedbackPreset = {
   schemaVersion: 1,
@@ -102,12 +104,13 @@ function readSaved() {
 
 function emptyServerSnapshot() { return null; }
 
-export function DesignLab({ launch = null }: { launch?: ApplyLaunch | null }) {
+export function DesignLab({ launch = null, walletSnapshot }: { launch?: ApplyLaunch | null; walletSnapshot?: WalletSnapshot }) {
   const storedRaw = useSyncExternalStore(subscribeToSaved, readSaved, emptyServerSnapshot);
   const storedPreset = useMemo(() => {
     try { return storedRaw ? parsePresetJson(storedRaw) : null; } catch { return null; }
   }, [storedRaw]);
   const [draft, setDraft] = useState<ControlFeedbackPreset | null>(null);
+  const [walletPreset, setWalletPreset] = useState<ControlFeedbackPreset>(INITIAL_PRESET);
   const preset = draft ?? storedPreset ?? INITIAL_PRESET;
   const [comparing, setComparing] = useState(false);
   const [activationCount, setActivationCount] = useState(0);
@@ -320,6 +323,15 @@ export function DesignLab({ launch = null }: { launch?: ApplyLaunch | null }) {
           </div>
         </section>
       </div>
+
+      {walletSnapshot && <section className={styles.persistence} aria-label="Настройка движения кошелька">
+        <div className={styles.persistenceHead}><div><span>04 / Кошелёк</span><h2>Настоящая примерка</h2></div>
+          <p>Примените отклик к этой сцене: «Материал» задаёт нажатие карточки, мягкость — длительность её перехода. Магнит действует только на быстрые действия Обзора.</p></div>
+        <div className={styles.actions}><button type="button" onClick={() => {
+          setWalletPreset(preset); setStatus("Настройки применены к примерке кошелька в этой лаборатории.");
+        }}>Применить к примерке кошелька</button></div>
+        <WalletMotionLabScene snapshot={walletSnapshot} preset={walletPreset} />
+      </section>}
 
       <section className={styles.persistence} aria-label="Проба и перенос JSON">
         <div className={styles.persistenceHead}>

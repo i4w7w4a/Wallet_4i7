@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { ProductActionKind, ProductActionRoute, RouteUnavailableReason } from "@wallet/core";
 import { productRouteKey, receiveRequestAmountKey, sendDraftKey, type MonoProductCommands, type MonoProductView } from "./product-controller";
 import { createMonoDemoFlowPorts } from "./demo-adapter";
@@ -18,18 +18,28 @@ import { commerceRouteKey, type BuyRoute, type SwapRoute, type BuyDraft, type Sw
 import { ProductAssetDetail } from "./asset-detail/product-asset-detail";
 import { BatteryPopover } from "./battery-popover";
 import { ProductGlassSurface } from "./product-glass-surface";
+import { useLinkedCardMotion } from "./motion/linked-card-motion";
+import motionStyles from "./motion/motion-patterns.module.css";
 import "./product-home.css";
 
 type ProductProps = { view: MonoProductView; commands: MonoProductCommands; onOpenActivity?(id: string): void;
-  accountChooserId?: string; active?: boolean };
+  accountChooserId?: string; active?: boolean;
+  r1Motion?: { surfaceRef: RefObject<HTMLElement | null>; accountId: string; enabled: boolean } };
 
-export function ProductOverlay({ view, commands, onOpenActivity, accountChooserId, active }: ProductProps) {
+export function ProductOverlay({ view, commands, onOpenActivity, accountChooserId, active, r1Motion }: ProductProps) {
   const ports = view.flowPorts;
   const currentSheet = useRef(view.sheet);
   currentSheet.current = view.sheet;
   const canRestoreActionFocus = useCallback(() => currentSheet.current === null, []);
   const receiveChooser = view.sheet?.kind === "intent" && view.sheet.action === "receive" && !view.sheet.route;
   const sendChooser = view.sheet?.kind === "intent" && view.sheet.action === "send" && !view.sheet.route && !view.sheet.placementId;
+  const fallbackSurfaceRef = useRef<HTMLElement>(null);
+  const receiveContentRef = useRef<HTMLDivElement>(null);
+  const r1Receive = r1Motion && view.sheet?.kind === "intent" && view.sheet.action === "receive" &&
+    view.sheet.route?.accountId === r1Motion.accountId && view.sheet.returnToAccountId === r1Motion.accountId
+    ? view.sheet.route : null;
+  useLinkedCardMotion({ surfaceRef: r1Motion?.surfaceRef ?? fallbackSurfaceRef, contentRef: receiveContentRef,
+    detailId: r1Receive ? productRouteKey(r1Receive) : null, enabled: Boolean(r1Motion?.enabled) });
   return <>
     <ProductAccountPopover view={view} open={view.sheet?.kind === "accounts"} active={active} id={accountChooserId}
       allowClosing={view.sheet === null} restoreOnClose={view.sheet === null}
@@ -45,12 +55,12 @@ export function ProductOverlay({ view, commands, onOpenActivity, accountChooserI
       emptyMessage={unavailableReason(view.intent?.reason ?? null, "send", view.context.kind === "all")}
       onSelectRoute={commands.selectRoute} onClose={commands.closeSheet} />
     <ProductModalOverlay view={view} commands={commands} ports={ports} onOpenActivity={onOpenActivity}
-      canRestoreActionFocus={canRestoreActionFocus} />
+      canRestoreActionFocus={canRestoreActionFocus} receiveMotionRef={r1Receive ? receiveContentRef : undefined} />
   </>;
 }
 
-function ProductModalOverlay({ view, commands, ports, onOpenActivity, canRestoreActionFocus }: ProductProps & {
-  ports: ReturnType<typeof createMonoDemoFlowPorts>; canRestoreActionFocus(): boolean;
+function ProductModalOverlay({ view, commands, ports, onOpenActivity, canRestoreActionFocus, receiveMotionRef }: ProductProps & {
+  ports: ReturnType<typeof createMonoDemoFlowPorts>; canRestoreActionFocus(): boolean; receiveMotionRef?: RefObject<HTMLDivElement | null>;
 }) {
   const sheet = view.sheet;
   const detailKey = sheet?.kind === "intent" && sheet.route
@@ -77,7 +87,7 @@ function ProductModalOverlay({ view, commands, ports, onOpenActivity, canRestore
   return <ProductSheet key={action} title={title} onClose={commands.closeSheet} receiveScreen={action === "receive" || Boolean(sheet.internalSend)}
     sendScreen={action === "send" && !sheet.internalSend && Boolean(sheet.route) && !assetDetails}
     canRestoreFocus={canRestoreActionFocus} returnAction={action} showHandle={action !== "send"}
-    guardMessage={view.commerceGuardMessage}
+    guardMessage={view.commerceGuardMessage} receiveMotionRef={receiveMotionRef}
     returnPlacement={sheet.placementId ? { id: sheet.placementId, action } : undefined}>
     {sheet.route ? <RouteDetail key={detailKey} route={sheet.route} view={view} commands={commands} ports={ports}
       onOpenActivity={onOpenActivity} backLabel={backLabel} assetDetails={assetDetails}
@@ -251,13 +261,17 @@ function RouteDetail({ route, view, commands, ports, onOpenActivity, backLabel, 
 }
 
 function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen = false, sendScreen = false,
-  canRestoreFocus, returnAction, showHandle = true, guardMessage }: {
+  canRestoreFocus, returnAction, showHandle = true, guardMessage, receiveMotionRef }: {
   title: string; onClose(): void; children: ReactNode; returnPlacement?: { id: string; action: ProductActionKind };
   receiveScreen?: boolean; sendScreen?: boolean; canRestoreFocus?(): boolean;
-  returnAction?: ProductActionKind; showHandle?: boolean; guardMessage?: string | null;
+  returnAction?: ProductActionKind; showHandle?: boolean; guardMessage?: string | null; receiveMotionRef?: RefObject<HTMLDivElement | null>;
 }) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const setDialogRef = useCallback((element: HTMLDivElement | null) => {
+    dialogRef.current = element;
+    if (receiveMotionRef) receiveMotionRef.current = element;
+  }, [receiveMotionRef]);
   const returnFocus = useRef<HTMLElement | null>(null);
   const placementRef = useRef(returnPlacement);
   placementRef.current = returnPlacement;
@@ -359,10 +373,11 @@ function ProductSheet({ title, onClose, children, returnPlacement, receiveScreen
     }
   }
 
-  return <div className="mono-product-sheet" data-product-sheet data-product-receive-screen={receiveScreen || undefined}
+  return <div className={`mono-product-sheet${receiveMotionRef ? ` ${motionStyles.r1Receive}` : ""}`} data-product-sheet data-product-receive-screen={receiveScreen || undefined}
+    data-r1-receive-motion={receiveMotionRef ? "" : undefined}
     style={receiveScreen ? receiveBounds : undefined}>
     <div className="mono-product-sheet__scrim" aria-hidden="true" onClick={receiveScreen ? undefined : onClose} />
-    <ProductGlassSurface ref={dialogRef} className="mono-product-sheet__panel" role="dialog" aria-modal="true"
+    <ProductGlassSurface ref={setDialogRef} className="mono-product-sheet__panel" role="dialog" aria-modal="true"
       data-product-flow-surface={sendScreen ? "send" : undefined}
       aria-labelledby={titleId} tabIndex={-1} onKeyDown={onKeyDown}>
       {!receiveScreen && showHandle && <div className="mono-product-sheet__handle" aria-hidden="true" />}

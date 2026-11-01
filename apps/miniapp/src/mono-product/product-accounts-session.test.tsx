@@ -9,11 +9,11 @@ import { commerceOperationId } from "./commerce/validation";
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 const sendSolana: ProductActionRoute = {
-  action: "send", accountId: "demo-custody", accountLabel: "Основной", accountKind: "custodial",
+  action: "send", accountId: "demo-custody", accountLabel: "Кастодиальный", accountKind: "custodial",
   assetId: "usdc", symbol: "USDC", name: "USD Coin", networkId: "solana", networkLabel: "Solana",
 };
 const internalReceive: ProductActionRoute = {
-  action: "receive", receiveMode: "internal-transfer", accountId: "demo-depositary", accountLabel: "Хранилище",
+  action: "receive", receiveMode: "internal-transfer", accountId: "demo-depositary", accountLabel: "Депозитарный",
   accountKind: "depositary", assetId: "usdc", symbol: "USDC", name: "USD Coin",
   networkId: "ethereum", networkLabel: "Ethereum",
 };
@@ -108,7 +108,9 @@ it("fails closed on a wrong receive mode or unimplemented action and opens the e
 });
 
 it.each(["demo-inactive", "demo-private"])("can inspect %s while refusing its unavailable financial route", accountId => {
-  const { result } = renderHook(() => useMonoProductController(MONO_PRODUCT_DEMO_ADAPTER, { initialHidden: false }));
+  const adapter: MonoProductAdapter = accountId === "demo-inactive"
+    ? { kind: "demo", snapshot: MULTI_ACCOUNT_DEMO } : MONO_PRODUCT_DEMO_ADAPTER;
+  const { result } = renderHook(() => useMonoProductController(adapter, { initialHidden: false }));
   act(() => result.current.commands.openAccountsWorkspace?.());
   act(() => result.current.commands.inspectAccount?.(accountId));
   expect(result.current.view.accountsWorkspace).toEqual({ accountId });
@@ -210,15 +212,18 @@ it("refuses duplicate account, route and holding IDs instead of authorizing the 
 it("preserves the accepted commerce lease and raw draft when account navigation is attempted during pending", () => {
   vi.spyOn(Date, "now").mockReturnValue(1000);
   const { result } = renderHook(() => useMonoProductController(MONO_PRODUCT_DEMO_ADAPTER, { initialHidden: false }));
+  const canonicalBuyRoute = { ...buyRoute, accountLabel: "Кастодиальный" };
   act(() => result.current.commands.openAccountsWorkspace?.());
   act(() => result.current.commands.inspectAccount?.("demo-custody"));
-  act(() => result.current.commands.openAccountRoute?.(buyRoute));
-  act(() => result.current.commands.saveBuyDraft(buyRoute, { route: buyRoute, methodId: "demo-payment-usd", fiatAmount: "23," }));
+  act(() => result.current.commands.openAccountRoute?.(canonicalBuyRoute));
+  act(() => result.current.commands.saveBuyDraft(canonicalBuyRoute, { route: canonicalBuyRoute, methodId: "demo-payment-usd", fiatAmount: "23," }));
   const quote = buyQuote();
   quote.portId = result.current.view.flowPorts.buy.id;
+  quote.request.route = canonicalBuyRoute;
+  quote.credit.accountLabel = canonicalBuyRoute.accountLabel;
   const key = "accounts-pending";
   const operationId = commerceOperationId(quote, key);
-  act(() => result.current.commands.setCommerceSubmitState(buyRoute, {
+  act(() => result.current.commands.setCommerceSubmitState(canonicalBuyRoute, {
     busy: true, attempt: { kind: "buy", quote, idempotencyKey: key, operationId },
   }));
   expect(result.current.view.commerceBusy).toBe(true);
@@ -232,7 +237,7 @@ it("preserves the accepted commerce lease and raw draft when account navigation 
     denied.push(result.current.commands.useAccount?.("demo-custody"));
     denied.push(result.current.commands.openAccountRoute?.(sendSolana));
     denied.push(result.current.commands.openAccountHolding?.("demo-custody", "demo-usdc-sol"));
-    result.current.commands.backToRoutes(buyRoute);
+    result.current.commands.backToRoutes(canonicalBuyRoute);
     result.current.commands.setBalanceHidden(true);
   });
   expect(denied).toEqual([false, false, false, false, false, false, false]);
@@ -242,7 +247,7 @@ it("preserves the accepted commerce lease and raw draft when account navigation 
   expect(result.current.view.context).toEqual({ kind: "account", accountId: "demo-custody" });
   expect(Object.values(result.current.view.buyDrafts)[0]?.fiatAmount).toBe("23,");
   expect(result.current.view.balanceHidden).toBe(true);
-  act(() => result.current.commands.setCommerceSubmitState(buyRoute, { busy: false, operationId }));
+  act(() => result.current.commands.setCommerceSubmitState(canonicalBuyRoute, { busy: false, operationId }));
   act(() => result.current.commands.closeSheet());
   expect(result.current.view.accountsWorkspace).toEqual({ accountId: "demo-custody" });
 });

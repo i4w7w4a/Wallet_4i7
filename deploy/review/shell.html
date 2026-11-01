@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+  <title>Novex — обзор</title>
+  <style>
+    html,body{height:100%;margin:0;background:#030303;color:#e4e5e7;font:14px system-ui,sans-serif}body{display:flex;flex-direction:column}
+    header{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;min-height:48px;background:#111}header>span{white-space:nowrap}
+    details{position:relative}summary{display:flex;align-items:center;min-height:44px;padding:0 8px;cursor:pointer;white-space:nowrap;text-decoration:underline;text-underline-offset:3px}
+    summary:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid #d9e9ff;outline-offset:2px}nav{position:absolute;right:0;top:100%;display:grid;width:min(285px,calc(100vw - 24px));padding:6px;border:1px solid #525862;border-radius:8px;background:#16191e;box-shadow:0 8px 24px #0009}
+    nav a,nav button{display:flex;align-items:center;min-height:44px;padding:0 10px;color:#f1f1f2;text-decoration:none}nav button{border:0;background:transparent;font:inherit;text-align:left;cursor:pointer}nav a:hover,nav button:hover{background:#2b3038}nav button[aria-disabled="true"]{opacity:.6}
+    #motion-status{padding:0 10px;color:#f1f1f2}#motion-status:empty{display:none}
+    iframe{border:0;flex:1;width:100%;min-height:0;opacity:0}iframe.ready{opacity:1}#status{position:absolute;top:48%;left:0;right:0;text-align:center;pointer-events:none}#status:empty{display:none}
+  </style>
+</head>
+<body>
+<header><span>Novex · демо</span><details id="review-links"><summary>Варианты и лаборатории</summary>
+<nav aria-label="Варианты и лаборатории">
+<a href="__REVISION_ORIGIN__/mono" target="app" data-mode="mono">Кошелёк</a>
+<a href="__REVISION_ORIGIN__/gold" target="app" data-mode="gold">Gold — отдельный вариант</a>
+<button id="motion-link" type="button" aria-disabled="true">Настройки движения — Motion Lab</button>
+<a href="https://wallet.153.76.194.160.nip.io/concepts/motion-r1-5dd5347/" target="_blank" rel="noopener noreferrer">Техническая примерка Motion R1</a>
+<span id="motion-status" role="status" aria-live="polite"></span>
+</nav></details></header>
+<div id="status" role="status">Открываем кошелёк…</div>
+<iframe name="app" id="app" title="Кошелёк Novex" src="__REVISION_ORIGIN__/mono"></iframe>
+<script>
+(() => {
+  'use strict';
+  const origin = '__REVISION_ORIGIN__';
+  const frame = document.getElementById('app');
+  const status = document.getElementById('status');
+  const links = document.getElementById('review-links');
+  const motion = document.getElementById('motion-link');
+  const motionStatus = document.getElementById('motion-status');
+  let mode = 'unknown';
+  let ready = false;
+  let pending = null;
+
+  function sync() {
+    motion.setAttribute('aria-disabled', String(mode === 'unknown' || (mode === 'mono' && !ready)));
+  }
+  function fail(message) {
+    if (pending) {
+      clearTimeout(pending.timer);
+      try { pending.popup.close(); } catch {}
+      pending = null;
+    }
+    motionStatus.textContent = message;
+  }
+  function loading() {
+    fail('');
+    mode = 'unknown';
+    ready = false;
+    sync();
+    frame.classList.remove('ready');
+    status.textContent = 'Открываем кошелёк…';
+  }
+  frame.addEventListener('load', () => {
+    loading();
+    frame.contentWindow.postMessage({ type: 'novex-motion-probe' }, origin);
+  });
+  window.addEventListener('message', event => {
+    if (event.origin !== origin || event.source !== frame.contentWindow || !event.data || typeof event.data !== 'object') return;
+    if (event.data.type === 'novex-review-unloading') { loading(); return; }
+    if (event.data.type === 'novex-review-ready' && ['mono', 'gold'].includes(event.data.mode)) {
+      mode = event.data.mode;
+      frame.classList.add('ready');
+      status.textContent = '';
+      sync();
+      return;
+    }
+    if (event.data.type === 'novex-motion-ready') { ready = event.data.ready === true; sync(); return; }
+    if (event.data.type !== 'novex-motion-result' || !pending || event.data.id !== pending.id) return;
+    let url;
+    try { url = new URL(event.data.url); } catch { fail('Не удалось открыть лабораторию. Повторите попытку.'); return; }
+    if (mode !== 'mono' || url.origin !== origin || url.pathname !== '/design-lab/motion' ||
+        !/^[0-9a-f-]{36}$/i.test(url.searchParams.get('session') || '') ||
+        url.searchParams.get('target') !== 'mono.quick-actions') {
+      fail('Не удалось открыть лабораторию. Повторите попытку.');
+      return;
+    }
+    const popup = pending.popup;
+    clearTimeout(pending.timer);
+    pending = null;
+    if (popup.closed) { motionStatus.textContent = 'Окно закрыто. Откройте лабораторию снова.'; return; }
+    try {
+      popup.location.replace(url.href);
+      links.open = false;
+      motionStatus.textContent = '';
+    } catch {
+      try { popup.close(); } catch {}
+      motionStatus.textContent = 'Не удалось открыть лабораторию. Повторите попытку.';
+    }
+  });
+  links.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && links.open) {
+      event.preventDefault();
+      links.open = false;
+      links.querySelector('summary').focus();
+    }
+  });
+  links.querySelectorAll('a[target="app"]').forEach(anchor => anchor.addEventListener('click', event => {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    loading();
+    links.open = false;
+  }));
+  motion.addEventListener('click', () => {
+    if (mode === 'unknown' || (mode === 'mono' && !ready)) {
+      motionStatus.textContent = 'Дождитесь загрузки кошелька.';
+      return;
+    }
+    if (pending) { motionStatus.textContent = 'Лаборатория открывается…'; return; }
+    const popup = window.open('about:blank', '_blank');
+    if (!popup) { motionStatus.textContent = 'Разрешите всплывающие окна и повторите попытку.'; return; }
+    try {
+      popup.opener = null;
+      popup.document.title = 'Открываем лабораторию…';
+      popup.document.body.textContent = 'Открываем лабораторию…';
+    } catch {}
+    if (mode === 'gold') {
+      try { popup.location.replace(origin + '/design-lab/motion'); links.open = false; motionStatus.textContent = ''; }
+      catch { try { popup.close(); } catch {} motionStatus.textContent = 'Не удалось открыть лабораторию. Повторите попытку.'; }
+      return;
+    }
+    const id = crypto.randomUUID();
+    pending = { id, popup, timer: setTimeout(() => fail('Не удалось открыть лабораторию. Повторите попытку.'), 10000) };
+    motionStatus.textContent = 'Открываем лабораторию…';
+    frame.contentWindow.postMessage({ type: 'novex-motion-launch', id }, origin);
+  });
+  sync();
+})();
+</script>
+</body></html>

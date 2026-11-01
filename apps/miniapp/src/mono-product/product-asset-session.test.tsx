@@ -34,7 +34,8 @@ it("requires a scoped placement selection and preserves the workspace through se
 });
 
 it("auto-selects only a single placement, closes on account changes, and rejects assets outside scope", () => {
-  const { result } = renderHook(() => useMonoProductController(MONO_PRODUCT_DEMO_ADAPTER, { initialHidden: false }));
+  const { result } = renderHook(() => useMonoProductController(
+    { kind: "demo", snapshot: MULTI_ACCOUNT_DEMO }, { initialHidden: false }));
   act(() => result.current.commands.openAsset("btc"));
   expect(result.current.view.assetWorkspace).toEqual({ assetId: "btc", holdingId: "demo-btc" });
   act(() => result.current.commands.selectContext({ kind: "account", accountId: "demo-inactive" }));
@@ -81,11 +82,11 @@ it("replaces home contents, preserves source through an appearance change and fl
   expect(rendered.container.querySelector(".mono-product-section [data-mono-product-asset-workspace]")).not.toBeNull();
   expect(rendered.container.querySelector(".mono-hero, .mono-actions, .mono-product-funds, .mono-promo-frame")).toBeNull();
   expect(screen.queryByRole("button", { name: /Отправить USDC/ })).toBeNull();
-  fireEvent.click(screen.getByRole("radio", { name: "Выбрать размещение: Основной · Ethereum" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Выбрать размещение: Кастодиальный · Ethereum" }));
   const frost = createMonoAppearanceEnvelope("frost");
   rendered.rerender(<MonoProductScene snapshot={wallet} appearance={frost.appearance} material={frost.material} />);
-  expect(screen.getByRole("radio", { name: "Выбрать размещение: Основной · Ethereum" })).toBeChecked();
-  const action = () => screen.getByRole("button", { name: "Отправить USDC · Основной · Ethereum" });
+  expect(screen.getByRole("radio", { name: "Выбрать размещение: Кастодиальный · Ethereum" })).toBeChecked();
+  const action = () => screen.getByRole("button", { name: "Отправить USDC · Кастодиальный · Ethereum" });
   fireEvent.click(action());
   await screen.findByRole("textbox", { name: "Получатель" });
   fireEvent.click(screen.getByRole("button", { name: "Вставить пример" }));
@@ -96,8 +97,8 @@ it("replaces home contents, preserves source through an appearance change and fl
   expect(screen.getByLabelText(/Сумма.*USDC/)).toHaveValue("12.5");
   fireEvent.click(within(screen.getByRole("dialog", { name: "Отправить" })).getByRole("button", { name: "Закрыть" }));
   await waitFor(() => expect(action()).toHaveFocus());
-  expect(screen.getByRole("radio", { name: "Выбрать размещение: Основной · Ethereum" })).toBeChecked();
-  expect(screen.getByRole("button", { name: /Выбрать счёт: Все счета/ })).toBeInTheDocument();
+  expect(screen.getByRole("radio", { name: "Выбрать размещение: Кастодиальный · Ethereum" })).toBeChecked();
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Общий обзор/ })).toBeInTheDocument();
   fireEvent.click(action());
   expect(await screen.findByRole("textbox", { name: "Получатель" })).toHaveValue("demo:recipient");
   fireEvent.click(screen.getByRole("button", { name: /Назад$/ }));
@@ -113,7 +114,7 @@ it("returns to the assets list and closes the subview on section navigation", as
   const { container } = render(<MonoProductScene snapshot={wallet} appearance={envelope.appearance} material={envelope.material} />);
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
   fireEvent.click(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" }));
-  expect(screen.getByRole("radio", { name: "Выбрать размещение: Основной · Bitcoin" })).toBeChecked();
+  expect(screen.getByRole("radio", { name: "Выбрать размещение: Кастодиальный · Bitcoin" })).toBeChecked();
   expect(screen.queryByRole("heading", { name: "Все активы" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Назад к активам" }));
   expect(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" })).toHaveFocus();

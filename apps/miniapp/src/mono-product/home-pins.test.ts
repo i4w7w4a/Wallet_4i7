@@ -19,9 +19,9 @@ const snapshot: ProductSnapshot = {
 
 it("sums each group's own placements once, including inactive accounts without granting actions", () => {
   expect(selectAccountGroups(snapshot)).toEqual([
-    { kind: "custodial", label: "Кастодиальные", accountIds: ["a", "b"], estimateMinor: 533, available: true },
-    { kind: "depositary", label: "Депозитарные", accountIds: ["c"], estimateMinor: 433, available: true },
-    { kind: "private", label: "Закрытый", accountIds: ["d"], estimateMinor: null, available: false },
+    { kind: "custodial", label: "Кастодиальный", accountIds: ["a", "b"], estimateMinor: 533, available: true },
+    { kind: "depositary", label: "Депозитарный", accountIds: ["c"], estimateMinor: 433, available: true },
+    { kind: "private", label: "Приватный", accountIds: ["d"], estimateMinor: null, available: false },
   ]);
 });
 

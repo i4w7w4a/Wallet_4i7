@@ -16,15 +16,15 @@ beforeEach(() => {
 it("opens the global recent activity in history and preserves the working account for Assets", async () => {
   await home();
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
-  fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" })).getByRole("button", { name: /Основной/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" })).getByRole("button", { name: /Кастодиальный/ }));
   fireEvent.click(screen.getByRole("button", { name: "Обзор" }));
   fireEvent.click(screen.getByRole("button", { name: /Открыть операцию:/ }));
   expect(screen.getByRole("heading", { name: "История операций" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: /Выбрать счёт: Все счета/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Общий обзор/ })).toBeInTheDocument();
   expect(screen.getAllByRole("button").some(button => button.getAttribute("aria-expanded") === "true")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  expect(screen.getByRole("button", { name: /Выбрать счёт: Основной/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Кастодиальный/ })).toBeInTheDocument();
 });
 
 it("does not invent a percentage from known remaining transfers", async () => {
@@ -61,7 +61,7 @@ it("integrates external receive, preserves privacy and returns to the selected c
     if (this.hasAttribute("data-mono-product-receive-trigger")) return new DOMRect(180, 300, 60, 60);
     return originalBounds.call(this);
   });
-  const trigger = choose("Получить", /(?=.*USDC)(?=.*Ethereum)(?=.*Основной)/);
+  const trigger = choose("Получить", /(?=.*USDC)(?=.*Ethereum)(?=.*Кастодиальный)/);
   await screen.findByText(/^DEMO-NON-PAYABLE:/);
   expect(screen.getAllByRole("dialog")).toHaveLength(1);
   rerender(<MonoProductScene snapshot={wallet} appearance={envelope.appearance} material={envelope.material}
@@ -70,7 +70,7 @@ it("integrates external receive, preserves privacy and returns to the selected c
   expect(screen.getByRole("button", { name: "Скопировать реквизиты" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: /Назад к выбору маршрута/ }));
   const selected = within(screen.getByRole("dialog", { name: "Получить" }))
-    .getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Основной)/ });
+    .getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Кастодиальный)/ });
   await waitFor(() => expect(selected).toHaveFocus());
   fireEvent.keyDown(selected, { key: "Escape" });
   await waitFor(() => expect(trigger).toHaveFocus());
@@ -79,11 +79,11 @@ it("integrates external receive, preserves privacy and returns to the selected c
 it("finishes the explicitly bound internal receive demo in the selected account", async () => {
   await home();
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" }))
-    .getByRole("button", { name: /Хранилище/ }));
+    .getByRole("button", { name: /Депозитарный/ }));
   fireEvent.click(screen.getByRole("button", { name: "Обзор" }));
-  choose("Получить", /(?=.*USDC)(?=.*Ethereum)(?=.*Хранилище)/, "Хранилище");
+  choose("Получить", /(?=.*USDC)(?=.*Ethereum)(?=.*Депозитарный)/, "Депозитарный");
   fireEvent.change(await screen.findByRole("textbox", { name: "Сумма пополнения" }), { target: { value: "1" } });
   fireEvent.click(screen.getByRole("button", { name: "Рассчитать пример" }));
   fireEvent.click(await screen.findByRole("button", { name: "Подтвердить симуляцию" }));
@@ -93,12 +93,12 @@ it("finishes the explicitly bound internal receive demo in the selected account"
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("heading", { name: "Общий баланс" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  expect(screen.getByRole("button", { name: /Выбрать счёт: Хранилище/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Депозитарный/ })).toBeInTheDocument();
 });
 
 it("keeps the send draft across appearance changes and signals battery use only during pending", async () => {
   const { rerender, wallet, envelope, container } = await home();
-  const trigger = choose("Отправить", /(?=.*USDC)(?=.*Ethereum)(?=.*Основной)/);
+  const trigger = choose("Отправить", /(?=.*USDC)(?=.*Ethereum)(?=.*Кастодиальный)/);
   const recipient = await screen.findByRole("textbox", { name: "Получатель" });
   fireEvent.change(recipient, { target: { value: "demo:recipient" } });
   const frost = createMonoAppearanceEnvelope("frost");

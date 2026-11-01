@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MockWalletRepository, resolveActionRoutes, type ProductSnapshot } from "@wallet/core";
+import { MockWalletRepository, MULTI_ACCOUNT_DEMO, resolveActionRoutes, type ProductSnapshot } from "@wallet/core";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MonoScene, type MonoSection } from "./mono-scene";
 import { MonoProductScene } from "./mono-product-scene";
@@ -28,20 +28,22 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); localStorage.clear(); });
 
 const pending: ProductActivity = {
-  id: "account-old-pending", accountId: "demo-custody", accountLabel: "Основной", assetId: "usdc", assetSymbol: "USDC",
+  id: "account-old-pending", accountId: "demo-custody", accountLabel: "Кастодиальный", assetId: "usdc", assetSymbol: "USDC",
   networkId: "ethereum", networkLabel: "Ethereum", direction: "outgoing", status: "pending", quantity: "31.456789",
   feeLabel: "0.004321 ETH", occurredAt: "2026-09-26T10:00:00Z",
 };
 const completed: ProductActivity = { ...pending, id: "account-new-completed", status: "completed", occurredAt: "2026-10-10T01:00:00Z" };
-const foreign: ProductActivity = { ...pending, id: "foreign-pending", accountId: "demo-depositary", accountLabel: "Хранилище" };
+const foreign: ProductActivity = { ...pending, id: "foreign-pending", accountId: "demo-depositary", accountLabel: "Депозитарный" };
 
 async function accountScene(activities: readonly ProductActivity[], options: {
   status?: "ready" | "loading" | "error"; retry?: () => void; hidden?: boolean; readonlySection?: boolean;
+  snapshot?: Readonly<ProductSnapshot>;
 } = {}) {
   const wallet = await new MockWalletRepository().getSnapshot();
   const appearance = createMonoAppearanceEnvelope("ledger").appearance;
-  const accounts = [...MONO_PRODUCT_DEMO_ADAPTER.snapshot.accounts];
-  const adapter = { ...MONO_PRODUCT_DEMO_ADAPTER, snapshot: { ...MONO_PRODUCT_DEMO_ADAPTER.snapshot, accounts }, activities,
+  const snapshot = options.snapshot ?? MONO_PRODUCT_DEMO_ADAPTER.snapshot;
+  const accounts = [...snapshot.accounts];
+  const adapter = { ...MONO_PRODUCT_DEMO_ADAPTER, snapshot: { ...snapshot, accounts }, activities,
     activityStatus: options.status ?? "ready", retryActivities: options.retry };
   let controller!: MonoProductController, refresh!: () => void;
   function Host() {
@@ -61,8 +63,8 @@ async function accountScene(activities: readonly ProductActivity[], options: {
     scrollport: view.container.querySelector<HTMLElement>("[data-material-scrollport]")! };
 }
 
-function inspect(label = "Основной", fromPin = false) {
-  if (fromPin) fireEvent.click(screen.getByRole("button", { name: "Открыть группу Кастодиальные" }));
+function inspect(label = "Кастодиальный", fromPin = false) {
+  if (fromPin) fireEvent.click(screen.getByRole("button", { name: "Открыть группу Кастодиальный" }));
   else {
     fireEvent.click(screen.getByRole("button", { name: "Меню" }));
     fireEvent.click(within(screen.getByRole("dialog", { name: "Меню" })).getByRole("button", { name: "Мои счета" }));
@@ -113,8 +115,8 @@ it.each(["overview", "profile"] as const)("account pending actual host preserves
   fireEvent.click(screen.getByRole("button", { name: "К счёту" }));
   await waitFor(() => expect(launcher()).toHaveFocus());
   expect(view.scene).toHaveAttribute("data-mono-section", origin);
-  expect(screen.getByRole("region", { name: "Основной" })).toBeVisible();
-  expect(screen.getByRole("region", { name: "Основной" }).querySelector('[data-product-holding-id="demo-usdc-eth"]')).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("region", { name: "Кастодиальный" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "Кастодиальный" }).querySelector('[data-product-holding-id="demo-usdc-eth"]')).toHaveAttribute("aria-expanded", "true");
   expect(view.scrollport.scrollTop).toBe(123);
 });
 
@@ -123,7 +125,7 @@ it("account pending actual host clears the inspection on ordinary navigation awa
   expect(view.scene).toHaveAttribute("data-mono-section", "history");
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
   expect(view.scene).toHaveAttribute("data-mono-section", "assets");
-  expect(screen.queryByRole("region", { name: "Основной" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "Кастодиальный" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "История" }));
   expect(screen.queryByRole("button", { name: "К счёту" })).toBeNull();
   expect(screen.queryByRole("region", { name: "Квитанция операции" })).toBeNull();
@@ -135,7 +137,7 @@ it("account pending actual host honors an external controlled section change and
   expect(view.scene).toHaveAttribute("data-mono-section", "history");
   view.setSection("assets");
   await waitFor(() => expect(view.scene).toHaveAttribute("data-mono-section", "assets"));
-  expect(screen.queryByRole("region", { name: "Основной" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "Кастодиальный" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "История" }));
   expect(screen.queryByRole("button", { name: "К счёту" })).toBeNull();
   expect(screen.queryByRole("region", { name: "Квитанция операции" })).toBeNull();
@@ -148,13 +150,13 @@ it("account pending single returns to its pinned detail, holding, scroll and lau
     .routes.filter(candidate => candidate.assetId === "usdc" && candidate.networkId === "ethereum")[0]!;
   const draft = { route: { accountId: "demo-custody", assetId: "usdc", networkId: "ethereum" }, recipient: { address: "demo:kept" }, amount: "001," };
   act(() => { view.current().commands.selectContext({ kind: "account", accountId: "demo-depositary" }); view.current().commands.saveSendDraft(route, draft); });
-  const detail = inspect("Основной", true);
+  const detail = inspect("Кастодиальный", true);
   const holding = detail.querySelector<HTMLButtonElement>('[data-product-holding-id="demo-usdc-eth"]')!;
   fireEvent.click(holding);
   view.scrollport.scrollTop = 123;
   const context = view.current().view.context, workspace = view.current().view.accountsWorkspace;
   const entry = launcher();
-  expect(entry).toHaveAccessibleDescription("Отправка USDC Ethereum · Основной Примеры и симуляции");
+  expect(entry).toHaveAccessibleDescription("Отправка USDC Ethereum · Кастодиальный Примеры и симуляции");
   expect(entry.outerHTML).not.toMatch(/31[.,]456789|0[.,]004321/);
   fireEvent.click(entry);
   const row = document.querySelector('[data-product-activity-id="account-old-pending"]')!;
@@ -165,14 +167,16 @@ it("account pending single returns to its pinned detail, holding, scroll and lau
   expect(screen.queryByRole("button", { name: "Назад в обзор" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "К счёту" }));
   await waitFor(() => expect(launcher()).toHaveFocus());
-  expect(screen.getByRole("region", { name: "Основной" })).toBeVisible();
-  expect(screen.getByRole("region", { name: "Основной" }).querySelector('[data-product-holding-id="demo-usdc-eth"]')).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("region", { name: "Кастодиальный" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "Кастодиальный" }).querySelector('[data-product-holding-id="demo-usdc-eth"]')).toHaveAttribute("aria-expanded", "true");
   expect(view.scrollport.scrollTop).toBe(123);
   expect(view.current().view.accountsWorkspace).toBe(workspace);
   expect(view.current().view.context).toBe(context);
   expect(view.current().view.sendDrafts[sendDraftKey(route)]).toEqual(draft);
   fireEvent.click(screen.getByRole("button", { name: "Назад к счетам" }));
-  expect(screen.getByRole("heading", { name: "Кастодиальные" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Кошельки" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Открыть счёт: Кастодиальный" })).toHaveAttribute("data-product-account-id", "demo-custody");
+  expect(screen.queryByRole("button", { name: "Открыть счёт: Депозитарный" })).toBeNull();
 });
 
 it("account pending many opens only account pending History, folds the exact receipt and returns to its underlying profile detail", async () => {
@@ -181,7 +185,7 @@ it("account pending many opens only account pending History, folds the exact rec
   inspect(); fireEvent.click(launcher(2));
   await waitFor(() => expect(screen.getByRole("button", { name: "Фильтр статуса" })).toHaveFocus());
   expect(historyIds()).toEqual(["account-old-pending", "account-second-pending"]);
-  expect(screen.getByText("Основной · примеры и симуляции")).toBeVisible();
+  expect(screen.getByText("Кастодиальный · примеры и симуляции")).toBeVisible();
   const row = document.querySelector<HTMLButtonElement>('[data-product-activity-id="account-second-pending"]')!;
   fireEvent.click(row);
   expect(row).toHaveAttribute("aria-expanded", "true");
@@ -219,7 +223,7 @@ it("account pending fix refuses Back before changing the inspection when the hos
   back.focus(); fireEvent.click(back);
   expect(view.scene).toHaveAttribute("data-mono-section", "history");
   expect(screen.getByRole("region", { name: "Квитанция операции" })).toBeVisible();
-  expect(screen.queryByRole("region", { name: "Основной" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "Кастодиальный" })).toBeNull();
   expect(view.current().view.expandedActivityId).toBe("account-old-pending");
   expect(view.current().view.accountsWorkspace).toBe(workspace);
   expect(view.current().view.context).toBe(context);
@@ -244,19 +248,19 @@ it("account pending rejects a changed History-row scope before exposing a foreig
   const event = { ...pending };
   await accountScene([event, { ...pending, id: "still-in-account" }]); inspect(); fireEvent.click(launcher(2));
   const row = document.querySelector<HTMLButtonElement>('[data-product-activity-id="account-old-pending"]')!;
-  event.accountId = "demo-depositary"; event.accountLabel = "Хранилище";
+  event.accountId = "demo-depositary"; event.accountLabel = "Депозитарный";
   fireEvent.click(row);
   expect(screen.queryByRole("region", { name: "Квитанция операции" })).toBeNull();
   expect(screen.getByRole("status")).toHaveTextContent("Операция сейчас недоступна");
   expect(historyIds()).toEqual(["still-in-account"]);
 });
 
-it.each(["Основной", "Хранилище"])("account pending scopes both internal participants and commerce legs once for %s even without a holding", async label => {
+it.each(["Кастодиальный", "Депозитарный"])("account pending scopes both internal participants and commerce legs once for %s even without a holding", async label => {
   const internal: ProductActivity = { ...pending, id: "internal-once", internalTransfer: {
-    sourceAccountId: "demo-custody", sourceAccountLabel: "Основной", destinationAccountId: "demo-depositary", destinationAccountLabel: "Хранилище",
+    sourceAccountId: "demo-custody", sourceAccountLabel: "Кастодиальный", destinationAccountId: "demo-depositary", destinationAccountLabel: "Депозитарный",
   } };
   const commerce = createSwapSimulationFixture();
-  commerce.quote.credit = { ...commerce.quote.credit, accountId: "demo-depositary", accountLabel: "Хранилище" };
+  commerce.quote.credit = { ...commerce.quote.credit, accountId: "demo-depositary", accountLabel: "Депозитарный" };
   commerce.quote.request.destination = { ...commerce.quote.credit };
   await accountScene([internal, createSwapActivityFixture({ status: "pending", commerce }),
     { ...foreign, id: "unrelated", accountId: "demo-private" }]);
@@ -266,8 +270,14 @@ it.each(["Основной", "Хранилище"])("account pending scopes both
 });
 
 it("account pending does not require an active account, holdings or send capability", async () => {
-  const account = MONO_PRODUCT_DEMO_ADAPTER.snapshot.accounts.find(candidate => candidate.id === "demo-inactive")!;
-  await accountScene([{ ...pending, accountId: account.id, accountLabel: account.label }]);
+  const fixture: ProductSnapshot = MULTI_ACCOUNT_DEMO;
+  const account = fixture.accounts.find(candidate => candidate.id === "demo-inactive")!;
+  const snapshot = { ...fixture, holdings: fixture.holdings.filter(holding => holding.accountId !== account.id) };
+  expect(account.status).toBe("inactive");
+  expect(account.capabilities.some(capability => capability.action === "send")).toBe(false);
+  expect(snapshot.holdings.some(holding => holding.accountId === account.id)).toBe(false);
+  expect(resolveActionRoutes(snapshot, { kind: "account", accountId: account.id }, "send").routes).toHaveLength(0);
+  await accountScene([{ ...pending, accountId: account.id, accountLabel: account.label }], { snapshot });
   inspect(account.label);
   expect(launcher()).not.toBeDisabled();
   fireEvent.click(launcher());
@@ -293,7 +303,7 @@ it.each(["completed", "failed"] as const)("account pending opens the current %s 
   expect(document.querySelector('[data-product-activity-id="account-old-pending"]')).toHaveAttribute("data-status", status);
   expect(screen.getByRole("button", { name: "Фильтр статуса" })).toHaveAccessibleDescription("Текущий статус: Все статусы");
   fireEvent.click(screen.getByRole("button", { name: "К счёту" }));
-  await waitFor(() => expect(screen.getByRole("heading", { name: "Основной" })).toHaveFocus());
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Кастодиальный · Демо" })).toHaveFocus());
   expect(screen.queryByRole("button", { name: /В процессе/ })).toBeNull();
 });
 
@@ -315,7 +325,7 @@ it("account pending leaves a guard-rejected controlled section and its account d
   const view = await accountScene([pending], { readonlySection: true }); inspect();
   const workspace = view.current().view.accountsWorkspace;
   fireEvent.click(launcher());
-  expect(screen.getByRole("region", { name: "Основной" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "Кастодиальный" })).toBeVisible();
   expect(launcher()).toBeInTheDocument();
   expect(screen.queryByRole("status")).toBeNull();
   expect(screen.queryByRole("heading", { name: "История операций" })).toBeNull();
@@ -352,7 +362,7 @@ it.each(["session", "account", "context"] as const)("account pending invalidates
   }
   expect(screen.queryByRole("region", { name: "Квитанция операции" })).toBeNull();
   expect(screen.queryByRole("button", { name: "К счёту" })).toBeNull();
-  expect(screen.queryByRole("heading", { name: "Хранилище" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Депозитарный" })).toBeNull();
   expect(view.scene).toHaveAttribute("data-mono-section", "overview");
   fireEvent.click(screen.getByRole("button", { name: "История" }));
   expect(screen.queryByRole("region", { name: "Квитанция операции" })).toBeNull();

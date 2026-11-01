@@ -157,7 +157,7 @@ export function ProductHistory({
       <h1 id={titleId} tabIndex={-1} data-product-history-title>История операций</h1>
     </div>
     <p className={styles.intro}>
-      {accountId === undefined ? "Все счета" : accountLabel ?? "Выбранный счёт"} · примеры и симуляции
+      {accountId === undefined ? "Общий обзор" : accountLabel ?? "Выбранный счёт"} · примеры и симуляции
     </p>
     {status === "ready" && scopedActivities.length > 0 && <>
       <div className={styles.historyTools}>

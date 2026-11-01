@@ -46,8 +46,8 @@ async function home(options: { adapter?: MonoProductAdapter; hidden?: boolean } 
   } };
 }
 
-function accountWorkspace() {
-  return screen.getByRole("region", { name: "Основной" });
+function accountWorkspace(label = "Кастодиальный") {
+  return screen.getByRole("region", { name: label });
 }
 
 function holdingDisclosure(root: HTMLElement = accountWorkspace()) {
@@ -70,10 +70,10 @@ function holdingDetails() {
   return target!;
 }
 
-function inspectMain() {
+function inspectMain(label = "Кастодиальный") {
   fireEvent.click(screen.getByRole("button", { name: "Меню" }));
   fireEvent.click(screen.getByRole("button", { name: "Мои счета" }));
-  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  fireEvent.click(screen.getByRole("button", { name: `Открыть счёт: ${label}` }));
 }
 
 function closePreparation() {
@@ -83,6 +83,22 @@ function closePreparation() {
 const ethereumSend = {
   action: "send", accountId: "demo-custody", assetId: "usdc", networkId: "ethereum",
 } as const;
+
+it("returns the chosen account-level Ethereum receive to its own launcher", async () => {
+  const view = await home();
+  inspectMain();
+  const launcher = within(accountWorkspace()).getByRole("button", { name: "Получить" });
+  fireEvent.click(launcher);
+  fireEvent.click(within(accountWorkspace()).getByRole("button", {
+    name: "Подготовить получение USDC · Кастодиальный · Ethereum · Внешнее получение",
+  }));
+  expect(view.current().view.sheet).toMatchObject({ kind: "intent", action: "receive", route: {
+    accountId: "demo-custody", assetId: "usdc", networkId: "ethereum", receiveMode: "external-address",
+  } });
+  const dialog = await screen.findByRole("dialog", { name: "Получить" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Закрыть" }));
+  await waitFor(() => expect(within(accountWorkspace()).getByRole("button", { name: "Получить" })).toHaveFocus());
+});
 
 it.each(["close", "Back"])("returns direct Ethereum Send %s to the same visible placement action without committing disclosure", async exit => {
   const view = await home({ hidden: true });
@@ -106,7 +122,7 @@ it.each(["close", "Back"])("returns direct Ethereum Send %s to the same visible 
   expect(flow).toHaveAttribute("data-send-stage", "recipient");
   expect(within(flow).getByRole("button", { name: "О валюте USDC в сети Ethereum" })).toBeInTheDocument();
   expect(flow.closest('[data-product-flow-surface="send"]')).not.toBeNull();
-  const back = within(flow).getByRole("button", { name: /Назад.*Основной|Назад.*размещени/i });
+  const back = within(flow).getByRole("button", { name: /Назад.*Кастодиальный|Назад.*размещени/i });
   if (exit === "close") closePreparation();
   else fireEvent.click(back);
   await waitFor(() => expect(holdingAction("send")).toHaveFocus());
@@ -124,13 +140,13 @@ it("keeps the expanded holding through Details and child Send, then returns to i
   expect(view.current().view.context).toEqual({ kind: "account", accountId: "demo-custody" });
   expect(view.current().view.assetWorkspace).toEqual({ assetId: "usdc", holdingId: "demo-usdc-eth" });
   const details = screen.getByRole("region", { name: "USD Coin" });
-  fireEvent.click(within(details).getByRole("button", { name: "Отправить USDC · Основной · Ethereum" }));
+  fireEvent.click(within(details).getByRole("button", { name: "Отправить USDC · Кастодиальный · Ethereum" }));
   expect(view.current().view.sheet).toMatchObject({ kind: "intent", route: ethereumSend, placementId: "demo-usdc-eth" });
   await screen.findByLabelText("Получатель");
   closePreparation();
   await waitFor(() => expect(within(screen.getByRole("region", { name: "USD Coin" }))
-    .getByRole("button", { name: "Отправить USDC · Основной · Ethereum" })).toHaveFocus());
-  fireEvent.click(screen.getByRole("button", { name: /Назад.*Основной|Назад.*размещени/i }));
+    .getByRole("button", { name: "Отправить USDC · Кастодиальный · Ethereum" })).toHaveFocus());
+  fireEvent.click(screen.getByRole("button", { name: /Назад.*Кастодиальный|Назад.*размещени/i }));
   await waitFor(() => expect(holdingDetails()).toHaveFocus());
   expect(holdingDisclosure()).toHaveAttribute("aria-expanded", "true");
   expect(view.current().view.assetWorkspace).toBeNull();
@@ -142,8 +158,8 @@ it("opens the exact internal Ethereum receive route in an empty Vault and return
   const view = await home();
   fireEvent.click(screen.getByRole("button", { name: "Меню" }));
   fireEvent.click(screen.getByRole("button", { name: "Мои счета" }));
-  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Хранилище" }));
-  const vault = screen.getByRole("region", { name: "Хранилище" });
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Депозитарный" }));
+  const vault = screen.getByRole("region", { name: "Депозитарный" });
   expect(within(vault).getByText("Размещений пока нет.")).toBeInTheDocument();
   fireEvent.click(within(vault).getByRole("button", { name: "Получить на счёт" }));
   if (!view.current().view.sheet) {
@@ -159,11 +175,11 @@ it("opens the exact internal Ethereum receive route in an empty Vault and return
   expect(heading).toBeInTheDocument();
   const receive = screen.getByRole("dialog", { name: "Получить" });
   const direction = await within(receive).findByRole("group", { name: "Направление пополнения" });
-  expect(direction).toHaveTextContent(/Откуда\s*Основной/);
-  expect(direction).toHaveTextContent(/Куда\s*Хранилище/);
+  expect(direction).toHaveTextContent(/Откуда\s*Кастодиальный/);
+  expect(direction).toHaveTextContent(/Куда\s*Депозитарный/);
   expect(within(receive).getByLabelText("Сумма пополнения")).toBeInTheDocument();
   fireEvent.click(within(receive).getByRole("button", { name: "Закрыть" }));
-  await waitFor(() => expect(within(screen.getByRole("region", { name: "Хранилище" }))
+  await waitFor(() => expect(within(screen.getByRole("region", { name: "Депозитарный" }))
     .getByRole("button", { name: "Получить на счёт" })).toHaveFocus());
   expect(view.current().view.context).toEqual({ kind: "account", accountId: "demo-depositary" });
 });
@@ -171,9 +187,9 @@ it("opens the exact internal Ethereum receive route in an empty Vault and return
 it.each(["holding", "route"])("returns to a visible safe account target when the source %s disappears", async missing => {
   const snapshot: ProductSnapshot = structuredClone(MULTI_ACCOUNT_DEMO);
   const view = await home({ adapter: { kind: "demo", snapshot } });
-  inspectMain();
-  fireEvent.click(holdingDisclosure());
-  fireEvent.click(holdingAction("send"));
+  inspectMain("Основной");
+  fireEvent.click(holdingDisclosure(accountWorkspace("Основной")));
+  fireEvent.click(holdingAction("send", accountWorkspace("Основной")));
   await screen.findByLabelText("Получатель");
   const next: ProductSnapshot = structuredClone(snapshot);
   if (missing === "holding") next.holdings = next.holdings.filter(holding => holding.id !== "demo-usdc-eth");
@@ -187,8 +203,8 @@ it.each(["holding", "route"])("returns to a visible safe account target when the
     expect(view.current().view.sheet).toMatchObject({ kind: "intent", route: null });
     fireEvent.keyDown(document, { key: "Escape" });
   }
-  await waitFor(() => expect(missing === "holding" ? screen.getByRole("heading", { name: "Основной" })
-    : holdingDisclosure()).toHaveFocus());
+  await waitFor(() => expect(missing === "holding" ? screen.getByRole("heading", { name: "Основной · Демо" })
+    : holdingDisclosure(accountWorkspace("Основной"))).toHaveFocus());
   expect(document.activeElement?.closest("[hidden], [inert]")).toBeNull();
   expect(view.current().view.sheet).toBeNull();
   expect(view.current().view.accountsWorkspace).toEqual({ accountId: "demo-custody" });

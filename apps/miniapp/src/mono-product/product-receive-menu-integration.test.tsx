@@ -41,7 +41,8 @@ it("opens a nonmodal receive menu, follows an exact external route, and restores
   expect(screen.getByRole("navigation", { name: "Разделы кошелька" })).not.toHaveAttribute("inert");
   expect(trigger).toHaveAttribute("aria-expanded", "true");
   const route = () => within(screen.getByRole("dialog", { name: "Получить" }))
-    .getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Основной)/ });
+    .getByRole("button", { name: "USDC · USD Coin · Ethereum · Кастодиальный · Внешнее получение" });
+  expect(route()).toHaveAttribute("data-product-route-key", "receive:demo-custody:usdc:ethereum:external-address");
   fireEvent.click(route());
   const amount = await screen.findByRole("textbox", { name: /Желаемая сумма/ });
   const fullScreen = screen.getByRole("dialog", { name: "Получить" });
@@ -67,14 +68,17 @@ it("keeps menu account switching local, toggles the trigger and lets another act
   await home();
   const trigger = screen.getByRole("button", { name: "Получить" });
   fireEvent.click(trigger);
-  fireEvent.click(within(screen.getByRole("dialog", { name: "Получить" })).getByRole("button", { name: "Хранилище" }));
+  expect(MONO_PRODUCT_DEMO_ADAPTER.snapshot.accounts.find(account => account.id === "demo-depositary")?.capabilities)
+    .toEqual(expect.arrayContaining([expect.objectContaining({ action: "receive", assetId: "usdc", networkId: "ethereum", receiveMode: "internal-transfer" })]));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Получить" })).getByRole("button", { name: "Депозитарный" }));
   expect(screen.getByRole("heading", { name: "Общий баланс" })).toBeInTheDocument();
   const route = within(screen.getByRole("dialog", { name: "Получить" }))
-    .getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Хранилище)(?=.*Между счетами)/ });
+    .getByRole("button", { name: "USDC · USD Coin · Ethereum · Депозитарный · Между счетами" });
+  expect(route).toHaveAttribute("data-product-route-key", "receive:demo-depositary:usdc:ethereum:internal-transfer");
   fireEvent.click(route);
   await screen.findByRole("textbox", { name: "Сумма пополнения" });
   fireEvent.click(screen.getByRole("button", { name: /Назад к выбору маршрута/ }));
-  expect(within(screen.getByRole("dialog", { name: "Получить" })).getByRole("button", { name: "Хранилище" }))
+  expect(within(screen.getByRole("dialog", { name: "Получить" })).getByRole("button", { name: "Депозитарный" }))
     .toHaveAttribute("aria-pressed", "true");
   fireEvent.click(trigger);
   expect(screen.queryByRole("dialog")).toBeNull();
@@ -131,7 +135,7 @@ it("keeps the receive screen inside the visible scroll frame below lab chrome an
   });
   fireEvent.click(trigger);
   fireEvent.click(within(screen.getByRole("dialog", { name: "Получить" }))
-    .getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Основной)/ }));
+    .getByRole("button", { name: "USDC · USD Coin · Ethereum · Кастодиальный · Внешнее получение" }));
   await screen.findByRole("textbox", { name: /Желаемая сумма/ });
   const layer = container.querySelector<HTMLElement>("[data-product-receive-screen]")!;
   expect(layer).toHaveStyle({ position: "absolute", left: "0px", top: "27px", width: "390px", height: "790px" });

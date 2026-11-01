@@ -94,6 +94,8 @@
   :global([data-mono-motion="ready"]) .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .primaryAction, .moreAction, .details, .accountEntryButton, .action) { transition: background-color 190ms var(--mono-product-motion-ease, cubic-bezier(.2, 0, 0, 1)); }
   :global([data-mono-motion="ready"]) .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .primaryAction, .moreAction, .details, .accountEntryButton, .action):active { transition-duration: 80ms; }
 }
+/* The R1 custody list already enters as a single linked workspace. */
+.workspace .identity[data-r1-linked-identity] { animation: none; }
 @keyframes arrive { from { opacity: .7; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 :global([data-mono-motion="static"]) .identity { animation: none; }
 :global([data-mono-motion="static"]) .workspace button { transition: none; }
@@ -109,6 +111,34 @@
   .holdingContent { padding-left: 6px; }
   .restriction { margin-left: 0; }
 }
+
+/* Only marked wallet catalogue entries receive the reference-wallet surface. */
+.workspace button[data-wallet-catalogue-card] {
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  gap: 3px 10px;
+  width: 100%;
+  min-height: 76px;
+  margin: 4px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: 14px;
+  background: linear-gradient(125deg, var(--mono-surface, #1a1c21), var(--mono-surface-high, #25272e));
+}
+.workspace button[data-wallet-catalogue-card] .accountIcon {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  padding: 5px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: 8px;
+  background: var(--mono-surface-high, #25272e);
+}
+.workspace button[data-wallet-catalogue-card] .accountCopy { grid-column: 2; grid-row: 1; }
+.workspace button[data-wallet-catalogue-card] .rowEstimate { grid-column: 2; grid-row: 2; max-width: 100%; text-align: left; }
+.workspace button[data-wallet-catalogue-card] .chevron { grid-column: 3; grid-row: 1; }
+.workspace button[data-wallet-catalogue-card][aria-current="true"] { border-color: var(--mono-text-secondary, #bdbdbd); }
 @media (prefers-reduced-transparency: reduce) { .holding[data-expanded="true"] { background: var(--mono-surface-high, #202020); } }
 @media (forced-colors: active) {
   .holding[data-expanded="true"] { background: Canvas; }

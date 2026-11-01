@@ -171,7 +171,7 @@ it("allows a harmless home return from a readonly Overview account workspace", a
 it.each([320, 390, 480])("anchors the account chooser beside its actual trigger within a %ipx wallet", async size => {
   width = size;
   const view = await home({ initialSection: "assets" });
-  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Все счета" });
+  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" });
   trigger.focus(); fireEvent.click(trigger);
   const panel = screen.getByRole("dialog", { name: "Выбор счёта" });
   expect(panel.closest("[data-product-sheet]")).toBeNull();
@@ -187,21 +187,21 @@ it.each([320, 390, 480])("anchors the account chooser beside its actual trigger 
   expect(trigger).toHaveFocus();
 });
 
-it("keeps closed unavailable, selects an exact available account, masks estimates and preserves outside navigation focus", async () => {
+it("keeps private unavailable, selects an exact available account, masks estimates and preserves outside navigation focus", async () => {
   const view = await home({ initialSection: "assets" });
   act(() => view.current().commands.setBalanceHidden(true));
-  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Все счета" });
+  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" });
   fireEvent.click(trigger);
   const panel = screen.getByRole("dialog", { name: "Выбор счёта" });
   expect(panel.textContent).not.toMatch(/12\s?840|8\s?040|3\s?900|500|400/);
-  const closed = within(panel).getByRole("button", { name: /Закрытый/ });
+  const closed = within(panel).getByRole("button", { name: /Приватный/ });
   expect(closed).toBeDisabled();
   expect(closed).toHaveTextContent("Пока недоступен");
   fireEvent.click(closed);
   expect(view.current().view.context).toEqual({ kind: "all" });
-  fireEvent.click(within(panel).getByRole("button", { name: /Хранилище/ }));
+  fireEvent.click(within(panel).getByRole("button", { name: /Депозитарный/ }));
   expect(view.current().view.context).toEqual({ kind: "account", accountId: "demo-depositary" });
-  const selected = screen.getByRole("button", { name: "Выбрать счёт: Хранилище" });
+  const selected = screen.getByRole("button", { name: "Выбрать счёт: Депозитарный" });
   await waitFor(() => expect(selected).toHaveFocus());
   fireEvent.click(selected); fireEvent.click(selected);
   expect(screen.queryByRole("dialog", { name: "Выбор счёта" })).toBeNull();
@@ -219,7 +219,7 @@ it("keeps a long chooser within the frame and visual viewport while following a 
   const snapshot = { ...MULTI_ACCOUNT_DEMO, accounts: [ ...MULTI_ACCOUNT_DEMO.accounts,
     ...Array.from({ length: 20 }, (_, index) => ({ ...MULTI_ACCOUNT_DEMO.accounts[0]!, id: `extra-${index}`, label: `Счёт ${index + 1}` })) ] };
   const view = await home({ initialSection: "assets", framed: true, adapter: { kind: "demo", snapshot } });
-  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Все счета" });
+  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" });
   fireEvent.click(trigger);
   const panel = screen.getByRole("dialog", { name: "Выбор счёта" });
   expect(panel).toHaveAttribute("data-side", "above");
@@ -227,7 +227,9 @@ it("keeps a long chooser within the frame and visual viewport while following a 
   expect(Number.parseFloat(panel.style.left) + Number.parseFloat(panel.style.width)).toBeLessThanOrEqual(298);
   expect(Number.parseFloat(panel.style.top)).toBeGreaterThanOrEqual(22);
   expect(Number.parseFloat(panel.style.maxHeight)).toBeLessThanOrEqual(120);
-  expect(within(panel).getAllByRole("button", { name: /Счёт \d/ })).toHaveLength(20);
+  const customAccounts = within(panel).getAllByRole("button", { name: /Счёт \d/ });
+  expect(customAccounts.map(button => button.getAttribute("data-account-context")))
+    .toEqual(Array.from({ length: 20 }, (_, index) => `extra-${index}`));
   anchorTop = 68;
   fireEvent.scroll(document);
   expect(panel).toHaveAttribute("data-side", "below");
@@ -241,7 +243,7 @@ it("keeps a long chooser within the frame and visual viewport while following a 
 
 it("retains an inert chooser for its finite close and ignores stale completion after rapid reopening", async () => {
   const view = await home({ initialSection: "assets", calm: true });
-  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Все счета" });
+  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" });
   fireEvent.click(trigger);
   const panel = screen.getByRole("dialog", { name: "Выбор счёта" });
   fireEvent.keyDown(document, { key: "Escape" });
@@ -262,7 +264,7 @@ it("retains an inert chooser for its finite close and ignores stale completion a
 it.each(["reduced", "effects-off"])("closes the chooser immediately under the %s motion guard", async guard => {
   if (guard === "reduced") await animations.reduceMotion();
   const view = await home({ initialSection: "assets", calm: true, effectsDisabled: guard === "effects-off" });
-  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Все счета" });
+  const trigger = screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" });
   fireEvent.click(trigger);
   expect(screen.getByRole("dialog", { name: "Выбор счёта" })).toBeInTheDocument();
   fireEvent.keyDown(document, { key: "Escape" });

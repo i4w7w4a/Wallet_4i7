@@ -3,6 +3,7 @@ import { productRouteKey } from "../product-controller";
 
 export type AccountsActionOrigin =
   | { kind: "holding-action"; holdingId: string; action: "send" | "receive" | "buy" | "swap"; routeKey: string }
+  | { kind: "account-quick-action"; action: "send" | "receive" | "buy" | "swap"; routeKey: string }
   | { kind: "account-action"; entry: "receive" | "other"; action: "send" | "receive" | "buy" | "swap"; routeKey: string };
 
 export type AccountPlacementActions = {

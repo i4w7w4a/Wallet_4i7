@@ -1,0 +1,22 @@
+/* The asset-list controls still own variant, density and separator choices. */
+:global(.mono-page:not([data-mono-presentation="gold"])) .assets :global(.mono-product-funds__heading) {
+  padding-block: 12px;
+}
+:global(.mono-page:not([data-mono-presentation="gold"])) .assets :global(.mono-product-funds__identity),
+:global(.mono-page:not([data-mono-presentation="gold"])) .assets :global(.mono-product-funds__value) {
+  gap: 5px;
+}
+:global(.mono-page:not([data-mono-presentation="gold"])) .assets[data-separators="subtle"] :global(.mono-product-funds__expand) {
+  border-left: 1px solid var(--mono-rule, #343434);
+  border-radius: 0;
+}
+:global(.mono-page:not([data-mono-presentation="gold"])) .assets :global(.mono-product-funds__placement-context strong) {
+  color: var(--mono-text, #f4f4f4);
+}
+:global(.mono-page:not([data-mono-presentation="gold"])) .assets :global(.mono-product-funds__placement-values small) {
+  font-variant-numeric: tabular-nums;
+}
+:global(.mono-page:not([data-mono-presentation="gold"])) .assets[data-variant="tiles"] :global(.mono-product-funds__list > li) {
+  border-radius: 14px;
+  background: var(--mono-surface, #141414);
+}

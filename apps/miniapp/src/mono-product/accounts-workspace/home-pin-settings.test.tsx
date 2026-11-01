@@ -15,21 +15,21 @@ it("keeps choices while total-only hides pins and explains how manual selection 
   }
   render(<Host />);
   const total = screen.getByRole("checkbox", { name: "Только общий баланс" });
-  const custody = screen.getByRole("checkbox", { name: "Кастодиальные" });
+  const custody = screen.getByRole("checkbox", { name: "Кастодиальный" });
   fireEvent.click(total);
   expect(total).toBeChecked(); expect(custody).toBeChecked();
   expect(screen.getByText(/Выбор сохранён/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("checkbox", { name: "Депозитарные" }));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Депозитарные" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Депозитарный" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Депозитарный" }));
   expect(total).not.toBeChecked();
   expect(screen.getByRole("status")).toHaveTextContent(/Показываем выбранные кошельки/);
 });
 
-it("renders unavailable closed and fiat slots with no financial values or callbacks", () => {
+it("renders the unavailable private slot with no financial values or callbacks", () => {
   const toggle = vi.fn();
   render(<HomePinSettings groups={selectAccountGroups(MULTI_ACCOUNT_DEMO)} pinnedKinds={[]} totalOnly={false}
     onToggle={toggle} onTotalOnlyChange={() => true} />);
-  for (const name of ["Закрытый", "Фиатный"]) {
+  for (const name of ["Приватный"]) {
     const choice = screen.getByRole("checkbox", { name });
     expect(choice).toBeDisabled();
     expect(choice).toHaveAccessibleDescription("Пока недоступен");

@@ -76,7 +76,8 @@ for (const host of ["published", "portable"] as const) {
       : <MonoViewerPage snapshot={wallet} />);
     await waitFor(() => expect(view.container.querySelector("[data-mono-preview]")).toBeInTheDocument());
     const scene = view.container.querySelector<HTMLElement>("[data-mono-preview]")!;
-    expect(screen.queryByRole("button", { name: "Мои средства" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Мои средства" })).toBeNull();
+    expect(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" })).toBeVisible();
     expect(screen.getAllByRole("region", { name: "Общий баланс" })).toHaveLength(1);
     expect(screen.getByRole("button", { name: "В процессе · 1" })).toBeVisible();
     expect(scene).not.toHaveAttribute("data-mono-presentation");
@@ -118,7 +119,7 @@ for (const host of ["published", "portable"] as const) {
       .toBe(archived.source);
   });
 
-  it(`${host} preserves visitor preferences while Funds, privacy, History search/status/reset and receipts work`, async () => {
+  it(`${host} preserves visitor preferences while Assets, privacy, History search/status/reset and receipts work`, async () => {
     const archived = appearances[1];
     const theme = '{ "version": 1, "theme": "light" }';
     const pins = '{ "version": 2, "groups": ["depositary"], "totalOnly": true }';
@@ -130,13 +131,13 @@ for (const host of ["published", "portable"] as const) {
       ? <MonoPublishedViewer wallet={wallet} published={archived.snapshot} />
       : <MonoViewerPage snapshot={wallet} />);
     await waitFor(() => expect(view.container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-theme", "light"));
-    expect(screen.queryByRole("button", { name: "Мои средства" })).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Мои средства" }));
+    expect(screen.queryByRole("button", { name: "Мои средства" })).toBeNull();
+    navigate("Активы");
     expect(screen.getByRole("button", { name: "Выбрать счёт: Все счета" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" }));
     fireEvent.click(screen.getByRole("button", { name: "Назад к активам" }));
     fireEvent.click(screen.getByRole("button", { name: "Назад в обзор" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Мои средства" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Общий баланс" })).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Скрыть баланс" }));
     navigate("История");
     const activity = screen.getByRole("region", { name: "История операций" });

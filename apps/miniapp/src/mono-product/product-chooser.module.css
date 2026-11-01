@@ -323,3 +323,136 @@
     transition: none;
   }
 }
+
+/* Reference-wallet picker only; route selection keeps the shared rules above. */
+.chooser[data-novex-wallet-picker] .accountList {
+  display: grid;
+  gap: 6px;
+}
+
+.chooser[data-novex-wallet-picker] :is(button[data-wallet-overview], [data-wallet-overview] > button) {
+  grid-template-columns: 24px minmax(0, 1fr) 16px;
+  gap: 2px 8px;
+  min-height: 48px;
+  padding: 6px 8px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: 12px;
+  background: var(--mono-surface-high, #25272e);
+}
+
+.chooser[data-novex-wallet-picker] [data-wallet-overview] .accountIcon { grid-column: 1; grid-row: 1 / span 2; }
+.chooser[data-novex-wallet-picker] [data-wallet-overview] .accountCopy { grid-column: 2; }
+.chooser[data-novex-wallet-picker] [data-wallet-overview] .accountValue { grid-column: 2; text-align: left; }
+.chooser[data-novex-wallet-picker] [data-wallet-overview] .selectionMark { grid-column: 3; grid-row: 1; }
+.chooser[data-novex-wallet-picker] .accountList + .accountList { margin-top: 6px; }
+
+.chooser[data-novex-wallet-picker] button[data-wallet-type-card] {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 16px;
+  align-items: center;
+  gap: 2px 8px;
+  width: 100%;
+  min-width: 44px;
+  min-height: 64px;
+  padding: 8px 10px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: 14px;
+  background: linear-gradient(125deg, var(--mono-surface, #1a1c21), var(--mono-surface-high, #25272e));
+  color: var(--mono-text, #f4f4f4);
+  text-align: left;
+}
+
+.chooser[data-novex-wallet-picker] button[data-wallet-type-card] .accountCopy { grid-column: 1; min-width: 0; }
+.chooser[data-novex-wallet-picker] button[data-wallet-type-card] .accountValue {
+  grid-column: 1;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.chooser[data-novex-wallet-picker] [data-wallet-type-name] { overflow-wrap: break-word; }
+.chooser[data-novex-wallet-picker] [data-wallet-type-state] { overflow-wrap: break-word; }
+
+.chooser[data-novex-wallet-picker] button[data-wallet-type-card] [data-wallet-type-emblem] {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: 12px;
+  background: var(--mono-surface-high, #25272e);
+  color: var(--mono-text-secondary, #bdbdbd);
+}
+
+.chooser[data-novex-wallet-picker] [data-wallet-type-emblem]::before,
+.chooser[data-novex-wallet-picker] [data-wallet-type-emblem]::after {
+  content: "";
+  position: absolute;
+  border: 1px solid var(--mono-rule, #343434);
+  pointer-events: none;
+}
+
+.chooser[data-novex-wallet-picker] [data-wallet-type-card="custodial"] [data-wallet-type-emblem]::before {
+  inset: 6px 9px 8px 7px;
+  border-radius: 5px;
+  transform: translate(3px, -2px);
+}
+.chooser[data-novex-wallet-picker] [data-wallet-type-card="custodial"] [data-wallet-type-emblem]::after {
+  inset: 6px 9px 8px 7px;
+  border-radius: 5px;
+  transform: translate(5px, -4px);
+}
+.chooser[data-novex-wallet-picker] [data-wallet-type-card="depositary"] [data-wallet-type-emblem]::before {
+  inset: 8px 6px 12px;
+  border-radius: 6px;
+  transform: translateY(4px);
+}
+.chooser[data-novex-wallet-picker] [data-wallet-type-card="depositary"] [data-wallet-type-emblem]::after {
+  inset: 8px 6px 12px;
+  border-radius: 6px;
+  transform: translateY(8px);
+}
+.chooser[data-novex-wallet-picker] [data-wallet-type-card="private"] [data-wallet-type-emblem]::before {
+  inset: 6px 8px;
+  border-radius: 14px 6px 14px 6px;
+}
+.chooser[data-novex-wallet-picker] [data-wallet-type-card="private"] [data-wallet-type-emblem]::after { display: none; }
+
+.chooser[data-novex-wallet-picker] [data-wallet-type-emblem] svg {
+  position: relative;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+}
+
+.chooser[data-novex-wallet-picker] [data-wallet-type-card="custodial"] [data-wallet-type-emblem] {
+  box-shadow: -3px 3px 0 -1px var(--mono-surface, #1a1c21), -3px 3px 0 0 var(--mono-rule, #343434);
+}
+.chooser[data-novex-wallet-picker] [data-wallet-type-card="depositary"] [data-wallet-type-emblem] {
+  border-radius: 9px;
+  box-shadow: 0 4px 0 -2px var(--mono-surface, #1a1c21), 0 4px 0 -1px var(--mono-rule, #343434);
+}
+.chooser[data-novex-wallet-picker] [data-wallet-type-card="private"] [data-wallet-type-emblem] {
+  border-radius: 16px 8px 16px 8px;
+}
+
+.chooser[data-novex-wallet-picker] button[data-wallet-type-card] .selectionMark { grid-column: 3; grid-row: 1; }
+.chooser[data-novex-wallet-picker] button[data-wallet-type-card][aria-current="true"] { border-color: var(--mono-text-secondary, #bdbdbd); }
+.chooser[data-novex-wallet-picker] button[data-wallet-type-card]:disabled { color: var(--mono-text-secondary, #bdbdbd); cursor: default; }
+.chooser[data-novex-wallet-picker] button[data-wallet-type-card]:disabled [data-wallet-type-name] { color: var(--mono-text, #f4f4f4); }
+.chooser[data-novex-wallet-picker] :is(button[data-wallet-type-card], button[data-wallet-overview], [data-wallet-overview] > button):focus-visible {
+  outline: 2px solid var(--mono-palette-focus-ff, currentColor);
+  outline-offset: -3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chooser[data-novex-wallet-picker] button[data-wallet-type-card]:hover:not(:disabled):not(:active) { background: var(--mono-surface-high, #25272e); }
+}
+
+@media (forced-colors: active) {
+  .chooser[data-novex-wallet-picker] button[data-wallet-type-card][aria-current="true"] { border-color: Highlight; }
+  .chooser[data-novex-wallet-picker] :is(button[data-wallet-type-card], button[data-wallet-overview], [data-wallet-overview] > button):focus-visible { outline-color: Highlight; }
+}

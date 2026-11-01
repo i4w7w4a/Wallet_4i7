@@ -3,7 +3,6 @@
 import { selectFiatBalanceMinor, selectHoldings, type AccountContext, type ProductAccount, type ProductSnapshot } from "@wallet/core";
 import { formatFiatMinor } from "./product-format";
 import { AccountKindIcon } from "./accounts-workspace/account-kind-icon";
-import { UNAVAILABLE_ACCOUNT_SLOTS } from "./accounts-workspace/account-catalogue";
 import styles from "./product-chooser.module.css";
 
 export type ProductAccountChooserProps = {
@@ -22,36 +21,45 @@ export function ProductAccountChooser({ snapshot, context, balanceHidden, onSele
     return balanceHidden ? "Значения скрыты" : formatFiatMinor(selectFiatBalanceMinor(selectHoldings(snapshot, next)));
   }
 
-  return <div className={styles.chooser} data-product-account-chooser>
-    <p className={styles.intro}>«Все счета» — общая оценка стоимости, не доступный остаток для отправки.</p>
-    <ul className={styles.accountList} aria-label="Счета">
-      <li>
+  const wallets = [
+    { kind: "custodial", label: "Кастодиальный" },
+    { kind: "depositary", label: "Депозитарный" },
+    { kind: "private", label: "Приватный" },
+  ] as const;
+
+  return <div className={styles.chooser} data-product-account-chooser data-novex-wallet-picker>
+    <ul className={styles.accountList} aria-label="Общий обзор">
+      <li data-wallet-overview>
         <button type="button" className={styles.accountRow} aria-current={context.kind === "all" ? "true" : undefined}
           data-account-context="all" onClick={() => onSelectContext({ kind: "all" })}>
           <AccountContextIcon className={styles.accountIcon} stacked />
-          <span className={styles.accountCopy}><strong>Все счета</strong><small>Общая оценка</small></span>
+          <span className={styles.accountCopy}><strong>Общий обзор</strong><small>Общая оценка, не остаток для отправки</small></span>
           <span className={styles.accountValue}>{estimate({ kind: "all" })}</span>
           <SelectionMark />
         </button>
       </li>
-      {snapshot.accounts.filter(account => account.kind !== "private").map(account => <li key={account.id}>
-        <button type="button" className={styles.accountRow}
-          aria-current={context.kind === "account" && context.accountId === account.id ? "true" : undefined}
-          data-account-context={account.id} data-account-status={account.status}
-          onClick={() => onSelectContext({ kind: "account", accountId: account.id })}>
-          <AccountContextIcon className={styles.accountIcon} />
-          <span className={styles.accountCopy}><strong>{account.label}</strong><small>{accountStatus[account.status]}</small></span>
-          <span className={styles.accountValue}>{estimate({ kind: "account", accountId: account.id })}</span>
-          <SelectionMark />
-        </button>
-      </li>)}
-      {UNAVAILABLE_ACCOUNT_SLOTS.map(slot => <li key={slot.key}>
-        <button type="button" className={styles.accountRow} disabled data-account-slot={slot.key}>
-          {slot.iconKind ? <AccountKindIcon kind={slot.iconKind} className={styles.accountIcon} />
-            : <AccountContextIcon className={styles.accountIcon} />}
-          <span className={styles.accountCopy}><strong>{slot.label}</strong><small>{slot.explanation}</small></span>
-        </button>
-      </li>)}
+    </ul>
+    <ul className={styles.accountList} aria-label="Кошельки">
+      {wallets.flatMap(wallet => {
+        const matches = wallet.kind === "private" ? [] : snapshot.accounts.filter(account => account.kind === wallet.kind);
+        const entries: (ProductAccount | undefined)[] = matches.length ? matches : [undefined];
+        return entries.map((account, index) => {
+          const usable = account && snapshot.accounts.filter(item => item.id === account.id).length === 1;
+          const reason = account ? "Повторяющийся ID — выбор недоступен" : "Пока недоступен";
+          return <li key={`${wallet.kind}-${account?.id ?? "missing"}-${index}`}>
+            <button type="button" className={styles.accountRow} data-wallet-type-card={wallet.kind}
+              disabled={!usable} data-account-context={usable ? account.id : undefined} data-account-status={account?.status}
+              aria-current={usable && context.kind === "account" && context.accountId === account.id ? "true" : undefined}
+              onClick={() => { if (usable) onSelectContext({ kind: "account", accountId: account.id }); }}>
+              <span data-wallet-type-emblem><AccountKindIcon kind={wallet.kind} className={styles.accountIcon} /></span>
+              <span className={styles.accountCopy}><strong data-wallet-type-name>{account?.label ?? wallet.label}</strong>
+                <small data-wallet-type-state>{usable ? accountStatus[account.status] : reason}</small></span>
+              {usable && <span className={styles.accountValue}>{estimate({ kind: "account", accountId: account.id })}</span>}
+              {usable && <SelectionMark />}
+            </button>
+          </li>;
+        });
+      })}
     </ul>
   </div>;
 }

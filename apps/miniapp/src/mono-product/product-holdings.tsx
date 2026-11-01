@@ -8,6 +8,7 @@ import { CurrencyLogo } from "./currency-logo";
 import { formatFiatMinor, formatQuantity } from "./product-format";
 import { DisclosureMotion } from "./motion/disclosure-motion";
 import disclosureStyles from "./motion/disclosure-motion.module.css";
+import assetsStyles from "./product-holdings.module.css";
 
 export type ProductHoldingsProps = {
   view: MonoProductView;
@@ -30,7 +31,7 @@ export function ProductHoldings({ view, commands, appearance, overview, onPlacem
   const shown = !expandable || view.fundsExpanded;
   const count = countLabel(groups.length, ["актив", "актива", "активов"]);
 
-  return <section className="mono-product-funds mono-scene-domain" aria-labelledby={headingId}
+  return <section className={`mono-product-funds mono-scene-domain${overview ? "" : ` ${assetsStyles.assets}`}`} aria-labelledby={headingId}
     data-variant={appearance.variant} data-density={appearance.density} data-separators={appearance.separators}>
     <h2 id={headingId} className="mono-product-funds__title">
       {expandable ? <button id={fundsTriggerId} className="mono-product-funds__heading" type="button"

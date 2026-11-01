@@ -5,7 +5,7 @@ export const LEGACY_HOME_PINS_STORAGE_KEY = "wallet4i7.mono.home-pins.v1";
 export const HOME_PIN_LIMIT = 2;
 export const ACCOUNT_GROUP_KINDS = ["custodial", "depositary", "private"] as const;
 export const accountGroupLabels: Record<ProductAccountKind, string> = {
-  custodial: "Кастодиальные", depositary: "Депозитарные", private: "Закрытый",
+  custodial: "Кастодиальный", depositary: "Депозитарный", private: "Приватный",
 };
 export type AccountGroup = {
   kind: ProductAccountKind;

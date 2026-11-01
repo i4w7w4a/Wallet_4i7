@@ -68,7 +68,7 @@
     opacity 190ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-.mono-page[data-pointer-active="true"] .mono-atmosphere__focus {
+.mono-page[data-pointer-active="true"]:not([data-mono-motion="static"]) .mono-atmosphere__focus {
   transform: translate3d(-50%, -50%, 0) scale(1);
   opacity: 1;
 }
@@ -93,10 +93,10 @@
   transition:
     transform 240ms cubic-bezier(0.2, 0, 0, 1),
     opacity 180ms cubic-bezier(0.2, 0, 0, 1);
-  animation: mono-atmosphere-arrive 900ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+  animation: mono-atmosphere-arrive 900ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
 }
 
-.mono-page[data-pointer-active="true"] .mono-atmosphere__ribbon { opacity: 0.72; }
+.mono-page[data-pointer-active="true"]:not([data-mono-motion="static"]) .mono-atmosphere__ribbon { opacity: 0.72; }
 
 .mono-atmosphere__grid {
   position: absolute;
@@ -110,7 +110,30 @@
   transition: transform 280ms cubic-bezier(0.2, 0, 0, 1), opacity 180ms ease;
 }
 
-.mono-page[data-pointer-active="true"] .mono-atmosphere__grid { opacity: 0.58; }
+.mono-page[data-pointer-active="true"]:not([data-mono-motion="static"]) .mono-atmosphere__grid { opacity: 0.58; }
+
+/* BEGIN STATIC LEGACY ATMOSPHERE */
+.mono-page[data-mono-motion="static"] > .mono-atmosphere {
+  --mono-pointer-x: 68%;
+  --mono-pointer-y: 31%;
+  --mono-pointer-shift-x: 0px;
+  --mono-pointer-shift-y: 0px;
+}
+.mono-page[data-mono-motion="static"] > .mono-atmosphere :is(
+  .mono-atmosphere__focus, .mono-atmosphere__grid,
+  .mono-atmosphere__iridescence, .mono-atmosphere__node, .mono-atmosphere__ripple
+) { transition: none; animation: none; }
+.mono-page[data-mono-motion="static"] > .mono-atmosphere .mono-atmosphere__ribbon {
+  animation-play-state: paused;
+  transform: translate3d(-50%, -50%, 0) rotate(-13deg) !important;
+  opacity: 0.42 !important;
+  transition: none;
+}
+.mono-page[data-mono-motion="static"][data-mono-background="tide"] > .mono-atmosphere .mono-atmosphere__ribbon { opacity: 0.23 !important; }
+.mono-page[data-mono-motion="static"][data-mono-background="strata"] > .mono-atmosphere .mono-atmosphere__ribbon { opacity: 0.62 !important; }
+.mono-page[data-mono-motion="static"] > .mono-atmosphere .mono-atmosphere__node { transform: none !important; }
+.mono-page[data-mono-motion="static"] > .mono-atmosphere .mono-atmosphere__ripple { display: none; }
+/* END STATIC LEGACY ATMOSPHERE */
 
 .mono-scene {
   position: relative;

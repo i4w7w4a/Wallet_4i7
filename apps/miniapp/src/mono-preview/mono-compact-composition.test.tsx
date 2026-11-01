@@ -62,13 +62,15 @@ function rowIds() {
 }
 
 // A missing compact branch must expose the legacy Home content and fail this test.
-it("opts preset 2 into a single neutral balance, four actions and Funds without exposing saved Home extras", async () => {
+it("keeps the balance, four actions and Assets navigation without a Funds block", async () => {
   const snapshot = await new MockWalletRepository().getSnapshot();
   const before = JSON.stringify(preset);
   const view = render(<MonoProductScene snapshot={snapshot} appearance={preset.appearance} material={preset.material}
     homeComposition="compact" historyPresentation="compact" effectsDisabled />);
   await waitFor(() => expect(view.container.querySelector("[data-mono-preview]")).toBeInTheDocument());
-  expect(screen.getByRole("button", { name: "Мои средства" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Мои средства" })).toBeNull();
+  expect(view.container.querySelector(".mono-compact-home-art")).toBeVisible();
+  expect(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" })).toBeVisible();
   expect(screen.getAllByRole("region", { name: "Общий баланс" })).toHaveLength(1);
   expect(screen.getByRole("button", { name: "Скрыть баланс" })).toBeVisible();
   expect(within(screen.getByRole("region", { name: "Действия" })).getAllByRole("button")).toHaveLength(4);
@@ -86,7 +88,7 @@ it("opts preset 2 into a single neutral balance, four actions and Funds without 
 });
 
 // Replacing the display scope with selectContext would discard this exact working context.
-it("opens existing Assets ALL and restores the Funds focus while preserving working account and drafts", async () => {
+it("opens Assets ALL from navigation and returns focus to the balance while preserving account and drafts", async () => {
   const view = await renderCompact();
   act(() => view.current().commands.selectContext({ kind: "account", accountId: "demo-depositary" }));
   const route = resolveActionRoutes(MONO_PRODUCT_DEMO_ADAPTER.snapshot, { kind: "account", accountId: "demo-custody" }, "send")
@@ -96,15 +98,16 @@ it("opens existing Assets ALL and restores the Funds focus while preserving work
   }));
   const context = view.current().view.context, drafts = view.current().view.sendDrafts;
   const draft = drafts[sendDraftKey(route)];
-  fireEvent.click(screen.getByRole("button", { name: "Мои средства" }));
-  expect(screen.getByRole("button", { name: "Выбрать счёт: Все счета" })).toBeVisible();
-  await waitFor(() => expect(screen.getByRole("button", { name: "Назад в обзор" })).toHaveFocus());
+  navigate("Активы");
+  expect(screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Назад в обзор" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" }));
   expect(view.current().view.assetWorkspace?.scope).toEqual({ kind: "all" });
   fireEvent.click(screen.getByRole("button", { name: "Назад к активам" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Открыть актив Bitcoin (BTC)" })).toHaveFocus());
   fireEvent.click(screen.getByRole("button", { name: "Назад в обзор" }));
-  await waitFor(() => expect(screen.getByRole("button", { name: "Мои средства" })).toHaveFocus());
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Общий баланс" })).toHaveFocus());
+  expect(screen.getByRole("heading", { name: "Общий баланс" })).toBeVisible();
   expect(view.current().view.context).toBe(context);
   expect(view.current().view.sendDrafts).toBe(drafts);
   expect(view.current().view.sendDrafts[sendDraftKey(route)]).toBe(draft);
@@ -132,15 +135,15 @@ it("keeps account inspection and its pending receipt return on the same account 
   await waitFor(() => expect(view.container.querySelector("[data-mono-preview]")).toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: "Меню" }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Меню" })).getByRole("button", { name: "Мои счета" }));
-  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Кастодиальный" }));
   const scrollport = view.container.querySelector<HTMLElement>("[data-material-scrollport]")!;
   scrollport.scrollTop = 123;
-  fireEvent.click(within(screen.getByRole("region", { name: "Основной" })).getByRole("button", { name: "В процессе · 1" }));
+  fireEvent.click(within(screen.getByRole("region", { name: "Кастодиальный" })).getByRole("button", { name: "В процессе · 1" }));
   expect(within(history()).getByRole("heading", { name: "2 октября 2026 г." })).toBeVisible();
   expect(rowIds()).toEqual([pending.id]);
   expect(screen.getByRole("region", { name: "Квитанция операции" })).toHaveTextContent("31,456789 USDC");
   fireEvent.click(screen.getByRole("button", { name: "К счёту" }));
-  await waitFor(() => expect(within(screen.getByRole("region", { name: "Основной" }))
+  await waitFor(() => expect(within(screen.getByRole("region", { name: "Кастодиальный" }))
     .getByRole("button", { name: "В процессе · 1" })).toHaveFocus());
   expect(scrollport.scrollTop).toBe(123);
 });

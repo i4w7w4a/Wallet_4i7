@@ -1,0 +1,119 @@
+.view { color: #f4f5f7; min-width: 0; padding: 8px 0 24px; }
+.header { display: flex; align-items: center; gap: 14px; min-width: 0; margin: 12px 0 24px; }
+.accountMark { display: grid; place-items: center; flex: 0 0 50px; height: 50px; border: 1px solid #555b66; border-radius: 17px; background: linear-gradient(145deg, #4a4e57, #20232a); color: #f6f7f9; font-size: 23px; font-weight: 700; }
+.headingCopy { min-width: 0; }
+.headingCopy h1 { margin: 3px 0 4px; overflow-wrap: anywhere; font-size: 24px; line-height: 1.16; letter-spacing: -.025em; }
+.eyebrow { margin: 0; color: #a9adb6; font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+.meta { margin: 0; color: #b0b4bd; font-size: 13px; }
+.summary { padding: 22px 20px; border: 1px solid #383c45; border-radius: 22px; background: linear-gradient(145deg, #292d35, #1c1f25); }
+.balanceLabel { margin: 0; color: #b9bdc6; font-size: 13px; }
+.balance { margin: 8px 0 18px; font-size: clamp(27px, 8vw, 36px); line-height: 1.1; letter-spacing: -.04em; font-weight: 650; overflow-wrap: anywhere; }
+.current { margin: 0; color: #c5d8cb; font-size: 13px; }
+.context { color: #bec2cb; font-size: 13px; }
+.context p { margin: 8px 0; overflow-wrap: anywhere; }
+.useAccount, .details { min-height: 44px; padding: 8px 0; border: 0; background: transparent; color: #f4f5f7; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.useAccount:disabled { color: #8d929d; cursor: not-allowed; }
+.actionArea { margin: 20px 0 28px; min-width: 0; }
+.choices { margin-top: 14px; padding: 12px; border: 1px solid #3c414a; border-radius: 16px; background: #20232a; }
+.choices > p { margin: 0 4px 6px; color: #c5c9d1; font-size: 13px; }
+.route { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 0; border-radius: 10px; background: transparent; color: #f5f6f8; font: inherit; text-align: left; cursor: pointer; }
+.route + .route { border-top: 1px solid #3a3e46; }
+.route span:first-child { display: grid; min-width: 0; gap: 3px; overflow-wrap: anywhere; }
+.route small { color: #b9bdc6; font-size: 12px; }
+.notice { margin: 12px 0; color: #bec2cb; font-size: 13px; line-height: 1.45; }
+.assets { margin-top: 24px; }
+.sectionHeading { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.sectionHeading h2 { margin: 5px 0 0; font-size: 21px; letter-spacing: -.02em; }
+.sectionHeading > span { color: #b9bdc6; font-size: 13px; }
+.holdings { margin: 0; padding: 0; list-style: none; border-top: 1px solid #363a42; }
+.holding { border-bottom: 1px solid #363a42; min-width: 0; }
+.holdingButton { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 76px; padding: 12px 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.currencyIcon { flex: 0 0 40px; width: 40px; height: 40px; }
+.holdingName { display: grid; gap: 4px; flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.holdingName strong { font-size: 14px; }
+.holdingName > span { color: #b9bdc6; font-size: 12px; }
+.values { display: grid; gap: 4px; min-width: 0; max-width: 42%; text-align: right; font-size: 13px; overflow-wrap: anywhere; }
+.fiat { color: #b9bdc6; font-size: 12px; }
+.chevron { flex: 0 0 auto; color: #b9bdc6; font-size: 17px; }
+.holdingContent { padding: 0 0 14px; }
+.holdingContent[hidden] { display: none; }
+.available { display: flex; justify-content: space-between; gap: 12px; color: #c4c8d0; font-size: 13px; overflow-wrap: anywhere; }
+.available > span:last-child { color: #f4f5f7; text-align: right; }
+.holdingActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.holdingActions button { min-height: 44px; padding: 8px 12px; border: 1px solid #535964; border-radius: 12px; background: #292d35; color: #f5f6f8; font: inherit; font-size: 13px; cursor: pointer; }
+.details { margin-top: 7px; font-size: 13px; }
+.view button:focus-visible, .headingCopy h1:focus-visible { outline: 2px solid #d5e4ff; outline-offset: 3px; }
+@media (hover: hover) { .route:hover, .holdingButton:hover { background: #2b2f37; } .holdingActions button:hover { background: #363b45; } }
+@media (max-width: 340px) { .header { gap: 10px; } .summary { padding: 18px 16px; } .holdingButton { gap: 7px; } }
+@media (prefers-reduced-motion: reduce) { .view *, .view *::before, .view *::after { scroll-behavior: auto; } }
+.accountIcon { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.choices[hidden] { display: none; }
+
+/* The Assets entry keeps the same controls and data, with a quieter wallet presentation. */
+.assetsPresentation {
+  color: var(--mono-text, #f4f5f7);
+  font-family: var(--mono-font-ui, sans-serif);
+  padding-top: 4px;
+}
+.assetsPresentation .header { gap: 16px; margin: 8px 0 20px; }
+.assetsPresentation .accountMark {
+  flex-basis: 56px;
+  height: 56px;
+  border-color: var(--mono-rule-strong, #777982);
+  border-radius: var(--mono-radius, 16px);
+  color: var(--mono-text, #f4f5f7);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--mono-text, #f4f5f7) 16%, var(--mono-surface, #1a1c21)), var(--mono-surface, #1a1c21));
+}
+.assetsPresentation .accountIcon { width: 30px; height: 30px; }
+.assetsPresentation .headingCopy h1 {
+  margin: 4px 0;
+  font-family: var(--mono-font-display, var(--mono-font-ui, sans-serif));
+  font-size: clamp(24px, 7vw, 30px);
+  font-weight: var(--mono-font-weight-strong, 600);
+}
+.assetsPresentation .eyebrow, .assetsPresentation .meta,
+.assetsPresentation .balanceLabel, .assetsPresentation .context,
+.assetsPresentation .holdingName > span, .assetsPresentation .fiat,
+.assetsPresentation .sectionHeading > span { color: var(--mono-text-secondary, #bdbdbd); }
+.assetsPresentation .summary {
+  padding: 20px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: var(--mono-radius, 16px);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--mono-text, #f4f5f7) 8%, var(--mono-surface, #1a1c21)), var(--mono-surface, #1a1c21));
+}
+.assetsPresentation .balanceLabel { font-size: 14px; }
+.assetsPresentation .balance {
+  margin: 10px 0 14px;
+  font-family: var(--mono-font-numeric, var(--mono-font-ui, sans-serif));
+  font-size: clamp(28px, 8vw, 36px);
+  font-variant-numeric: tabular-nums;
+}
+.assetsPresentation .current { color: var(--mono-text-secondary, #bdbdbd); }
+.accountManagement summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mono-text, #f4f5f7);
+  font-size: 13px;
+  cursor: pointer;
+}
+.accountManagement summary::before { content: "+"; font-size: 18px; line-height: 1; }
+.accountManagement[open] summary::before { content: "−"; }
+.accountManagement summary:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 3px; }
+.assetsPresentation .actionArea { margin: 22px 0 30px; }
+.assetsPresentation .actionArea [data-product-account-quick-action] { font-size: 13px; line-height: 1.2; }
+.assetsPresentation .assets { margin-top: 28px; }
+.assetsPresentation .sectionHeading h2 { font-family: var(--mono-font-display, var(--mono-font-ui, sans-serif)); }
+.assetsPresentation .holdings, .assetsPresentation .holding { border-color: var(--mono-rule, #343434); }
+.assetsPresentation .holdingButton { min-height: 80px; }
+.assetsPresentation .holdingName strong { font-size: 15px; }
+.assetsPresentation .holdingName > span, .assetsPresentation .fiat { font-size: 13px; }
+.assetsPresentation .values { font-variant-numeric: tabular-nums; }
+.assetsPresentation button:focus-visible, .assetsPresentation .headingCopy h1:focus-visible {
+  outline-color: var(--mono-palette-focus-ff, currentColor);
+}
+@media (max-width: 340px) {
+  .assetsPresentation .header { gap: 10px; }
+  .assetsPresentation .summary { padding: 18px 16px; }
+}

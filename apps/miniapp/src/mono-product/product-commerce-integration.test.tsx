@@ -74,8 +74,8 @@ it("commerce wiring restores only the placement Buy raw draft across appearance 
   const { rerender, wallet, envelope } = await home();
   fireEvent.click(screen.getByRole("button", { name: /Мои средства/ }));
   fireEvent.click(screen.getByRole("button", { name: "Открыть актив USD Coin (USDC)" }));
-  fireEvent.click(screen.getByRole("radio", { name: "Выбрать размещение: Основной · Ethereum" }));
-  const launcher = screen.getByRole("button", { name: "Купить USDC · Основной · Ethereum" });
+  fireEvent.click(screen.getByRole("radio", { name: "Выбрать размещение: Кастодиальный · Ethereum" }));
+  const launcher = screen.getByRole("button", { name: "Купить USDC · Кастодиальный · Ethereum" });
   fireEvent.click(launcher);
   fireEvent.click(await screen.findByRole("button", { name: "Продолжить" }));
   fireEvent.change(await screen.findByRole("textbox", { name: "Сумма, USD" }), { target: { value: "23," } });
@@ -101,5 +101,6 @@ it("commerce wiring explains a main action with no offered route instead of sele
   expect(dialog).toHaveTextContent("Доступных маршрутов");
   expect(within(dialog).queryByRole("button", { name: "Подтвердить симуляцию" })).toBeNull();
   fireEvent.click(within(dialog).getByRole("button", { name: "Закрыть" }));
-  expect(screen.getByRole("button", { name: /Выбрать счёт: Все счета/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Активы" }));
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Общий обзор/ })).toBeInTheDocument();
 });

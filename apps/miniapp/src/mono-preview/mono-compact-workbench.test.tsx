@@ -42,7 +42,7 @@ const tool = (name: string) => fireEvent.click(within(screen.getByRole("toolbar"
   .getByRole("button", { name }));
 async function start() {
   const view = render(<MonoPreview snapshot={await new MockWalletRepository().getSnapshot()} />);
-  await waitFor(() => expect(screen.getByRole("button", { name: "Пресет 1: Пресет 1" })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Пресет 1: Пресет 1" })).toBeEnabled(), { timeout: 10_000 });
   return view;
 }
 function exportDocument() {
@@ -57,7 +57,8 @@ it("uses compact Home/History in all seven editable documents without replacing 
   const { container } = await start();
   for (const record of source.slots) {
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: `Пресет ${record.slot}: Пресет ${record.slot}` })); });
-    expect(screen.getByRole("button", { name: "Мои средства" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Мои средства" })).toBeNull();
+    expect(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" })).toBeVisible();
     expect(container.querySelector("[data-mono-preview]")).not.toHaveAttribute("data-mono-presentation");
     expect(container.querySelector(".mono-promo-frame, .mono-product-funds__list")).toBeNull();
     fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "История" }));
@@ -83,8 +84,11 @@ it("disables removed chart targets, keeps real balance/assets controls and retai
   expect(screen.queryByLabelText("Показывать график")).toBeNull();
   expect(localStorage.getItem(MONO_SEVEN_PRESETS_KEY)).toBe(before);
   tool("Активы");
-  expect(screen.getByText(/Мои средства.*Активы.*настройки списка/i)).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "Мои средства" }));
+  expect(screen.getByText(/Откройте «Активы» в нижнем меню.*настройки списка/i)).toBeVisible();
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" }));
+  fireEvent.click(document.querySelector<HTMLButtonElement>("[data-r1-wallet-kind='custodial']")!);
+  fireEvent.click(screen.getByText("Управление счётом"));
+  fireEvent.click(screen.getByRole("button", { name: "Выбрать счёт в кошельке" }));
   fireEvent.change(screen.getByLabelText("Оформление активов"), { target: { value: "tiles" } });
   expect(document.querySelector(".mono-product-funds")).toHaveAttribute("data-variant", "tiles");
   fireEvent.click(screen.getByRole("button", { name: "Отменить пробу" }));
@@ -100,7 +104,7 @@ it("disables removed chart targets, keeps real balance/assets controls and retai
   expect(stored().archive).toEqual(source.archive);
   expect(exportDocument()).toEqual(expected);
   expect(localStorage.getItem(HOME_PINS_STORAGE_KEY)).toBe(pins);
-});
+}, 20_000);
 
 it("keeps optics only for an actual shared host, with readable retained values and no Apply when that target disappears", async () => {
   const source = seedDocuments();

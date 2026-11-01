@@ -3,12 +3,59 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { MONO_QUICK_ACTION_DEFAULT, MonoQuickActionFeedback } from "./mono-quick-action-feedback";
 import { createDefaultActionArtwork } from "./action-artwork/model";
+import { resolveActionRoutes } from "@wallet/core";
+import { MONO_PRODUCT_DEMO_ADAPTER } from "../mono-product/demo-adapter";
 
 vi.mock("./action-artwork/mono-action-artwork", () => ({
   MonoActionArtwork: ({ trigger }: { trigger: number }) => <output data-testid="energy-trigger" data-trigger={trigger} />,
 }));
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+it("exposes unavailable product actions as disabled and never activates them", () => {
+  const onActivate = vi.fn();
+  const { rerender } = render(<MonoQuickActionFeedback label="Обмен" accessibleLabel="Обмен" path="M0 0"
+    preset={MONO_QUICK_ACTION_DEFAULT} onActivate={onActivate} productAction disabled />);
+  const button = screen.getByRole("button", { name: "Обмен" });
+  expect(button).toBeDisabled();
+  fireEvent.click(button);
+  expect(onActivate).not.toHaveBeenCalled();
+  rerender(<MonoQuickActionFeedback label="Обмен" accessibleLabel="Обмен" path="M0 0"
+    preset={MONO_QUICK_ACTION_DEFAULT} onActivate={onActivate} productAction disabled={false} />);
+  expect(button).toBeEnabled();
+  fireEvent.click(button);
+  expect(onActivate).toHaveBeenCalledOnce();
+});
+
+it("keeps all four overview demo actions available under the controller's all-wallet scope", () => {
+  for (const action of ["send", "receive", "swap", "buy"] as const) {
+    const routes = resolveActionRoutes(MONO_PRODUCT_DEMO_ADAPTER.snapshot, { kind: "all" }, action).routes;
+    expect(routes.length, action).toBeGreaterThan(0);
+    expect(routes.every(route => route.action === action)).toBe(true);
+  }
+});
+
+it("settles and does not trigger visual feedback when a product action becomes unavailable", () => {
+  vi.stubGlobal("PointerEvent", class extends MouseEvent {
+    readonly pointerType: string;
+    constructor(type: string, init: PointerEventInit = {}) { super(type, init); this.pointerType = init.pointerType ?? ""; }
+  });
+  vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("pointer: fine"),
+    addEventListener() {}, removeEventListener() {} }));
+  const artwork = { ...createDefaultActionArtwork(), packId: "volume-v1" as const };
+  const props = { label: "Обмен", accessibleLabel: "Обмен", path: "M0 0", preset: MONO_QUICK_ACTION_DEFAULT,
+    actionId: "quick.swap" as const, artwork, onActivate: vi.fn() };
+  const view = render(<MonoQuickActionFeedback {...props} />);
+  const button = screen.getByRole("button", { name: "Обмен" });
+  fireEvent.keyDown(button, { key: " " });
+  expect(button).toHaveAttribute("data-key-pressed", "true");
+  view.rerender(<MonoQuickActionFeedback {...props} disabled manualPreviewTrigger={1} />);
+  expect(button).toHaveAttribute("data-key-pressed", "false");
+  fireEvent.pointerEnter(button, { pointerType: "mouse" });
+  fireEvent.keyDown(button, { key: " " });
+  expect(button).toHaveAttribute("data-key-pressed", "false");
+  expect(screen.getByTestId("energy-trigger")).toHaveAttribute("data-trigger", "0");
+});
 
 it("clears the decorative keyboard press when the page becomes hidden", () => {
   const onActivate = vi.fn();

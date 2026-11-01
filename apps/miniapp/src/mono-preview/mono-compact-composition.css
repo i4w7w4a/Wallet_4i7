@@ -10,6 +10,7 @@ html:has(.mono-page[data-mono-home-composition="compact"])::-webkit-scrollbar { 
 }
 .mono-page[data-mono-home-composition="compact"] .mono-compact-balance > .mono-balance { padding: 0; }
 .mono-page[data-mono-home-composition="compact"] .mono-product-balance-row { display: block; }
+.mono-page[data-mono-home-composition="compact"] .mono-compact-home-art { margin-top: 12px; }
 .mono-page[data-mono-home-composition="compact"] .mono-compact-balance .mono-balance__amount {
   max-width: 100%; margin-block: 6px 8px;
   font-size: clamp(23px, calc((100cqw - 76px) / var(--mono-balance-fit, 9)), var(--mono-type-balance-size, 52px));

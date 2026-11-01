@@ -12,6 +12,7 @@ import {
 import type { ChartPeriod, WalletSnapshot } from "@wallet/core";
 import { CHANNEL_NAME, parseApplyRequest, parseApplyRequestEnvelope, type ApplyAck, type ApplyLaunch } from "../design-lab/control-feedback-handoff";
 import type { ControlFeedbackPreset } from "../design-lab/control-feedback-model";
+import { cardMotionVariables } from "../mono-product/motion/card-motion-preset";
 import {
   MONO_GLASS_DEFAULTS,
   normalizeMonoGlassSettings,
@@ -508,7 +509,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   const quickLauncherRef = useRef<HTMLButtonElement>(null);
   const fineLauncherRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development" || typeof BroadcastChannel === "undefined") return;
+    if ((process.env.NODE_ENV !== "development" && process.env.NEXT_PUBLIC_NOVEX_REVIEW_MOTION_LAB !== "1") || typeof BroadcastChannel === "undefined") return;
     let channel: BroadcastChannel;
     try { channel = new BroadcastChannel(CHANNEL_NAME); }
     catch { return; }
@@ -536,7 +537,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             : "applied";
       if (outcome === "applied") {
         setQuickActionPreview({ preset: request.preset, workingPresetId: request.workingPresetId });
-        setQuickActionMotionStatus("Примерка применена к четырём действиям. После перезагрузки вернётся стандартный отклик.");
+        setQuickActionMotionStatus("Примерка применена к действиям и карточкам. После перезагрузки вернётся стандартный отклик.");
       }
       reply(outcome);
     };
@@ -816,7 +817,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
     };
     quickActionLaunchRef.current = launch;
     quickActionKnownSessionsRef.current = [...quickActionKnownSessionsRef.current.slice(-7), launch.sessionId];
-    const url = new URL("/design-lab", window.location.href);
+    const url = new URL("/design-lab/motion", window.location.href);
     url.searchParams.set("session", launch.sessionId);
     url.searchParams.set("target", launch.targetId);
     if (launch.workingPresetId) url.searchParams.set("working", launch.workingPresetId);
@@ -981,6 +982,9 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
   return (
     <div className="mono-workbench" data-mono-workbench data-panels-visible={panelsVisible}
       data-compact-chrome={compactChrome} data-mobile-rail={mobileRail ?? "none"} data-mono-theme={theme} style={workbenchStyle}>
+      {process.env.NEXT_PUBLIC_NOVEX_REVIEW_MOTION_LAB === "1" && <a
+        data-review-motion-launch data-review-motion-ready={workingReady ? "true" : "false"} hidden href="/design-lab/motion" target="_blank" rel="noopener noreferrer"
+        onClick={event => { if (!workingReady) event.preventDefault(); else openQuickActionMotionLab(event.currentTarget); }}>Motion Lab</a>}
       <button type="button" className="mono-workbench__master" aria-expanded={panelsVisible}
         aria-controls="mono-quick-rail mono-fine-rail"
         aria-label={panelsVisible ? "Скрыть панели" : "Показать панели"} onClick={togglePanels}>
@@ -1015,6 +1019,9 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         aria-modal={compactChrome && mobileRail === "quick" ? true : undefined}>
         <div className="mono-rail__head"><div><span>WORKSPACE</span><strong>MONO</strong></div></div>
         <MonoPreviewSource />
+        {process.env.NEXT_PUBLIC_NOVEX_REVIEW_MOTION_LAB === "1" && <a className="mono-rail__lab-entry"
+          href="/design-lab/motion" target="_blank" rel="noopener noreferrer"
+          onClick={event => { if (!workingReady) event.preventDefault(); else openQuickActionMotionLab(event.currentTarget); }}>Motion Lab · примерка движения ↗</a>}
         <a className="mono-rail__lab-entry" href="/design-lab">Design Lab · Фоны и кнопки ↗</a>
         <MonoWorkingPresetBar key={workingLibrary?.activeSlot ?? "baseline"}
           ready={workingReady}
@@ -1107,7 +1114,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
           {activeTool === "navigation" && <MonoNavigationControls value={draftAppearance[preset].navigation}
             onChange={value => updateAppearance("navigation", value)} />}
           {activeTool === "assets" && <>
-            <p className="mono-workbench__note">Откройте «Мои средства» → «Активы», чтобы увидеть настройки списка.</p>
+            <p className="mono-workbench__note">Откройте «Активы» в нижнем меню, чтобы увидеть настройки списка.</p>
             <MonoAssetListControls value={draftAppearance[preset].assets} onChange={value => updateAppearance("assets", value)} />
           </>}
           {activeTool === "chart" && <fieldset disabled style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
@@ -1120,7 +1127,7 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
             separateActions={(activeMaterials.buttons?.version === 2 || activeMaterials.buttons?.version === 3)
               && activeMaterials.buttons.frameMode !== "group"}
             onChange={updateShape} onDefault={resetShape} onCancel={cancelShape} onApply={applyShape}
-            onOpenMotionLab={process.env.NODE_ENV === "development" && workingReady ? openQuickActionMotionLab : undefined}
+            onOpenMotionLab={(process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_NOVEX_REVIEW_MOTION_LAB === "1") && workingReady ? openQuickActionMotionLab : undefined}
             buttonLabHref="/design-lab/buttons"
             motionLabStatus={quickActionPreview && !quickActionOverride
               ? "Здесь действует стандартный Material; отдельная проба относится к другому пресету."
@@ -1196,12 +1203,13 @@ export function MonoPreview({ snapshot }: { snapshot: WalletSnapshot }) {
         </MonoInspectorShell>
       </aside>
       <div className="mono-preview-frame" data-material-scrollport={materialSceneActive || undefined}
+        style={quickActionOverride ? cardMotionVariables(quickActionOverride) as CSSProperties : undefined}
         inert={compactChrome && panelsVisible && mobileRail !== null}>
         <MonoProductScene material={activeMaterials} snapshot={snapshot} appearance={{ ...draftAppearance[preset],
           preset, palette: { enabled: Boolean(colorLab.shown.paletteEnabled), config: colorLab.shown.config },
           shape: draftShapes[preset], optics: draftOptics[preset], environment: { theme, background: shownBackground },
         }} viewport={viewport} ready={workingReady} paletteReady={colorLab.ready}
-          active={hostActive} homeComposition="compact" historyPresentation="compact"
+          active={hostActive} homeComposition="compact" historyPresentation="compact" assetsPresentation="wallet-selection"
           session={{ balanceHidden: sceneBalanceHidden, onBalanceHiddenChange: setSceneBalanceHidden,
             period: scenePeriod, onPeriodChange: setScenePeriod,
             section: sceneSection, onSectionChange: setSceneSection,

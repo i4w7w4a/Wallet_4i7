@@ -1,0 +1,6 @@
+/* Review-only presentation: the product workbench remains intact in its source. */
+html:not([data-review-ready]) body { visibility: hidden; }
+.mono-workbench__master, .mono-workbench__launcher, .mono-rail, .mono-workbench__scrim { display: none !important; }
+@media (max-width: 1199px) {
+  .mono-workbench { padding-top: 0 !important; }
+}

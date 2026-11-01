@@ -7,6 +7,7 @@ import type { ButtonTargetId } from "@wallet/ui";
 import { WalletIcon } from "../../../../packages/ui/src/icons/wallet-icon";
 import { MonoActionArtwork } from "./action-artwork/mono-action-artwork";
 import type { MonoActionArtworkV1 } from "./action-artwork/model";
+import availabilityStyles from "./home-action-availability.module.css";
 
 type QuickActionFeedback = Pick<ControlFeedbackPreset, "effectId" | "config">;
 
@@ -23,6 +24,7 @@ type Props = {
   accessibleLabel?: string;
   productPrimary?: boolean;
   productAction?: boolean;
+  disabled?: boolean;
   productReceiveExpanded?: boolean;
   productSendExpanded?: boolean;
   materialTargetId?: ButtonTargetId;
@@ -33,7 +35,7 @@ type Props = {
   manualPreviewTrigger?: number;
 };
 
-export function MonoQuickActionFeedback({ label, path, preset, onActivate, accessibleLabel, productPrimary, productAction, productReceiveExpanded, productSendExpanded,
+export function MonoQuickActionFeedback({ label, path, preset, onActivate, accessibleLabel, productPrimary, productAction, disabled = false, productReceiveExpanded, productSendExpanded,
   materialTargetId, materialRadiusCss,
   actionId, artwork, active = true, manualPreviewTrigger = 0 }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -47,12 +49,18 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, acces
     if (lastManualPreview.current === manualPreviewTrigger) return;
     const freshRequest = manualPreviewTrigger > lastManualPreview.current;
     lastManualPreview.current = manualPreviewTrigger;
-    if (freshRequest && active && artwork && artwork.packId !== "original" &&
+    if (freshRequest && active && !disabled && artwork && artwork.packId !== "original" &&
         artwork.energy.enabled && artwork.energy.intensity > 0) setEnergyTrigger(value => value + 1);
-  }, [active, artwork, manualPreviewTrigger]);
+  }, [active, disabled, artwork, manualPreviewTrigger]);
+
+  useEffect(() => {
+    if (!disabled) return;
+    setOffset({ x: 0, y: 0 });
+    setKeyboardPressed(false);
+  }, [disabled]);
 
   const pulse = () => {
-    if (active && artwork && artwork.packId !== "original" && artwork.energy.enabled &&
+    if (active && !disabled && artwork && artwork.packId !== "original" && artwork.energy.enabled &&
         artwork.energy.intensity > 0) setEnergyTrigger(value => value + 1);
   };
   const fineEnter = (event: PointerEvent<HTMLButtonElement>) => {
@@ -85,12 +93,12 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, acces
 
   const reset = () => setOffset({ x: 0, y: 0 });
   const keyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (effectId === "material" && (event.key === "Enter" || event.key === " " || event.key === "Spacebar")) {
+    if (!disabled && effectId === "material" && (event.key === "Enter" || event.key === " " || event.key === "Spacebar")) {
       setKeyboardPressed(true);
     }
   };
   const move = (event: PointerEvent<HTMLButtonElement>) => {
-    if (effectId !== "magnetic" || event.pointerType !== "mouse" ||
+    if (disabled || effectId !== "magnetic" || event.pointerType !== "mouse" ||
         document.visibilityState === "hidden" ||
         !window.matchMedia("(hover: hover) and (pointer: fine)").matches ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -110,7 +118,7 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, acces
     : undefined;
 
   return (
-    <button className="mono-actions__item" type="button" data-control-effect={effectId}
+    <button className={`mono-actions__item${disabled ? ` ${availabilityStyles.unavailable}` : ""}`} type="button" disabled={disabled} data-control-effect={effectId}
       data-product-primary={productPrimary || undefined}
       data-mono-product-action={productAction || undefined}
       data-mono-product-receive-trigger={productReceiveExpanded !== undefined || undefined}
@@ -127,7 +135,7 @@ export function MonoQuickActionFeedback({ label, path, preset, onActivate, acces
       onBlur={() => { reset(); setKeyboardPressed(false); }}>
       <span className="mono-actions__icon" aria-hidden="true">
         {artwork && artwork.packId !== "original" && actionId
-          ? <MonoActionArtwork key={artwork.packId} actionId={actionId} config={artwork} active={active} trigger={energyTrigger} />
+          ? <MonoActionArtwork key={artwork.packId} actionId={actionId} config={artwork} active={active && !disabled} trigger={energyTrigger} />
           : productAction && actionId === "quick.send" ? <>
             <WalletIcon name="send" className="mono-actions__product-send" />
             <svg className="mono-actions__material-send" viewBox="0 0 24 24"><path d={path} /></svg>

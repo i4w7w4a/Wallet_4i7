@@ -69,8 +69,8 @@ it("restores receive request amounts after close, network changes, skin and priv
   fireEvent.click(screen.getByRole("button", { name: /Мои средства/ }));
   fireEvent.click(screen.getByRole("button", { name: "Открыть актив USD Coin (USDC)" }));
   const open = (network: string) => {
-    fireEvent.click(screen.getByRole("radio", { name: `Выбрать размещение: Основной · ${network}` }));
-    fireEvent.click(screen.getByRole("button", { name: `Получить USDC · Основной · ${network}` }));
+    fireEvent.click(screen.getByRole("radio", { name: `Выбрать размещение: Кастодиальный · ${network}` }));
+    fireEvent.click(screen.getByRole("button", { name: `Получить USDC · Кастодиальный · ${network}` }));
   };
   const close = () => fireEvent.click(within(screen.getByRole("dialog", { name: "Получить" })).getByRole("button", { name: "Закрыть" }));
   open("Ethereum");
