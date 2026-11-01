@@ -94,6 +94,8 @@
   :global([data-mono-motion="ready"]) .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .primaryAction, .moreAction, .details, .accountEntryButton, .action) { transition: background-color 190ms var(--mono-product-motion-ease, cubic-bezier(.2, 0, 0, 1)); }
   :global([data-mono-motion="ready"]) .workspace :is(.back, .accountRow, .useAccount, .holdingButton, .primaryAction, .moreAction, .details, .accountEntryButton, .action):active { transition-duration: 80ms; }
 }
+/* The R1 custody list already enters as a single linked workspace. */
+.workspace .identity[data-r1-linked-identity] { animation: none; }
 @keyframes arrive { from { opacity: .7; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 :global([data-mono-motion="static"]) .identity { animation: none; }
 :global([data-mono-motion="static"]) .workspace button { transition: none; }

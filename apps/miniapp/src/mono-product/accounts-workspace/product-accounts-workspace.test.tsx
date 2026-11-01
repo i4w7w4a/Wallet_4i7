@@ -4,6 +4,8 @@ import type { ProductActionRoute, ProductSnapshot } from "@wallet/core";
 import { afterEach, expect, it, vi } from "vitest";
 import { ProductAccountsWorkspace, type ProductAccountsWorkspaceProps } from "./index";
 import { MONO_PRODUCT_DEMO_ADAPTER } from "../demo-adapter";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 afterEach(cleanup);
 
@@ -57,6 +59,32 @@ function props(patch: Partial<ProductAccountsWorkspaceProps> = {}): ProductAccou
   return { snapshot, selectedAccountId: null, context: { kind: "all" }, balanceHidden: false, allowedActions: [],
     onInspectAccount: vi.fn(), onBack: vi.fn(), onUseAccount: vi.fn(), onOpenAction: vi.fn(), onOpenHolding: vi.fn(), ...patch };
 }
+
+it("suppresses only the R1 custody list identity entrance, without changing other workspaces", () => {
+  const input = props({ presentation: "assets", groupKind: "custodial" });
+  const { rerender, container } = render(<ProductAccountsWorkspace {...input} />);
+  const heading = () => container.querySelector<HTMLElement>("[data-mono-product-accounts-title]")!.closest("header")!;
+  expect(heading()).toHaveAttribute("data-r1-linked-identity");
+  const css = readFileSync(resolve(process.cwd(), "src/mono-product/accounts-workspace/product-accounts-workspace.module.css"), "utf8");
+  const guard = css.match(/\.workspace\s+\.identity\[data-r1-linked-identity\]\s*\{\s*animation:\s*none\s*;\s*\}/)?.[0];
+  expect(guard).toBeDefined();
+  const sheet = document.createElement("style");
+  const workspaceClass = container.querySelector("section")!.classList[0]!;
+  const identityClass = heading().classList[0]!;
+  sheet.textContent = `.${identityClass} { animation: arrive 190ms both; }\n${guard!
+    .replace(".workspace", `.${workspaceClass}`).replace(".identity", `.${identityClass}`)}`;
+  document.head.append(sheet);
+  expect(getComputedStyle(heading()).animation).toBe("none");
+  rerender(<ProductAccountsWorkspace {...input} presentation="catalogue" />);
+  expect(heading()).not.toHaveAttribute("data-r1-linked-identity");
+  expect(getComputedStyle(heading()).animation).toContain("arrive");
+  rerender(<ProductAccountsWorkspace {...input} groupKind="depositary" />);
+  expect(heading()).not.toHaveAttribute("data-r1-linked-identity");
+  expect(getComputedStyle(heading()).animation).toContain("arrive");
+  rerender(<ProductAccountsWorkspace {...input} selectedAccountId="main" />);
+  expect(container.querySelector("[data-r1-linked-identity]")).toBeNull();
+  sheet.remove();
+});
 
 function disclosure(network = "Ethereum") {
   return screen.getByRole("button", { name: new RegExp(`^(Действия|Сведения): USD Coin · USDC · ${network}$`) });

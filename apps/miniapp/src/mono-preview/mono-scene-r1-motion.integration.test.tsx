@@ -117,6 +117,8 @@ it("animates an explicit custody chooser and the chosen account without changing
   let workspace = view.container.querySelector<HTMLElement>("[data-mono-product-accounts-workspace]")!;
   expect(workspace).toHaveAttribute("data-mono-product-accounts-workspace", "list");
   expect(view.targets).toContain(workspace);
+  expect(within(workspace).getByRole("heading", { name: "Кошельки" }).closest("header"))
+    .toHaveAttribute("data-r1-linked-identity");
   view.targets.length = 0;
   fireEvent.click(within(workspace).getByRole("button", { name: "Открыть счёт: Второй кастодиальный" }));
   workspace = view.container.querySelector<HTMLElement>("[data-mono-product-accounts-workspace]")!;
@@ -124,6 +126,11 @@ it("animates an explicit custody chooser and the chosen account without changing
   expect(view.targets).toContain(workspace);
   fireEvent.click(within(workspace).getByRole("button", { name: /^Назад/ }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Открыть счёт: Второй кастодиальный" })).toHaveFocus());
+  const identity = screen.getByRole("heading", { name: "Кошельки" }).closest("header")!;
+  expect(identity).toHaveAttribute("data-r1-linked-identity");
+  view.setDisabled(true);
+  view.setDisabled(false);
+  expect(identity).toHaveAttribute("data-r1-linked-identity");
 });
 
 it.each([{ reduced: true }, { effectsDisabled: true }])("keeps R1 and Receive static when motion is disabled: %o", async preferences => {

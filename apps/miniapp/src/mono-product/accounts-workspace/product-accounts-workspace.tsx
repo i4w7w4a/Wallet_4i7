@@ -66,7 +66,8 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKin
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6" /></svg>Назад
     </button>
     {!detail ? <>
-      <header className={styles.identity} key="list">
+      <header className={styles.identity} key="list"
+        data-r1-linked-identity={presentation === "assets" && groupKind === "custodial" ? "" : undefined}>
         <div><h1 id={titleId} className={styles.title} tabIndex={-1} data-mono-product-accounts-title>Кошельки</h1>
           <p className={styles.intro}>Откройте счёт, чтобы посмотреть его активы и размещения.</p></div>
       </header>
