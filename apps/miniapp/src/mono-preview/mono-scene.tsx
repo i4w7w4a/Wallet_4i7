@@ -51,6 +51,7 @@ import { WalletIcon } from "../../../../packages/ui/src/icons/wallet-icon";
 import { AvatarControl, MONO_DEMO_AVATAR } from "../mono-product/avatar-control";
 import profileMenuStyles from "../mono-product/profile-quick-menu/profile-quick-menu.module.css";
 import { useProductViewMotion } from "../mono-product/motion/product-view-motion";
+import { useLinkedCardMotion } from "../mono-product/motion/linked-card-motion";
 
 import "./mono-fonts.css";
 import "./mono-font-candidates.css";
@@ -636,7 +637,12 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   };
   const [quickActionStatus, setQuickActionStatus] = useState("Демо · операции недоступны");
   const pageRef = useRef<HTMLElement>(null);
+  const setPageRef = useCallback((node: HTMLElement | null) => {
+    pageRef.current = node;
+    if (surfaceRef) surfaceRef.current = node;
+  }, [surfaceRef]);
   const productContentRef = useRef<HTMLDivElement>(null);
+  const r1MotionContentRef = useRef<HTMLDivElement>(null);
   const previousSection = useRef(section);
   const previousAsset = useRef<{ assetId: string; section: MonoSection } | null>(null);
   const activityFocusRequest = useRef<{
@@ -661,6 +667,19 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   useProductViewMotion({ surfaceRef: pageRef, contentRef: productContentRef,
     view: { section, assetId: assetWorkspaceId },
     enabled: Boolean(product) && active && !effectsDisabled && !appearance.background?.calm });
+
+  const r1CustodyOrigin = r1AccountOrigin?.groupKind === "custodial";
+  const r1MotionScope = Boolean(r1Assets && section === "assets" && !assetWorkspace && !assetsOverviewOpen &&
+    (!accountsWorkspace || r1CustodyOrigin));
+  const r1Receive = r1MotionScope && accountsWorkspace?.accountId && product?.view.sheet?.kind === "intent" &&
+    product.view.sheet.action === "receive" && product.view.sheet.route?.accountId === accountsWorkspace.accountId &&
+    product.view.sheet.returnToAccountId === accountsWorkspace.accountId ? product.view.sheet.route : null;
+  const r1DetailId = accountsWorkspace && r1CustodyOrigin
+    ? JSON.stringify([accountsWorkspace.accountId === null ? "group" : "account",
+      accountsWorkspace.accountId ?? accountsWorkspace.groupKind, r1Receive ? productRouteKey(r1Receive) : null]) : null;
+  useLinkedCardMotion({ surfaceRef: pageRef, contentRef: r1MotionContentRef, detailId: r1DetailId,
+    enabled: r1MotionScope && active && !effectsDisabled && !appearance.background?.calm && !product?.view.sheet,
+    targetSelector: accountsWorkspace ? "[data-mono-product-accounts-workspace]" : "[data-r1-wallet-kind='custodial']" });
 
   useLayoutEffect(() => {
     const request = helpEntryRef.current, root = pageRef.current;
@@ -1216,7 +1235,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
   return (
       <ProductGlassProvider sharedHost={opticalHost} preset={preset} settings={optics}
         active={active && !effectsDisabled} opaque={effectsDisabled}>
-        <main ref={node => { pageRef.current = node; if (surfaceRef) surfaceRef.current = node; }}
+        <main ref={setPageRef}
           className="mono-page" data-mono-preview data-mono-preset={preset} data-mono-presentation={propsPresentation}
           data-mono-home-composition={propsPresentation === "gold" ? undefined : homeComposition}
           data-mono-logo-variant={logoPreview.variant} data-mono-logo-custom={logoPreview.customColor}
@@ -1277,7 +1296,7 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           : section === "history" ? historyView! : section === "assets" && !accountsWorkspace ? assetsProduct!.view : product.view}
           overview={rootOverview} accountChooserId={accountChooserId} />}
 
-        {product && accountsWorkspace && !assetWorkspace && <div className="mono-product-section" inert={!active || avatarProfileActive || Boolean(currentHistoryInspection && accountHistoryOpen)}
+        {product && accountsWorkspace && !assetWorkspace && <div ref={r1CustodyOrigin ? r1MotionContentRef : undefined} className="mono-product-section" inert={!active || avatarProfileActive || Boolean(currentHistoryInspection && accountHistoryOpen)}
           hidden={avatarProfileActive || Boolean(currentHistoryInspection && accountHistoryOpen)}>
           <ProductAccountsWorkspace snapshot={product.view.snapshot} selectedAccountId={accountsWorkspace.accountId}
             groupKind={accountsWorkspace.groupKind}
@@ -1444,8 +1463,8 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
           <div className="mono-scene-domain mono-scene-domain--chart">{chart}</div>}
         </>}
         {section === "assets" && !assetWorkspace && !accountsWorkspace && (r1Assets && !assetsOverviewOpen
-          ? <AssetsWalletSelection canOpen={{ custodial: canOpenAssetsWallet("custodial"), depositary: canOpenAssetsWallet("depositary") }}
-            onOpenWallet={openAssetsWallet} onOpenOverview={openAssetsOverview} />
+          ? <div ref={r1MotionContentRef}><AssetsWalletSelection canOpen={{ custodial: canOpenAssetsWallet("custodial"), depositary: canOpenAssetsWallet("depositary") }}
+            onOpenWallet={openAssetsWallet} onOpenOverview={openAssetsOverview} /></div>
           : <section className="mono-section-view" aria-labelledby="mono-all-assets-title">
           {r1Assets ? <button type="button" data-mono-funds-back
             className="mono-compact-assets-back" disabled={!active} onClick={backToAssetsWallets}>Назад к кошелькам</button>
@@ -1562,7 +1581,10 @@ function MonoSceneContent({ snapshot, appearance, viewport = 480, paletteReady =
         product.view.sheet?.kind === "intent" || product.view.sheet?.kind === "battery"
           ? product.view.sheet.scope ?? assetWorkspace?.scope : (compactHome || r1Assets) && section === "assets" && !accountsWorkspace && !assetWorkspace
             ? assetsScope : undefined)}
-        onOpenActivity={openActivity} accountChooserId={accountChooserId} active={active} />}
+        onOpenActivity={openActivity} accountChooserId={accountChooserId} active={active}
+        r1Motion={r1MotionScope && r1CustodyOrigin && accountsWorkspace?.accountId
+          ? { surfaceRef: pageRef, accountId: accountsWorkspace.accountId,
+            enabled: active && !effectsDisabled && !appearance.background?.calm } : undefined} />}
         </main>
       </ProductGlassProvider>
   );

@@ -9,6 +9,8 @@
   --motion-linked-card: 300ms;
 }
 .feedback:enabled:active { box-shadow: inset 0 0 0 999px rgba(255,255,255,.10); }
+.r1Receive:global(.mono-product-sheet[data-product-receive-screen]) :global(.mono-product-sheet__panel),
+.r1Receive:global(.mono-product-sheet[data-product-receive-screen]) :global(.mono-product-sheet__scrim) { animation: none; }
 @media (prefers-reduced-motion: no-preference) {
   :global([data-mono-motion="ready"]) .feedback {
     transition: box-shadow var(--motion-hover, 190ms) var(--mono-product-motion-ease, cubic-bezier(.2,0,0,1)),

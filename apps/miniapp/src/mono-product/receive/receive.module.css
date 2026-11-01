@@ -44,6 +44,7 @@
 .assetButton > span { color: var(--mono-text-secondary, #bdbdbd); font-size: 13px; }
 .assetButton > span:last-child { margin-left: auto; font-size: 17px; }
 .state { min-width: 0; animation: receive-enter 220ms var(--mono-ease, cubic-bezier(.2, 0, 0, 1)) both; }
+:global([data-r1-receive-motion]) :is(.state, .review, .actionIcon) { animation: none; }
 .empty { display: grid; justify-items: start; gap: 7px; padding: 14px 0; }
 .empty strong { font-size: 15px; font-weight: var(--mono-font-weight-strong, 600); }
 .empty p { margin: 4px 0 0; color: var(--mono-text-secondary, #bdbdbd); font-size: 13px; line-height: 1.5; }

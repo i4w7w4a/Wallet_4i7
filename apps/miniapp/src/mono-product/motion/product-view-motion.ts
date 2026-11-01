@@ -31,11 +31,12 @@ function motionAllowed(surface: HTMLElement): boolean {
 }
 
 /** One current content tree, using existing siblings so the scene's layout order stays intact. */
-export function useProductViewMotion({ surfaceRef, contentRef, view: { section, assetId }, enabled }: {
+export function useProductViewMotion({ surfaceRef, contentRef, view: { section, assetId }, enabled, targetSelector }: {
   surfaceRef: RefObject<HTMLElement | null>;
   contentRef: RefObject<HTMLElement | null>;
   view: ProductViewIdentity;
   enabled: boolean;
+  targetSelector?: string;
 }) {
   const previousView = useRef<ProductViewIdentity | null>(null);
   const current = useRef<Batch | null>(null);
@@ -63,7 +64,8 @@ export function useProductViewMotion({ surfaceRef, contentRef, view: { section, 
     const computed = surface.ownerDocument.defaultView?.getComputedStyle(surface);
     const easing = computed?.getPropertyValue("--mono-product-motion-ease").trim() || EASE;
     const duration = durationFromToken(computed?.getPropertyValue(entry.durationToken) ?? "", entry.duration);
-    for (const element of Array.from(content.children)) {
+    const targets = targetSelector ? Array.from(content.querySelectorAll(targetSelector)) : Array.from(content.children);
+    for (const element of targets) {
       if (!(element instanceof HTMLElement) || element.matches(".mono-app-header, .mono-product-context") ||
           typeof element.animate !== "function") continue;
       element.setAttribute("data-product-view-motion-target", "");
@@ -91,7 +93,7 @@ export function useProductViewMotion({ surfaceRef, contentRef, view: { section, 
       }
     }
     if (!batch.size) current.current = null;
-  }, [section, assetId, enabled, surfaceRef, contentRef, cancel]);
+  }, [section, assetId, enabled, surfaceRef, contentRef, targetSelector, cancel]);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;

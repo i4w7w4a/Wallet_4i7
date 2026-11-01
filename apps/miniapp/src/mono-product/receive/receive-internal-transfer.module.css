@@ -22,6 +22,7 @@
 .note { margin: 7px 0 13px; font-size: 12px; line-height: 1.5; color: var(--mono-text-secondary, #bdbdbd); }
 .issue { margin: 8px 0 14px; font-size: 13px; line-height: 1.4; }
 .phase { animation: internal-phase 220ms var(--mono-ease, cubic-bezier(.2, 0, 0, 1)) both; }
+:global([data-r1-receive-motion]) .phase { animation: none; }
 .phase h4 { margin: 0 0 14px; font-size: 17px; font-weight: var(--mono-font-weight-strong, 600); letter-spacing: -.015em; }
 .quote { display: grid; gap: 12px; margin: 0 0 14px; padding: 14px; border: 1px solid var(--mono-rule, #343434); border-radius: var(--mono-radius, 12px); background: color-mix(in srgb, var(--mono-text, #f4f4f4) 4%, transparent); }
 .quote > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
