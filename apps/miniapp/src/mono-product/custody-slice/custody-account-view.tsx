@@ -29,8 +29,8 @@ export type CustodyAccountViewProps = {
   pendingActivity?: ReactNode;
 };
 
-const actions: readonly NovexAction[] = ["receive", "send", "buy", "swap"];
-const labels: Record<NovexAction, string> = { receive: "Получить", send: "Отправить", buy: "Купить", swap: "Обменять" };
+const actions: readonly NovexAction[] = ["send", "receive", "swap", "buy"];
+const labels: Record<NovexAction, string> = { receive: "Получить", send: "Отправить", buy: "Купить", swap: "Обмен" };
 const prepareLabels: Record<NovexAction, string> = {
   receive: "Подготовить получение", send: "Подготовить отправку", buy: "Подготовить покупку", swap: "Подготовить обмен",
 };

@@ -18,7 +18,7 @@ it("offers the four custody actions and opens the chosen USDC Ethereum receive r
     onOpenAction={onOpenAction} onOpenHolding={vi.fn()} />);
 
   expect(screen.getByRole("heading", { name: /Основной/ })).toBeVisible();
-  for (const name of ["Получить", "Отправить", "Купить", "Обменять"]) {
+  for (const name of ["Отправить", "Получить", "Обмен", "Купить"]) {
     expect(screen.getByRole("button", { name })).toBeVisible();
   }
 

@@ -107,7 +107,7 @@ export function ExternalReceive({ route, destination, privacy, renderQr, request
       </div>
     </section>
     <p className={styles.networkWarning}><span aria-hidden="true">!</span>
-      <span>Для {route.symbol} нужна сеть {route.networkLabel}. Средства из другой сети могут быть потеряны.</span>
+      <span>Для выбранного маршрута — сеть {route.networkLabel}. Средства из другой сети могут быть потеряны.</span>
     </p>
     <div className={styles.actions}>
       <button type="button" className={styles.primaryButton} disabled={privacy || !canCopy || pending || requestText === null}

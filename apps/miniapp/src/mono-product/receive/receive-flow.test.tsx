@@ -64,10 +64,11 @@ it("shows compact non-payable receive details and masks the complete destination
   expect(within(details).getByText("Не для оплаты")).toBeVisible();
   expect(within(details).getByText(destination.reference)).toBeVisible();
   expect(within(details).getByText("QR не подключён")).toBeVisible();
-  expect(screen.getByText(/Для USDC нужна сеть Ethereum/)).toBeVisible();
+  expect(screen.getByText("Для выбранного маршрута — сеть Ethereum. Средства из другой сети могут быть потеряны.")).toBeVisible();
   expect(screen.queryByRole("img", { name: /QR/ })).toBeNull();
   rerender(<ReceiveFlow {...props} privacy />);
   expect(screen.getByText("Реквизиты скрыты")).toBeVisible();
+  expect(screen.getByText("Для выбранного маршрута — сеть Ethereum. Средства из другой сети могут быть потеряны.")).toBeVisible();
   expect(container.innerHTML).not.toContain(destination.reference);
   expect(screen.queryByText("QR не подключён")).toBeNull();
   expect(screen.getByRole("button", { name: "Скопировать реквизиты" })).toBeDisabled();
@@ -167,7 +168,20 @@ it("aborts the previous network request and ignores its late data", async () => 
   expect(await screen.findByText("DEMO-NON-PAYABLE:receive-solana")).toBeVisible();
   await act(async () => pending.resolve({ status: "ready", data: destination }));
   expect(screen.queryByText(destination.reference)).toBeNull();
-  expect(screen.getByText(/Для USDC нужна сеть Solana/)).toBeVisible();
+  expect(screen.getByText("Для выбранного маршрута — сеть Solana. Средства из другой сети могут быть потеряны.")).toBeVisible();
+});
+
+const demoExternalRoutes = routes.filter((route): route is ReceiveRoute =>
+  route.action === "receive" && route.receiveMode === "external-address");
+it("covers each actual demo external asset and network combination", () => {
+  expect(new Set(demoExternalRoutes.map(route => `${route.symbol}/${route.networkLabel}`))).toEqual(
+    new Set(["BTC/Bitcoin", "ETH/Ethereum", "USDC/Ethereum", "USDC/Solana"]));
+});
+it.each(demoExternalRoutes)("uses the exact selected network in the warning: $symbol/$networkLabel", async route => {
+  const data: ExternalReceiveDestination = { ...destination, accountId: route.accountId, assetId: route.assetId,
+    networkId: route.networkId, reference: `DEMO-NON-PAYABLE:${route.assetId}-${route.networkId}` };
+  render(<ReceiveFlow route={route} dataPort={readyPort(data)} privacy={false} onBack={vi.fn()} onClose={vi.fn()} />);
+  expect(await screen.findByText(`Для выбранного маршрута — сеть ${route.networkLabel}. Средства из другой сети могут быть потеряны.`)).toBeVisible();
 });
 
 it.each([

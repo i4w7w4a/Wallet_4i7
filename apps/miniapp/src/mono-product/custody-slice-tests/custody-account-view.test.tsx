@@ -17,6 +17,13 @@ function props(patch: Partial<CustodyAccountViewProps> = {}): CustodyAccountView
     onOpenAction: vi.fn(), onOpenHolding: vi.fn(), ...patch };
 }
 
+it("shows the same ordered actions as the overview and keeps unavailable routes disabled", () => {
+  const { container } = render(<CustodyAccountView {...props()} />);
+  const buttons = [...container.querySelectorAll<HTMLButtonElement>("[data-product-account-quick-action]")];
+  expect(buttons.map(button => button.textContent)).toEqual(["Отправить", "Получить", "Обмен", "Купить"]);
+  expect(buttons.map(button => button.disabled)).toEqual([true, false, true, true]);
+});
+
 it("uses the chosen route identity after reordering and reports a rejected callback", () => {
   const onOpenAction = vi.fn<CustodyAccountViewProps["onOpenAction"]>(() => false);
   render(<CustodyAccountView {...props({ permittedRoutes: [...receiveRoutes].reverse(), onOpenAction })} />);
@@ -142,7 +149,7 @@ it("presents the scoped assets wallet and opens the exact USDC Ethereum receive 
   expect(screen.getByRole("region", { name: "Оценка активов счёта" })).toHaveTextContent(/1\s?234,56/);
   expect(screen.getByRole("heading", { name: "Активы" })).toBeVisible();
   expect(screen.getByRole("button", { name: /Действия: USD Coin · USDC · Ethereum/ })).toBeVisible();
-  for (const name of ["Получить", "Отправить", "Купить", "Обменять"]) {
+  for (const name of ["Отправить", "Получить", "Обмен", "Купить"]) {
     expect(screen.getByRole("button", { name })).toBeEnabled();
   }
   fireEvent.click(screen.getByRole("button", { name: "Получить" }));

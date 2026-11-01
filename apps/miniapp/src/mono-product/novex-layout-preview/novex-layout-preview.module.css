@@ -1,6 +1,6 @@
 .actionRow {
   display: grid;
-  grid-template-columns: repeat(4, minmax(44px, auto));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
   min-width: 0;
 }
