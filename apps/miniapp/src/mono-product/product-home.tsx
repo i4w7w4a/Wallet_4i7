@@ -17,9 +17,10 @@ type ProductProps = { view: MonoProductView; commands: MonoProductCommands };
 export function ProductContextLine({ view, commands, accountChooserId, overview = false }: ProductProps & {
   accountChooserId?: string; overview?: boolean;
 }) {
-  const label = overview ? "Все средства" : view.context.kind === "all" ? "Все счета" : view.account?.label ?? "Счёт";
+  const label = overview ? "Все средства" : view.context.kind === "all" ? "Общий обзор"
+    : view.account ? ({ custodial: "Кастодиальный", depositary: "Депозитарный", private: "Приватный" } as const)[view.account.kind] : "Счёт";
   return <div className="mono-product-context" data-overview={overview}>
-    {!overview && view.snapshot.accounts.length > 1 ? <button type="button" data-mono-product-context-trigger
+    {!overview && view.snapshot.accounts.length > 1 ? <button type="button" data-mono-product-context-trigger data-wallet-context-trigger
       aria-label={`Выбрать счёт: ${label}`} aria-haspopup="dialog" aria-expanded={view.sheet?.kind === "accounts"}
       aria-controls={accountChooserId} onClick={() => view.sheet?.kind === "accounts" ? commands.closeSheet() : commands.openAccounts()}>
       <AccountContextIcon className="mono-product-account-icon" stacked />

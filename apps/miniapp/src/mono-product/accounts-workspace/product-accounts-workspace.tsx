@@ -11,7 +11,6 @@ import { accountKindLabels, accountStatusLabels, accountOperationsUnavailable, h
   placementCountLabel, selectAccountsWorkspace } from "./accounts-workspace-data";
 import { selectAccountPlacementActions, type AccountsActionOrigin } from "./account-placement-actions";
 import { AccountKindIcon } from "./account-kind-icon";
-import { accountGroupLabels } from "../home-pins";
 import { selectCatalogueAccounts, UNAVAILABLE_ACCOUNT_SLOTS } from "./account-catalogue";
 import { AccountContextIcon } from "../product-account-chooser";
 import { ProductPendingActivity } from "../product-pending-activity";
@@ -42,46 +41,63 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKin
   const titleId = useId();
   const workspace = selectAccountsWorkspace(snapshot, context, selectedAccountId, allowedActions);
   const accounts = selectCatalogueAccounts(workspace.accounts, groupKind);
+  const kinds = [...new Set(accounts.map(item => item.account.kind))];
   const unavailableSlots = groupKind ? UNAVAILABLE_ACCOUNT_SLOTS.filter(slot => slot.iconKind === groupKind) : UNAVAILABLE_ACCOUNT_SLOTS;
-  const selected = workspace.selected && (!groupKind || workspace.selected.account.kind === groupKind) ? workspace.selected : null;
+  const unsafeSelected = workspace.selected && (workspace.selected.account.kind === "private" ||
+    snapshot.accounts.filter(account => account.id === workspace.selected?.account.id).length !== 1);
+  const selected = workspace.selected && !unsafeSelected && (!groupKind || workspace.selected.account.kind === groupKind) ? workspace.selected : null;
   const permittedRoutes = selected ? workspace.permittedRoutes : [];
   const detail = selectedAccountId !== null;
   const useAccountReason = useAccountUnavailableReason?.trim() || null;
-  const contextLabel = context.kind === "all" ? "Все счета"
-    : snapshot.accounts.find(account => account.id === context.accountId)?.label ?? "Счёт недоступен";
+  const contextMatches = context.kind === "account" ? snapshot.accounts.filter(account => account.id === context.accountId) : [];
+  const contextAccount = contextMatches.length === 1 ? contextMatches[0] : undefined;
+  const contextLabel = context.kind === "all" ? "Общий обзор"
+    : contextAccount && contextAccount.kind !== "private" ? accountKindLabels[contextAccount.kind] : "Счёт недоступен";
 
   const custodyDetail = selected?.account.id === "demo-custody";
   return <section className={styles.workspace} aria-labelledby={custodyDetail ? undefined : titleId}
-    aria-label={custodyDetail ? selected.account.label : undefined}
-    data-mono-product-accounts-workspace={selectedAccountId ?? "list"}>
+    aria-label={custodyDetail ? accountKindLabels[selected.account.kind] : undefined}
+    data-mono-product-accounts-workspace={unsafeSelected ? "unavailable" : selectedAccountId ?? "list"}>
     <button type="button" className={styles.back} onClick={onBack}
       aria-label={detail ? "Назад к счетам" : "Назад в кошелёк"}>
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6" /></svg>Назад
     </button>
     {!detail ? <>
       <header className={styles.identity} key="list">
-        <div><h1 id={titleId} className={styles.title} tabIndex={-1} data-mono-product-accounts-title>{groupKind ? accountGroupLabels[groupKind] : "Мои счета"}</h1>
+        <div><h1 id={titleId} className={styles.title} tabIndex={-1} data-mono-product-accounts-title>Кошельки</h1>
           <p className={styles.intro}>Откройте счёт, чтобы посмотреть его активы и размещения.</p></div>
       </header>
       {accounts.length === 0 && <p className={styles.empty}>Счетов пока нет.</p>}
       {accounts.length > 0 && <p className={styles.estimateNote}>Оценка активов в USD. Доступное количество указано в размещениях.</p>}
       <ul className={styles.accountList} aria-label="Счета">
-          {accounts.map(({ account, holdings, estimateMinor, current }, index) => <li key={account.id}>
+          {kinds.map((kind, index) => {
+            const matches = accounts.filter(item => item.account.kind === kind);
+            const candidate = matches.length === 1 ? matches[0] : undefined;
+            const entry = candidate && snapshot.accounts.filter(account => account.id === candidate.account.id).length === 1 ? candidate : undefined;
+            const name = accountKindLabels[kind];
+            if (!entry) return <li key={kind}>
+              <button type="button" className={styles.accountRow} disabled data-wallet-catalogue-card={kind}>
+                <AccountKindIcon kind={kind} className={styles.accountIcon} />
+                <span className={styles.accountCopy}><strong>{name}</strong><span className={styles.meta}>Несколько счетов — выбор недоступен</span></span>
+              </button>
+            </li>;
+            const { account, holdings, estimateMinor, current } = entry;
+            return <li key={kind}>
             <button type="button" className={styles.accountRow} onClick={() => onInspectAccount(account.id)}
-              aria-label={`Открыть счёт: ${account.label}`} aria-current={current ? "true" : undefined}
+              aria-label={`Открыть счёт: ${name}`} aria-current={current ? "true" : undefined}
               aria-describedby={`${titleId}-account-${index}-meta ${titleId}-account-${index}-count ${titleId}-account-${index}-estimate`}
-              data-product-account-id={account.id} data-product-account-status={account.status}>
+              data-product-account-id={account.id} data-product-account-status={account.status} data-wallet-catalogue-card={account.kind}>
               <AccountKindIcon kind={account.kind} className={styles.accountIcon} />
               <span className={styles.accountCopy}>
-                <strong>{account.label}</strong>
-                <span id={`${titleId}-account-${index}-meta`} className={styles.meta}>{accountKindLabels[account.kind]} · {accountStatusLabels[account.status]}</span>
+                <strong>{name}</strong>
+                <span id={`${titleId}-account-${index}-meta`} className={styles.meta}>{accountStatusLabels[account.status]}</span>
                 <span id={`${titleId}-account-${index}-count`} className={styles.placementCount}>{placementCountLabel(holdings.length)}
                   {current && <span className={styles.current}>Выбран</span>}</span>
               </span>
               <span id={`${titleId}-account-${index}-estimate`} className={styles.rowEstimate}><bdi>{balanceHidden ? "••••" : `≈ ${formatFiatMinor(estimateMinor)}`}</bdi></span>
               <Chevron />
             </button>
-          </li>)}
+          </li>; })}
           {unavailableSlots.map(slot => <li key={slot.key}>
             <button type="button" className={styles.accountRow} disabled data-product-account-slot={slot.key}>
               {slot.iconKind ? <AccountKindIcon kind={slot.iconKind} className={styles.accountIcon} />
@@ -94,15 +110,15 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKin
       <h1 id={titleId} className={styles.title} tabIndex={-1} data-mono-product-accounts-title>Счёт недоступен</h1>
       <p className={styles.intro}>Этого счёта больше нет в текущем списке. Вернитесь к счетам.</p>
     </div> : custodyDetail ? <CustodyAccountAdapter key={selected.account.id}
-      account={selected.account} holdings={selected.holdings} estimateMinor={selected.estimateMinor} current={selected.current}
+      account={{ ...selected.account, label: accountKindLabels[selected.account.kind] }} holdings={selected.holdings} estimateMinor={selected.estimateMinor} current={selected.current}
       contextLabel={contextLabel} balanceHidden={balanceHidden} permittedRoutes={permittedRoutes}
       useAccountUnavailableReason={useAccountUnavailableReason} expandedHoldingId={expandedHoldingId}
       onExpandedHoldingChange={onExpandedHoldingChange} onUseAccount={onUseAccount} onOpenAction={onOpenAction}
       onOpenHolding={onOpenHolding} pendingActivity={pendingActivity ? <ProductPendingActivity {...pendingActivity} /> : undefined} /> : <div key={selected.account.id}>
       <header className={styles.identity}>
         <AccountKindIcon kind={selected.account.kind} className={styles.detailIcon} />
-        <div><h1 id={titleId} className={styles.title} tabIndex={-1} data-mono-product-accounts-title>{selected.account.label}</h1>
-          <p className={styles.meta}>{accountKindLabels[selected.account.kind]} · {accountStatusLabels[selected.account.status]}</p></div>
+        <div><h1 id={titleId} className={styles.title} tabIndex={-1} data-mono-product-accounts-title>{accountKindLabels[selected.account.kind]}</h1>
+          <p className={styles.meta}>{accountStatusLabels[selected.account.status]}</p></div>
       </header>
       <div className={styles.summary}>
         <p className={styles.balanceLabel}>Оценка активов в USD</p>
@@ -120,7 +136,7 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKin
       </div>
 
       {pendingActivity && <ProductPendingActivity {...pendingActivity} />}
-      <AccountPlacements key={selected.account.id} account={selected.account} holdings={selected.holdings}
+      <AccountPlacements key={selected.account.id} account={{ ...selected.account, label: accountKindLabels[selected.account.kind] }} holdings={selected.holdings}
         routes={permittedRoutes} hidden={balanceHidden} expandedHoldingId={expandedHoldingId}
         onExpandedHoldingChange={onExpandedHoldingChange} onOpenAction={onOpenAction} onOpenHolding={onOpenHolding} />
     </div>}

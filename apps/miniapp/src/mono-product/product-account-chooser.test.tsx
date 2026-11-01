@@ -25,21 +25,21 @@ it("selects exact available account contexts and labels totals as estimates", ()
   const select = vi.fn();
   const { rerender } = render(<ProductAccountChooser snapshot={snapshot} context={{ kind: "all" }}
     balanceHidden={false} onSelectContext={select} />);
-  const all = screen.getByRole("button", { name: /Все счета/ });
+  const all = screen.getByRole("button", { name: /Общий обзор/ });
   expect(all).toHaveAttribute("aria-current", "true");
   expect(all).toHaveTextContent(/Общая оценка/);
   expect(all).toHaveTextContent(/4\s?710,00/);
-  expect(screen.getByText(/не.*остаток.*отправки/i)).toBeInTheDocument();
+  expect(all).toHaveTextContent(/не.*остаток.*отправки/i);
   expect(all).not.toHaveTextContent(/700[.,]123456789|12[.,]456789|Доступно/);
 
-  fireEvent.click(screen.getByRole("button", { name: /Основной/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Кастодиальный/ }));
   expect(select).toHaveBeenLastCalledWith({ kind: "account", accountId: "main" });
   rerender(<ProductAccountChooser snapshot={snapshot} context={{ kind: "account", accountId: "main" }}
     balanceHidden={false} onSelectContext={select} />);
-  expect(screen.getByRole("button", { name: /Основной/ })).toHaveAttribute("aria-current", "true");
-  expect(screen.getByRole("button", { name: /Все счета/ })).not.toHaveAttribute("aria-current");
+  expect(screen.getByRole("button", { name: /Кастодиальный/ })).toHaveAttribute("aria-current", "true");
+  expect(screen.getByRole("button", { name: /Общий обзор/ })).not.toHaveAttribute("aria-current");
   select.mockClear();
-  for (const name of ["Закрытый", "Фиатный"]) {
+  for (const name of ["Приватный"]) {
     const unavailable = screen.getByRole("button", { name: new RegExp(name) });
     expect(unavailable).toBeDisabled();
     expect(unavailable).toHaveTextContent("Пока недоступен");
@@ -48,7 +48,7 @@ it("selects exact available account contexts and labels totals as estimates", ()
   }
   expect(select).not.toHaveBeenCalled();
   expect(screen.queryByRole("button", { name: /Архив/ })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
   expect(select).toHaveBeenLastCalledWith({ kind: "all" });
 });
 
@@ -61,10 +61,11 @@ it("redacts every account estimate from DOM and accessible names under privacy",
   }
 });
 
-it("shows closed and fiat placeholders without creating accounts in an empty snapshot", () => {
+it("shows unavailable type placeholders without creating accounts in an empty snapshot", () => {
   render(<ProductAccountChooser snapshot={{ fiatCurrency: "USD", accounts: [], holdings: [] }} context={{ kind: "all" }}
     balanceHidden={false} onSelectContext={vi.fn()} />);
-  expect(screen.getByRole("button", { name: /Закрытый/ })).toBeDisabled();
-  expect(screen.getByRole("button", { name: /Фиатный/ })).toBeDisabled();
-  expect(screen.getAllByRole("button")).toHaveLength(3);
+  for (const name of [/Кастодиальный/, /Депозитарный/, /Приватный/]) {
+    expect(screen.getByRole("button", { name })).toBeDisabled();
+  }
+  expect(screen.getAllByRole("button")).toHaveLength(4);
 });
