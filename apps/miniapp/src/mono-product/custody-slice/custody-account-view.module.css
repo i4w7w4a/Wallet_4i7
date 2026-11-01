@@ -48,3 +48,72 @@
 @media (prefers-reduced-motion: reduce) { .view *, .view *::before, .view *::after { scroll-behavior: auto; } }
 .accountIcon { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .choices[hidden] { display: none; }
+
+/* The Assets entry keeps the same controls and data, with a quieter wallet presentation. */
+.assetsPresentation {
+  color: var(--mono-text, #f4f5f7);
+  font-family: var(--mono-font-ui, sans-serif);
+  padding-top: 4px;
+}
+.assetsPresentation .header { gap: 16px; margin: 8px 0 20px; }
+.assetsPresentation .accountMark {
+  flex-basis: 56px;
+  height: 56px;
+  border-color: var(--mono-rule-strong, #777982);
+  border-radius: var(--mono-radius, 16px);
+  color: var(--mono-text, #f4f5f7);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--mono-text, #f4f5f7) 16%, var(--mono-surface, #1a1c21)), var(--mono-surface, #1a1c21));
+}
+.assetsPresentation .accountIcon { width: 30px; height: 30px; }
+.assetsPresentation .headingCopy h1 {
+  margin: 4px 0;
+  font-family: var(--mono-font-display, var(--mono-font-ui, sans-serif));
+  font-size: clamp(24px, 7vw, 30px);
+  font-weight: var(--mono-font-weight-strong, 600);
+}
+.assetsPresentation .eyebrow, .assetsPresentation .meta,
+.assetsPresentation .balanceLabel, .assetsPresentation .context,
+.assetsPresentation .holdingName > span, .assetsPresentation .fiat,
+.assetsPresentation .sectionHeading > span { color: var(--mono-text-secondary, #bdbdbd); }
+.assetsPresentation .summary {
+  padding: 20px;
+  border: 1px solid var(--mono-rule, #343434);
+  border-radius: var(--mono-radius, 16px);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--mono-text, #f4f5f7) 8%, var(--mono-surface, #1a1c21)), var(--mono-surface, #1a1c21));
+}
+.assetsPresentation .balanceLabel { font-size: 14px; }
+.assetsPresentation .balance {
+  margin: 10px 0 14px;
+  font-family: var(--mono-font-numeric, var(--mono-font-ui, sans-serif));
+  font-size: clamp(28px, 8vw, 36px);
+  font-variant-numeric: tabular-nums;
+}
+.assetsPresentation .current { color: var(--mono-text-secondary, #bdbdbd); }
+.accountManagement summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mono-text, #f4f5f7);
+  font-size: 13px;
+  cursor: pointer;
+}
+.accountManagement summary::before { content: "+"; font-size: 18px; line-height: 1; }
+.accountManagement[open] summary::before { content: "−"; }
+.accountManagement summary:focus-visible { outline: 2px solid var(--mono-palette-focus-ff, currentColor); outline-offset: 3px; }
+.assetsPresentation .actionArea { margin: 22px 0 30px; }
+.assetsPresentation .actionArea [data-product-account-quick-action] { font-size: 13px; line-height: 1.2; }
+.assetsPresentation .assets { margin-top: 28px; }
+.assetsPresentation .sectionHeading h2 { font-family: var(--mono-font-display, var(--mono-font-ui, sans-serif)); }
+.assetsPresentation .holdings, .assetsPresentation .holding { border-color: var(--mono-rule, #343434); }
+.assetsPresentation .holdingButton { min-height: 80px; }
+.assetsPresentation .holdingName strong { font-size: 15px; }
+.assetsPresentation .holdingName > span, .assetsPresentation .fiat { font-size: 13px; }
+.assetsPresentation .values { font-variant-numeric: tabular-nums; }
+.assetsPresentation button:focus-visible, .assetsPresentation .headingCopy h1:focus-visible {
+  outline-color: var(--mono-palette-focus-ff, currentColor);
+}
+@media (max-width: 340px) {
+  .assetsPresentation .header { gap: 10px; }
+  .assetsPresentation .summary { padding: 18px 16px; }
+}

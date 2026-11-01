@@ -13,6 +13,7 @@ import styles from "./custody-account-view.module.css";
 
 export type CustodyAccountViewProps = {
   account: ProductAccount;
+  presentation?: "assets" | "catalogue";
   holdings: readonly ProductHolding[];
   estimateMinor: number;
   current: boolean;
@@ -41,7 +42,7 @@ function routeDescription(route: ProductActionRoute): string {
   return `${prepareLabels[route.action]} ${route.symbol} · ${route.accountLabel} · ${route.networkLabel || "Сеть неизвестна"}${mode}`;
 }
 
-export function CustodyAccountView({ account, holdings, estimateMinor, current, contextLabel, balanceHidden,
+export function CustodyAccountView({ account, presentation = "catalogue", holdings, estimateMinor, current, contextLabel, balanceHidden,
   permittedRoutes, useAccountUnavailableReason, expandedHoldingId, onExpandedHoldingChange, onUseAccount,
   onOpenAction, onOpenHolding, pendingActivity }: CustodyAccountViewProps): JSX.Element {
   const titleId = useId();
@@ -66,24 +67,28 @@ export function CustodyAccountView({ account, holdings, estimateMinor, current, 
     else if (routes.length > 1) setChoice(previous => previous === action ? null : action);
   };
 
-  return <div ref={rootRef} className={styles.view}>
+  const accountContext = <div className={styles.context}>
+    <p>В кошельке сейчас: {contextLabel}.</p>
+    <button type="button" className={styles.useAccount} onClick={() => onUseAccount(account.id)}
+      disabled={Boolean(reason)} aria-describedby={reason ? `${titleId}-reason` : undefined}>Выбрать счёт в кошельке <span aria-hidden="true">→</span></button>
+    {reason && <p id={`${titleId}-reason`}>{reason}</p>}
+  </div>;
+
+  return <div ref={rootRef} className={`${styles.view} ${presentation === "assets" ? styles.assetsPresentation : ""}`}>
     <header className={styles.header}>
       <div className={styles.accountMark}><AccountKindIcon kind={account.kind} className={styles.accountIcon} /></div>
       <div className={styles.headingCopy}>
-        <p className={styles.eyebrow}>Счёт</p>
-        <h1 id={titleId} tabIndex={-1} data-mono-product-accounts-title>{account.label} · Демо</h1>
-        <p className={styles.meta}>{accountKindLabels[account.kind]} · {accountStatusLabels[account.status]}</p>
+        <p className={styles.eyebrow}>{presentation === "assets" ? "Демо · Кошелёк" : "Счёт"}</p>
+        <h1 id={titleId} tabIndex={-1} data-mono-product-accounts-title>{account.label}{presentation === "catalogue" ? " · Демо" : ""}</h1>
+        <p className={styles.meta}>{presentation === "catalogue" ? `${accountKindLabels[account.kind]} · ` : ""}{accountStatusLabels[account.status]}</p>
       </div>
     </header>
     <section className={styles.summary} aria-label="Оценка активов счёта">
       <p className={styles.balanceLabel}>Оценка активов в USD</p>
       <p className={styles.balance}><bdi>{balanceHidden ? "••••" : `≈ ${formatFiatMinor(estimateMinor)}`}</bdi></p>
-      {current ? <p className={styles.current}>✓ Выбран в кошельке</p> : <div className={styles.context}>
-        <p>В кошельке сейчас: {contextLabel}.</p>
-        <button type="button" className={styles.useAccount} onClick={() => onUseAccount(account.id)}
-          disabled={Boolean(reason)} aria-describedby={reason ? `${titleId}-reason` : undefined}>Выбрать счёт в кошельке <span aria-hidden="true">→</span></button>
-        {reason && <p id={`${titleId}-reason`}>{reason}</p>}
-      </div>}
+      {current ? <p className={styles.current}>✓ Выбран в кошельке</p> : presentation === "assets"
+        ? <details className={styles.accountManagement}><summary>Управление счётом</summary>{accountContext}</details>
+        : accountContext}
     </section>
 
     <div className={styles.actionArea}>

@@ -130,3 +130,67 @@ it("does not turn USD into an unknown available quantity and masks values in pri
   }
   expect(screen.getByRole("button", { name: /Действия: USD Coin · USDC · Ethereum/ })).toBeVisible();
 });
+
+it("presents the scoped assets wallet and opens the exact USDC Ethereum receive route", () => {
+  const scopedAccount = { ...account, label: "Кастодиальный" };
+  const allRoutes = (["receive", "send", "buy", "swap"] as const).flatMap(action =>
+    resolveActionRoutes(MULTI_ACCOUNT_DEMO, context, action).routes.map(route => ({ ...route, accountLabel: scopedAccount.label })));
+  const onOpenAction = vi.fn<CustodyAccountViewProps["onOpenAction"]>();
+  render(<CustodyAccountView {...props({ account: scopedAccount, presentation: "assets", permittedRoutes: allRoutes, onOpenAction })} />);
+
+  expect(screen.getByRole("heading", { name: "Кастодиальный", level: 1 })).toHaveAttribute("data-mono-product-accounts-title");
+  expect(screen.getByRole("region", { name: "Оценка активов счёта" })).toHaveTextContent(/1\s?234,56/);
+  expect(screen.getByRole("heading", { name: "Активы" })).toBeVisible();
+  expect(screen.getByRole("button", { name: /Действия: USD Coin · USDC · Ethereum/ })).toBeVisible();
+  for (const name of ["Получить", "Отправить", "Купить", "Обменять"]) {
+    expect(screen.getByRole("button", { name })).toBeEnabled();
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Получить" }));
+  expect(onOpenAction).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Подготовить получение USDC · Кастодиальный · Ethereum · Внешнее получение" }));
+  expect(onOpenAction).toHaveBeenCalledOnce();
+  expect(onOpenAction.mock.calls[0]?.[0]).toMatchObject({ accountId: "demo-custody", accountLabel: "Кастодиальный",
+    action: "receive", assetId: "usdc", networkId: "ethereum", receiveMode: "external-address" });
+  expect(onOpenAction.mock.calls[0]?.[1]).toEqual({ kind: "account-quick-action", action: "receive",
+    routeKey: "receive:demo-custody:usdc:ethereum:external-address" });
+});
+
+it("keeps secondary account control and its unavailability reason available in assets presentation", () => {
+  const onUseAccount = vi.fn();
+  const input = props({ account: { ...account, label: "Кастодиальный" }, presentation: "assets", current: false,
+    contextLabel: "Общий обзор", useAccountUnavailableReason: "Выбор сейчас недоступен", onUseAccount });
+  const { rerender } = render(<CustodyAccountView {...input} />);
+  expect(screen.queryByText("В кошельке сейчас: Общий обзор.")).not.toBeVisible();
+  expect(screen.getByRole("button", { name: "Отправить" })).toBeDisabled();
+  fireEvent.click(screen.getByText("Управление счётом"));
+  const use = screen.getByRole("button", { name: /Выбрать счёт в кошельке/ });
+  expect(use).toBeDisabled();
+  expect(use).toHaveAccessibleDescription("Выбор сейчас недоступен");
+  rerender(<CustodyAccountView {...input} useAccountUnavailableReason={undefined} />);
+  fireEvent.click(screen.getByRole("button", { name: /Выбрать счёт в кошельке/ }));
+  expect(onUseAccount).toHaveBeenCalledOnce();
+  expect(onUseAccount).toHaveBeenCalledWith("demo-custody");
+});
+
+it("restores holding focus and masks scoped amounts in assets presentation", () => {
+  const holding = holdings.find(item => item.id === "demo-usdc-eth")!;
+  const input = props({ account: { ...account, label: "Кастодиальный" }, presentation: "assets", holdings: [holding], expandedHoldingId: holding.id });
+  const { container, rerender } = render(<CustodyAccountView {...input} />);
+  const launcher = screen.getByRole("button", { name: /Действия: USD Coin · USDC · Ethereum/ });
+  screen.getByRole("button", { name: /Подробнее: USD Coin · USDC · Ethereum/ }).focus();
+  rerender(<CustodyAccountView {...input} expandedHoldingId={null} balanceHidden />);
+  expect(launcher).toHaveFocus();
+  expect(launcher).toHaveAttribute("aria-expanded", "false");
+  expect(container.textContent).not.toMatch(/1[\s\u00a0\u202f]?234[.,]56|500/);
+  for (const element of container.querySelectorAll("[aria-label], [aria-describedby], [title]")) {
+    expect(`${element.getAttribute("aria-label")} ${element.getAttribute("aria-describedby")} ${element.getAttribute("title")}`).not.toMatch(/1[\s\u00a0\u202f]?234[.,]56|500/);
+  }
+});
+
+
+it("retains the existing catalogue presentation when the new prop is omitted", () => {
+  render(<CustodyAccountView {...props({ current: false, contextLabel: "Общий обзор" })} />);
+  expect(screen.getByRole("heading", { name: "Основной · Демо", level: 1 })).toBeVisible();
+  expect(screen.getByText("В кошельке сейчас: Общий обзор.")).toBeVisible();
+  expect(screen.getByRole("button", { name: /Выбрать счёт в кошельке/ })).toBeVisible();
+});
