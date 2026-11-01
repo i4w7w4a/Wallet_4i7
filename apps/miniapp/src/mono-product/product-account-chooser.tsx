@@ -40,24 +40,25 @@ export function ProductAccountChooser({ snapshot, context, balanceHidden, onSele
       </li>
     </ul>
     <ul className={styles.accountList} aria-label="Кошельки">
-      {wallets.map(wallet => {
+      {wallets.flatMap(wallet => {
         const matches = wallet.kind === "private" ? [] : snapshot.accounts.filter(account => account.kind === wallet.kind);
-        const candidate = matches.length === 1 ? matches[0] : undefined;
-        const ambiguous = matches.length > 1 || Boolean(candidate && snapshot.accounts.filter(item => item.id === candidate.id).length !== 1);
-        const account = ambiguous ? undefined : candidate;
-        const reason = ambiguous ? "Несколько счетов — выбор недоступен" : "Пока недоступен";
-        return <li key={wallet.kind}>
-          <button type="button" className={styles.accountRow} data-wallet-type-card={wallet.kind}
-            disabled={!account} data-account-context={account?.id} data-account-status={account?.status}
-            aria-current={account && context.kind === "account" && context.accountId === account.id ? "true" : undefined}
-            onClick={() => { if (account) onSelectContext({ kind: "account", accountId: account.id }); }}>
-            <span data-wallet-type-emblem><AccountKindIcon kind={wallet.kind} className={styles.accountIcon} /></span>
-            <span className={styles.accountCopy}><strong data-wallet-type-name>{wallet.label}</strong>
-              <small data-wallet-type-state>{account ? accountStatus[account.status] : reason}</small></span>
-            {account && <span className={styles.accountValue}>{estimate({ kind: "account", accountId: account.id })}</span>}
-            {account && <SelectionMark />}
-          </button>
-        </li>;
+        const entries: (ProductAccount | undefined)[] = matches.length ? matches : [undefined];
+        return entries.map((account, index) => {
+          const usable = account && snapshot.accounts.filter(item => item.id === account.id).length === 1;
+          const reason = account ? "Повторяющийся ID — выбор недоступен" : "Пока недоступен";
+          return <li key={`${wallet.kind}-${account?.id ?? "missing"}-${index}`}>
+            <button type="button" className={styles.accountRow} data-wallet-type-card={wallet.kind}
+              disabled={!usable} data-account-context={usable ? account.id : undefined} data-account-status={account?.status}
+              aria-current={usable && context.kind === "account" && context.accountId === account.id ? "true" : undefined}
+              onClick={() => { if (usable) onSelectContext({ kind: "account", accountId: account.id }); }}>
+              <span data-wallet-type-emblem><AccountKindIcon kind={wallet.kind} className={styles.accountIcon} /></span>
+              <span className={styles.accountCopy}><strong data-wallet-type-name>{account?.label ?? wallet.label}</strong>
+                <small data-wallet-type-state>{usable ? accountStatus[account.status] : reason}</small></span>
+              {usable && <span className={styles.accountValue}>{estimate({ kind: "account", accountId: account.id })}</span>}
+              {usable && <SelectionMark />}
+            </button>
+          </li>;
+        });
       })}
     </ul>
   </div>;

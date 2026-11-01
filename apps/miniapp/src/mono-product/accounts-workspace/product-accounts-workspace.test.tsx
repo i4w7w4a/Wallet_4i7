@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import type { ProductActionRoute, ProductSnapshot } from "@wallet/core";
 import { afterEach, expect, it, vi } from "vitest";
 import { ProductAccountsWorkspace, type ProductAccountsWorkspaceProps } from "./index";
+import { MONO_PRODUCT_DEMO_ADAPTER } from "../demo-adapter";
 
 afterEach(cleanup);
 
@@ -75,7 +76,7 @@ it("keeps even one account in the controlled list until the host supplies an ins
   const input = props({ snapshot: { ...snapshot, accounts: [snapshot.accounts[0]!] } });
   render(<ProductAccountsWorkspace {...input} />);
   expect(screen.getByRole("heading", { name: "Кошельки", level: 1 })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Кастодиальный" }));
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Основной" }));
   expect(input.onInspectAccount).toHaveBeenCalledWith("main");
   expect(input.onUseAccount).not.toHaveBeenCalled();
   expect(screen.getByRole("heading", { name: "Кошельки", level: 1 })).toBeInTheDocument();
@@ -83,15 +84,15 @@ it("keeps even one account in the controlled list until the host supplies an ins
 
 it("shows supplied categories, statuses, per-account value estimates and placement counts", () => {
   render(<ProductAccountsWorkspace {...props({ context: { kind: "account", accountId: "vault" } })} />);
-  const main = screen.getByRole("button", { name: "Открыть счёт: Кастодиальный" });
-  expect(main).toHaveTextContent("Кастодиальный");
+  const main = screen.getByRole("button", { name: "Открыть счёт: Основной" });
+  expect(main).toHaveTextContent("Основной");
   expect(main).toHaveTextContent("Активен");
   expect(main).toHaveTextContent(/≈\s*130,20\s*\$/);
   expect(main).toHaveTextContent("2 размещения");
-  expect(main).toHaveAccessibleName("Открыть счёт: Кастодиальный");
+  expect(main).toHaveAccessibleName("Открыть счёт: Основной");
   expect(main).toHaveAccessibleDescription(/Активен.*2 размещения.*130,20/);
-  const vault = screen.getByRole("button", { name: "Открыть счёт: Депозитарный" });
-  expect(vault).toHaveTextContent("Депозитарный");
+  const vault = screen.getByRole("button", { name: "Открыть счёт: Хранилище" });
+  expect(vault).toHaveTextContent("Хранилище");
   expect(vault).toHaveTextContent("1 размещение");
   expect(vault).toHaveAttribute("aria-current", "true");
   expect(main).not.toHaveAttribute("aria-current");
@@ -119,7 +120,7 @@ it("keeps future wallets disabled without values, callbacks or the old home edit
 it("inspects the exact account independently of context and switches context only on explicit use", () => {
   const input = props({ selectedAccountId: "vault", context: { kind: "account", accountId: "main" } });
   render(<ProductAccountsWorkspace {...input} />);
-  expect(screen.getByRole("heading", { name: "Депозитарный", level: 1 })).toHaveAttribute("data-mono-product-accounts-title");
+  expect(screen.getByRole("heading", { name: "Хранилище", level: 1 })).toHaveAttribute("data-mono-product-accounts-title");
   const placements = screen.getByRole("region", { name: "Размещения" });
   expect(placements).toHaveTextContent("7,25");
   expect(placements).not.toHaveTextContent("123,45");
@@ -206,8 +207,8 @@ it("masks list and detail financial values including accessible names while pres
     }
   }
   expectMasked();
-  expect(screen.getByRole("button", { name: "Открыть счёт: Кастодиальный" })).toHaveTextContent("••••");
-  expect(screen.getByRole("button", { name: "Открыть счёт: Кастодиальный" })).not.toHaveAccessibleDescription(secret);
+  expect(screen.getByRole("button", { name: "Открыть счёт: Основной" })).toHaveTextContent("••••");
+  expect(screen.getByRole("button", { name: "Открыть счёт: Основной" })).not.toHaveAccessibleDescription(secret);
   rerender(<ProductAccountsWorkspace {...input} selectedAccountId="main" allowedActions={[sendRoute]} />);
   expectMasked();
   expect(screen.getByLabelText("Количество USDC · Ethereum")).toHaveTextContent("••••");
@@ -215,7 +216,7 @@ it("masks list and detail financial values including accessible names while pres
   expectMasked();
   expect(screen.getByLabelText("Доступное количество USDC · Ethereum")).toHaveTextContent("••••");
   expect(screen.getByLabelText("Оценка активов счёта в USD")).toHaveTextContent("••••");
-  expect(screen.getByRole("heading", { name: "Кастодиальный", level: 1 })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Основной", level: 1 })).toBeInTheDocument();
 });
 
 it("offers only host-permitted canonical routes and emits exact identity including receive mode", () => {
@@ -297,7 +298,7 @@ it("requires an explicit receive variant and keeps buy and swap behind More", ()
       : account) } });
   render(<ProductAccountsWorkspace {...input} />);
   fireEvent.click(disclosure());
-  const receive = screen.getByRole("button", { name: "Получить USDC · Кастодиальный · Ethereum: выбрать способ" });
+  const receive = screen.getByRole("button", { name: "Получить USDC · Основной · Ethereum: выбрать способ" });
   expect(receive).toHaveAttribute("data-product-holding-action-id", "main-eth");
   expect(receive).toHaveAttribute("data-product-holding-action", "receive");
   expect(screen.queryByRole("button", { name: /Подготовить покупку/ })).not.toBeInTheDocument();
@@ -308,7 +309,7 @@ it("requires an explicit receive variant and keeps buy and swap behind More", ()
   expect(input.onOpenAction).toHaveBeenLastCalledWith(internalReceive, {
     kind: "holding-action", holdingId: "main-eth", action: "receive", routeKey: "receive:main:usdc:ethereum:internal-transfer",
   });
-  const more = screen.getByRole("button", { name: "Ещё операции USDC · Кастодиальный · Ethereum" });
+  const more = screen.getByRole("button", { name: "Ещё операции USDC · Основной · Ethereum" });
   expect(more).toHaveAttribute("data-product-holding-action-id", "main-eth");
   expect(more).toHaveAttribute("data-product-holding-action", "more");
   fireEvent.click(more);
@@ -362,7 +363,7 @@ it("discards removed selected account data without falling back to another accou
   expect(screen.getByLabelText("Количество USDC · Ethereum")).toHaveTextContent("123,45");
   rerender(<ProductAccountsWorkspace {...input} snapshot={{ ...snapshot, accounts: snapshot.accounts.slice(1) }} />);
   expect(screen.getByRole("heading", { name: "Счёт недоступен", level: 1 })).toBeInTheDocument();
-  expect(screen.queryByRole("heading", { name: "Депозитарный", level: 1 })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Хранилище", level: 1 })).not.toBeInTheDocument();
   expect(container.textContent).not.toMatch(/123,45|90,25|130,20/);
   expect(screen.queryByRole("button", { name: /Подготовить|Выбрать счёт|Открыть актив/ })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Назад к счетам" }));
@@ -370,21 +371,42 @@ it("discards removed selected account data without falling back to another accou
 });
 
 
-it.each(["same-kind", "duplicate-id"] as const)("blocks ambiguous catalogue cards for %s without exposing an ID or estimate", scenario => {
-  const extra = scenario === "same-kind"
-    ? { ...snapshot.accounts[0]!, id: "second-custody", label: "Старый второй" }
-    : { ...snapshot.accounts[1]!, id: "main", label: "Старый дубликат" };
+it("opens distinct same-kind catalogue accounts by exact ID and label", () => {
+  const extra = { ...snapshot.accounts[0]!, id: "second-custody", label: "Личный второй" };
   const input = props({ snapshot: { ...snapshot, accounts: [...snapshot.accounts, extra] } });
-  const { container } = render(<ProductAccountsWorkspace {...input} />);
-  for (const name of scenario === "duplicate-id" ? [/Кастодиальный/, /Депозитарный/] : [/Кастодиальный/]) {
+  render(<ProductAccountsWorkspace {...input} />);
+  fireEvent.click(screen.getByRole("button", { name: /Открыть счёт: Основной/ }));
+  expect(input.onInspectAccount).toHaveBeenLastCalledWith("main");
+  fireEvent.click(screen.getByRole("button", { name: /Открыть счёт: Личный второй/ }));
+  expect(input.onInspectAccount).toHaveBeenLastCalledWith("second-custody");
+  expect(input.onUseAccount).not.toHaveBeenCalled();
+});
+
+it("blocks duplicate account IDs in the catalogue without exposing an estimate or selecting one", () => {
+  const duplicate = { ...snapshot.accounts[1]!, id: "main", label: "Дубликат" };
+  const input = props({ snapshot: { ...snapshot, accounts: [...snapshot.accounts, duplicate] } });
+  render(<ProductAccountsWorkspace {...input} />);
+  for (const name of [/Основной/, /Дубликат/]) {
     const card = screen.getByRole("button", { name });
     expect(card).toBeDisabled();
-    expect(card).toHaveTextContent(/Несколько счетов.*выбор недоступен/i);
-    expect(card.outerHTML).not.toMatch(/data-product-account-id|main|second-custody|130,20|\$/i);
+    expect(card.outerHTML).not.toMatch(/data-product-account-id|130,20|\$/i);
     fireEvent.click(card);
   }
-  expect(container.innerHTML).not.toMatch(/Старый второй|Старый дубликат/);
   expect(input.onInspectAccount).not.toHaveBeenCalled();
   expect(input.onUseAccount).not.toHaveBeenCalled();
   expect(input.onOpenAction).not.toHaveBeenCalled();
+});
+
+
+it("default demo catalogue retains canonical labels, exact IDs and the private placeholder", () => {
+  const input = props({ snapshot: MONO_PRODUCT_DEMO_ADAPTER.snapshot });
+  const { container } = render(<ProductAccountsWorkspace {...input} />);
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Кастодиальный" }));
+  expect(input.onInspectAccount).toHaveBeenLastCalledWith("demo-custody");
+  fireEvent.click(screen.getByRole("button", { name: "Открыть счёт: Депозитарный" }));
+  expect(input.onInspectAccount).toHaveBeenLastCalledWith("demo-depositary");
+  const privateCard = screen.getByRole("button", { name: /Приватный/ });
+  expect(privateCard).toBeDisabled();
+  expect(privateCard.outerHTML).not.toMatch(/demo-private|\$|0,00/);
+  expect(container.innerHTML).not.toMatch(/demo-private/);
 });

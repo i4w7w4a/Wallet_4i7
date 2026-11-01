@@ -32,11 +32,11 @@ it("selects exact available account contexts and labels totals as estimates", ()
   expect(all).toHaveTextContent(/не.*остаток.*отправки/i);
   expect(all).not.toHaveTextContent(/700[.,]123456789|12[.,]456789|Доступно/);
 
-  fireEvent.click(screen.getByRole("button", { name: /Кастодиальный/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Основной/ }));
   expect(select).toHaveBeenLastCalledWith({ kind: "account", accountId: "main" });
   rerender(<ProductAccountChooser snapshot={snapshot} context={{ kind: "account", accountId: "main" }}
     balanceHidden={false} onSelectContext={select} />);
-  expect(screen.getByRole("button", { name: /Кастодиальный/ })).toHaveAttribute("aria-current", "true");
+  expect(screen.getByRole("button", { name: /Основной/ })).toHaveAttribute("aria-current", "true");
   expect(screen.getByRole("button", { name: /Общий обзор/ })).not.toHaveAttribute("aria-current");
   select.mockClear();
   for (const name of ["Приватный"]) {
