@@ -83,7 +83,10 @@
   font: var(--mono-font-weight-medium, 500) 12px/1.4 var(--mono-type-label-family, var(--mono-font-ui, sans-serif));
   overflow-wrap: break-word;
 }
-.art { display: block; width: 100%; min-width: 0; max-height: 150px; }
+.art { position: relative; display: block; width: 100%; min-width: 0; max-height: 150px; aspect-ratio: 205 / 182; }
+.artLayer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.artLayer[hidden] { display: none; }
+.artLayer svg { display: block; width: 100%; height: 100%; }
 .chevron { position: relative; z-index: 1; color: var(--mono-text-secondary, #bdbdbd); }
 @container assets-wallet (max-width: 330px) {
   .card { grid-template-columns: minmax(0, 1fr) minmax(90px, 37%) 18px; }
