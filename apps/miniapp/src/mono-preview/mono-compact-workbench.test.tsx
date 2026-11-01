@@ -86,6 +86,7 @@ it("disables removed chart targets, keeps real balance/assets controls and retai
   tool("Активы");
   expect(screen.getByText(/Откройте «Активы» в нижнем меню.*настройки списка/i)).toBeVisible();
   fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Активы" }));
+  fireEvent.click(screen.getByRole("button", { name: "Общий обзор" }));
   fireEvent.change(screen.getByLabelText("Оформление активов"), { target: { value: "tiles" } });
   expect(document.querySelector(".mono-product-funds")).toHaveAttribute("data-variant", "tiles");
   fireEvent.click(screen.getByRole("button", { name: "Отменить пробу" }));
