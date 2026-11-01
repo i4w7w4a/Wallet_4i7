@@ -21,6 +21,8 @@ export type ProductAccountsWorkspaceProps = {
   snapshot: Readonly<ProductSnapshot>;
   selectedAccountId: string | null;
   groupKind?: ProductAccountKind;
+  presentation?: "assets" | "catalogue";
+  backToWalletSelection?: boolean;
   pendingActivity?: ComponentProps<typeof ProductPendingActivity>;
   context: AccountContext;
   balanceHidden: boolean;
@@ -35,7 +37,8 @@ export type ProductAccountsWorkspaceProps = {
   onOpenHolding(holdingId: string): void;
 };
 
-export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKind, context, balanceHidden, allowedActions,
+export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKind, presentation = "catalogue", backToWalletSelection = false,
+  context, balanceHidden, allowedActions,
   onInspectAccount, onBack, onUseAccount, useAccountUnavailableReason, expandedHoldingId, onExpandedHoldingChange,
   onOpenAction, onOpenHolding, pendingActivity }: ProductAccountsWorkspaceProps): JSX.Element {
   const titleId = useId();
@@ -53,12 +56,13 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKin
   const contextLabel = context.kind === "all" ? "Общий обзор"
     : contextAccount && contextAccount.kind !== "private" ? contextAccount.label : "Счёт недоступен";
 
-  const custodyDetail = selected?.account.id === "demo-custody";
+  const custodyDetail = Boolean(selected && (selected.account.id === "demo-custody" ||
+    (presentation === "assets" && selected.account.kind === "custodial")));
   return <section className={styles.workspace} aria-labelledby={custodyDetail ? undefined : titleId}
-    aria-label={custodyDetail ? selected.account.label : undefined}
+    aria-label={custodyDetail ? selected?.account.label : undefined}
     data-mono-product-accounts-workspace={unsafeSelected ? "unavailable" : selectedAccountId ?? "list"}>
     <button type="button" className={styles.back} onClick={onBack}
-      aria-label={detail ? "Назад к счетам" : "Назад в кошелёк"}>
+      aria-label={backToWalletSelection ? "Назад к кошелькам" : detail ? "Назад к счетам" : "Назад в кошелёк"}>
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6" /></svg>Назад
     </button>
     {!detail ? <>
@@ -104,7 +108,7 @@ export function ProductAccountsWorkspace({ snapshot, selectedAccountId, groupKin
     </> : !selected ? <div className={styles.missing}>
       <h1 id={titleId} className={styles.title} tabIndex={-1} data-mono-product-accounts-title>Счёт недоступен</h1>
       <p className={styles.intro}>Этого счёта больше нет в текущем списке. Вернитесь к счетам.</p>
-    </div> : custodyDetail ? <CustodyAccountAdapter key={selected.account.id}
+    </div> : custodyDetail ? <CustodyAccountAdapter key={selected.account.id} presentation={presentation}
       account={selected.account} holdings={selected.holdings} estimateMinor={selected.estimateMinor} current={selected.current}
       contextLabel={contextLabel} balanceHidden={balanceHidden} permittedRoutes={permittedRoutes}
       useAccountUnavailableReason={useAccountUnavailableReason} expandedHoldingId={expandedHoldingId}
