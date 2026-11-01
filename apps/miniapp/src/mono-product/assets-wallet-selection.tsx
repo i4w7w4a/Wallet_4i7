@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import type { ProductSnapshot } from "@wallet/core";
 import { AssetsWalletArt } from "./assets-wallet-art";
+import { selectAccountGroups } from "./home-pins";
+import { formatFiatMinor } from "./product-format";
 import styles from "./assets-wallet-selection.module.css";
 
 type AvailableWalletKind = "custodial" | "depositary";
 
 export type AssetsWalletSelectionProps = {
   canOpen: Readonly<Record<AvailableWalletKind, boolean>>;
+  snapshot: Readonly<ProductSnapshot>;
+  balanceHidden: boolean;
   onOpenWallet(kind: AvailableWalletKind): void;
-  onOpenOverview(): void;
 };
 
 const wallets = [
@@ -39,25 +43,29 @@ function WalletArt({ kind }: { kind: typeof wallets[number]["kind"] }) {
   </span>;
 }
 
-export function AssetsWalletSelection({ canOpen, onOpenWallet, onOpenOverview }: AssetsWalletSelectionProps) {
+export function AssetsWalletSelection({ canOpen, snapshot, balanceHidden, onOpenWallet }: AssetsWalletSelectionProps) {
   const titleId = useId();
+  const groups = selectAccountGroups(snapshot);
   return <section className={styles.selection} data-r1-wallet-selection aria-labelledby={titleId}>
-    <header className={styles.header}>
-      <p className={styles.eyebrow}>Портфель · Демо</p>
-      <h1 id={titleId}>Активы</h1>
-      <button type="button" className={styles.overview} data-r1-overview onClick={onOpenOverview}>
-        <span>Общий обзор</span>
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4 10h11m-4-4 4 4-4 4" /></svg>
-      </button>
-    </header>
+    <h1 id={titleId} className={styles.visuallyHidden}>Активы</h1>
     <div className={styles.cards}>
       {wallets.map(wallet => {
         const available = wallet.kind !== "private" && canOpen[wallet.kind];
+        const accounts = snapshot.accounts.filter(account => account.kind === wallet.kind);
+        const group = groups.find(candidate => candidate.kind === wallet.kind);
+        const holdingIds = snapshot.holdings.filter(holding => accounts.some(account => account.id === holding.accountId))
+          .map(holding => holding.id);
+        const ambiguousHoldings = holdingIds.some(id => snapshot.holdings.filter(holding => holding.id === id).length !== 1);
+        const estimate = accounts.some(account => account.status === "unavailable") || ambiguousHoldings
+          ? null : group?.estimateMinor ?? null;
         return <button key={wallet.kind} type="button" className={styles.card} data-r1-wallet-kind={wallet.kind}
           disabled={!available} onClick={() => { if (wallet.kind !== "private") onOpenWallet(wallet.kind); }}>
           <span className={styles.copy}>
             <strong>{wallet.label}</strong>
-            <span className={styles.status} aria-hidden={available || undefined}>{available ? "Открыть" : "Пока недоступно"}</span>
+            {available ? <span className={styles.estimate}>
+              <span>{balanceHidden ? "••••" : estimate === null ? "Нет данных" : `≈ ${formatFiatMinor(estimate)}`}</span>
+              <span className={styles.status}>Оценка в USD</span>
+            </span> : <span className={styles.status}>Пока недоступно</span>}
           </span>
           <WalletArt key={wallet.kind} kind={wallet.kind} />
           {available && <svg className={styles.chevron} viewBox="0 0 20 20" aria-hidden="true" focusable="false">

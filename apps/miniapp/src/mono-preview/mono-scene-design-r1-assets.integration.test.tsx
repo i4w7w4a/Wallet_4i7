@@ -69,7 +69,7 @@ it.each(["published", "portable"] as const)("keeps the existing Assets view in t
   localStorage.clear();
 });
 
-it("opens Assets on the three product choices and a separate overview", async () => {
+it("opens Assets on three product choices without a separate overview entry", async () => {
   const snapshot = await new MockWalletRepository().getSnapshot();
   const envelope = createMonoAppearanceEnvelope("ledger");
   const view = render(<MonoProductScene snapshot={snapshot} appearance={envelope.appearance} material={envelope.material}
@@ -78,7 +78,8 @@ it("opens Assets on the three product choices and a separate overview", async ()
   const selection = view.container.querySelector<HTMLElement>("[data-r1-wallet-selection]");
   expect(selection).toBeInTheDocument();
   expect(selection!.querySelectorAll("button[data-r1-wallet-kind]")).toHaveLength(3);
-  expect(selection!.querySelector("button[data-r1-overview]")).toBeEnabled();
+  expect(selection!.querySelector("[data-r1-overview]")).toBeNull();
+  expect(within(selection!).queryByText("Портфель · Демо")).toBeNull();
   expect(selection!.querySelector("button[data-r1-wallet-kind='private']")).toBeDisabled();
   expect(selection!.querySelector("button[data-r1-wallet-kind='private']")).toHaveTextContent("Пока недоступно");
   expect(selection!.querySelector("button[data-r1-wallet-kind='custodial']")).toHaveAccessibleName(/Кастодиальный/);
@@ -116,11 +117,6 @@ function walletCard(kind: "custodial" | "depositary" | "private") {
   expect(card).toBeVisible();
   return card!;
 }
-function overviewButton() {
-  const button = document.querySelector<HTMLButtonElement>("button[data-r1-overview]");
-  expect(button).toBeVisible();
-  return button!;
-}
 function workspace() {
   const element = document.querySelector<HTMLElement>("[data-mono-product-accounts-workspace]");
   expect(element).toBeVisible();
@@ -142,24 +138,16 @@ it("opens the exact default custody account directly and returns focus to its ca
   await waitFor(() => expect(walletCard("custodial")).toHaveFocus());
 });
 
-it("opens the separate all-assets overview and returns to its originating control", async () => {
+it("keeps the overall balance on the Overview tab without an Assets overview entry", async () => {
   const view = await host();
   assets();
-  fireEvent.click(overviewButton());
-  expect(screen.getByRole("heading", { name: "Все активы" })).toBeVisible();
+  expect(document.querySelector("[data-r1-overview]")).toBeNull();
   expect(view.current().view.accountsWorkspace).toBeNull();
-  expect(screen.getByRole("button", { name: /Открыть актив.*BTC/i })).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: /^Назад/ }));
-  await waitFor(() => expect(overviewButton()).toHaveFocus());
-  expect(walletCard("custodial")).toBeVisible();
-  fireEvent.click(overviewButton());
-  fireEvent.keyDown(document, { key: "Escape" });
-  await waitFor(() => expect(overviewButton()).toHaveFocus());
-  fireEvent.click(overviewButton());
   fireEvent.click(within(screen.getByRole("navigation", { name: "Разделы кошелька" })).getByRole("button", { name: "Обзор" }));
   await waitFor(() => expect(screen.getByRole("heading", { name: "Общий баланс" })).toHaveFocus());
   assets();
-  expect(overviewButton()).toBeVisible();
+  expect(walletCard("custodial")).toBeVisible();
+  expect(document.querySelector("[data-r1-overview]")).toBeNull();
 });
 
 it("requires an explicit account choice when two accounts share a kind", async () => {
@@ -183,17 +171,21 @@ it("requires an explicit account choice when two accounts share a kind", async (
   await waitFor(() => expect(walletCard("custodial")).toHaveFocus());
 });
 
-it("returns from profile inspection to the same Assets overview", async () => {
-  await host();
+it("returns from profile inspection to the selected account's scoped Assets view", async () => {
+  const view = await host();
   assets();
-  fireEvent.click(overviewButton());
+  fireEvent.click(walletCard("custodial"));
+  fireEvent.click(within(workspace()).getByText("Управление счётом"));
+  fireEvent.click(within(workspace()).getByRole("button", { name: /Выбрать счёт в кошельке/ }));
+  expect(screen.getByRole("heading", { name: "Активы счёта" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Открыть профиль" }));
   fireEvent.click(screen.getByRole("button", { name: "Закрыть профиль" }));
-  expect(screen.getByRole("heading", { name: "Все активы" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Активы счёта" })).toBeVisible();
+  expect(view.current().view.context).toEqual({ kind: "account", accountId: "demo-custody" });
   expect(screen.getByRole("button", { name: "Открыть профиль" })).toHaveFocus();
 });
 
-it("shows the account explicitly selected in the wallet, while the separate overview remains aggregate", async () => {
+it("shows the account explicitly selected in the wallet and keeps its context on return to cards", async () => {
   const view = await host();
   assets();
   fireEvent.click(walletCard("custodial"));
@@ -203,9 +195,9 @@ it("shows the account explicitly selected in the wallet, while the separate over
   expect(screen.getByRole("heading", { name: "Активы счёта" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Выбрать счёт: Кастодиальный" })).toHaveFocus();
   fireEvent.click(screen.getByRole("button", { name: "Назад к кошелькам" }));
-  fireEvent.click(overviewButton());
-  expect(screen.getByRole("heading", { name: "Все активы" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "Выбрать счёт: Общий обзор" })).toBeVisible();
+  expect(walletCard("custodial")).toBeVisible();
+  expect(document.querySelector("[data-r1-overview]")).toBeNull();
+  expect(view.current().view.context).toEqual({ kind: "account", accountId: "demo-custody" });
 });
 
 it("does not open an account when the only matching ID is duplicated", async () => {
@@ -229,8 +221,6 @@ it("honours a rejected context guard and keeps the exact send draft", async () =
   assets();
   const previousContext = view.current().view.context;
   view.block();
-  fireEvent.click(overviewButton());
-  expect(overviewButton()).toBeVisible();
   fireEvent.click(walletCard("custodial"));
   expect(view.current().view.accountsWorkspace).toBeNull();
   expect(view.current().view.context).toEqual(previousContext);

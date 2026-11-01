@@ -3,11 +3,12 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { renderToString } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vitest";
 import { AssetsWalletSelection } from "./assets-wallet-selection";
+import { MONO_PRODUCT_DEMO_ADAPTER } from "./demo-adapter";
 
 afterEach(cleanup);
 
 const selection = () => <AssetsWalletSelection canOpen={{ custodial: true, depositary: true }}
-  onOpenWallet={vi.fn()} onOpenOverview={vi.fn()} />;
+  snapshot={MONO_PRODUCT_DEMO_ADAPTER.snapshot} balanceHidden={false} onOpenWallet={vi.fn()} />;
 
 // Omitting the fallback or revealing a pending image would leave the first frame empty.
 it("keeps real decorative SVG visible until each series A image loads", () => {
