@@ -64,9 +64,9 @@ it("keeps the overview total global after choosing a working account in Assets",
   await renderHome();
   expect(screen.getByRole("heading", { name: "Общий баланс" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
   const accountSheet = screen.getByRole("dialog", { name: "Выбор счёта" });
-  fireEvent.click(within(accountSheet).getByRole("button", { name: /Хранилище/ }));
+  fireEvent.click(within(accountSheet).getByRole("button", { name: /Депозитарный/ }));
   expect(screen.getByRole("heading", { name: "Все активы" })).toBeInTheDocument();
   expect(screen.getByText("0,00 $", { exact: false })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Обзор" }));
@@ -133,13 +133,13 @@ it("keeps a non-home shared network battery pool and returns focus after Escape"
 it("masks account sheet money and keeps context and privacy when appearance changes", async () => {
   const { rerender, wallet, envelope } = await renderHome();
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" }))
-    .getByRole("button", { name: /Основной/ }));
+    .getByRole("button", { name: /Кастодиальный/ }));
   fireEvent.click(screen.getByRole("button", { name: "Обзор" }));
   fireEvent.click(screen.getByRole("button", { name: "Скрыть баланс" }));
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  fireEvent.click(screen.getByRole("button", { name: /Основной/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Кастодиальный/ }));
   const sheet = screen.getByRole("dialog", { name: "Выбор счёта" });
   expect(sheet).toHaveTextContent("Значения скрыты");
   expect(sheet).not.toHaveTextContent(/12\s?840,75/);
@@ -148,7 +148,7 @@ it("masks account sheet money and keeps context and privacy when appearance chan
   const frost = createMonoAppearanceEnvelope("frost");
   rerender(<MonoProductScene snapshot={wallet} appearance={frost.appearance}
     material={envelope.material} />);
-  expect(screen.getByRole("button", { name: /Основной/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Кастодиальный/ })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Обзор" }));
   expect(screen.getByRole("button", { name: "Показать баланс" })).toBeInTheDocument();
   expect(screen.getByRole("region", { name: "Общий баланс" })).toHaveTextContent("••••••");
@@ -169,9 +169,9 @@ it("scopes demo history to the chosen account instead of inventing activity for 
   const navigation = screen.getByRole("navigation", { name: "Разделы кошелька" });
   fireEvent.click(within(navigation).getByRole("button", { name: "История" }));
   expect(screen.getByText("В обработке")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: /Все счета/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Общий обзор/ }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" }))
-    .getByRole("button", { name: /Хранилище/ }));
+    .getByRole("button", { name: /Депозитарный/ }));
   expect(screen.getByText("Для этого счёта операций пока нет.")).toBeInTheDocument();
   expect(screen.queryByText("В обработке")).toBeNull();
 });

@@ -21,8 +21,8 @@ it("restores only the internal draft across appearance/privacy, then opens one e
   const { container, rerender } = render(<MonoProductScene snapshot={wallet} appearance={ledger.appearance} material={ledger.material} session={session} />);
   const openFromAll = () => {
     fireEvent.click(screen.getByRole("button", { name: "Получить" }));
-    fireEvent.click(screen.getByRole("button", { name: "Хранилище" }));
-    fireEvent.click(screen.getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Хранилище)(?=.*Между счетами)/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Депозитарный" }));
+    fireEvent.click(screen.getByRole("button", { name: /(?=.*USDC)(?=.*Ethereum)(?=.*Депозитарный)(?=.*Между счетами)/ }));
   };
   openFromAll();
   fireEvent.change(await screen.findByRole("textbox", { name: "Сумма пополнения" }), { target: { value: "0012,50" } });
@@ -54,8 +54,8 @@ it("restores only the internal draft across appearance/privacy, then opens one e
   const receipt = within(screen.getByRole("region", { name: "Квитанция операции" }));
   expect(receipt.getByText("Откуда")).toBeVisible();
   expect(receipt.getByText("Куда")).toBeVisible();
-  expect(receipt.getByText("Основной")).toBeVisible();
-  expect(receipt.getByText("Хранилище")).toBeVisible();
+  expect(receipt.getByText("Кастодиальный")).toBeVisible();
+  expect(receipt.getByText("Депозитарный")).toBeVisible();
   expect(receipt.getByText("Комиссия примера")).toBeVisible();
   expect(receipt.getByText("0 USDC")).toBeVisible();
   rerender(<MonoProductScene snapshot={wallet} appearance={frost.appearance} material={frost.material}
@@ -67,17 +67,17 @@ it("restores only the internal draft across appearance/privacy, then opens one e
     fireEvent.click(screen.getByRole("button", { name: /Выбрать счёт:/ }));
     fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" })).getByRole("button", { name: new RegExp(name) }));
   };
-  selectAccount("Хранилище");
+  selectAccount("Депозитарный");
   expect(internalRows()).toHaveLength(1);
   expect(internalRows()[0]).toHaveAttribute("data-product-activity-id", id);
   expect(internalRows()[0]).toHaveAttribute("data-direction", "incoming");
   fireEvent.click(screen.getByRole("button", { name: "Получения" }));
   expect(internalRows()).toHaveLength(1);
-  selectAccount("Основной");
+  selectAccount("Кастодиальный");
   fireEvent.click(screen.getByRole("button", { name: "Все" }));
   expect(internalRows()[0]).toHaveAttribute("data-direction", "outgoing");
   expect(internalRows()[0]).toHaveAttribute("data-product-activity-id", id);
-  selectAccount("Все счета");
+  selectAccount("Общий обзор");
   expect(internalRows()).toHaveLength(1);
   // A completed operation survives history, but its draft and confirmation do not reopen.
   fireEvent.click(screen.getByRole("button", { name: "Обзор" }));

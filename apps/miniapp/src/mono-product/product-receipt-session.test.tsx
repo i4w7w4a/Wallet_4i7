@@ -73,13 +73,13 @@ it("opens the exact failed retry in history and removes the previous history act
   const envelope = createMonoAppearanceEnvelope("ledger");
   const { container, rerender } = render(<MonoProductScene snapshot={wallet} appearance={envelope.appearance} material={envelope.material} />);
   fireEvent.click(screen.getByRole("button", { name: "Активы" }));
-  fireEvent.click(screen.getByRole("button", { name: /Выбрать счёт: Все счета/ }));
-  fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" })).getByRole("button", { name: /Основной/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Выбрать счёт: Общий обзор/ }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Выбор счёта" })).getByRole("button", { name: /Кастодиальный/ }));
   fireEvent.click(screen.getByRole("button", { name: "Обзор" }));
   fireEvent.click(screen.getByRole("button", { name: /Мои средства/ }));
   fireEvent.click(screen.getByRole("button", { name: "Открыть актив USD Coin (USDC)" }));
-  fireEvent.click(screen.getByRole("radio", { name: "Выбрать размещение: Основной · Ethereum" }));
-  fireEvent.click(screen.getByRole("button", { name: "Отправить USDC · Основной · Ethereum" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Выбрать размещение: Кастодиальный · Ethereum" }));
+  fireEvent.click(screen.getByRole("button", { name: "Отправить USDC · Кастодиальный · Ethereum" }));
   await screen.findByRole("textbox", { name: "Получатель" });
   fireEvent.click(screen.getByRole("button", { name: "Вставить пример" }));
   fireEvent.click(screen.getByRole("button", { name: "Продолжить" }));
@@ -100,7 +100,7 @@ it("opens the exact failed retry in history and removes the previous history act
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(container.querySelector("[data-mono-preview]")).toHaveAttribute("data-mono-section", "history");
   expect(container.querySelector("[data-mono-product-asset-workspace]")).toBeNull();
-  expect(screen.getByRole("button", { name: /Выбрать счёт: Основной/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Выбрать счёт: Кастодиальный/ })).toBeInTheDocument();
   const rows = [...container.querySelectorAll<HTMLButtonElement>("[data-product-activity-id]")];
   const secondRow = rows.find(row => row.dataset.productActivityId === `simulation:${send.mock.calls[1]![0].idempotencyKey}`)!;
   const firstRow = rows.find(row => row.dataset.productActivityId === `simulation:${send.mock.calls[0]![0].idempotencyKey}`)!;
@@ -116,7 +116,7 @@ it("opens the exact failed retry in history and removes the previous history act
   incomingFilter.focus();
   fireEvent.click(incomingFilter);
   expect(incomingFilter).toHaveFocus();
-  const accountSelector = screen.getByRole("button", { name: /Выбрать счёт: Основной/ });
+  const accountSelector = screen.getByRole("button", { name: /Выбрать счёт: Кастодиальный/ });
   accountSelector.focus();
   rerender(<MonoProductScene snapshot={wallet} appearance={envelope.appearance} material={envelope.material} />);
   await act(async () => { await Promise.resolve(); });
